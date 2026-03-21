@@ -1,0 +1,13 @@
+1. `@codeplane/ui-core` data-access wiring is underspecified and likely wrong. Step 8 says “insert APIClientProvider” but does not specify using the `APIClientProvider` context from `@codeplane/ui-core`. Using the local `apps/tui/src/providers/APIClientProvider.tsx` context will not satisfy hooks imported from `@codeplane/ui-core`, so screens can fail at runtime.
+2. The plan depends on `resolveAuthToken`/`resolveAuthTarget` from `@codeplane/cli/auth-state` but does not include any step to add/verify that package/export in this workspace. As written, imports may be unresolved.
+3. OpenTUI hook usage is not precise enough: Step 3 references `useSpinner()` without specifying the required active-state contract (current hook takes `active: boolean`). This is a concrete integration risk.
+4. Keyboard behavior does not fully match the TUI design/global model. Step 4 only specifies `q` and `R`; it omits explicit `Esc` parity (global “Esc = q”) and `?` behavior for the error state. It also does not disambiguate uppercase `R` vs `r` + `shift` handling in OpenTUI key events.
+5. Step 3/5 architecture conflicts with shell consistency: gating in `AuthProvider` and rendering standalone auth screens can bypass shared app-shell chrome behavior unless explicitly integrated. The plan does not define how header/status consistency is preserved.
+6. Endpoint contract is ambiguous and risky: plan uses `/api/user`, while current implementation uses `/api/v1/user`. The plan does not include a source-of-truth check, so this can regress auth validation.
+7. Global abort handling is incomplete. Step 2 introduces `setGlobalAbort(controller)` but does not define clearing/reset semantics after completion/retry, which can leave stale controller references.
+8. E2E plan is not executable as written. `createMockAPIEnv` only sets env vars; it does not create controllable 200/401/timeout API behavior. Loading/expired/offline tests require a deterministic mock server or fixture routes.
+9. Keyboard E2E cases (`Ctrl+C`, special keys) are underspecified against the current helper behavior; the plan does not define how key chords are actually emitted/validated in `launchTUI`.
+10. Security test is too vague (“token never snapshotted”) without specifying sentinel-token assertions across snapshots/log output.
+11. Minor scope nit: Step 1 adds `truncateText` + `wrapText` but does not define terminal-width/grapheme-safe behavior; plain `.length` wrapping can mis-measure Unicode and break layout at 80x24.
+
+Paths are correctly targeted (`apps/tui/src/*`, `e2e/tui/*`), but due to the issues above this plan is not production-ready.

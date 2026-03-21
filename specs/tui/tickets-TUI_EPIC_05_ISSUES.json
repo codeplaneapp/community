@@ -1,0 +1,390 @@
+[
+  {
+    "id": "tui-issues-screen-scaffold",
+    "title": "Scaffold Issues screen directory, screen registry entry, and navigation wiring",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the apps/tui/src/screens/Issues/ directory structure with index barrel export. Register the IssueList and IssueDetail screen IDs in the screen registry (apps/tui/src/router/screens.ts). Wire g i go-to keybinding to navigate to the issue list screen (requires repo context). Create placeholder components for IssueListScreen, IssueDetailScreen, IssueCreateForm, and IssueEditForm that render basic loading states. Set up the e2e/tui/issues.test.ts test file with the test harness scaffolding.",
+    "dependencies": [
+      "tui-screen-router",
+      "tui-navigation-provider"
+    ],
+    "files": [
+      "apps/tui/src/screens/Issues/index.ts",
+      "apps/tui/src/screens/Issues/IssueListScreen.tsx",
+      "apps/tui/src/screens/Issues/IssueDetailScreen.tsx",
+      "apps/tui/src/screens/Issues/IssueCreateForm.tsx",
+      "apps/tui/src/screens/Issues/IssueEditForm.tsx",
+      "apps/tui/src/router/screens.ts",
+      "e2e/tui/issues.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "g i from any screen with repo context navigates to issue list screen",
+      "Issue list screen renders placeholder with 'Issues' title in header breadcrumb",
+      "Screen IDs 'issue-list', 'issue-detail', 'issue-create', 'issue-edit' are registered in screen registry",
+      "q from issue list pops back to previous screen",
+      "e2e/tui/issues.test.ts compiles and test harness launches TUI successfully"
+    ]
+  },
+  {
+    "id": "tui-issues-data-hooks",
+    "title": "Implement issue data hooks: useIssues, useIssue, mutations, comments, events, labels, milestones, collaborators",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create TUI-side data hooks wrapping the @codeplane/sdk issue services. Hooks: useIssues (paginated list with state filter, 500-item cap), useIssue (single issue, 30s cache), useCreateIssue, useUpdateIssue (optimistic + revert), useIssueComments (paginated), useIssueEvents (paginated), useCreateIssueComment (optimistic append), useRepoLabels, useRepoMilestones, useRepoCollaborators, useAddIssueLabels, useRemoveIssueLabel. All hooks consume APIClientProvider context and handle 401/404/network errors.",
+    "dependencies": [
+      "tui-navigation-provider"
+    ],
+    "files": [
+      "apps/tui/src/hooks/useIssues.ts",
+      "apps/tui/src/hooks/useIssue.ts",
+      "apps/tui/src/hooks/useCreateIssue.ts",
+      "apps/tui/src/hooks/useUpdateIssue.ts",
+      "apps/tui/src/hooks/useIssueComments.ts",
+      "apps/tui/src/hooks/useIssueEvents.ts",
+      "apps/tui/src/hooks/useCreateIssueComment.ts",
+      "apps/tui/src/hooks/useRepoLabels.ts",
+      "apps/tui/src/hooks/useRepoMilestones.ts",
+      "apps/tui/src/hooks/useRepoCollaborators.ts",
+      "apps/tui/src/hooks/useIssueLabels.ts"
+    ],
+    "acceptanceCriteria": [
+      "useIssues returns { issues, loading, error, loadMore, hasMore } with cursor-based pagination",
+      "useIssues supports state filter parameter passed to API query string",
+      "useIssue returns { issue, loading, error, mutate } with 30-second cache",
+      "useCreateIssue returns mutation function that POSTs and returns created issue",
+      "useUpdateIssue supports optimistic local state update with revert on 4xx/5xx",
+      "useIssueComments returns paginated comments with loadMore and 500-item memory cap",
+      "useIssueEvents returns paginated timeline events",
+      "useCreateIssueComment supports optimistic append with pending indicator",
+      "useRepoLabels, useRepoMilestones, useRepoCollaborators return full lists",
+      "All hooks read auth token from APIClientProvider context",
+      "All hooks handle 401, 404, and network errors"
+    ]
+  },
+  {
+    "id": "tui-label-badge-component",
+    "title": "Implement LabelBadge component with color mapping, luminance floor, and overflow handling",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the <LabelBadge> component for rendering colored label badges across all issue surfaces. Badge format: [label-name] with brackets in muted color, name in mapped label color. Color mapping: truecolor (hex), ANSI 256 (nearest palette), ANSI 16 (nearest basic). Luminance floor: brighten colors below 0.15. NO_COLOR=1 support. Configurable truncation (12ch list, 30ch detail, 40ch picker). Overflow algorithm: +N indicator. CJK/emoji double-width accounting. Also create color resolution utility.",
+    "dependencies": [
+      "tui-bootstrap-and-renderer"
+    ],
+    "files": [
+      "apps/tui/src/components/LabelBadge.tsx",
+      "apps/tui/src/util/colorMapping.ts",
+      "apps/tui/src/util/labelOverflow.ts"
+    ],
+    "acceptanceCriteria": [
+      "LabelBadge renders [label-name] with brackets in muted color and name in label color",
+      "Color detection cascade: truecolor, ANSI 256, ANSI 16 works correctly",
+      "Colors below 0.15 relative luminance are brightened",
+      "NO_COLOR=1 disables all color output",
+      "Label text truncated with ellipsis at configurable max width",
+      "Overflow algorithm shows +N indicator when labels exceed available width",
+      "CJK characters and emoji measured as double-width",
+      "Component accepts label object with name, color, and optional description"
+    ]
+  },
+  {
+    "id": "tui-issue-list-screen",
+    "title": "Issue list screen with pagination, state icons, row rendering, and navigation to detail",
+    "type": "feature",
+    "featureName": "TUI_ISSUE_LIST_SCREEN",
+    "description": "Full-screen issue list for repository-wide browsing. ListComponent with useIssues() cursor pagination (30/page, 500 cap). Rows: state icon (green/red), #N, title, label badges, author, comment count, timestamp. j/k navigation, Enter opens detail, c opens create, x closes/reopens. Default filter: open. Responsive columns at 80x24/120x40/200x60. Loading spinner, empty state, status bar hints.",
+    "dependencies": [
+      "tui-issues-screen-scaffold",
+      "tui-issues-data-hooks",
+      "tui-label-badge-component",
+      "tui-list-component",
+      "tui-header-bar",
+      "tui-status-bar"
+    ],
+    "files": [
+      "apps/tui/src/screens/Issues/IssueListScreen.tsx",
+      "apps/tui/src/screens/Issues/IssueListRow.tsx",
+      "e2e/tui/issues.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Issue list renders with state icon, number, title, labels, author, comment count, timestamp",
+      "Cursor-based pagination loads next page at 80% scroll",
+      "500-item memory cap evicts oldest pages",
+      "j/k moves focus, Enter pushes issue detail, c pushes create form",
+      "x triggers close/reopen on focused issue with optimistic update",
+      "Default state filter shows open issues",
+      "Empty state renders 'No issues found' with create hint",
+      "Responsive layout adapts at 80x24, 120x40, 200x60",
+      "Loading spinner during fetch and pagination",
+      "q returns to previous screen"
+    ]
+  },
+  {
+    "id": "tui-issue-labels-display",
+    "title": "Cross-cutting label rendering with picker overlay, mutation support, and integration surfaces",
+    "type": "feature",
+    "featureName": "TUI_ISSUE_LABELS_DISPLAY",
+    "description": "Full label display system: interactive LabelPickerOverlay (l/L keybindings), multi-select with fuzzy search, Space toggle, Enter confirm, Esc cancel. Max 10 labels. Responsive overlay sizing. Optimistic label mutations via API. Integration across list rows, detail, forms, and filters. Uses LabelBadge for rendering with color mapping and overflow.",
+    "dependencies": [
+      "tui-label-badge-component",
+      "tui-issues-data-hooks",
+      "tui-modal-component",
+      "tui-issue-list-screen"
+    ],
+    "files": [
+      "apps/tui/src/screens/Issues/LabelPickerOverlay.tsx",
+      "apps/tui/src/screens/Issues/LabelSection.tsx",
+      "e2e/tui/issues.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "l key on list opens label picker, L on detail opens label picker",
+      "Picker renders all repo labels with color preview and checkboxes",
+      "Fuzzy search filters labels, Space toggles, Enter confirms, Esc cancels",
+      "Max 10 labels selected, optimistic mutations with revert on error",
+      "Correct rendering at all color depths and NO_COLOR=1",
+      "Overflow +N indicator in list rows",
+      "Responsive overlay sizing at all breakpoints"
+    ]
+  },
+  {
+    "id": "tui-issue-list-filters",
+    "title": "Persistent filter toolbar with state, label, assignee, milestone filtering and sort",
+    "type": "feature",
+    "featureName": "TUI_ISSUE_LIST_FILTERS",
+    "description": "Filter toolbar below header: f cycles state (Open/Closed/All), o cycles sort order, l opens label picker (AND logic), a opens assignee picker (single-select), m opens milestone picker (single-select), x clears all. State filter server-side with 150ms debounce, label/assignee/milestone client-side. Active filters shown as badges. Filters persist across detail navigation.",
+    "dependencies": [
+      "tui-issue-list-screen",
+      "tui-issue-labels-display",
+      "tui-issues-data-hooks",
+      "tui-modal-component"
+    ],
+    "files": [
+      "apps/tui/src/screens/Issues/IssueFilterToolbar.tsx",
+      "apps/tui/src/screens/Issues/AssigneePickerOverlay.tsx",
+      "apps/tui/src/screens/Issues/MilestonePickerOverlay.tsx",
+      "e2e/tui/issues.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "f cycles state filter with toolbar update and 150ms debounced API refetch",
+      "o cycles sort order",
+      "l/a/m open respective picker overlays",
+      "x clears all filters to defaults",
+      "Client-side filtering for labels/assignees/milestones",
+      "Active filter badges and count shown in toolbar",
+      "Filters persist across detail navigation and back"
+    ]
+  },
+  {
+    "id": "tui-issue-list-search",
+    "title": "Inline search with client-side filtering and server-side full-text search",
+    "type": "feature",
+    "featureName": "TUI_ISSUE_LIST_SEARCH",
+    "description": "/ key focuses search input. Client-side immediate substring match (title, body, labels, author). Server-side q param at 2+ chars with 300ms debounce. Match count badge, match highlighting in rows. Max 120 chars. Esc clears. Respects active filters (intersection). Pagination works during search.",
+    "dependencies": [
+      "tui-issue-list-screen",
+      "tui-issue-list-filters"
+    ],
+    "files": [
+      "apps/tui/src/screens/Issues/IssueSearchInput.tsx",
+      "apps/tui/src/hooks/useIssueSearch.ts",
+      "e2e/tui/issues.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "/ focuses search, Esc clears and defocuses",
+      "Client-side substring matching on title, body, labels, author",
+      "Server-side search at 2+ chars with 300ms debounce",
+      "Match count badge and text highlighting",
+      "Respects active filters, max 120 chars, pagination works"
+    ]
+  },
+  {
+    "id": "tui-issue-detail-view",
+    "title": "Full-screen issue detail with metadata, markdown body, timeline, dependencies, and actions",
+    "type": "feature",
+    "featureName": "TUI_ISSUE_DETAIL_VIEW",
+    "description": "Issue detail pushed from list Enter. Header: number, title, state badge, author, timestamps. Metadata sidebar at standard+ (assignees, labels, milestone, dependencies). Body via <markdown> with syntax highlighting. Timeline section (comments + events interleaved). j/k scroll, n/p comment jump, G/gg, e edit, o close/reopen, c comment, L labels, q back. Responsive at all breakpoints. 30s data cache.",
+    "dependencies": [
+      "tui-issues-data-hooks",
+      "tui-issues-screen-scaffold",
+      "tui-issue-list-screen",
+      "tui-issue-labels-display",
+      "tui-detail-view-component"
+    ],
+    "files": [
+      "apps/tui/src/screens/Issues/IssueDetailScreen.tsx",
+      "apps/tui/src/screens/Issues/IssueMetadataSidebar.tsx",
+      "apps/tui/src/screens/Issues/IssueDependencies.tsx",
+      "e2e/tui/issues.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Renders header with number, title, state badge, author, timestamps",
+      "Markdown body with syntax highlighting via <markdown>",
+      "Metadata sidebar at standard+ with assignees, labels, milestone, dependencies",
+      "j/k scroll, n/p comment jump, G/gg top/bottom",
+      "e pushes edit, o close/reopen, c focuses comment, L labels, q back",
+      "Dependencies section with clickable issue references",
+      "Responsive at 80x24, 120x40, 200x60",
+      "Loading and 404 error states"
+    ]
+  },
+  {
+    "id": "tui-issue-close-reopen",
+    "title": "Single-key close/reopen toggle with optimistic updates, bulk operations, and error handling",
+    "type": "feature",
+    "featureName": "TUI_ISSUE_CLOSE_REOPEN",
+    "description": "x on list / o on detail toggles issue state. Optimistic <16ms update. Status bar messages. In-flight guard. Idempotent. Bulk: Space select + x with confirmation >5. Error handling: 403/404/429/500/timeout with appropriate messages and revert.",
+    "dependencies": [
+      "tui-issue-list-screen",
+      "tui-issue-detail-view",
+      "tui-issues-data-hooks"
+    ],
+    "files": [
+      "apps/tui/src/screens/Issues/useIssueCloseReopen.ts",
+      "e2e/tui/issues.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "x on list and o on detail toggle issue state",
+      "Optimistic update <16ms with revert on error",
+      "Status bar success/error messages",
+      "In-flight guard prevents double-toggle",
+      "Bulk select + close with confirmation >5",
+      "403/404/429/500/timeout error handling",
+      "Idempotent: no API call for already-matching state"
+    ]
+  },
+  {
+    "id": "tui-issue-create-form",
+    "title": "Full-screen issue creation form with validation, selectors, and optimistic navigation",
+    "type": "feature",
+    "featureName": "TUI_ISSUE_CREATE_FORM",
+    "description": "c from list pushes create form. Fields: Title (required, 255 max), Body (textarea, markdown), Assignees (multi-select), Labels (multi-select with color), Milestone (single-select), Submit, Cancel. Tab/Shift+Tab cycle, Ctrl+S submit, Esc cancel with dirty confirmation. Client 422 field-level errors. Double-submit prevention. On success push detail. Responsive textarea height and layout.",
+    "dependencies": [
+      "tui-issue-list-screen",
+      "tui-issues-data-hooks",
+      "tui-issue-labels-display",
+      "tui-form-component"
+    ],
+    "files": [
+      "apps/tui/src/screens/Issues/IssueCreateForm.tsx",
+      "e2e/tui/issues.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "c from list pushes create form with all fields",
+      "Tab/Shift+Tab cycles fields, Ctrl+S submits, Esc cancels",
+      "Client-side title required validation",
+      "Server 422 field-level error mapping",
+      "Double-submit prevention, 'Creating...' indicator",
+      "On success push detail, on error preserve form",
+      "Esc dirty confirmation, responsive layout"
+    ]
+  },
+  {
+    "id": "tui-issue-edit-form",
+    "title": "Full-screen issue edit form with pre-population, dirty tracking, and delta PATCH",
+    "type": "feature",
+    "featureName": "TUI_ISSUE_EDIT_FORM",
+    "description": "e from detail pushes edit form. All fields pre-populated from useIssue(). Dirty tracking: only changed fields in PATCH. Tab order: Title, Body, Labels, Assignees, Milestone, Save, Cancel. Ctrl+S save, Esc with dirty confirmation. 409 conflict reload prompt, 422 field errors. On success pop to detail.",
+    "dependencies": [
+      "tui-issue-detail-view",
+      "tui-issues-data-hooks",
+      "tui-issue-labels-display",
+      "tui-form-component"
+    ],
+    "files": [
+      "apps/tui/src/screens/Issues/IssueEditForm.tsx",
+      "e2e/tui/issues.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "e from detail pushes pre-populated edit form",
+      "Dirty tracking: only modified fields in PATCH payload",
+      "Ctrl+S saves, Esc with dirty confirmation",
+      "409 conflict reload prompt, 422 field errors",
+      "Double-submit prevention, on success pop to detail",
+      "Loading state while fetching issue data"
+    ]
+  },
+  {
+    "id": "tui-issue-comment-list",
+    "title": "Paginated chronological comment and timeline event display with interleaving",
+    "type": "feature",
+    "featureName": "TUI_ISSUE_COMMENT_LIST",
+    "description": "Comment and timeline display in detail screen. Comments: author, timestamp, markdown body (50k char cap). Events: icon, description, timestamp (muted). Interleaved by created_at. Cursor pagination 30/page, 500 total cap. n/p jump comments, j/k scroll, G/gg. Optimistic new comments with pending indicator. Current user comments show [edit][delete].",
+    "dependencies": [
+      "tui-issue-detail-view",
+      "tui-issues-data-hooks"
+    ],
+    "files": [
+      "apps/tui/src/screens/Issues/CommentBlock.tsx",
+      "apps/tui/src/screens/Issues/TimelineEvent.tsx",
+      "apps/tui/src/screens/Issues/CommentTimeline.tsx",
+      "e2e/tui/issues.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Comments render with author, timestamp, markdown body",
+      "50k char truncation with 'Show full comment' notice",
+      "Timeline events as muted single-line entries with icons",
+      "Chronological interleaving by created_at",
+      "Cursor pagination, 500 item cap, n/p comment jump",
+      "Optimistic comments with pending indicator",
+      "Empty state message"
+    ]
+  },
+  {
+    "id": "tui-issue-comment-create",
+    "title": "Inline comment creation textarea with submit, validation, and optimistic append",
+    "type": "feature",
+    "featureName": "TUI_ISSUE_COMMENT_CREATE",
+    "description": "c focuses textarea at detail bottom. Responsive height (5/8/12 lines). Captures keys except Ctrl+S/Esc/Ctrl+C. Ctrl+S submits, validates non-empty, trims whitespace. Double-submit prevention. Optimistic append with pending indicator, revert on error with content restore. Esc discard confirmation if content.",
+    "dependencies": [
+      "tui-issue-detail-view",
+      "tui-issue-comment-list",
+      "tui-issues-data-hooks"
+    ],
+    "files": [
+      "apps/tui/src/screens/Issues/CommentInput.tsx",
+      "e2e/tui/issues.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "c focuses textarea, responsive height at breakpoints",
+      "Keys captured by textarea except Ctrl+S, Esc, Ctrl+C",
+      "Ctrl+S submits, empty/whitespace rejected, content trimmed",
+      "Double-submit prevention, 'Submitting...' indicator",
+      "Optimistic append with pending, revert on error with content restore",
+      "Esc discard confirmation if content, immediate defocus if empty"
+    ]
+  },
+  {
+    "id": "tui-issue-keyboard-shortcuts",
+    "title": "Unified keybinding dispatch, priority resolution, help overlay, and status bar hints",
+    "type": "feature",
+    "featureName": "TUI_ISSUE_KEYBOARD_SHORTCUTS",
+    "description": "Capstone: useIssueKeyboard() hook with 6-layer priority (text input > modal > go-to > sub-screen > issue-wide > global). Status bar hints responsive to width. Help overlay (?) with grouped keybindings, scrollable, max 8 groups/20 entries. Command palette issue actions. Esc cascade: overlay > search > form confirmation > pop. No conflicts per context. 16ms handler budget.",
+    "dependencies": [
+      "tui-issue-list-screen",
+      "tui-issue-detail-view",
+      "tui-issue-create-form",
+      "tui-issue-edit-form",
+      "tui-issue-close-reopen",
+      "tui-issue-comment-create",
+      "tui-issue-list-filters",
+      "tui-issue-list-search",
+      "tui-issue-labels-display"
+    ],
+    "files": [
+      "apps/tui/src/screens/Issues/useIssueKeyboard.ts",
+      "apps/tui/src/screens/Issues/IssueHelpOverlay.tsx",
+      "e2e/tui/issues.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "6-layer priority hierarchy resolves conflicts correctly",
+      "Text input captures keys, global shortcuts still work",
+      "Go-to mode with 1500ms timeout and status bar indicator",
+      "Status bar hints responsive to terminal width",
+      "? opens scrollable help overlay with grouped keybindings",
+      "Issue actions in command palette",
+      "Esc cascade: overlay > search > form confirmation > pop",
+      "No conflicts per context, 16ms handler budget",
+      "Rapid input handled without drops"
+    ]
+  }
+]

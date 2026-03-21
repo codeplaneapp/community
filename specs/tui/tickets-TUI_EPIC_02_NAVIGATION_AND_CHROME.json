@@ -1,0 +1,390 @@
+[
+  {
+    "id": "tui-nav-chrome-eng-01",
+    "title": "NavigationProvider, ScreenEntry types, and screen registry",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Implement the NavigationProvider React context that manages the stack-based navigation model. This includes:\n\n1. ScreenEntry interface: { id, screen: ScreenName, params: Record<string, string>, breadcrumb: string }\n2. ScreenName enum: All screen identifiers from features.ts (Dashboard, RepoList, RepoOverview, Issues, IssueDetail, Landings, LandingDetail, DiffView, Workspaces, Workflows, Search, Notifications, Agents, Settings, Organizations, Sync, Wiki, plus detail/create/edit variants)\n3. NavigationContext: stack, currentScreen, push(), pop(), replace(), reset() (aka goTo()), canGoBack, repoContext, orgContext\n4. Screen registry map: Associates each ScreenName with { component, requiresRepo, requiresOrg, breadcrumbLabel }. Use lazy/placeholder components for all screens.\n5. Stack constraints: Max depth 32, push-on-duplicate prevention, scroll position cache for back-navigation\n6. useNavigation() hook: Provides NavigationContext to all descendants\n\nFiles: apps/tui/src/providers/NavigationProvider.tsx, apps/tui/src/router/types.ts, apps/tui/src/router/registry.ts, apps/tui/src/router/ScreenRouter.tsx, apps/tui/src/screens/PlaceholderScreen.tsx",
+    "dependencies": [
+      "tui-bootstrap-and-renderer"
+    ],
+    "estimateHours": 8,
+    "acceptanceCriteria": [
+      "NavigationProvider exposes push, pop, replace, reset via useNavigation() hook",
+      "ScreenEntry stores id, screen, params, breadcrumb",
+      "Max stack depth 32 enforced — push beyond 32 is a no-op",
+      "Duplicate push (same screen+params at top of stack) is silently dropped",
+      "pop() on depth-1 stack signals quit to the app",
+      "Screen registry maps all ScreenName values to placeholder components",
+      "repoContext derived from the deepest repo-scoped screen in the stack",
+      "ScreenRouter renders the component from registry for the top-of-stack entry"
+    ]
+  },
+  {
+    "id": "tui-nav-chrome-eng-02",
+    "title": "KeybindingProvider with layered priority dispatch",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Implement the KeybindingProvider that manages the layered keyboard input system. Includes:\n\n1. KeybindingScope: { id, priority, bindings: Map<string, KeyHandler>, active }\n2. Priority layers: Text input (P1) > Modal/Overlay (P2) > Go-to mode (P3) > Screen-specific (P4) > Global (P5)\n3. KeyHandler: { key, description, group, handler, when? }\n4. useScreenKeybindings(bindings): Push scope on mount, pop on unmount\n5. useGlobalKeybindings(): Register always-active global bindings (q, Esc, Ctrl+C, ?, :, g)\n6. Single useKeyboard() at provider level captures all input, walks priority stack top-down\n7. Text input detection: focused <input>/<textarea> captures printable keys. Only Esc, Ctrl+C, Ctrl+S propagate.\n8. useStatusBarHints(): Context hook for screens to register keybinding hints for status bar\n\nFiles: apps/tui/src/providers/KeybindingProvider.tsx, apps/tui/src/hooks/useScreenKeybindings.ts, apps/tui/src/hooks/useGlobalKeybindings.ts, apps/tui/src/hooks/useStatusBarHints.ts",
+    "dependencies": [
+      "tui-bootstrap-and-renderer"
+    ],
+    "estimateHours": 8,
+    "acceptanceCriteria": [
+      "KeybindingProvider captures all keyboard input via useKeyboard()",
+      "Scopes dispatched in priority order — higher priority consumes first",
+      "Text input focus suppresses printable keys from reaching navigation handlers",
+      "useScreenKeybindings pushes scope on mount, pops on unmount",
+      "useStatusBarHints allows screens to register hint arrays that update on screen change",
+      "Global keybindings (q, Esc, Ctrl+C) always registered at lowest priority",
+      "Conditional bindings (when?) evaluated before dispatch"
+    ]
+  },
+  {
+    "id": "tui-nav-chrome-eng-03",
+    "title": "Responsive layout hooks: useBreakpoint, useResponsiveValue, useLayout",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Implement the responsive layout detection system.\n\n1. Breakpoint type: 'minimum' | 'standard' | 'large' (null for below-minimum)\n2. getBreakpoint(cols, rows): <80||<24 → null, <120||<40 → minimum, <200||<60 → standard, else large\n3. useBreakpoint(): Returns current breakpoint using useTerminalDimensions()\n4. useResponsiveValue({ minimum, standard, large }): Returns value for current breakpoint\n5. useLayout(): Composite hook returning { width, height, breakpoint, contentHeight, sidebarVisible, sidebarWidth, modalWidth, modalHeight }\n6. Sidebar state: { userPreference: boolean|null, autoOverride: boolean } — tracks manual toggle separately from auto-collapse\n\nFiles: apps/tui/src/hooks/useBreakpoint.ts, apps/tui/src/hooks/useResponsiveValue.ts, apps/tui/src/hooks/useLayout.ts, apps/tui/src/hooks/useSidebarState.ts",
+    "dependencies": [
+      "tui-bootstrap-and-renderer"
+    ],
+    "estimateHours": 5,
+    "acceptanceCriteria": [
+      "useBreakpoint returns null when either dimension is below minimum (80x24)",
+      "useBreakpoint returns 'minimum' for 80x24 to 119x39",
+      "useBreakpoint returns 'standard' for 120x40 to 199x59",
+      "useBreakpoint returns 'large' for 200x60 and above",
+      "useResponsiveValue returns correct value for current breakpoint",
+      "useLayout computes contentHeight as height - 2",
+      "Sidebar state tracks user preference separately from auto-collapse",
+      "All hooks update synchronously on resize via useOnResize"
+    ]
+  },
+  {
+    "id": "tui-nav-chrome-eng-04",
+    "title": "OverlayManager context for mutual exclusion of modals",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Implement an OverlayManager React context ensuring only one overlay is visible at any time.\n\n1. OverlayState: null | 'help' | 'command-palette' | 'confirm'\n2. useOverlay(): Returns { activeOverlay, openOverlay(type), closeOverlay(), isOpen(type) }\n3. openOverlay(type): If different overlay open, close first then open new. If same type, close (toggle).\n4. OverlayLayer component: Renders active overlay as absolutely-positioned box with zIndex\n5. Focus trapping: Integrates with KeybindingProvider priority layers\n\nFiles: apps/tui/src/providers/OverlayManager.tsx, apps/tui/src/components/OverlayLayer.tsx",
+    "dependencies": [
+      "tui-nav-chrome-eng-02"
+    ],
+    "estimateHours": 4,
+    "acceptanceCriteria": [
+      "Only one overlay visible at any time",
+      "Opening overlay when another is open closes the first",
+      "Toggle behavior: opening same overlay type closes it",
+      "OverlayLayer renders absolutely positioned content with zIndex",
+      "closeOverlay restores focus to underlying screen",
+      "Esc in any overlay triggers closeOverlay"
+    ]
+  },
+  {
+    "id": "tui-nav-chrome-eng-05",
+    "title": "GoToMode hook and state machine",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Implement the go-to mode state machine as a reusable hook.\n\n1. useGoToMode(): Returns { active, activate(), cancel(), destinationHints: GoToHint[], error: string|null }\n2. State machine: Inactive → press g → Active (1500ms timer) → second key resolves/cancels → Inactive\n3. GoToHint[]: Static array of { key, destination, requiresRepo }\n4. Timeout: 1500ms from activation, cleared on any second key or cancel\n5. Timer cleanup: useEffect cleanup clears timeout on unmount\n6. Error state: 'No repository in context' displayed for 2000ms then auto-clears\n\nFiles: apps/tui/src/hooks/useGoToMode.ts",
+    "dependencies": [
+      "tui-nav-chrome-eng-01",
+      "tui-nav-chrome-eng-02"
+    ],
+    "estimateHours": 4,
+    "acceptanceCriteria": [
+      "useGoToMode returns active boolean reflecting current state",
+      "activate() sets active=true and starts 1500ms timer",
+      "cancel() sets active=false and clears timer",
+      "Timeout expiry sets active=false automatically",
+      "destinationHints returns all 11 go-to targets with requiresRepo flags",
+      "Error state holds message for 2000ms then clears",
+      "Timer cleaned up on component unmount"
+    ]
+  },
+  {
+    "id": "tui-nav-chrome-eng-06",
+    "title": "E2E test infrastructure: helpers.ts and app-shell test scaffold",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the foundational E2E test infrastructure for TUI testing using @microsoft/tui-test.\n\n1. Test helper: e2e/tui/helpers.ts implementing TUITestInstance with sendKeys(), sendText(), waitForText(), waitForNoText(), snapshot(), getLine(), resize(), terminate(), rows, cols\n2. launchTUI(): Spawns TUI process with configurable terminal dimensions, env vars, and CLI args\n3. Test scaffold: e2e/tui/app-shell.test.ts with describe blocks for each feature in this group\n4. Shared fixtures: Test env with CODEPLANE_TOKEN, test server URL, standard terminal sizes\n\nFiles: e2e/tui/helpers.ts, e2e/tui/app-shell.test.ts (scaffold)",
+    "dependencies": [
+      "tui-bootstrap-and-renderer"
+    ],
+    "estimateHours": 6,
+    "acceptanceCriteria": [
+      "launchTUI() spawns TUI process and returns TUITestInstance",
+      "sendKeys() sends keypress events to the terminal",
+      "waitForText() blocks until text appears in terminal output",
+      "snapshot() captures full terminal buffer as string",
+      "getLine() returns specific terminal row content",
+      "resize() changes terminal dimensions and triggers SIGWINCH",
+      "terminate() cleanly shuts down the TUI process",
+      "app-shell.test.ts has describe blocks for all 8 features in this group"
+    ]
+  },
+  {
+    "id": "tui-nav-chrome-eng-07",
+    "title": "AppShell component with three-zone layout",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Implement the AppShell root layout component providing three-zone structure (header, content, status bar) plus overlay layer.\n\n1. AppShell: <box flexDirection='column' width='100%' height={height}> containing HeaderBar (1 row), content (flexGrow=1), StatusBar (1 row), OverlayLayer (absolute)\n2. Terminal-too-small guard: When useBreakpoint() returns null, render centered message. Only Ctrl+C active.\n3. Content area: Renders ScreenRouter showing top-of-stack screen\n4. Integration: AppShell is innermost element in provider stack\n\nFiles: apps/tui/src/components/AppShell.tsx",
+    "dependencies": [
+      "tui-nav-chrome-eng-01",
+      "tui-nav-chrome-eng-02",
+      "tui-nav-chrome-eng-03",
+      "tui-nav-chrome-eng-04"
+    ],
+    "estimateHours": 5,
+    "acceptanceCriteria": [
+      "AppShell renders header bar, content area, and status bar in vertical flex layout",
+      "Header bar occupies exactly 1 row at top",
+      "Status bar occupies exactly 1 row at bottom",
+      "Content area fills remaining height with flexGrow=1",
+      "OverlayLayer renders above content with absolute positioning",
+      "Terminal-too-small message shown when breakpoint is null",
+      "Only Ctrl+C active when terminal is too small"
+    ]
+  },
+  {
+    "id": "tui-nav-chrome-eng-08",
+    "title": "Deep-link argument parser and stack builder",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Implement CLI argument parser for deep-link launch flags and stack pre-population logic.\n\n1. parseDeepLinkArgs(argv): Parses --screen, --repo, --org from process argv\n2. validateDeepLinkArgs(args): Validates screen against allowlist (case-insensitive), repo against regex, org against regex. Returns { valid, error?, normalizedScreen? }\n3. buildInitialStack(validatedArgs): Returns ScreenEntry[] following spec's stack pre-population rules\n4. Supported screens: dashboard, repos, issues, landings, workspaces, workflows, search, notifications, agents, settings, orgs, sync, wiki\n5. Repo-required: issues, landings, workflows, wiki\n6. Error message truncation: 32/64/32 chars, control character stripping\n\nFiles: apps/tui/src/deep-link/parser.ts, apps/tui/src/deep-link/validator.ts, apps/tui/src/deep-link/stack-builder.ts",
+    "dependencies": [
+      "tui-nav-chrome-eng-01"
+    ],
+    "estimateHours": 4,
+    "acceptanceCriteria": [
+      "parseDeepLinkArgs correctly extracts --screen, --repo, --org from argv",
+      "validateDeepLinkArgs rejects unknown screen values with descriptive error",
+      "validateDeepLinkArgs rejects repo values not matching OWNER/REPO pattern",
+      "Case-insensitive screen comparison (Issues → issues)",
+      "buildInitialStack returns [Dashboard] for no args",
+      "buildInitialStack returns [Dashboard, Repo, Issues] for --screen issues --repo owner/repo",
+      "Error messages truncate long values and strip control characters"
+    ]
+  },
+  {
+    "id": "tui-nav-chrome-feat-01",
+    "title": "TUI_SCREEN_ROUTER — Stack-based screen navigation",
+    "type": "feature",
+    "featureName": "TUI_SCREEN_ROUTER",
+    "description": "Implement the complete stack-based screen router. Build on NavigationProvider and KeybindingProvider.\n\n1. Router-level keybindings: q (pop/quit), Esc (close overlay → pop), Ctrl+C (quit), ?, :, g\n2. Screen transitions under 50ms. Previous screen unmounted after new screen first render.\n3. Back-navigation state restore: scroll position and focused element cached per entry\n4. Loading states: centered spinner while data hooks return loading\n5. Edge cases: rapid q, q during loading, duplicate push, max depth 32\n6. Auth gating: unauthenticated → auth error screen. 401 mid-session → auth expired screen.\n\nE2E tests: router-initial-render, q-pops, q-quits-root, escape-closes-overlay, ctrl-c-quits, enter-pushes, q-restores-scroll, rapid-q, double-enter, loading-state, auth-error, error-boundary\n\nFiles: apps/tui/src/router/ScreenRouter.tsx, apps/tui/src/hooks/useGlobalKeybindings.ts, apps/tui/src/components/LoadingScreen.tsx, apps/tui/src/components/AuthErrorScreen.tsx",
+    "dependencies": [
+      "tui-nav-chrome-eng-01",
+      "tui-nav-chrome-eng-02",
+      "tui-nav-chrome-eng-07",
+      "tui-nav-chrome-eng-06"
+    ],
+    "estimateHours": 10,
+    "acceptanceCriteria": [
+      "Pushing a screen adds it to stack and renders its content",
+      "Popping removes top screen and renders previous",
+      "Root screen pop signals TUI quit",
+      "q/Esc/Ctrl+C global keybindings work on every screen",
+      "Text input focus suppresses q/g/?/: navigation keys",
+      "Screen transitions complete under 50ms",
+      "Loading spinner shown while screen data loads",
+      "Back-navigation restores scroll position and focus",
+      "Max stack depth 32 enforced",
+      "Duplicate push is no-op",
+      "Auth error screen when unauthenticated",
+      "All router E2E tests pass"
+    ]
+  },
+  {
+    "id": "tui-nav-chrome-feat-02",
+    "title": "TUI_HEADER_BAR — Persistent header with breadcrumbs, repo context, badges",
+    "type": "feature",
+    "featureName": "TUI_HEADER_BAR",
+    "description": "Implement the header bar component occupying top row of every screen.\n\n1. Left zone: Breadcrumb segments from nav stack separated by › (U+203A). Current in primary, parents in muted. Truncation from left with …. Segment max 24 chars, repo max 30 chars.\n2. Center zone: owner/repo when in repo scope. Hidden at <120 cols.\n3. Right zone: Connection indicator (green ● / red ○) from SSE. Notification badge [N] in warning when >0, hidden at 0, capped [99+]. Real-time SSE updates.\n\nResponsive: 80-99 truncated+hidden center, 100-119 truncate if needed, 120+ full, 200+ comfortable spacing.\n\nE2E tests: header renders at all sizes, breadcrumb depth, truncation, notification badge states, connection indicator, keyboard updates, resize tests\n\nFiles: apps/tui/src/components/HeaderBar.tsx, apps/tui/src/utils/breadcrumb.ts",
+    "dependencies": [
+      "tui-nav-chrome-eng-01",
+      "tui-nav-chrome-eng-03",
+      "tui-nav-chrome-eng-07",
+      "tui-nav-chrome-eng-06"
+    ],
+    "estimateHours": 8,
+    "acceptanceCriteria": [
+      "Header bar renders as 1-row box at top of every screen",
+      "Breadcrumb segments separated by › with correct coloring",
+      "Current segment primary color, parents muted",
+      "Truncation from left with … when exceeding width",
+      "Center zone shows repo context at ≥120 cols, hidden at <120",
+      "Connection indicator shows ● green connected, ○ red disconnected",
+      "Notification badge [N] warning color when >0, hidden at 0, capped [99+]",
+      "Badge updates in real-time via SSE",
+      "Header remains visible during modal overlays",
+      "All header bar E2E tests pass"
+    ]
+  },
+  {
+    "id": "tui-nav-chrome-feat-03",
+    "title": "TUI_STATUS_BAR — Persistent footer with hints, sync, notifications",
+    "type": "feature",
+    "featureName": "TUI_STATUS_BAR",
+    "description": "Implement status bar pinned to bottom row. Three sections:\n\n1. Left: Context-sensitive key:action hints. Bold keys, muted actions. Truncated with …. Go-to mode replaces with destination hints. 4/6/all hints per breakpoint.\n2. Center: Sync status — connected (green ●), syncing (braille spinner), conflict (▲ count), disconnected (red ●). Icon-only at <120 cols.\n3. Right: ◆ + count (primary when >0, muted when 0), 2s bold flash on increase. ?:help always rightmost. Count capped 99+.\n\nBackground surface color. Full width. 1 row.\n\nE2E tests: SNAP-SB, KEY-SB, RESIZE-SB, RT-SB, EDGE-SB test series\n\nFiles: apps/tui/src/components/StatusBar.tsx, apps/tui/src/components/SyncStatusIndicator.tsx, apps/tui/src/components/NotificationBadge.tsx",
+    "dependencies": [
+      "tui-nav-chrome-eng-01",
+      "tui-nav-chrome-eng-02",
+      "tui-nav-chrome-eng-03",
+      "tui-nav-chrome-eng-05",
+      "tui-nav-chrome-eng-07",
+      "tui-nav-chrome-eng-06"
+    ],
+    "estimateHours": 8,
+    "acceptanceCriteria": [
+      "Status bar renders as 1-row box with surface background at bottom",
+      "Left section shows context-sensitive keybinding hints",
+      "Hints update within one render frame on screen change",
+      "During go-to mode, left section shows destination hints",
+      "Center shows sync status with correct icon/color per state",
+      "Braille spinner animates via useTimeline()",
+      "At <120 cols sync collapses to icon-only",
+      "Right section shows ◆+count when >0, muted when 0",
+      "2-second bold flash on new notification",
+      "?:help always visible rightmost",
+      "All status bar E2E tests pass"
+    ]
+  },
+  {
+    "id": "tui-nav-chrome-feat-04",
+    "title": "TUI_RESPONSIVE_LAYOUT — Breakpoint system, sidebar toggle, terminal-too-small",
+    "type": "feature",
+    "featureName": "TUI_RESPONSIVE_LAYOUT",
+    "description": "Integrate responsive layout hooks into the full application.\n\n1. Breakpoint-driven adaptations in HeaderBar, StatusBar, AppShell, ScreenRouter\n2. Terminal-too-small screen with only Ctrl+C active\n3. Sidebar toggle (Ctrl+B) with auto-collapse at minimum and user preference tracking\n4. Resize handling: synchronous, no flicker, scroll preserved, stack intact, modals re-center\n5. Content adaptation: list columns per breakpoint, diff locks unified at minimum, modal 90%/60%/50%\n\nE2E tests: RESPONSIVE_SNAPSHOT_01-17, KEY_01-09, RESIZE_01-14, INTEGRATION_01-08\n\nFiles: Enhance AppShell.tsx, add SidebarLayout.tsx, enhance hooks",
+    "dependencies": [
+      "tui-nav-chrome-eng-03",
+      "tui-nav-chrome-eng-07",
+      "tui-nav-chrome-feat-01",
+      "tui-nav-chrome-feat-02",
+      "tui-nav-chrome-feat-03",
+      "tui-nav-chrome-eng-06"
+    ],
+    "estimateHours": 10,
+    "acceptanceCriteria": [
+      "Three breakpoints correctly detected",
+      "Below 80x24 shows terminal-too-small with only Ctrl+C",
+      "Resize from too-small restores full layout with stack preserved",
+      "Ctrl+B toggles sidebar on sidebar-having screens",
+      "Sidebar starts hidden at minimum, visible at standard/large",
+      "Sidebar auto-hides on resize to minimum, restores on resize back",
+      "User manual hide preserved across breakpoint changes",
+      "Synchronous re-layout with no flicker",
+      "Modal overlays resize per breakpoint",
+      "All responsive E2E tests pass"
+    ]
+  },
+  {
+    "id": "tui-nav-chrome-feat-05",
+    "title": "TUI_COMMAND_PALETTE — Fuzzy search modal overlay",
+    "type": "feature",
+    "featureName": "TUI_COMMAND_PALETTE",
+    "description": "Implement command palette modal activated by :.\n\n1. Activation: : opens palette. Blocked in text inputs. Immediate focus on search input.\n2. Fuzzy search from @codeplane/ui-core. Ranking: prefix > contiguous > non-contiguous. Case-insensitive.\n3. Command registry: PaletteCommand with id, name, description, category, keybinding, action, contextRequirements, featureFlag.\n4. Context filtering: repo-scoped hidden when no repo. Feature-flagged hidden.\n5. j/k/Up/Down navigation with wrap-around. Enter executes. Highlighted row.\n6. Centered overlay, responsive 90%/60%/50%. Footer hints.\n7. Esc/Ctrl+C dismisses. Input cleared between invocations. Focus trapped.\n\nE2E tests: rendering, keyboard nav, fuzzy search, context filtering, responsive, edge cases\n\nFiles: apps/tui/src/components/CommandPalette.tsx, apps/tui/src/commands/registry.ts, apps/tui/src/commands/types.ts",
+    "dependencies": [
+      "tui-nav-chrome-eng-01",
+      "tui-nav-chrome-eng-02",
+      "tui-nav-chrome-eng-03",
+      "tui-nav-chrome-eng-04",
+      "tui-nav-chrome-eng-06"
+    ],
+    "estimateHours": 10,
+    "acceptanceCriteria": [
+      ": key opens command palette as centered modal",
+      ": passes colon to text input when focused",
+      "Fuzzy search filters in real-time with correct ranking",
+      "All go-to targets available as Navigate commands",
+      "Repo-scoped commands hidden without repo context",
+      "j/k navigates results with wrap-around",
+      "Enter executes and closes, Esc dismisses",
+      "Input cleared each open",
+      "Focus trapped",
+      "Responsive sizing per breakpoint",
+      "Opens <50ms, filters <16ms",
+      "All command palette E2E tests pass"
+    ]
+  },
+  {
+    "id": "tui-nav-chrome-feat-06",
+    "title": "TUI_HELP_OVERLAY — Keybinding reference modal",
+    "type": "feature",
+    "featureName": "TUI_HELP_OVERLAY",
+    "description": "Implement help overlay showing all keybindings for current context.\n\n1. Toggle: ? opens/closes. Esc closes.\n2. Groups: Global, Go To, screen-specific. Headings in primary+bold. Two-column: keys warning, descriptions muted.\n3. Global always shown. Go-to group with all 11 destinations. Screen-specific via HelpOverlayContext.\n4. Scrolling: j/k/Up/Down, G, gg, Ctrl+D/U. Scroll indicator.\n5. Focus trapping. : suppressed while open.\n6. Mutual exclusion with command palette.\n7. Responsive 90%/60%. No data dependency.\n\nE2E tests: rendering, keyboard (toggle, scroll), responsive, context changes, mutual exclusion\n\nFiles: apps/tui/src/components/HelpOverlay.tsx, apps/tui/src/providers/HelpOverlayContext.tsx",
+    "dependencies": [
+      "tui-nav-chrome-eng-02",
+      "tui-nav-chrome-eng-03",
+      "tui-nav-chrome-eng-04",
+      "tui-nav-chrome-eng-06"
+    ],
+    "estimateHours": 8,
+    "acceptanceCriteria": [
+      "? toggles help overlay",
+      "Global keybinding group always shown",
+      "Go To group shows all 11 destinations",
+      "Screen-specific keybindings dynamically included",
+      "Groups have labeled headings",
+      "Two-column layout with correct colors",
+      "Scrollable with j/k/G/gg/Ctrl+D/U",
+      "Focus trapped, : suppressed",
+      "Mutual exclusion with command palette",
+      "Responsive sizing",
+      "All help overlay E2E tests pass"
+    ]
+  },
+  {
+    "id": "tui-nav-chrome-feat-07",
+    "title": "TUI_DEEP_LINK_LAUNCH — CLI argument-driven screen navigation",
+    "type": "feature",
+    "featureName": "TUI_DEEP_LINK_LAUNCH",
+    "description": "Integrate deep-link parser into TUI bootstrap.\n\n1. Parse --screen/--repo/--org before React mount. Pass to NavigationProvider for initial stack.\n2. Stack pre-population per spec rules.\n3. Validation failure → Dashboard + 5s transient status bar error.\n4. Auth completes before screen navigation (no Dashboard flash).\n5. Back-navigation through pre-populated stack.\n6. Responsive breadcrumb truncation. Error message truncation.\n7. Input sanitization: control chars stripped, values truncated.\n\nE2E tests: deep-link snapshot, keyboard, responsive, integration tests\n\nFiles: Enhance index.tsx, NavigationProvider.tsx, add TransientError.tsx",
+    "dependencies": [
+      "tui-nav-chrome-eng-08",
+      "tui-nav-chrome-feat-01",
+      "tui-nav-chrome-feat-02",
+      "tui-nav-chrome-feat-03",
+      "tui-nav-chrome-eng-06"
+    ],
+    "estimateHours": 8,
+    "acceptanceCriteria": [
+      "--screen launches to specified screen",
+      "--repo sets repository context",
+      "Stack pre-populated with intermediate screens",
+      "q walks back through pre-populated stack",
+      "Unknown screen → Dashboard + 5s error",
+      "Missing repo → Dashboard + 5s error",
+      "Invalid format → Dashboard + 5s error",
+      "Errors auto-clear after 5 seconds",
+      "Auth loading before deep-linked screen",
+      "All deep-link E2E tests pass"
+    ]
+  },
+  {
+    "id": "tui-nav-chrome-feat-08",
+    "title": "TUI_GOTO_KEYBINDINGS — Two-key chord navigation",
+    "type": "feature",
+    "featureName": "TUI_GOTO_KEYBINDINGS",
+    "description": "Implement full go-to keybinding system on useGoToMode hook.\n\n1. g activates mode. Suppressed during input/overlays/too-small.\n2. All 11 destinations wired to NavigationContext.reset().\n3. Stack replacement: g+d → [Dashboard], g+i → [Dashboard, Repo, Issues].\n4. Context check: i/l/f/k need repo. No repo → 2s error.\n5. Cancellation: Esc, q+pop, Ctrl+C, invalid key, 1500ms timeout.\n6. Status bar: destination hints during mode, truncated at small widths.\n7. Help overlay: Go To group with 11 entries.\n8. Edge cases: g+g cancels, rapid toggle, resize during mode.\n\nE2E tests: 52 tests — snapshot (1-10), keyboard (11-39), responsive (41-47), integration (48-52)\n\nFiles: Enhance useGoToMode.ts, add useGoToKeybindings.ts, enhance status bar and help overlay",
+    "dependencies": [
+      "tui-nav-chrome-eng-05",
+      "tui-nav-chrome-feat-01",
+      "tui-nav-chrome-feat-03",
+      "tui-nav-chrome-feat-06",
+      "tui-nav-chrome-eng-06"
+    ],
+    "estimateHours": 8,
+    "acceptanceCriteria": [
+      "g activates go-to mode with status bar hints",
+      "All 11 destinations navigate correctly",
+      "Context-free destinations work without repo",
+      "Repo-required destinations check context",
+      "Missing repo → 2s error",
+      "Stack replaced (reset not push)",
+      "1500ms timeout cancels",
+      "Esc cancels without pop, q cancels and pops",
+      "Suppressed during input/overlays/too-small",
+      "Go To group in help overlay",
+      "All go-to E2E tests pass"
+    ]
+  }
+]

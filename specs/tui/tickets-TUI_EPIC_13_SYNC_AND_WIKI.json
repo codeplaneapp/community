@@ -1,0 +1,209 @@
+[
+  {
+    "id": "tui-sync-data-hooks",
+    "title": "Sync data hooks: useDaemonStatus, useSyncConflicts, useSyncForce, useConflictResolve, useConflictRetry, useSyncState, useSSEConnectionState",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create TUI-side hook adapters for all daemon sync API endpoints. These hooks wrap the @codeplane/ui-core data layer for sync state and conflict management.\n\n**Scope:**\n- `useDaemonStatus()` → `GET /api/daemon/status` with 3-second polling, pause when screen not visible, resume on return. Returns `{ pid, uptime, sync_status, pending_count, conflict_count, last_sync_at, remote_url, error, isLoading, refetch }`.\n- `useSyncConflicts()` → `GET /api/daemon/conflicts` with 3-second polling, cursor-based pagination (max 200 items), newest-first sort. Returns `PaginatedResult<SyncQueueItem>`.\n- `useSyncForce()` → `POST /api/daemon/sync` with `isSyncing` guard flag, 30-second AbortSignal timeout. Returns `{ trigger, isSyncing, result, error }`.\n- `useConflictResolve()` → `POST /api/daemon/conflicts/:id/resolve` with per-item-ID in-flight guard. Returns `{ resolve, isResolving(id), error }`.\n- `useConflictRetry()` → `POST /api/daemon/conflicts/:id/retry` with per-item-ID in-flight guard. Returns `{ retry, isRetrying(id), error }`.\n- `useSyncState()` → Derived state combining daemon status polling and SSE connection state. Returns `{ status, pendingCount, conflictCount, lastSyncAt, error }`. Maps: online/syncing/error+conflicts/error+noConflicts/offline to display states.\n- `useSSEConnectionState()` → Consumes SSE provider context. Returns `{ connected, reconnecting, backoffMs }`.\n- All hooks handle 401 (propagate to auth error), 404 (graceful removal), network errors (surface via error property), and 429 (rate limit flash).\n- Immediate re-fetch after mutations (bypasses 3-second poll interval).\n- Polling pauses when component unmounts and resumes on remount.\n\n**Files:**\n- `apps/tui/src/hooks/useDaemonStatus.ts`\n- `apps/tui/src/hooks/useSyncConflicts.ts`\n- `apps/tui/src/hooks/useSyncForce.ts`\n- `apps/tui/src/hooks/useConflictResolve.ts`\n- `apps/tui/src/hooks/useConflictRetry.ts`\n- `apps/tui/src/hooks/useSyncState.ts`\n- `apps/tui/src/hooks/useSSEConnectionState.ts`\n\n**Dependencies:** @codeplane/ui-core data layer, SSEProvider context.",
+    "dependencies": [
+      "tui-theme-provider",
+      "tui-auth-token-loading"
+    ],
+    "estimateHours": 8
+  },
+  {
+    "id": "tui-sync-toast-flash-system",
+    "title": "Toast and flash message system for sync screens",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Implement a transient message system used by sync force sync results, resolve action confirmations, and guard messages.\n\n**Scope:**\n- **Toast messages**: Rendered below the status banner as a `<box height={1} paddingX={1}>` with color-coded icon prefix (✓/⚠/✗). Auto-dismisses after configurable duration (default 5 seconds). Stacks: latest toast replaces previous. Supports success (green 34), warning (yellow 178), and error (red 196) variants.\n- **Flash messages**: Transient status bar hint replacement for 2 seconds. Renders in `muted` italic. Used for guard messages ('Nothing to sync', 'Sync already in progress', 'Action in progress', 'Conflict already resolved', etc.). Returns to previous hint text after flash duration.\n- **useToast() hook**: Returns `{ showToast(message, variant, duration?), dismissToast(), activeToast }`. Manages timer cleanup on unmount.\n- **useFlash() hook**: Returns `{ showFlash(message, duration?), activeFlash }`. Integrates with status bar hint system.\n- Both systems handle terminal resize (re-render at new width), are responsive (abbreviate at 80×24), and clean up timers on unmount.\n- Toast renders at zIndex 5, positioned below status banner.\n- Flash messages max 40 characters; toast messages max 80 characters at minimum width.\n\n**Files:**\n- `apps/tui/src/components/Toast.tsx`\n- `apps/tui/src/components/Flash.tsx`\n- `apps/tui/src/hooks/useToast.ts`\n- `apps/tui/src/hooks/useFlash.ts`\n\n**Dependencies:** StatusBar component, ThemeProvider.",
+    "dependencies": [
+      "tui-status-bar",
+      "tui-theme-provider"
+    ],
+    "estimateHours": 5
+  },
+  {
+    "id": "tui-sync-error-detail-modal",
+    "title": "Error detail modal component for sync conflict/failed items",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Build the error detail modal overlay used by both the Sync Status screen and Conflict List for inspecting sync queue items.\n\n**Scope:**\n- Centered modal overlay with `error`-color border (red 196). Responsive sizing: 90%×80% (80×24), 60%×60% (120×40), 50%×50% (200×60).\n- Content sections: title bar 'Conflict Detail' + 'Esc:close', metadata fields (status with color badge, method in primary bold, API path, local ID if present, absolute timestamp with relative), error message in `<scrollbox>`, request body preview in `<scrollbox>` with `<code language=\"json\">` for syntax highlighting.\n- Body truncated at 2000 characters with '… (truncated)' marker. Null body shows 'No request body' placeholder.\n- Scrollable content via j/k when content overflows.\n- Contextual action hints at bottom: `d: discard` for conflict items, `y: retry` for conflict/failed items, `Esc: close` always.\n- `d` key from within modal opens stacked discard confirmation (zIndex 20 over zIndex 10).\n- `y` key from within modal fires retry and auto-closes modal on success.\n- `Esc` closes modal, returns focus to queue list.\n- ANSI escape codes in error messages are stripped before display.\n- Resize recalculates modal dimensions; scroll position preserved.\n- zIndex 10 (below confirmation modal at 20).\n\n**Files:**\n- `apps/tui/src/components/SyncErrorDetailModal.tsx`\n\n**Dependencies:** Modal system, code component, theme tokens.",
+    "dependencies": [
+      "tui-sync-toast-flash-system",
+      "tui-theme-provider"
+    ],
+    "estimateHours": 5
+  },
+  {
+    "id": "tui-sync-discard-confirmation-modal",
+    "title": "Discard confirmation modal for sync conflict resolution",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Build the discard confirmation modal overlay for destructive sync conflict discard actions.\n\n**Scope:**\n- Centered modal overlay with red `border='single'` indicating destructive action. Responsive sizing: 90% (80×24), 50% (120×40), 40% (200×60). Height: 7 rows.\n- Content: title 'Discard Conflict?' in bold warning color, operation summary (method in primary bold + API path), error preview in error color, relative timestamp, warning text in muted ('This action is permanent and cannot be undone.'), action hints (`Enter: confirm discard` in error bold, `Esc: cancel` in muted).\n- `Enter` confirms the discard action. `Esc` cancels and dismisses.\n- Focus trapped: only `Enter`, `Esc`, and `Ctrl+C` active.\n- zIndex 20 (above error detail modal at 10).\n- Error message in confirmation modal: max 500ch inline, longer content wrapped.\n- API path: full display, wraps if exceeds width.\n- Local ID: 12ch max with `…` truncation.\n- Minimum modal width: 40 cols.\n- Rapid `d`+`Enter` (<50ms): modal must render before `Enter` is accepted.\n\n**Files:**\n- `apps/tui/src/components/SyncDiscardConfirmModal.tsx`\n\n**Dependencies:** Modal system, theme tokens.",
+    "dependencies": [
+      "tui-sync-toast-flash-system",
+      "tui-theme-provider"
+    ],
+    "estimateHours": 3
+  },
+  {
+    "id": "tui-sync-screen-scaffold",
+    "title": "Scaffold Sync screen directory, register in screen router, wire go-to and command palette",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the Sync screen entry in the screen registry and wire all navigation paths.\n\n**Scope:**\n- Register `Sync` screen in `apps/tui/src/router/screens.ts` with `requiresRepo: false`.\n- Create `apps/tui/src/screens/Sync/` directory structure with `index.tsx` entry point.\n- Wire `g y` go-to keybinding to push Sync screen (no repo context required).\n- Register `:sync` command palette entry.\n- Support `--screen sync` deep-link launch argument (pre-populates stack: [Dashboard, Sync]).\n- Register `:sync conflicts` command palette entry for conflict list sub-view.\n- Support `--screen sync-conflicts` deep-link.\n- Wire `g y c` go-to sequence for conflict list.\n- Breadcrumb: 'Dashboard > Sync Status' for main screen, 'Dashboard > Sync Status > Conflicts' for conflict list.\n- Export placeholder components that render screen name.\n\n**Files:**\n- `apps/tui/src/screens/Sync/index.tsx`\n- `apps/tui/src/screens/Sync/SyncStatusScreen.tsx` (placeholder)\n- `apps/tui/src/screens/Sync/SyncConflictList.tsx` (placeholder)\n- Updates to `apps/tui/src/router/screens.ts`\n\n**Dependencies:** Screen router, command palette, go-to keybindings.",
+    "dependencies": [
+      "tui-screen-router",
+      "tui-command-palette",
+      "tui-goto-keybindings"
+    ],
+    "estimateHours": 3
+  },
+  {
+    "id": "tui-wiki-data-hooks",
+    "title": "Wiki data hooks: useWikiPages, useWikiPage, useWikiDelete, useWikiCreate, useWikiUpdate",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create TUI-side hook adapters for all wiki API endpoints.\n\n**Scope:**\n- `useWikiPages(owner, repo, options?)` → `GET /api/repos/:owner/:repo/wiki?page=N&per_page=30&q=...` with page-based pagination (not cursor-based). Returns `{ pages, totalCount, isLoading, error, hasMore, fetchMore, refetch }`. Extracts `X-Total-Count` from response header. Supports `q` query parameter for server-side search. 500-item memory cap.\n- `useWikiPage(owner, repo, slug)` → `GET /api/repos/:owner/:repo/wiki/:slug`. Returns `{ page, isLoading, error, refetch }`. 30-second client-side cache.\n- `useWikiDelete(owner, repo)` → `DELETE /api/repos/:owner/:repo/wiki/:slug`. Optimistic removal from list. Returns `{ deletePage, isDeleting, error }`. Handles 403 (permission denied), 404 (already deleted).\n- `useWikiCreate(owner, repo)` → `POST /api/repos/:owner/:repo/wiki`. Returns `{ createPage, isCreating, error }`.\n- `useWikiUpdate(owner, repo, slug)` → `PUT /api/repos/:owner/:repo/wiki/:slug`. Returns `{ updatePage, isUpdating, error }`.\n- All hooks handle 401 (auth error screen), 429 (rate limit flash), network timeout (30s), and server errors.\n- Page-based pagination: tracks current page number, computes hasMore from totalCount vs loaded items.\n- Search integration: when `q` parameter changes, reset to page 1, cancel in-flight requests.\n\n**Files:**\n- `apps/tui/src/hooks/useWikiPages.ts`\n- `apps/tui/src/hooks/useWikiPage.ts`\n- `apps/tui/src/hooks/useWikiDelete.ts`\n- `apps/tui/src/hooks/useWikiCreate.ts`\n- `apps/tui/src/hooks/useWikiUpdate.ts`\n\n**Dependencies:** @codeplane/ui-core API client, auth provider.",
+    "dependencies": [
+      "tui-auth-token-loading"
+    ],
+    "estimateHours": 7
+  },
+  {
+    "id": "tui-wiki-highlighted-text",
+    "title": "HighlightedText component for wiki search result match highlighting",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Build a reusable HighlightedText component that renders text with case-insensitive query match segments highlighted in accent color.\n\n**Scope:**\n- `<HighlightedText text={string} query={string} color={number} mutedColor={number} maxWidth={number} />` component.\n- Performs case-insensitive search for all non-overlapping occurrences of `query` within `text`.\n- Matching segments render in `primary` color (ANSI 33) with bold attribute.\n- Non-matching segments render in the component's default color (default text or `muted` for slugs).\n- Supports grapheme-aware truncation: if text exceeds `maxWidth`, truncate with `…` respecting grapheme cluster boundaries.\n- Highlighting respects truncation: only visible portions are highlighted.\n- Handles edge cases: empty query (no highlighting), query longer than text, overlapping matches, Unicode/emoji in text and query.\n- Pure render component — no state, no hooks, no side effects. Memoized.\n\n**Files:**\n- `apps/tui/src/components/HighlightedText.tsx`\n\n**Dependencies:** Theme tokens.",
+    "dependencies": [
+      "tui-theme-provider"
+    ],
+    "estimateHours": 3
+  },
+  {
+    "id": "tui-wiki-screen-scaffold",
+    "title": "Scaffold Wiki screen directory, register in screen router, wire go-to and command palette",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the Wiki screen entries in the screen registry and wire all navigation paths.\n\n**Scope:**\n- Register `Wiki` screen in `apps/tui/src/router/screens.ts` with `requiresRepo: true`.\n- Register `WikiDetail` screen with `requiresRepo: true`, params: `{ slug: string }`.\n- Register `WikiCreate` screen with `requiresRepo: true`.\n- Create `apps/tui/src/screens/Wiki/` directory structure.\n- Wire `g k` go-to keybinding to push Wiki screen (requires repo context; if no repo active, prompt for repo selection).\n- Register `:wiki` command palette entry.\n- Register `:wiki <slug>` command palette entry for direct page navigation.\n- Support `--screen wiki --repo owner/repo` deep-link (stack: [Dashboard, RepoOverview, Wiki]).\n- Support `--screen wiki --repo owner/repo --slug <slug>` deep-link (stack: [Dashboard, RepoOverview, Wiki, WikiDetail]).\n- Breadcrumbs: 'Dashboard > owner/repo > Wiki' for list, 'Dashboard > owner/repo > Wiki > <title>' for detail.\n- Export placeholder components.\n\n**Files:**\n- `apps/tui/src/screens/Wiki/index.tsx`\n- `apps/tui/src/screens/Wiki/WikiListScreen.tsx` (placeholder)\n- `apps/tui/src/screens/Wiki/WikiDetailView.tsx` (placeholder)\n- `apps/tui/src/screens/Wiki/WikiCreateForm.tsx` (placeholder)\n- Updates to `apps/tui/src/router/screens.ts`\n\n**Dependencies:** Screen router, command palette, go-to keybindings.",
+    "dependencies": [
+      "tui-screen-router",
+      "tui-command-palette",
+      "tui-goto-keybindings"
+    ],
+    "estimateHours": 3
+  },
+  {
+    "id": "tui-sync-status-indicator",
+    "title": "Sync status indicator component in global status bar",
+    "type": "feature",
+    "featureName": "TUI_SYNC_STATUS_INDICATOR",
+    "description": "Implement the always-visible sync health indicator in the center section of the global status bar.\n\n**Scope (from spec TUI_SYNC_STATUS_INDICATOR):**\n\n**Four visual states:**\n- Connected (online): Green dot `●` (U+25CF) + 'Connected' in success color (ANSI 34)\n- Syncing: Braille spinner (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏) at 100ms/frame via `useTimeline()` + 'Syncing…' in warning color (ANSI 178)\n- Conflicts: Yellow triangle `▲` (U+25B2) + '{N} conflict(s)' in warning color (ANSI 178). Singular for 1, capped at '99+ conflicts'\n- Disconnected: Red dot `●` + 'Disconnected' + optional '(retry {N}s)' backoff in error color (ANSI 196)\n\n**State mapping:**\n- `SyncStatus.online` → Connected\n- `SyncStatus.syncing` → Syncing\n- `SyncStatus.error` + `conflictCount > 0` → Conflict\n- `SyncStatus.error` + `conflictCount === 0` → Disconnected\n- `SyncStatus.offline` / null / undefined → Disconnected\n- SSE `connected === false` acts as leading indicator → Disconnected\n\n**Responsive:**\n- 80–119 cols: Icon only (1 character)\n- 120–199 cols: Icon + label\n- 200+ cols: Icon + label + ' · {relative_time}' (timestamp updates every 10s)\n\n**Non-UTF-8 fallback:** `●` → `*`, `▲` → `!`, braille → `- \\ | /`, `·` → `-`\n\n**Performance:** < 1ms render, memoized, no allocations on spinner frames. Spinner timer inactive when not syncing.\n\n**Data hooks:** `useSyncState()`, `useSSEConnectionState()`, `useTerminalDimensions()`, `useTimeline()`\n\n**Integration:** Embedded in StatusBar center section with `flexShrink={0}`. No keyboard focus, no keybindings. Passive read-only display.\n\n**Tests:** 49 tests in `e2e/tui/sync.test.ts` (SNAP-SI-001–016, KEY-SI-001–006, RESIZE-SI-001–007, RT-SI-001–009, EDGE-SI-001–011).\n\n**Files:**\n- `apps/tui/src/components/SyncStatusIndicator.tsx`\n- `apps/tui/src/components/SyncStatusIndicator.test.tsx` (unit tests if appropriate)\n- `e2e/tui/sync.test.ts` (indicator test section)\n- Updates to `apps/tui/src/components/StatusBar.tsx` to embed indicator in center section",
+    "dependencies": [
+      "tui-sync-data-hooks",
+      "tui-status-bar",
+      "tui-responsive-layout"
+    ],
+    "estimateHours": 8
+  },
+  {
+    "id": "tui-sync-status-screen",
+    "title": "Sync status screen: dashboard with status banner, queue summary, connection details, and scrollable queue list",
+    "type": "feature",
+    "featureName": "TUI_SYNC_STATUS_SCREEN",
+    "description": "Implement the central sync status dashboard screen.\n\n**Scope (from spec TUI_SYNC_STATUS_SCREEN):**\n\n**Layout:**\n- Status banner (1–2 rows): color-coded sync state indicator (● Online/◐ Syncing…/● Error/● Offline), remote URL (truncated), daemon uptime, last sync timestamp\n- Two-section panel: Sync queue summary (pending/synced/conflict/failed counts with color badges) | Connection details (PID, port, DB mode, remote URL, token mask)\n- Scrollable queue list: status badge, HTTP method, API path, local ID, error preview, timestamp. Newest-first, max 200 items.\n\n**Keyboard bindings:**\n- j/k/arrows: navigate queue items\n- Enter: show error detail modal (conflict/failed only)\n- d: discard conflict (opens confirmation modal)\n- y: retry failed/conflict item (immediate, optimistic)\n- S: force sync all pending\n- /: focus filter input (filters by method, path, status)\n- Esc: close modal → clear filter → pop (priority chain)\n- G/gg: jump to end/start\n- Ctrl+D/U: page down/up\n- r: refresh immediately (bypass poll)\n- q: pop screen\n\n**Data polling:** 3-second interval via `useDaemonStatus()` and `useSyncConflicts()`. Pauses when screen not visible.\n\n**Responsive:** 80×24 single-column condensed; 120×40 two-column with all queue columns; 200×60 generous spacing.\n\n**Empty states:** 'No sync queue items.' centered. 'All clear — no pending items' in green. 'Daemon not running' with CLI hint.\n\n**Error handling:** Daemon unreachable message, auth error propagation, network timeout with retry hint.\n\n**Tests:** 111 tests in `e2e/tui/sync.test.ts` (SNAP-SYNC-001–028, KEY-SYNC-001–035, RESP-SYNC-001–012, INT-SYNC-001–022, EDGE-SYNC-001–014).\n\n**Files:**\n- `apps/tui/src/screens/Sync/SyncStatusScreen.tsx`\n- `apps/tui/src/screens/Sync/components/StatusBanner.tsx`\n- `apps/tui/src/screens/Sync/components/SyncQueueSummary.tsx`\n- `apps/tui/src/screens/Sync/components/ConnectionDetails.tsx`\n- `apps/tui/src/screens/Sync/components/QueueItemRow.tsx`\n- `apps/tui/src/screens/Sync/components/QueueFilter.tsx`\n- `e2e/tui/sync.test.ts`",
+    "dependencies": [
+      "tui-sync-screen-scaffold",
+      "tui-sync-data-hooks",
+      "tui-sync-error-detail-modal",
+      "tui-sync-discard-confirmation-modal",
+      "tui-sync-toast-flash-system",
+      "tui-responsive-layout"
+    ],
+    "estimateHours": 16
+  },
+  {
+    "id": "tui-sync-conflict-list",
+    "title": "Sync conflict list: focused triage view with bulk actions, resource description parsing, and composable filters",
+    "type": "feature",
+    "featureName": "TUI_SYNC_CONFLICT_LIST",
+    "description": "Implement the dedicated conflict triage surface.\n\n**Scope (from spec TUI_SYNC_CONFLICT_LIST):**\n\n**Differences from sync status screen:**\n- Shows only conflict/failed items (not pending/synced)\n- Resource description parsing from API paths (e.g., `/api/repos/acme/widgets/issues` → 'Issue on acme/widgets')\n- Additional keybindings: X (bulk discard all visible), A (bulk retry all visible), f (cycle status filter: all/conflict/failed), m (cycle method filter, standard+ only)\n- Summary bar: 'Sync Conflicts (N)' in red, or 'No Conflicts — All Clear ✓' in green\n- Bulk confirmation modals with count and progress\n- Composable client-side filters (status × method × search text)\n\n**Reachable via:** `Enter` on conflict count in Sync Status, `g y c`, `:sync conflicts`, `--screen sync-conflicts`\n\n**Breadcrumb:** 'Dashboard > Sync Status > Conflicts'\n\n**Column layout responsive:** 80×24 abbreviated (CON/FAL), 120×40 full labels + error preview, 200×60 full API path column\n\n**Bulk operations:** Sequential execution (not parallel). Bulk discard shows progress. Partial failure: completed items removed, failed remain.\n\n**Overlays:** Conflict detail modal, discard confirmation, bulk discard confirmation (count + warning), bulk retry confirmation\n\n**Data hooks:** `useSyncConflicts()`, `useDaemonStatus()`, `useConflictResolve()`, `useConflictRetry()` — all polled at 3s\n\n**Tests:** 115 tests in `e2e/tui/sync.test.ts` (SNAP-CL-001–024, KEY-CL-001–038, RESP-CL-001–017, INT-CL-001–020, EDGE-CL-001–016).\n\n**Files:**\n- `apps/tui/src/screens/Sync/SyncConflictList.tsx`\n- `apps/tui/src/screens/Sync/components/ConflictRow.tsx`\n- `apps/tui/src/screens/Sync/components/ConflictSummaryBar.tsx`\n- `apps/tui/src/screens/Sync/components/FilterToolbar.tsx`\n- `apps/tui/src/screens/Sync/components/BulkConfirmModal.tsx`\n- `apps/tui/src/screens/Sync/utils/parseResourceDescription.ts`\n- `e2e/tui/sync.test.ts`",
+    "dependencies": [
+      "tui-sync-status-screen",
+      "tui-sync-data-hooks",
+      "tui-sync-error-detail-modal",
+      "tui-sync-discard-confirmation-modal"
+    ],
+    "estimateHours": 14
+  },
+  {
+    "id": "tui-sync-resolve-action",
+    "title": "Sync resolve actions: discard and retry with optimistic UI, in-flight guards, focus management, and contextual hints",
+    "type": "feature",
+    "featureName": "TUI_SYNC_RESOLVE_ACTION",
+    "description": "Implement the full discard and retry interaction model for sync conflict resolution.\n\n**Scope (from spec TUI_SYNC_RESOLVE_ACTION):**\n\n**Discard flow:**\n- `d` on conflict row → confirmation modal → `Enter` confirms → `POST /api/daemon/conflicts/:id/resolve` → optimistic row removal → flash 'Conflict discarded' → re-fetch counts\n- `d` on non-conflict: no-op\n- From error detail modal: `d` opens stacked confirmation (zIndex 20 over 10)\n- 404 response: row silently removed, flash 'Conflict already resolved'\n- 500/network error: optimistic revert (row reappears), error flash\n\n**Retry flow:**\n- `y` on conflict/failed row → immediate `POST /api/daemon/conflicts/:id/retry` → optimistic status badge change to yellow 'pending' → flash 'Item queued for retry'\n- No confirmation needed (non-destructive)\n- From error detail modal: `y` fires retry and auto-closes modal\n- 404 response: row removed, flash 'Item no longer in queue'\n- 500/network error: optimistic revert, error flash\n\n**In-flight guards:** Client-side per-item-ID guard prevents duplicate API calls. 'Action in progress' flash on repeated presses. 30-second timeout.\n\n**Focus management:** After discard: advance to next → previous → empty state. After retry: stay on same item.\n\n**Contextual status bar hints:** Conflict rows: 'd:discard y:retry Enter:detail'. Failed rows: 'y:retry Enter:detail'. Pending/synced: no resolve hints.\n\n**Polling merge:** Polling continues during actions; poll results merge with optimistic state (discarded items hidden, retried items keep pending).\n\n**Tests:** 84 tests in `e2e/tui/sync.test.ts` (SNAP-RESOLVE-001–018, KEY-RESOLVE-001–024, RESP-RESOLVE-001–008, INT-RESOLVE-001–020, EDGE-RESOLVE-001–014).\n\n**Note:** This feature implements the action logic used by both the Sync Status screen and Conflict List screen. The resolve/retry hooks and UI patterns are shared.\n\n**Files:**\n- `apps/tui/src/screens/Sync/hooks/useResolveAction.ts`\n- `apps/tui/src/screens/Sync/hooks/useRetryAction.ts`\n- `apps/tui/src/screens/Sync/hooks/useInFlightGuard.ts`\n- Updates to SyncStatusScreen.tsx and SyncConflictList.tsx\n- `e2e/tui/sync.test.ts`",
+    "dependencies": [
+      "tui-sync-status-screen",
+      "tui-sync-error-detail-modal",
+      "tui-sync-discard-confirmation-modal",
+      "tui-sync-toast-flash-system"
+    ],
+    "estimateHours": 12
+  },
+  {
+    "id": "tui-sync-force-sync",
+    "title": "Force sync action: S key trigger with syncing state, braille spinner, result toast, guard messages, and post-sync refresh",
+    "type": "feature",
+    "featureName": "TUI_SYNC_FORCE_SYNC",
+    "description": "Implement the keyboard-driven force sync action on the Sync Status screen.\n\n**Scope (from spec TUI_SYNC_FORCE_SYNC):**\n\n**Trigger:** `S` (Shift+S) on Sync Status screen. Also works from error detail modal.\n\n**Guards:**\n- `isSyncing === true`: flash 'Sync already in progress' (2s)\n- `pendingCount === 0`: flash 'Nothing to sync' (2s)\n- Filter input focused: no-op (S captured as text)\n\n**Syncing state:**\n- Status banner: `◐ Syncing…` with braille spinner at 80ms/frame via `useTimeline()`\n- Progress hint (standard+): 'Flushing N pending items…' in muted\n- `S:sync` hint in status bar replaced with 'syncing…'\n- All other keybindings remain functional during sync\n\n**Result toast (5 seconds):**\n- Success: '✓ Synced N items (0 conflicts, 0 failed)' in green (ANSI 34)\n- Warning: '⚠ Synced N items (X conflicts, 0 failed)' in yellow (ANSI 178)\n- Error: '✗ Synced N items (X conflicts, Y failed)' in red (ANSI 196)\n- Abbreviated at 80×24: 'Synced N (X conf, Y fail)'\n- Singular: 'Synced 1 item'\n\n**Error toasts:** Timeout ('Sync timed out. Press S to retry.'), no remote, daemon not running, rate limited (429), network error, server error\n\n**Post-sync refresh:** Immediate re-fetch of `useDaemonStatus()` and `useSyncConflicts()` bypassing 3-second poll.\n\n**Lifecycle:** `isSyncing` flag cleared on success, error, AND timeout — never permanently set. Navigate away during sync: sync continues server-side, no toast shown.\n\n**30-second AbortSignal timeout.** Rapid S presses: first triggers, rest show guard flash.\n\n**Tests:** 62 tests in `e2e/tui/sync.test.ts` (SNAP-FORCE-001–012, KEY-FORCE-001–018, RESP-FORCE-001–006, INT-FORCE-001–016, EDGE-FORCE-001–010).\n\n**Files:**\n- `apps/tui/src/screens/Sync/hooks/useForceSyncAction.ts`\n- Updates to SyncStatusScreen.tsx (syncing state in banner, S keybinding)\n- `e2e/tui/sync.test.ts`",
+    "dependencies": [
+      "tui-sync-status-screen",
+      "tui-sync-data-hooks",
+      "tui-sync-toast-flash-system"
+    ],
+    "estimateHours": 10
+  },
+  {
+    "id": "tui-wiki-list-screen",
+    "title": "Wiki list screen: page list with responsive columns, pagination, inline delete, and search toolbar",
+    "type": "feature",
+    "featureName": "TUI_WIKI_LIST_SCREEN",
+    "description": "Implement the primary wiki browsing surface.\n\n**Scope (from spec TUI_WIKI_LIST_SCREEN):**\n\n**Layout:**\n- Title row: 'Wiki (N)' in bold primary, where N is `X-Total-Count`\n- Persistent search toolbar below title with `<input>` placeholder 'Search wiki…'\n- Scrollable list of wiki page rows sorted by `updated_at` descending\n- Each row: title, slug (`/`-prefixed, muted), author (muted), relative timestamp (muted)\n- Focused row: reverse video with primary accent (ANSI 33)\n\n**Responsive columns:**\n- 80×24: Title (remaining) + timestamp (4ch). Slug/author hidden.\n- 120×40: Title (45ch) + slug (25ch) + author (12ch) + timestamp (4ch)\n- 200×60: Title (70ch) + slug (35ch) + author (15ch) + timestamp (4ch)\n\n**Keyboard:**\n- j/k/arrows: navigate rows\n- Enter: push wiki detail view with correct repo and slug\n- /: focus search input\n- Esc: clear search → pop (priority chain)\n- G/gg: jump to end/start\n- Ctrl+D/U: page down/up\n- R: retry (error state only)\n- c: push wiki create form\n- d: inline delete confirmation ('Delete <Title>? y/n' in warning color)\n- y: confirm delete (optimistic removal)\n- n: cancel delete\n- q: pop screen\n\n**Pagination:** Page-based (page/per_page), 30 items default. Next page at 80% scroll. 500-item memory cap with footer message.\n\n**Delete:** Optimistic removal, decrement total count. 403 → revert + 'Permission denied'. 404 → remove + 'Page not found' flash. Only one confirmation active at a time.\n\n**Empty states:** 'No wiki pages yet. Press c to create one.' or 'No wiki pages match your search.'\n\n**Edge cases:** Unicode grapheme-aware truncation, null author → 'unknown', terminal resize preserves focus.\n\n**Tests:** 105 tests in `e2e/tui/wiki.test.ts` (SNAP-WIKI-001–022, KEY-WIKI-001–038, RESP-WIKI-001–014, INT-WIKI-001–018, EDGE-WIKI-001–013).\n\n**Files:**\n- `apps/tui/src/screens/Wiki/WikiListScreen.tsx`\n- `apps/tui/src/screens/Wiki/components/WikiPageRow.tsx`\n- `apps/tui/src/screens/Wiki/components/WikiToolbar.tsx`\n- `apps/tui/src/screens/Wiki/components/InlineDeleteConfirm.tsx`\n- `e2e/tui/wiki.test.ts`",
+    "dependencies": [
+      "tui-wiki-screen-scaffold",
+      "tui-wiki-data-hooks",
+      "tui-responsive-layout"
+    ],
+    "estimateHours": 14
+  },
+  {
+    "id": "tui-wiki-detail-view",
+    "title": "Wiki detail view: markdown rendering, page navigation, edit form, delete action, and responsive metadata",
+    "type": "feature",
+    "featureName": "TUI_WIKI_DETAIL_VIEW",
+    "description": "Implement the wiki page detail screen with full markdown rendering.\n\n**Scope (from spec TUI_WIKI_DETAIL_VIEW):**\n\n**Layout:**\n- Page header: title in bold (wraps, never truncated), slug in muted `/<slug>` (hidden at 80×24)\n- Metadata row: `@username` in primary (ANSI 33), 'created {time}' in muted, 'updated {time}' in muted (hidden when same as created, hidden at 80×24)\n- Separator: horizontal rule\n- Body: `<markdown>` component in `<scrollbox>`. Empty body: 'This page has no content.' in muted italic. Body capped at 100,000 chars with truncation notice.\n\n**Keyboard:**\n- j/k/arrows: scroll content\n- G/gg: jump to bottom/top\n- Ctrl+D/U: page down/up\n- ]: next wiki page in list order\n- [: previous wiki page in list order ('Last page'/'First page' indicator if at boundary)\n- e: open edit form (title, slug, body textarea, Tab/Shift+Tab between fields, Ctrl+S submit, Esc cancel with dirty check)\n- d: delete with confirmation dialog ('Delete wiki page <title>? This cannot be undone. [y/n]')\n- q: pop back to wiki list\n\n**Edit form:** Three fields (title input, slug input, body textarea). Pre-populated. Slug validation (lowercase alphanumeric + hyphens). Title required. Esc with changes → 'Discard changes? [y/n]'. Success refreshes detail. Failure shows inline error.\n\n**Delete:** Confirmation → DELETE request → pop to list on success. Failure shows inline error in dialog.\n\n**Data:** `useWikiPage(owner, repo, slug)` with 30-second cache. 404 → 'Wiki page not found' with 'Press q to go back'. Network error → 'Failed to load wiki page' with 'Press R to retry'.\n\n**Responsive:** 80×24 compact (slug hidden, author only + compact time). 120×40 standard (full metadata). 200×60 expanded (wider content, full timestamps).\n\n**Breadcrumb:** '… > Wiki > <page-title>' (title truncated to 30ch)\n\n**Files:**\n- `apps/tui/src/screens/Wiki/WikiDetailView.tsx`\n- `apps/tui/src/screens/Wiki/components/WikiPageHeader.tsx`\n- `apps/tui/src/screens/Wiki/components/WikiEditForm.tsx`\n- `apps/tui/src/screens/Wiki/components/WikiDeleteConfirm.tsx`\n- `e2e/tui/wiki.test.ts`",
+    "dependencies": [
+      "tui-wiki-list-screen",
+      "tui-wiki-data-hooks",
+      "tui-bootstrap-and-renderer",
+      "tui-sync-toast-flash-system",
+      "tui-sync-toast-flash-system"
+    ],
+    "estimateHours": 14
+  },
+  {
+    "id": "tui-wiki-search",
+    "title": "Wiki search: server-side full-text search with debounce, match highlighting, count badge, and state preservation",
+    "type": "feature",
+    "featureName": "TUI_WIKI_SEARCH",
+    "description": "Implement the server-side search integration within the wiki list screen.\n\n**Scope (from spec TUI_WIKI_SEARCH):**\n\n**Search activation:** `/` focuses search input. Input has `/ ` prefix indicator in muted, placeholder 'Search wiki pages…'.\n\n**Search behavior:** 300ms debounce. Server-side via `GET /api/repos/:owner/:repo/wiki?q={query}&page=1&per_page=30`. Results ranked by relevance (server-side). Empty/whitespace query → no request, show full list.\n\n**Match highlighting:** HighlightedText component renders matching segments in primary color (ANSI 33) bold in both titles and slugs. Case-insensitive. Respects truncation boundaries.\n\n**Match count badge:** Right of search input. 'N results' (muted), '1 result' (singular), 'No results' (warning). From `X-Total-Count` header.\n\n**Keyboard in search input:**\n- Printable chars: append to query (including j/k/q/c/d/G/g which DO NOT trigger list actions)\n- Backspace: delete last char\n- Ctrl+U: clear query (stay in input)\n- Ctrl+W: delete last word\n- Enter: submit immediately (cancel debounce), close input, focus first result\n- Esc (query non-empty): clear, re-fetch unfiltered\n- Esc (empty, previous search active): clear active search\n- Esc (empty, no previous search): pop screen\n- /: types literal `/`\n\n**Pagination with search:** Same page-based pagination. Query parameter preserved. 500-item cap.\n\n**State preservation:** Preserved on navigate to detail and back. Cleared on exit wiki screen. `/` re-opens with previous query.\n\n**Header count:** Updates to reflect search results: 'Wiki (3)' during active search.\n\n**Empty results:** 'No wiki pages match <query>' centered with 'Press Esc to clear search'.\n\n**Search input:** Max 120 chars (additional silently ignored). Horizontal scroll for long queries.\n\n**Error handling:** 500/429/timeout: previous list preserved, inline error 3s. No auto-retry on 429.\n\n**Responsive:** 80×24 full width input, match count hidden if overlaps. 120×40 70% width, count visible. 200×60 60% width.\n\n**Tests:** 91 tests in `e2e/tui/wiki.test.ts` (SNAP-WIKI-SEARCH-001–016, KEY-WIKI-SEARCH-001–030, RESIZE-WIKI-SEARCH-001–011, INT-WIKI-SEARCH-001–020, EDGE-WIKI-SEARCH-001–014).\n\n**Files:**\n- `apps/tui/src/screens/Wiki/components/WikiSearchInput.tsx`\n- `apps/tui/src/screens/Wiki/hooks/useWikiSearch.ts`\n- Updates to WikiListScreen.tsx and WikiToolbar.tsx\n- `e2e/tui/wiki.test.ts`",
+    "dependencies": [
+      "tui-wiki-list-screen",
+      "tui-wiki-highlighted-text",
+      "tui-wiki-data-hooks"
+    ],
+    "estimateHours": 12
+  }
+]

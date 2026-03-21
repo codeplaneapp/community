@@ -1,0 +1,489 @@
+[
+  {
+    "id": "tui-diff-data-hooks",
+    "title": "Diff data hooks: useChangeDiff and useLandingDiff adapters",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create TUI-adapted hooks that wrap @codeplane/ui-core for fetching diff data. Implement useChangeDiff(owner, repo, change_id, opts?) calling GET /api/repos/:owner/:repo/changes/:change_id/diff and useLandingDiff(owner, repo, number, opts?) calling GET /api/repos/:owner/:repo/landings/:number/diff. Support ignore_whitespace query parameter. Return typed FileDiffItem[] with loading/error/refetch states. Implement 30-second cache with cache keys incorporating ignore_whitespace boolean. Also create useLandingComments(owner, repo, number) for fetching inline comments and useCreateLandingComment() mutation hook with optimistic update support.",
+    "dependencies": [
+      "tui-navigation-provider",
+      "tui-auth-token-loading"
+    ],
+    "files": [
+      "apps/tui/src/hooks/useChangeDiff.ts",
+      "apps/tui/src/hooks/useLandingDiff.ts",
+      "apps/tui/src/hooks/useLandingComments.ts",
+      "apps/tui/src/hooks/useCreateLandingComment.ts"
+    ],
+    "testFiles": [],
+    "acceptanceCriteria": [
+      "useChangeDiff returns { fileDiffs, isLoading, error, refetch } with correct API endpoint",
+      "useLandingDiff returns same shape with landing-specific endpoint",
+      "Both hooks accept ignore_whitespace option that adds query parameter",
+      "Cache TTL of 30s per unique (owner, repo, id, ignore_whitespace) key",
+      "useLandingComments fetches comments grouped by file path and line",
+      "useCreateLandingComment performs optimistic insert and reverts on error",
+      "401 responses set authState to expired",
+      "Network errors populate error field without throwing"
+    ]
+  },
+  {
+    "id": "tui-diff-parse-utils",
+    "title": "Diff parsing utilities: hunk splitting, line mapping, filler insertion",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create shared diff parsing utilities used by both unified and split views. Implement parseDiffHunks() that converts unified diff patches into structured hunk objects with oldStart, newStart, oldLines, newLines, and paired left/right line arrays for split view alignment. Implement line number mapping (visual line index to actual file line number) as Map<number, number>. Implement filler line insertion logic that pads the shorter side in split view to maintain vertical alignment. Implement focusedHunkIndex derivation from scroll position. All utilities are pure functions, no React dependencies.",
+    "dependencies": [],
+    "files": [
+      "apps/tui/src/lib/diff-parse.ts",
+      "apps/tui/src/lib/diff-types.ts"
+    ],
+    "testFiles": [],
+    "acceptanceCriteria": [
+      "parseDiffHunks correctly splits unified patches into left/right line arrays",
+      "Filler lines are inserted on the shorter side to maintain alignment",
+      "Line number mapping handles additions (right only), deletions (left only), context (both)",
+      "Hunk boundary extraction provides oldStart, newStart, oldLines, newLines",
+      "focusedHunkIndex correctly derived from scroll offset and hunk boundaries",
+      "Handles edge cases: empty patches, single-line files, binary file markers",
+      "All functions are pure with no side effects"
+    ]
+  },
+  {
+    "id": "tui-diff-syntax-style",
+    "title": "Diff syntax style setup: SyntaxStyle memoization and color palette",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the syntax highlighting style configuration for the diff viewer. Define the 17-token color palette (keywords, strings, comments, numbers, booleans, functions, types, operators, variables, properties, brackets, punctuation, default, etc.) using SyntaxStyle.fromStyles() from @opentui/core. Implement color capability tier resolution (truecolor to 256 to 16 fallback). Create pathToFiletype integration for language detection from file paths when API language field is absent. Memoize the SyntaxStyle instance per diff screen lifecycle with proper .destroy() cleanup on unmount.",
+    "dependencies": [],
+    "files": [
+      "apps/tui/src/lib/diff-syntax.ts",
+      "apps/tui/src/hooks/useDiffSyntaxStyle.ts"
+    ],
+    "testFiles": [],
+    "acceptanceCriteria": [
+      "SyntaxStyle created with 17-token color palette matching spec",
+      "Color palette degrades correctly across truecolor, 256-color, and 16-color terminals",
+      "pathToFiletype fallback detects 47+ language extensions",
+      "SyntaxStyle instance is memoized (not recreated on re-renders)",
+      "Cleanup calls .destroy() on unmount to free WASM resources",
+      "Style instance is shared across unified/split/file navigation without recreation"
+    ]
+  },
+  {
+    "id": "tui-diff-screen-scaffold",
+    "title": "DiffScreen component shell with layout, loading, error states, and screen registration",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the DiffScreen component registered in the screen registry with requiresRepo: true. Implement the three-zone layout: optional file tree sidebar (left), main diff content area (center/right), and diff-specific status bar indicators. Handle screen params: mode ('change' | 'landing'), change_id or landing number, owner, repo. Implement loading state (full-screen spinner), error state (with R to retry), and the focusZone state machine (tree | content). Wire up breadcrumb generation for navigation stack. Register screen-level keybinding scope with all diff keybindings. Implement responsive layout with sidebar visibility based on breakpoint.",
+    "dependencies": [
+      "tui-screen-router",
+      "tui-app-shell-integration",
+      "tui-theme-provider",
+      "tui-diff-data-hooks"
+    ],
+    "files": [
+      "apps/tui/src/screens/Diff/DiffScreen.tsx",
+      "apps/tui/src/screens/Diff/index.ts",
+      "apps/tui/src/screens/Diff/DiffLayout.tsx",
+      "apps/tui/src/screens/Diff/DiffStatusBar.tsx"
+    ],
+    "testFiles": [],
+    "acceptanceCriteria": [
+      "DiffScreen registered in screenRegistry with requiresRepo: true",
+      "Accepts mode, change_id/landing_number, owner, repo params",
+      "Shows loading spinner during initial data fetch",
+      "Shows error state with R to retry on API failure",
+      "Three-zone layout renders: sidebar slot, content slot, status indicators",
+      "focusZone state machine switches between tree and content with Tab/Shift+Tab",
+      "Breadcrumb shows correct path (Dashboard > owner/repo > Changes > id > Diff)",
+      "Sidebar hidden at minimum breakpoint, visible at standard+",
+      "Ctrl+B toggles sidebar visibility at any breakpoint",
+      "Status bar shows File N of M, view mode indicator, keybinding hints",
+      "q pops screen, ? shows help, : opens command palette"
+    ]
+  },
+  {
+    "id": "tui-diff-screen",
+    "title": "TUI_DIFF_SCREEN: Complete diff screen lifecycle and integration",
+    "type": "feature",
+    "featureName": "TUI_DIFF_SCREEN",
+    "description": "Complete the diff screen with full lifecycle management: entry from change list (d key), landing detail (Diff tab), command palette, and deep link (--screen diff). Wire data fetching through useChangeDiff/useLandingDiff with loading/error/empty states. Implement the complete keybinding registration for all diff operations. Handle navigation push from parent screens with correct params. Implement deep link support: codeplane tui --screen diff --repo owner/repo --change change_id. Ensure screen unmount cleans up all state (collapse state, whitespace toggle, scroll position, syntax style).",
+    "dependencies": [
+      "tui-diff-screen-scaffold",
+      "tui-diff-data-hooks"
+    ],
+    "files": [
+      "apps/tui/src/screens/Diff/DiffScreen.tsx"
+    ],
+    "testFiles": [
+      "e2e/tui/diff.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Diff screen opens from change list via d key with correct change_id",
+      "Diff screen opens from landing detail via Diff tab with correct landing number",
+      "Diff screen opens via command palette :diff owner/repo change_id",
+      "Deep link --screen diff --repo owner/repo --change id pre-populates navigation stack",
+      "Loading state shows spinner with Loading... text",
+      "Error state shows error message with R to retry hint",
+      "Empty diff shows No changes message",
+      "All keybindings registered and shown in help overlay (?)",
+      "Screen unmount cleans up all state and subscriptions",
+      "401 errors show session expired message"
+    ]
+  },
+  {
+    "id": "tui-diff-unified-view",
+    "title": "TUI_DIFF_UNIFIED_VIEW: Default single-column interleaved diff rendering",
+    "type": "feature",
+    "featureName": "TUI_DIFF_UNIFIED_VIEW",
+    "description": "Implement the unified (single-column) diff view as the default rendering mode. Use OpenTUI's <diff> component with view='unified', filetype prop for syntax highlighting, and color props (addedBg, removedBg, addedSignColor, removedSignColor). Render file headers with change type icon (A/D/M/R/C with semantic colors), file path, and +N -M stat summary. Implement scrollable content via <scrollbox> with j/k line scroll, Ctrl+D/U page scroll, G/gg jump. Render hunk headers with @@ markers in cyan (ANSI 37). Handle binary files with skip message. Handle empty patches with informational message. Implement wrapMode='word' at minimum breakpoint, 'none' at standard+.",
+    "dependencies": [
+      "tui-diff-screen-scaffold",
+      "tui-diff-parse-utils",
+      "tui-diff-syntax-style"
+    ],
+    "files": [
+      "apps/tui/src/screens/Diff/DiffUnifiedView.tsx",
+      "apps/tui/src/screens/Diff/DiffFileHeader.tsx",
+      "apps/tui/src/screens/Diff/DiffHunkHeader.tsx"
+    ],
+    "testFiles": [
+      "e2e/tui/diff.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Unified view renders as default mode on screen open",
+      "OpenTUI <diff> component used with view='unified' and correct color props",
+      "File headers show change type icon with semantic color (A=green, D=red, M=yellow, R=cyan, C=cyan)",
+      "File headers show file path and +N -M stat with green/red coloring",
+      "Hunk headers render with @@ markers in cyan (ANSI 37)",
+      "j/k scrolls one line, Ctrl+D/U scrolls half page, G jumps bottom, gg jumps top",
+      "Binary files show informational skip message",
+      "Empty patches show No changes in this file message",
+      "wrapMode='word' at 80x24, 'none' at 120x40+",
+      "Addition lines have green background (ANSI 22) with + sign",
+      "Deletion lines have red background (ANSI 52) with - sign",
+      "Context lines use default terminal colors",
+      "Scroll position tracked by logical line index"
+    ]
+  },
+  {
+    "id": "tui-diff-split-view",
+    "title": "TUI_DIFF_SPLIT_VIEW: Side-by-side old/new comparison panes",
+    "type": "feature",
+    "featureName": "TUI_DIFF_SPLIT_VIEW",
+    "description": "Implement the split (side-by-side) diff view with two synchronized panes. Left pane shows old file content (deletions in red), right pane shows new file content (additions in green). Use parseDiffHunks() to convert unified patches to paired left/right line arrays. Insert filler lines on shorter side to maintain vertical alignment. Render vertical separator (U+2502) between panes. Hunk headers span both panes in cyan. Pane widths: 50%/50% without sidebar, 37.5%/37.5% with 25% sidebar. Minimum width requirement: 120 columns (100 cols content area). Split view unavailable below 120 cols.",
+    "dependencies": [
+      "tui-diff-unified-view",
+      "tui-diff-parse-utils"
+    ],
+    "files": [
+      "apps/tui/src/screens/Diff/DiffSplitView.tsx",
+      "apps/tui/src/screens/Diff/DiffPane.tsx",
+      "apps/tui/src/screens/Diff/DiffSyncController.tsx"
+    ],
+    "testFiles": [
+      "e2e/tui/diff.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Split view renders two side-by-side panes with vertical separator",
+      "Left pane shows old file content with deletion highlighting",
+      "Right pane shows new file content with addition highlighting",
+      "Filler lines inserted on shorter side with dark gray background (ANSI 236)",
+      "Hunk headers span full width across both panes in cyan",
+      "Pane widths: 50%/50% without sidebar, 37.5%/37.5% with sidebar",
+      "Split view requires minimum 120 columns terminal width",
+      "Below 120 columns, split view is unavailable",
+      "Vertical separator uses U+2502 character",
+      "j/k scrolls both panes simultaneously",
+      "Performance target: <50ms render time"
+    ]
+  },
+  {
+    "id": "tui-diff-view-toggle",
+    "title": "TUI_DIFF_VIEW_TOGGLE: t key toggles between unified and split modes",
+    "type": "feature",
+    "featureName": "TUI_DIFF_VIEW_TOGGLE",
+    "description": "Implement the t keybinding to toggle between unified and split diff view modes. Track viewMode state ('unified'|'split') and preferredMode (user's explicit choice). Check terminal width via useTerminalDimensions — split requires >=120 cols. When terminal is too narrow, t shows 3-second flash message and stays in unified. Auto-revert to unified on terminal resize below 120 cols during split mode, with flash notification. Resize back >=120 does NOT auto-restore split. Preserve logical scroll position across toggles. Status bar shows [unified] or [split] indicator. 100ms debounce on t key.",
+    "dependencies": [
+      "tui-diff-unified-view",
+      "tui-diff-split-view"
+    ],
+    "files": [
+      "apps/tui/src/screens/Diff/DiffViewToggle.tsx",
+      "apps/tui/src/screens/Diff/useDiffViewMode.ts"
+    ],
+    "testFiles": [
+      "e2e/tui/diff.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "t key toggles between unified and split modes",
+      "Split mode requires >=120 columns; t shows flash message if too narrow",
+      "Flash message visible for 3 seconds",
+      "Auto-revert to unified on resize below 120 cols with flash notification",
+      "Resize back above 120 does NOT auto-restore split mode",
+      "preferredMode tracks user's last explicit choice",
+      "Logical scroll position preserved across view toggle",
+      "Status bar shows [unified] or [split] indicator",
+      "100ms debounce prevents rapid t key toggling",
+      "t key blocked during help overlay, command palette, and comment form"
+    ]
+  },
+  {
+    "id": "tui-diff-file-tree",
+    "title": "TUI_DIFF_FILE_TREE: Sidebar file inventory with change icons and search",
+    "type": "feature",
+    "featureName": "TUI_DIFF_FILE_TREE",
+    "description": "Implement the file tree sidebar showing all changed files from the diff. Each entry shows: change type icon (A/D/M/R/C with semantic colors), file path (truncated left with ellipsis prefix), and +N/-M stat summary. Focused entry highlighted with inverse styling. j/k navigation, G/gg jump, Ctrl+D/U page scroll. / activates case-insensitive search filter (128 char max). Esc clears search. Enter jumps main content to file and transfers focus to content. Ctrl+B toggles sidebar. Tab/Shift+Tab switches focus zones. Summary line at bottom. Sidebar width: 25% at standard, 30% when toggled at minimum. Auto-hide below 24 cols. 500-file cap.",
+    "dependencies": [
+      "tui-diff-screen-scaffold",
+      "tui-diff-data-hooks"
+    ],
+    "files": [
+      "apps/tui/src/screens/Diff/DiffFileTree.tsx",
+      "apps/tui/src/screens/Diff/DiffFileTreeEntry.tsx",
+      "apps/tui/src/screens/Diff/useDiffFileTree.ts"
+    ],
+    "testFiles": [
+      "e2e/tui/diff.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Sidebar shows all files from diff with change type icons",
+      "Change type icons colored semantically: A=green, D=red, M=yellow, R=cyan, C=cyan",
+      "File paths truncated left with ellipsis prefix at narrow widths",
+      "+N/-M stats shown with green/red coloring per entry",
+      "Focused entry highlighted with inverse styling",
+      "j/k navigates entries, G/gg jumps, Ctrl+D/U pages",
+      "/ activates case-insensitive search filter with incremental narrowing",
+      "Esc clears search filter and returns to full list",
+      "Enter jumps main content to file and transfers focus to content",
+      "Ctrl+B toggles sidebar visibility",
+      "Tab/Shift+Tab switches focus between tree and content zones",
+      "Summary line shows N files +X -Y at bottom",
+      "Sidebar hidden at minimum breakpoint, visible at standard+",
+      "500-file cap with truncation indicator",
+      "Renames show old to new format"
+    ]
+  },
+  {
+    "id": "tui-diff-file-navigation",
+    "title": "TUI_DIFF_FILE_NAVIGATION: Sequential and targeted file jumping with ]/[",
+    "type": "feature",
+    "featureName": "TUI_DIFF_FILE_NAVIGATION",
+    "description": "Implement file navigation via ] (next file) and [ (previous file) keybindings with wrap-around. Navigation scrolls main content to target file header, updates file tree sidebar cursor, and updates status bar File N of M indicator. Enter in file tree triggers targeted navigation. Preserve hunk collapse state, whitespace toggle, and view mode across navigation. Scroll targeting uses cumulative file section heights with ref-based scroll-to. Single-file diffs: ]/[ are no-ops. Stat abbreviation (K/M format for >999) at narrow terminals.",
+    "dependencies": [
+      "tui-diff-file-tree",
+      "tui-diff-unified-view"
+    ],
+    "files": [
+      "apps/tui/src/screens/Diff/useDiffFileNavigation.ts"
+    ],
+    "testFiles": [
+      "e2e/tui/diff.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "] advances to next file with wrap-around (last to first)",
+      "[ retreats to previous file with wrap-around (first to last)",
+      "Navigation scrolls main content to target file header",
+      "File tree sidebar cursor syncs with content navigation",
+      "Status bar shows File N of M updated on every navigation",
+      "Enter in file tree triggers targeted jump to focused file",
+      "Hunk collapse state preserved across file navigation",
+      "Whitespace toggle state preserved across file navigation",
+      "View mode preserved across file navigation",
+      "Single-file diffs: ]/[ are no-ops",
+      "Scroll targeting uses cumulative heights with ref-based positioning",
+      "Stat abbreviation: K/M format for numbers >999"
+    ]
+  },
+  {
+    "id": "tui-diff-syntax-highlight",
+    "title": "TUI_DIFF_SYNTAX_HIGHLIGHT: Language-aware Tree-sitter highlighting",
+    "type": "feature",
+    "featureName": "TUI_DIFF_SYNTAX_HIGHLIGHT",
+    "description": "Implement syntax highlighting for diff content using OpenTUI's Tree-sitter integration. Pass filetype prop to <diff> component derived from API language field or pathToFiletype() fallback. Create SyntaxStyle with 17-token color palette via useDiffSyntaxStyle hook. Highlighting is always-on with no toggle. Memoize SyntaxStyle instance across component lifecycle. Support color capability tiers: truecolor, 256-color, 16-color. Tree-sitter WASM parsers loaded lazily. Highlighting is async/non-blocking.",
+    "dependencies": [
+      "tui-diff-syntax-style",
+      "tui-diff-unified-view"
+    ],
+    "files": [
+      "apps/tui/src/screens/Diff/DiffSyntaxProvider.tsx"
+    ],
+    "testFiles": [
+      "e2e/tui/diff.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Syntax highlighting active for all supported languages (47+)",
+      "filetype derived from API language field with pathToFiletype fallback",
+      "SyntaxStyle instance memoized and not recreated on mode/whitespace/file changes",
+      "17-token color palette applied: keywords, strings, comments, numbers, etc.",
+      "Color degradation: truecolor to 256-color to 16-color",
+      "WASM parsers loaded lazily per language",
+      "Highlighting is non-blocking and diff scrollable before completion",
+      "No new keybindings — highlighting is always-on",
+      "Cleanup calls .destroy() on SyntaxStyle on unmount",
+      "Highlighting preserved across unified/split toggle"
+    ]
+  },
+  {
+    "id": "tui-diff-line-numbers",
+    "title": "TUI_DIFF_LINE_NUMBERS: Adaptive gutter with contextual backgrounds",
+    "type": "feature",
+    "featureName": "TUI_DIFF_LINE_NUMBERS",
+    "description": "Implement line number gutters for the diff viewer. Pass showLineNumbers={true} to <diff> component. Unified view: two-column gutter (old line left, new line right). Split view: single gutter per pane. Gutter width adapts to terminal size: 4 chars at 80-119 cols, 5 at 120-199 cols, 6 at 200+ cols. Line numbers colored with muted foreground (ANSI 245). Contextual gutter backgrounds: darker green for additions, darker red for deletions. Filler lines in split view have blank gutters. Gutter width recalculated on resize.",
+    "dependencies": [
+      "tui-diff-unified-view",
+      "tui-diff-parse-utils"
+    ],
+    "files": [
+      "apps/tui/src/screens/Diff/DiffLineNumbers.tsx",
+      "apps/tui/src/screens/Diff/useDiffLineNumbers.ts"
+    ],
+    "testFiles": [
+      "e2e/tui/diff.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "showLineNumbers={true} passed to <diff> component",
+      "Unified view: two-column gutter (old left, new right)",
+      "Split view: single gutter per pane",
+      "Gutter width: 4 chars at 80-119, 5 at 120-199, 6 at 200+ cols",
+      "Line numbers in muted color (ANSI 245)",
+      "Addition gutter: darker green background, right column only",
+      "Deletion gutter: darker red background, left column only",
+      "Context lines: line numbers in both columns",
+      "Filler lines in split view have blank gutters",
+      "Gutter width recalculated on terminal resize",
+      "Max line numbers: 9999 (4ch), 99999 (5ch), 999999 (6ch)"
+    ]
+  },
+  {
+    "id": "tui-diff-whitespace-toggle",
+    "title": "TUI_DIFF_WHITESPACE_TOGGLE: w key toggles whitespace with API re-fetch",
+    "type": "feature",
+    "featureName": "TUI_DIFF_WHITESPACE_TOGGLE",
+    "description": "Implement the w keybinding to toggle whitespace visibility. Toggle flips whitespaceVisible boolean and triggers API re-fetch with ignore_whitespace query parameter. 300ms debounce on re-fetch. Show inline Updating diff loading indicator during re-fetch. Status bar shows [ws: visible] or [ws: hidden] indicator (abbreviated at <120 cols). State persists across file nav, sidebar toggle, view toggle. Resets hunk collapse state on toggle. Cache both whitespace variants separately with 30s TTL. w is no-op during loading, error, or overlay states. Empty diff after hide shows special message.",
+    "dependencies": [
+      "tui-diff-screen",
+      "tui-diff-data-hooks"
+    ],
+    "files": [
+      "apps/tui/src/screens/Diff/useDiffWhitespace.ts"
+    ],
+    "testFiles": [
+      "e2e/tui/diff.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "w key toggles whitespace visibility",
+      "Toggle triggers API re-fetch with ignore_whitespace parameter",
+      "300ms debounce prevents rapid API calls",
+      "Inline Updating diff indicator shown during re-fetch",
+      "Status bar shows [ws: visible] or [ws: hidden]",
+      "Abbreviated to ws:vis/ws:hid at <120 columns",
+      "State persists across file navigation and view toggle",
+      "Hunk collapse state resets on whitespace toggle",
+      "Both whitespace variants cached separately (30s TTL)",
+      "w is no-op during loading, error, or overlay states",
+      "Empty diff after hide shows special message with w hint"
+    ]
+  },
+  {
+    "id": "tui-diff-scroll-sync",
+    "title": "TUI_DIFF_SCROLL_SYNC: Synchronized scrolling in split view",
+    "type": "feature",
+    "featureName": "TUI_DIFF_SCROLL_SYNC",
+    "description": "Implement scroll synchronization between left and right panes in split view mode. Pass syncScroll={true} to <diff> component. Both panes share single scroll offset. j/k, Ctrl+D/U, G/gg all move both panes. Filler lines count toward total height. Virtual scrolling with 50-line buffer. Scroll offset clamped. Logical line index for position preservation. File navigation resets both panes. Hunk expand/collapse adjusts both panes. Performance: p99 <16ms for 10k lines. Only active in split mode.",
+    "dependencies": [
+      "tui-diff-split-view"
+    ],
+    "files": [
+      "apps/tui/src/screens/Diff/DiffSyncController.tsx",
+      "apps/tui/src/screens/Diff/useDiffScrollSync.ts"
+    ],
+    "testFiles": [
+      "e2e/tui/diff.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "syncScroll={true} passed to <diff> in split mode",
+      "j/k scrolls both panes simultaneously",
+      "Ctrl+D/U pages both panes simultaneously",
+      "G/gg jumps both panes to bottom/top",
+      "Filler lines count toward total rendered height",
+      "Virtual scrolling: 50-line buffer above/below viewport",
+      "Scroll offset clamped: 0 to (total_lines - visible_height)",
+      "Logical line index preserved across view toggles",
+      "File navigation resets both panes to top of target file",
+      "Hunk expand/collapse adjusts both pane positions",
+      "Performance: p99 <16ms for files up to 10k lines",
+      "Sync only active in split mode, not unified"
+    ]
+  },
+  {
+    "id": "tui-diff-expand-collapse",
+    "title": "TUI_DIFF_EXPAND_COLLAPSE: Hunk expand/collapse with z/Z/x/X keys",
+    "type": "feature",
+    "featureName": "TUI_DIFF_EXPAND_COLLAPSE",
+    "description": "Implement hunk expand/collapse. z toggles focused hunk, Z collapses all in current file, x expands all in current file, X expands all across all files. Enter expands collapsed hunk on summary line. Collapsed summary with triangle and line count. State tracked as nested Map (file path to hunk index to boolean). State persists across file nav, sidebar toggle, view toggle. Resets on whitespace toggle. Hunks with inline comments cannot be collapsed. Only active from content focus zone. Responsive summary format.",
+    "dependencies": [
+      "tui-diff-unified-view",
+      "tui-diff-parse-utils"
+    ],
+    "files": [
+      "apps/tui/src/screens/Diff/DiffHunkCollapse.tsx",
+      "apps/tui/src/screens/Diff/useDiffHunkState.ts"
+    ],
+    "testFiles": [
+      "e2e/tui/diff.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "z toggles focused hunk between collapsed and expanded",
+      "Z collapses all hunks in current file",
+      "x expands all hunks in current file",
+      "X expands all hunks across all files",
+      "Enter expands collapsed hunk when on summary line",
+      "Collapsed summary shows triangle icon, line count, and line range",
+      "Expanded hunk shows down-triangle indicator",
+      "Icons colored with primary ANSI 33",
+      "State persists across file nav, sidebar toggle, view toggle",
+      "State resets on whitespace toggle",
+      "Hunks with inline comments cannot be collapsed",
+      "Keybindings only active in content focus zone",
+      "Abbreviated summary at 80x24 minimum breakpoint"
+    ]
+  },
+  {
+    "id": "tui-diff-inline-comments",
+    "title": "TUI_DIFF_INLINE_COMMENTS: Landing diff inline comments with c/n/p keys",
+    "type": "feature",
+    "featureName": "TUI_DIFF_INLINE_COMMENTS",
+    "description": "Implement inline comment support for landing request diffs only. c opens comment form on focused line. Multiline textarea (height responsive: 5/8/12 rows). Ctrl+S submits, Esc dismisses with discard confirmation if non-empty. n/p navigates between comments. Comments rendered with left border in primary color and markdown body. Auto-expand hunks containing comments (un-collapsible). Optimistic rendering. 50k character limit with progressive warnings. All other keybindings disabled during form except Ctrl+C and ?. Authentication required.",
+    "dependencies": [
+      "tui-diff-unified-view",
+      "tui-diff-expand-collapse",
+      "tui-diff-file-navigation"
+    ],
+    "files": [
+      "apps/tui/src/screens/Diff/DiffInlineComment.tsx",
+      "apps/tui/src/screens/Diff/DiffCommentForm.tsx",
+      "apps/tui/src/screens/Diff/useDiffComments.ts"
+    ],
+    "testFiles": [
+      "e2e/tui/diff.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "c opens comment form on focused line (landing diffs only)",
+      "c is no-op for change diffs (no landing context)",
+      "Comment form: multiline textarea, height responsive to terminal size",
+      "Ctrl+S submits comment form",
+      "Esc dismisses form with discard confirmation if non-empty",
+      "Enter inserts newline in textarea (not submit)",
+      "n navigates to next inline comment",
+      "p navigates to previous inline comment",
+      "Comments rendered with left border in primary color and markdown body",
+      "Hunks containing comments auto-expand and cannot be collapsed",
+      "Optimistic rendering: comment appears before API confirmation",
+      "Character limit: 50000 with counter/warning/error thresholds",
+      "All other keybindings disabled during comment form except Ctrl+C and ?",
+      "Authentication required for comment creation"
+    ]
+  }
+]

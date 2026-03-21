@@ -1,0 +1,11 @@
+Blocking findings:
+1. Step 6 is not a real regression check in this repo state. The referenced tests `SNAP-STREAM-001`, `SNAP-STREAM-003`, and `SNAP-AGENT-LIST-008` are currently placeholder/comment-only tests in [agents.test.ts:316](/Users/williamcory/codeplane/specs/tui/e2e/tui/agents.test.ts:316), [agents.test.ts:332](/Users/williamcory/codeplane/specs/tui/e2e/tui/agents.test.ts:332), and [agents.test.ts:457](/Users/williamcory/codeplane/specs/tui/e2e/tui/agents.test.ts:457). They pass with no assertions, and the snapshot file is empty: [agents.test.ts.snap](/Users/williamcory/codeplane/specs/tui/e2e/tui/__snapshots__/agents.test.ts.snap). So this step cannot validate spinner behavior.
+2. Step 5 conflicts with the stated TUI constraint that tests target `e2e/tui/` using `@microsoft/tui-test`. The plan adds unit tests under `apps/tui/src/hooks/__tests__`, which is outside that target and lacks a specified TUI-test harness.
+3. Step 1 is underspecified in a way that can create functional bugs: with a global `useSyncExternalStore` + shared frame state, the plan does not explicitly define per-consumer inactive behavior (`active=false`) in snapshot/subscription semantics. Without that, inactive consumers can display or subscribe to global spinner updates when any spinner is active.
+4. Step 5’s Unicode/ASCII test strategy is incomplete for a module-singleton design. If timeline/frame set are initialized once at module scope, mocking `isUnicodeSupported` between tests will be nondeterministic unless module isolation/reset is explicitly planned.
+5. Keyboard-regression verification is missing. The design requires keyboard-first behavior (`q`, `Esc`, `j/k`, `f`, etc.), but the plan validates only snapshots and does not include concrete key interaction checks for the streaming path.
+
+Non-blocking note:
+- Data-access usage remains aligned with `@codeplane/ui-core` (current wrapper import in [useAgentStream.ts:2](/Users/williamcory/codeplane/specs/tui/apps/tui/src/hooks/useAgentStream.ts:2)).
+
+Verdict: not LGTM.

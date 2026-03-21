@@ -1,0 +1,11 @@
+Not LGTM.
+
+Critical gaps:
+1. The research is not ticket-specific. It restates PRD/design context but does not analyze `tui-workspace-data-hooks` requirements from `/Users/williamcory/codeplane/specs/tui/tickets-TUI_EPIC_08_WORKSPACES.json:3-21` (required hook set, return shapes, optimistic mutations, SSE reconciliation hooks).
+2. OpenTUI API coverage is superficial. It lists component/hook names but provides no API-level detail or usage constraints from source (`/Users/williamcory/codeplane/context/opentui/packages/react/README.md:184-340`, `/Users/williamcory/codeplane/context/opentui/packages/react/README.md:407-689`) and does not connect them to workspace-hook scope.
+3. Required `@codeplane/ui-core` hook dependencies are not identified. The doc omits concrete existing primitives used to implement this ticket: `/Users/williamcory/codeplane/specs/tui/packages/ui-core/src/hooks/internal/usePaginatedQuery.ts:6-218`, `/Users/williamcory/codeplane/specs/tui/packages/ui-core/src/hooks/internal/useMutation.ts:4-103`, `/Users/williamcory/codeplane/specs/tui/packages/ui-core/src/client/context.ts:4-17`.
+4. It misses current code patterns that should guide implementation: query/mutation hook shape in `/Users/williamcory/codeplane/specs/tui/packages/ui-core/src/hooks/issues/useIssues.ts:6-51`, `/Users/williamcory/codeplane/specs/tui/packages/ui-core/src/hooks/issues/useIssue.ts:7-115`, and navigation/workspace registration context in `/Users/williamcory/codeplane/specs/tui/apps/tui/src/navigation/screenRegistry.ts:101-106` and `/Users/williamcory/codeplane/specs/tui/apps/tui/src/navigation/goToBindings.ts:15-29`.
+5. No endpoint-contract validation was done against server source (`/Users/williamcory/codeplane/apps/server/src/routes/workspaces.ts:15-53`, `:107-124`, `:327`, `:406`, `:429-437`), so key implementation details are missing (pagination limits, header contracts, 204 empty bodies, destroy-session POST semantics).
+6. The write-up has no file/line references and no evidence of code/test exploration. Also, no `research/tui-workspace-data-hooks.md` artifact exists in `/Users/williamcory/codeplane/specs/tui/research/`.
+
+Given these gaps, this research is insufficient for implementation and review readiness.

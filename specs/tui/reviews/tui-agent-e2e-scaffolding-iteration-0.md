@@ -1,0 +1,14 @@
+1. BLOCKER — Required framework mismatch: `e2e/tui/agents.test.ts:1` imports `bun:test` only and does not import `@microsoft/tui-test` (required by PRD/design/engineering spec).
+2. BLOCKER — Harness is intentionally non-functional: `e2e/tui/helpers.ts:20` unconditionally throws. I ran `bun test e2e/tui/agents.test.ts`; result was `0 pass, 518 fail`, and all 518 failures reference `helpers.ts:20:13`.
+3. BLOCKER — Type safety is broken in the ticket file: `AgentMessagePartFixture` shape conflicts with fixture literals (`e2e/tui/agents.test.ts:151,152,192,202`). `bun run typecheck` fails with TS2353 on those lines.
+4. BLOCKER — Not all failures are behavioral scaffolding: 158 tests contain synthetic hard-fails (`expect(true).toBe(false)`) (example `e2e/tui/agents.test.ts:1969`). This violates the “real failing bodies” intent.
+5. MAJOR — Keyboard coverage does not match TUI design requirements. Effective key coverage is only `g a`, `j`, `Enter`, `n`, `r`, `s`, `Esc`; missing expected patterns like `k/h/l`, `G/gg`, `Ctrl+D/U`, `/`, `Tab`, `i`, `f`, `R`, `q`.
+6. MAJOR — Fixtures/helpers are mostly dead scaffolding: `agentSessionFixtures` and `agentMessageFixtures` are declared but never consumed beyond declaration (`e2e/tui/agents.test.ts:32`, `:123`). `waitForStreaming`/`waitForStreamComplete` are defined but unused (`:245-257`).
+7. MAJOR — `beforeAll`/`afterAll` are empty stubs (`e2e/tui/agents.test.ts:261-267`), so there is no shared setup/teardown despite spec guidance.
+8. MAJOR (apps/tui/src review) — OpenTUI component usage is absent in newly added agent UI files: `apps/tui/src/screens/Agents/components/MessageBlock.tsx:1` and `ToolBlock.tsx:1` are both `export {}` stubs.
+9. MAJOR (apps/tui/src review) — No OpenTUI interaction hooks/components are used in `apps/tui/src` for this change set (search counts: `useKeyboard/useTerminalDimensions/useOnResize/useTimeline = 0`, `<box>/<scrollbox>/<text>/<input>/<select>/<code>/<diff>/<markdown = 0`).
+10. MAJOR (data layer check) — No `@codeplane/ui-core` hooks are used anywhere in `apps/tui/src` (count 0). No direct API calls were found either (count 0), so data access integration is currently absent rather than compliant.
+11. MAJOR — Potential lifecycle bug in `useDiffSyntaxStyle`: on dependency change, cleanup destroys `styleRef.current` after it has been overwritten by the new style (`apps/tui/src/hooks/useDiffSyntaxStyle.ts:27-31`, `:42-49`), risking leaked old style and/or destroying the newly created style.
+12. NIT/Correctness — `formatTimestamp` lacks invalid-date handling and can emit `NaN`-based output (`apps/tui/src/screens/Agents/utils/formatTimestamp.ts:11-33`).
+
+Positive note: structural counts are correct (`518` tests, `5` top-level describes, `24` nested describes, `0` skips, `0` todos), but implementation quality is not acceptable for LGTM.

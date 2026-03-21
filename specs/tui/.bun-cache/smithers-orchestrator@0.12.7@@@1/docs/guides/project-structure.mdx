@@ -1,0 +1,304 @@
+---
+title: Production Project Structure
+description: The recommended file structure for production Smithers workflows with MDX prompts, component-per-step, and Zod schemas.
+---
+
+This guide describes the recommended file structure for production Smithers workflows. It is based on patterns from real workflows managing thousands of agent tasks.
+
+For simple workflows (1-5 tasks), a [single-file pattern](/guides/patterns#single-file-pattern) works fine. For anything larger, use this structure.
+
+## Directory Layout
+
+```
+scripts/my-workflow/
+  workflow.tsx          # Root workflow -- thin, just composition
+  smithers.ts           # createSmithers() + schema registry
+  agents.ts             # Agent definitions (CLI + API SDK)
+  config.ts             # Shared constants (max iterations, etc.)
+  system-prompt.ts      # Build system prompt from MDX + docs
+  preload.ts            # MDX plugin registration
+  bunfig.toml           # preload = ["./preload.ts"]
+  package.json
+  tsconfig.json
+  run.sh                # Shell script to launch workflow
+  components/
+    index.ts            # Re-export all components
+    Discover.tsx        # Step component
+    Discover.schema.ts  # Zod schema for output
+    Discover.mdx        # Prompt template
+    Implement.tsx
+    Implement.schema.ts
+    Implement.mdx
+    Validate.tsx
+    Validate.schema.ts
+    Validate.mdx
+    Review.tsx
+    Review.schema.ts
+    Review.mdx
+    ReviewFix.tsx
+    ReviewFix.schema.ts
+    ReviewFix.mdx
+    Report.tsx
+    Report.schema.ts
+    Report.mdx
+    TicketPipeline.tsx   # Composed pipeline per ticket
+    ValidationLoop.tsx   # Loop: implement -> validate -> review -> fix
+  prompts/
+    system-prompt.mdx    # Master system prompt template
+    *.md                 # Domain-specific context docs
+```
+
+## Why This Structure
+
+- **MDX prompts** -- Prompt engineering is separate from orchestration logic. You can iterate on prompts without touching code.
+- **Schema files** -- Each step has a `.schema.ts` exporting a Zod schema and TypeScript type. Schemas auto-create SQLite tables and validate agent output.
+- **One component per step** -- Each step (Discover, Implement, Review, etc.) is a React component, making workflows composable and independently testable.
+- **Thin workflow.tsx** -- The root file just composes components. All logic lives in component files.
+- **Shared agents** -- A single `agents.ts` configures all models, making it easy to swap between CLI and API agents.
+
+## Key Files
+
+### `smithers.ts` -- Schema Registry
+
+All Zod schemas are registered in one place. `createSmithers()` generates typed SQLite tables and returns typed hooks:
+
+```ts
+import { createSmithers } from "smithers-orchestrator";
+import { DiscoverOutput } from "./components/Discover.schema";
+import { ImplementOutput } from "./components/Implement.schema";
+import { ValidateOutput } from "./components/Validate.schema";
+import { ReviewOutput } from "./components/Review.schema";
+import { ReviewFixOutput } from "./components/ReviewFix.schema";
+import { ReportOutput } from "./components/Report.schema";
+
+export const { Workflow, Task, useCtx, smithers, tables, outputs } = createSmithers({
+  discover: DiscoverOutput,
+  implement: ImplementOutput,
+  validate: ValidateOutput,
+  review: ReviewOutput,
+  reviewFix: ReviewFixOutput,
+  report: ReportOutput,
+}, { dbPath: "./my-workflow.db" });
+```
+
+### `agents.ts` -- Model Configuration
+
+See [Model Selection](/guides/model-selection) for the full dual-agent setup pattern with CLI and API SDK agents.
+
+### `config.ts` -- Shared Constants
+
+Centralize tunable values so they are easy to adjust:
+
+```ts
+export const MAX_REVIEW_ROUNDS = 3;
+export const IMPLEMENT_TIMEOUT_MS = 45 * 60 * 1000;
+export const REVIEW_TIMEOUT_MS = 15 * 60 * 1000;
+```
+
+### `preload.ts` + `bunfig.toml` -- MDX Support
+
+Enable `.mdx` imports in Bun:
+
+```ts
+// preload.ts
+import { mdxPlugin } from "smithers-orchestrator";
+mdxPlugin();
+```
+
+```toml
+# bunfig.toml
+preload = ["./preload.ts"]
+```
+
+### `workflow.tsx` -- Root Composition
+
+The root file should be thin -- just composing components:
+
+```tsx
+import { Sequence, Branch } from "smithers-orchestrator";
+import { Discover, TicketPipeline } from "./components";
+import { Ticket } from "./components/Discover.schema";
+import { Workflow, smithers, tables } from "./smithers";
+
+export default smithers((ctx) => {
+  const discoverOutput = ctx.latest(tables.discover, "discover-codex");
+  const unfinishedTickets = ctx
+    .latestArray(discoverOutput?.tickets, Ticket)
+    .filter((t) => !ctx.latest(tables.report, `${t.id}:report`)) as Ticket[];
+
+  return (
+    <Workflow name="my-workflow">
+      <Sequence>
+        <Branch if={unfinishedTickets.length === 0} then={<Discover />} />
+        {unfinishedTickets.map((ticket) => (
+          <TicketPipeline key={ticket.id} ticket={ticket} />
+        ))}
+      </Sequence>
+    </Workflow>
+  );
+});
+```
+
+### `components/index.ts` -- Re-exports
+
+```ts
+export { Discover } from "./Discover";
+export { Implement } from "./Implement";
+export { Validate } from "./Validate";
+export { Review } from "./Review";
+export { ReviewFix } from "./ReviewFix";
+export { Report } from "./Report";
+export { ValidationLoop } from "./ValidationLoop";
+export { TicketPipeline } from "./TicketPipeline";
+export type { Ticket } from "./Discover.schema";
+```
+
+### `run.sh` -- Launch Script
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+cd "$SCRIPT_DIR"
+
+export USE_CLI_AGENTS=1
+export SMITHERS_UNSAFE=1
+
+echo "Starting workflow"
+bun smithers run workflow.tsx --input '{}' --root "$ROOT_DIR"
+```
+
+### `package.json`
+
+```json
+{
+  "name": "my-workflow",
+  "type": "module",
+  "scripts": {
+    "start": "bun run workflow.tsx",
+    "resume": "smithers resume workflow.tsx",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.36",
+    "@ai-sdk/openai": "^2.0.0",
+    "@mdx-js/esbuild": "^3.1.1",
+    "@mdx-js/mdx": "^3.1.1",
+    "@types/mdx": "^2.0.13",
+    "ai": "^6.0.69",
+    "react-dom": "^19.2.4",
+    "smithers-orchestrator": "latest",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.2",
+    "@types/react": "^19.2.13",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3"
+  }
+}
+```
+
+### `tsconfig.json`
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "smithers-orchestrator",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["@types/mdx", "@types/react-dom", "@types/node"]
+  },
+  "include": ["**/*.ts", "**/*.tsx", "**/*.mdx"],
+  "exclude": ["node_modules"]
+}
+```
+
+## The Component Pattern
+
+Each step follows the same three-file pattern:
+
+### 1. Schema (`Component.schema.ts`)
+
+```ts
+import { z } from "zod";
+
+export const ImplementOutput = z.object({
+  filesCreated: z.array(z.string()).nullable(),
+  filesModified: z.array(z.string()).nullable(),
+  commitMessages: z.array(z.string()),
+  whatWasDone: z.string(),
+  allTestsPassing: z.boolean(),
+  testOutput: z.string(),
+});
+export type ImplementOutput = z.infer<typeof ImplementOutput>;
+```
+
+### 2. Prompt (`Component.mdx`)
+
+```mdx
+IMPLEMENTATION -- Ticket: {props.ticketId} -- {props.ticketTitle}
+
+{props.ticketDescription}
+
+ACCEPTANCE CRITERIA:
+- {props.acceptanceCriteria}
+
+{props.previousImplementation
+  ? `PREVIOUS ATTEMPT:\n${props.previousImplementation.whatWasDone}\nFix issues from previous attempt.`
+  : ""}
+
+{props.reviewFixes
+  ? `REVIEW FIXES NEEDED:\n${props.reviewFixes}`
+  : ""}
+
+**REQUIRED OUTPUT** -- JSON matching this schema:
+{props.schema}
+```
+
+The `{props.schema}` variable is auto-injected by Smithers with a JSON example generated from the Zod schema.
+
+### 3. Component (`Component.tsx`)
+
+```tsx
+import { Task, useCtx, tables, outputs } from "../smithers";
+import { codex } from "../agents";
+import ImplementPrompt from "./Implement.mdx";
+import type { Ticket } from "./Discover.schema";
+
+export function Implement({ ticket }: { ticket: Ticket }) {
+  const ctx = useCtx();
+  const ticketId = ticket.id;
+  const latestValidate = ctx.latest(tables.validate, `${ticketId}:validate`);
+
+  return (
+    <Task id={`${ticketId}:implement`} output={outputs.implement} agent={codex} timeoutMs={45 * 60 * 1000}>
+      <ImplementPrompt
+        ticketId={ticketId}
+        ticketTitle={ticket.title}
+        ticketDescription={ticket.description}
+        acceptanceCriteria={ticket.acceptanceCriteria?.join("\n- ") ?? ""}
+        validationFeedback={latestValidate ?? null}
+      />
+    </Task>
+  );
+}
+```
+
+## Next Steps
+
+- [MDX Prompts](/guides/mdx-prompts) -- Deep dive on MDX for system prompts and per-step prompts.
+- [Implement-Review Loop](/guides/review-loop) -- The ValidationLoop component pattern.
+- [Dynamic Tickets](/guides/dynamic-tickets) -- Agent-driven ticket discovery.
+- [Patterns](/guides/patterns) -- Naming conventions, output access patterns, and more.

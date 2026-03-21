@@ -1,0 +1,365 @@
+[
+  {
+    "id": "tui-workspace-data-hooks",
+    "title": "Workspace data hooks for ui-core",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create workspace data hooks in @codeplane/ui-core that wrap the API client for all workspace operations. Implements: useWorkspaces(owner, repo, options?) for paginated list with cursor-based pagination and filtering; useWorkspace(owner, repo, workspaceId) for single workspace detail; useWorkspaceSSH(owner, repo, workspaceId) for SSH connection info with token TTL tracking; useWorkspaceSessions(owner, repo, workspaceId) for session list; useWorkspaceSnapshots(owner, repo) for snapshot list. Also implements mutation hooks: useCreateWorkspace(owner, repo), useSuspendWorkspace(owner, repo, workspaceId), useResumeWorkspace(owner, repo, workspaceId), useDeleteWorkspace(owner, repo, workspaceId), useCreateWorkspaceSession(owner, repo, workspaceId), useDestroyWorkspaceSession(owner, repo, sessionId), useCreateWorkspaceSnapshot(owner, repo, workspaceId), useDeleteWorkspaceSnapshot(owner, repo, snapshotId). All hooks follow the PaginatedResult<T> pattern for lists and useOptimisticMutation pattern for mutations. Types consumed from @codeplane/sdk: WorkspaceResponse, WorkspaceSessionResponse, WorkspaceSSHConnectionInfo, WorkspaceSnapshotResponse.",
+    "acceptanceCriteria": [
+      "useWorkspaces returns { workspaces, isLoading, error, hasMore, fetchMore, refetch } with cursor-based pagination",
+      "useWorkspace returns { workspace, isLoading, error, refetch } for a single workspace by ID",
+      "useWorkspaceSSH returns { sshInfo, isLoading, error, refetch, tokenExpiresAt } with 5-minute TTL tracking",
+      "useWorkspaceSessions returns paginated session list with create and destroy mutations",
+      "useWorkspaceSnapshots returns paginated snapshot list with create and delete mutations",
+      "useSuspendWorkspace applies optimistic state update (status → suspending) and reverts on error",
+      "useResumeWorkspace applies optimistic state update (status → resuming) and reverts on error",
+      "useCreateWorkspace returns { create, isSubmitting, error } with validation error propagation",
+      "useDeleteWorkspace returns { remove, isDeleting, error } with confirmation callback pattern",
+      "All hooks use the configured APIClient from APIClientProvider context",
+      "All list hooks support refetch() for manual refresh and SSE-triggered reconciliation"
+    ],
+    "implementationNotes": "Implementation targets packages/ui-core/ for the hooks and apps/tui/src/hooks/ for any TUI-specific adapters. Use the existing API endpoints: GET/POST /api/repos/:owner/:repo/workspaces, GET/POST/DELETE /api/repos/:owner/:repo/workspaces/:id, GET /api/repos/:owner/:repo/workspaces/:id/ssh, POST /api/repos/:owner/:repo/workspaces/:id/suspend, POST /api/repos/:owner/:repo/workspaces/:id/resume. Pagination uses cursor-based approach with 30 items per page default. Memory cap: 200 items per list.",
+    "dependencies": [
+      "tui-navigation-provider"
+    ],
+    "estimateHours": 8
+  },
+  {
+    "id": "tui-workspace-sse-adapter",
+    "title": "SSE channel adapter for workspace status streaming",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Build the workspace-specific SSE streaming adapter that subscribes to workspace status change events. Implements useWorkspaceStatusStream(owner, repo, workspaceId) hook that: (1) obtains an SSE ticket via POST /api/auth/sse-ticket, (2) opens EventSource to GET /api/repos/:owner/:repo/workspaces/:id/stream?ticket={ticket}, (3) dispatches workspace.status events to subscribers, (4) handles exponential backoff reconnection (1s → 2s → 4s → 8s → max 30s), (5) performs REST reconciliation on reconnect via GET /api/repos/:owner/:repo/workspaces/:id, (6) deduplicates replayed events by ID (sliding window of 1000), (7) tracks connection health state (healthy/degraded/disconnected), (8) detects dead connections after 45s silence (3× server keep-alive interval). Also implements useWorkspaceListStatusStream(owner, repo, workspaceIds[]) that multiplexes status updates for visible list rows. Connection state exposed via connectionState for status bar indicator.",
+    "acceptanceCriteria": [
+      "useWorkspaceStatusStream returns { status, connectionState, reconnect, lastEventTimestamp }",
+      "SSE ticket obtained before opening EventSource connection",
+      "Events with type 'workspace.status' update the returned status value",
+      "Connection auto-reconnects with exponential backoff: 1s, 2s, 4s, 8s, capped at 30s",
+      "Last-Event-ID header sent on reconnection for event replay",
+      "Replayed events deduplicated using sliding window of last 1000 event IDs",
+      "REST GET to workspace detail endpoint called on reconnect for state reconciliation",
+      "Connection marked 'disconnected' after 45s of silence",
+      "connectionState cycles through: connecting → connected → reconnecting → disconnected",
+      "reconnect() function resets backoff and forces immediate reconnection attempt",
+      "Hook cleans up EventSource on unmount (no leaked connections)",
+      "useWorkspaceListStatusStream subscribes to multiple workspace IDs and dispatches per-workspace updates"
+    ],
+    "implementationNotes": "Build on top of the SSEProvider from the provider stack. The SSE channel is workspace-specific: workspace_status_{workspaceId} with UUID dashes removed. Server sends keep-alive comments every 15s. Event data format: { status: string, timestamp: ISO8601 }. Use useSSEChannel from SSEProvider for channel subscription. The list stream variant should batch-subscribe and dispatch to a Map<workspaceId, status> for efficient list updates.",
+    "dependencies": [
+      "tui-theme-provider",
+      "tui-workspace-data-hooks"
+    ],
+    "estimateHours": 10
+  },
+  {
+    "id": "tui-workspace-screen-scaffold",
+    "title": "Register workspace screens in screen router",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Register workspace screen entries in the TUI screen registry and configure navigation routes. Adds three screen entries: (1) Workspaces (WorkspaceListScreen) — requiresRepo: false, accessible via 'g w' go-to binding, breadcrumb 'Workspaces'; (2) WorkspaceDetail (WorkspaceDetailScreen) — requiresRepo: true, params: { owner, repo, workspaceId }, breadcrumb: workspace name; (3) WorkspaceCreate (WorkspaceCreateScreen) — requiresRepo: true, params: { owner, repo }, breadcrumb: 'New Workspace'. Registers the 'g w' keybinding in the go-to mode handler. Sets up route param validation (workspaceId must be UUID format). Configures deep-link support: `codeplane tui --screen workspaces` opens workspace list.",
+    "acceptanceCriteria": [
+      "Workspaces screen registered in screenRegistry with requiresRepo: false",
+      "WorkspaceDetail screen registered with requiresRepo: true and params validation for workspaceId",
+      "WorkspaceCreate screen registered with requiresRepo: true",
+      "'g w' keybinding navigates to Workspaces screen from any screen",
+      "Breadcrumb trail shows 'Workspaces' for list, workspace name for detail, 'New Workspace' for create",
+      "Deep-link --screen workspaces pre-populates navigation stack correctly",
+      "Navigation from list to detail pushes WorkspaceDetail with correct params",
+      "Navigation from list/detail to create pushes WorkspaceCreate with repo context",
+      "q/Esc on workspace screens pops back to previous screen in stack"
+    ],
+    "implementationNotes": "Add entries to the screenRegistry map in apps/tui/src/screens/index.ts (or equivalent registry file). The go-to binding 'g w' is added to the go-to mode handler in KeybindingProvider. Screen components are initially empty stubs that will be implemented by feature tickets. Route params for WorkspaceDetail: { owner: string, repo: string, workspaceId: string }. WorkspaceCreate inherits owner/repo from repoContext.",
+    "dependencies": [
+      "tui-screen-router"
+    ],
+    "estimateHours": 3
+  },
+  {
+    "id": "tui-workspace-status-badge",
+    "title": "Reusable workspace status badge component",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Build a reusable WorkspaceStatusBadge component that renders workspace status with semantic colors and animated spinners for transitional states. Maps all workspace status values to visual representations: running → green solid dot + 'Running'; starting/stopping/suspending/resuming → yellow animated braille spinner + status label; suspended → gray dot + 'Suspended'; stopped/deleted → gray dot + label; error/failed → red dot + label; pending → yellow dot + 'Pending'. The braille spinner uses useTimeline from OpenTUI to cycle through frames [⠋, ⠙, ⠹, ⠸, ⠼, ⠴, ⠦, ⠧, ⠇, ⠏] at 80ms intervals. Component is responsive: at minimum breakpoint shows icon-only; at standard+ shows icon + label. Accepts optional compact prop for list row usage.",
+    "acceptanceCriteria": [
+      "Component renders correct color for each status: running=green(34), transitional=yellow(178), error=red(196), inactive=gray(245)",
+      "Transitional statuses (starting, stopping, suspending, resuming) show animated braille spinner",
+      "Spinner cycles through 10 braille frames at 80ms intervals using useTimeline",
+      "Non-transitional statuses show static dot character (●)",
+      "Status label text renders next to icon at standard and large breakpoints",
+      "At minimum breakpoint (< 120 cols), only icon renders (no label text)",
+      "compact prop reduces to icon-only regardless of breakpoint",
+      "Component accepts status as string prop and handles unknown status values gracefully (gray + 'Unknown')",
+      "Spinner animation stops when component unmounts (no leaked timers)"
+    ],
+    "implementationNotes": "Implement in apps/tui/src/components/WorkspaceStatusBadge.tsx. Use useTimeline from @opentui/react for animation timing. Use useTheme() for semantic color tokens (success for running, warning for transitional, error for failed, muted for inactive). Use useLayout() for breakpoint detection. The braille spinner frames: ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']. Render as <text> with fg color prop.",
+    "dependencies": [
+      "tui-theme-provider"
+    ],
+    "estimateHours": 3
+  },
+  {
+    "id": "tui-clipboard-util",
+    "title": "Cross-platform clipboard copy utility",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Implement a clipboard utility function for copying text to the system clipboard from the TUI. Detects the platform and uses the appropriate mechanism: macOS → pbcopy via child_process, Linux with Wayland → wl-copy, Linux with X11 → xclip -selection clipboard or xsel --clipboard --input, WSL → clip.exe. Returns a Promise<boolean> indicating success/failure. If no clipboard tool is available, returns false and the calling component should show a fallback message (e.g., display the text for manual copy). The utility also supports OSC 52 escape sequence as a terminal-native fallback when supported (detected via TERM_PROGRAM).",
+    "acceptanceCriteria": [
+      "copyToClipboard(text: string) returns Promise<boolean>",
+      "On macOS, pipes text to pbcopy via child_process.exec",
+      "On Linux with WAYLAND_DISPLAY set, uses wl-copy",
+      "On Linux with DISPLAY set, uses xclip -selection clipboard (falls back to xsel)",
+      "On WSL (detected via /proc/version containing Microsoft), uses clip.exe",
+      "Returns false (not throws) when no clipboard tool is available",
+      "OSC 52 escape sequence used as fallback when terminal supports it",
+      "Function is non-blocking and does not hang the TUI on clipboard tool failure",
+      "Timeout of 2s on clipboard tool execution to prevent hangs"
+    ],
+    "implementationNotes": "Implement in apps/tui/src/utils/clipboard.ts. Use Bun.spawn or child_process for executing clipboard tools. Detect platform via process.platform. Detect WSL by reading /proc/version. OSC 52: write '\\x1b]52;c;' + base64(text) + '\\x07' to stdout. Export both copyToClipboard(text) and isClipboardAvailable() for UI to pre-check availability.",
+    "dependencies": [],
+    "estimateHours": 2
+  },
+  {
+    "id": "tui-workspace-e2e-helpers",
+    "title": "Shared test helpers for workspace E2E tests",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create shared test helpers for workspace E2E tests in e2e/tui/workspaces.test.ts. Provides: (1) Workspace test fixtures — pre-defined WorkspaceResponse objects for various states (running, suspended, starting, error, pending) with deterministic IDs and timestamps; (2) launchTUIWithWorkspaceContext(options) — helper that launches TUI with repo context and navigates to workspace screens; (3) waitForStatusTransition(terminal, fromStatus, toStatus, timeoutMs) — helper that waits for SSE status badge to change; (4) mockSSEStatusEvent(workspaceId, status) — helper to inject SSE events into the test environment; (5) assertWorkspaceRow(terminal, lineNumber, expected) — helper to assert workspace list row content. All helpers extend the base TUI test helpers from e2e/tui/helpers.ts.",
+    "acceptanceCriteria": [
+      "Test fixture workspaces cover all status values: running, suspended, starting, stopping, suspending, resuming, pending, error, failed, stopped, deleted",
+      "Each fixture has deterministic ID, name, timestamps, and status for snapshot stability",
+      "launchTUIWithWorkspaceContext navigates to workspace list screen with repo context",
+      "waitForStatusTransition polls terminal content for status badge change within timeout",
+      "assertWorkspaceRow validates name, status badge, and metadata on a specific terminal line",
+      "Helpers are exported from e2e/tui/workspace-helpers.ts",
+      "Test fixtures include workspace with SSH info populated and workspace without",
+      "Helpers support all three terminal sizes (80×24, 120×40, 200×60)"
+    ],
+    "implementationNotes": "Implement in e2e/tui/workspace-helpers.ts, imported by e2e/tui/workspaces.test.ts. Uses @microsoft/tui-test APIs and extends the base TUITestInstance. Fixtures should use UUIDs that are stable across test runs. The SSE mock helper injects events into the test server's SSE endpoint, not by mocking client-side code (tests run against real server with test fixtures per testing philosophy).",
+    "dependencies": [
+      "tui-e2e-test-infra"
+    ],
+    "estimateHours": 4
+  },
+  {
+    "id": "tui-workspace-status-stream",
+    "title": "Real-time workspace status streaming via SSE",
+    "type": "feature",
+    "featureName": "TUI_WORKSPACE_STATUS_STREAM",
+    "description": "Implement the TUI_WORKSPACE_STATUS_STREAM feature — the real-time workspace status streaming system that powers all workspace screens. This is the foundational streaming feature that other workspace features depend on. Implements: (1) SSE connection lifecycle management with ticket-based auth; (2) Status bar connection health indicator (green dot = healthy, yellow dot = degraded, red dot = disconnected); (3) Status badge updates on workspace list rows and detail view header when SSE events arrive; (4) Flash messages on significant status transitions (e.g., 'Workspace suspended', 'Workspace now running'); (5) 'R' key for manual reconnection when connection is degraded/disconnected; (6) Reconnection REST reconciliation — fetches current workspace state via REST on reconnect to ensure consistency; (7) Keep-alive monitoring — marks connection dead after 45s of silence; (8) Event deduplication on replay. The status stream integrates with WorkspaceStatusBadge component for visual rendering and exposes connection state to the status bar.",
+    "acceptanceCriteria": [
+      "SSE connection opens after navigating to any workspace screen",
+      "SSE ticket obtained via POST /api/auth/sse-ticket before opening connection",
+      "Status bar shows green dot when SSE connection is healthy",
+      "Status bar shows yellow dot + 'reconnecting' when connection is degraded",
+      "Status bar shows red dot + 'disconnected' when max reconnection attempts exhausted",
+      "Workspace status badge updates within 200ms of receiving SSE event",
+      "Flash message appears for 3 seconds on status transitions (running→suspended, suspended→running, etc.)",
+      "'R' key triggers manual reconnection, resets backoff, shows 'Reconnecting...' flash",
+      "REST reconciliation fetches current state after each successful reconnection",
+      "Connection survives screen navigation between workspace list and detail",
+      "SSE connection closes when navigating away from all workspace screens",
+      "No SSE connection opened when workspace screens are not in the navigation stack",
+      "45s silence timeout triggers reconnection attempt",
+      "Exponential backoff: 1s, 2s, 4s, 8s, capped at 30s between reconnection attempts",
+      "Duplicate events (same event ID) are dropped silently"
+    ],
+    "implementationNotes": "This feature builds on the tui-workspace-sse-adapter engineering ticket for the hook layer and tui-workspace-status-badge for visual rendering. The connection health indicator is rendered in the StatusBar component (right section). Flash messages use a transient notification system (render in content area bottom, auto-dismiss after 3s). The SSE connection is scoped to workspace screens — opened when any workspace screen is mounted, closed when all workspace screens unmount. For the list view, use the multiplexed useWorkspaceListStatusStream hook. For detail view, use single-workspace useWorkspaceStatusStream.",
+    "dependencies": [
+      "tui-workspace-sse-adapter",
+      "tui-workspace-status-badge",
+      "tui-workspace-screen-scaffold",
+      "tui-workspace-e2e-helpers"
+    ],
+    "estimateHours": 12
+  },
+  {
+    "id": "tui-workspace-list-screen",
+    "title": "Workspace list screen with pagination and filtering",
+    "type": "feature",
+    "featureName": "TUI_WORKSPACE_LIST_SCREEN",
+    "description": "Implement the TUI_WORKSPACE_LIST_SCREEN feature — the primary workspace list screen accessible via 'g w' navigation. Displays a paginated, filterable list of workspaces for the current user (across all repos, or scoped to current repo context). Each row shows: workspace name, status badge (with real-time SSE updates), repository owner/name, idle timeout, creation timestamp. Supports vim-style navigation (j/k), Enter to open detail, cursor-based pagination with infinite scroll (loads next page at 80% scroll), status filter cycling with 'f' key (all → running → suspended → error), text search/filter with '/' key, and quick actions: 'c' to create, 's' to suspend, 'r' to resume, 'D' to delete. Responsive layout: at 80×24 shows name + status only; at 120×40 shows name + status + repo + timeout + timestamp; at 200×60+ shows all columns including ID. Empty state message when no workspaces exist.",
+    "acceptanceCriteria": [
+      "Workspace list renders with correct columns at each breakpoint (80×24, 120×40, 200×60)",
+      "j/k and arrow keys navigate focus through workspace rows",
+      "Enter on focused workspace pushes WorkspaceDetail screen with correct params",
+      "Cursor-based pagination loads next 30 workspaces at 80% scroll position",
+      "'Loading more...' indicator shows at list bottom during pagination fetch",
+      "'f' key cycles through status filters: all → running → suspended → error → all",
+      "Active filter shown in header or status bar",
+      "'/' focuses search input, Esc clears and returns focus to list",
+      "Search filters workspace list by name (client-side for loaded items, server-side for query param)",
+      "'c' key pushes WorkspaceCreate screen",
+      "'s' key on running workspace triggers suspend action (delegates to suspend/resume feature)",
+      "'r' key on suspended workspace triggers resume action",
+      "'D' key shows delete confirmation dialog, then deletes on confirm",
+      "Status badges update in real-time via SSE without manual refresh",
+      "Empty state shows 'No workspaces found' message with 'c' hint to create",
+      "G jumps to last item, gg jumps to first item, Ctrl+D/Ctrl+U pages down/up",
+      "Breadcrumb shows 'Workspaces' in header bar",
+      "Loading spinner shown on initial data fetch"
+    ],
+    "implementationNotes": "Implement in apps/tui/src/screens/Workspaces/WorkspaceListScreen.tsx. Uses ScrollableList component with WorkspaceStatusBadge for each row. useWorkspaces() hook for data fetching with pagination. useWorkspaceListStatusStream() for SSE updates on visible rows. Register screen keybindings via useScreenKeybindings(). At minimum breakpoint, hide repo and timeout columns. Focused row uses reverse video or primary color background. The 'f' filter cycles through a state enum and passes as query param to useWorkspaces().",
+    "dependencies": [
+      "tui-workspace-data-hooks",
+      "tui-workspace-screen-scaffold",
+      "tui-workspace-status-badge",
+      "tui-workspace-status-stream",
+      "tui-workspace-e2e-helpers"
+    ],
+    "estimateHours": 10
+  },
+  {
+    "id": "tui-workspace-suspend-resume",
+    "title": "Workspace suspend/resume actions with optimistic updates",
+    "type": "feature",
+    "featureName": "TUI_WORKSPACE_SUSPEND_RESUME",
+    "description": "Implement the TUI_WORKSPACE_SUSPEND_RESUME feature — optimistic suspend and resume actions for workspaces, usable from both the workspace list and detail screens. Suspend flow: 's' key on running workspace → confirmation dialog ('Suspend workspace X?', y/n) → optimistic status update to 'suspending' → API call POST /api/repos/:owner/:repo/workspaces/:id/suspend → SSE event confirms final status → flash message 'Workspace suspended'. Resume flow: 'r' key on suspended workspace → no confirmation needed → optimistic status update to 'resuming' → API call POST /api/repos/:owner/:repo/workspaces/:id/resume → SSE event confirms final status → flash message 'Workspace running'. Error handling: on API error, revert optimistic update, show error message inline. Rapid action debouncing: ignore repeated s/r presses within 1s of action initiation. Permission checks: non-owners see disabled action hints.",
+    "acceptanceCriteria": [
+      "'s' key on a running workspace shows confirmation dialog with workspace name",
+      "Confirmation dialog accepts 'y' to confirm, 'n' or Esc to cancel",
+      "On suspend confirm, status badge immediately transitions to 'suspending' (optimistic)",
+      "POST /api/repos/:owner/:repo/workspaces/:id/suspend called after confirmation",
+      "SSE event updates status to 'suspended' when server confirms",
+      "Flash message 'Workspace suspended' appears for 3s on successful suspend",
+      "'r' key on a suspended workspace immediately sets status to 'resuming' (no confirmation needed)",
+      "POST /api/repos/:owner/:repo/workspaces/:id/resume called on 'r' press",
+      "SSE event updates status to 'running' when resume completes",
+      "Flash message 'Workspace running' appears for 3s on successful resume",
+      "On API error (4xx/5xx), optimistic update reverts to previous status",
+      "Error message shown inline below the affected workspace row or in detail header",
+      "Rapid presses of 's' or 'r' within 1s are debounced (only first action fires)",
+      "'s' key does nothing when workspace is not 'running' (no-op, no error)",
+      "'r' key does nothing when workspace is not 'suspended' (no-op, no error)",
+      "Actions work from both workspace list screen and workspace detail screen",
+      "Suspend/resume keys shown in status bar keybinding hints contextually"
+    ],
+    "implementationNotes": "Implement in apps/tui/src/hooks/useWorkspaceSuspendResume.ts as a custom hook that composes useSuspendWorkspace() and useResumeWorkspace() mutation hooks with debouncing and confirmation dialog logic. The hook is consumed by both WorkspaceListScreen and WorkspaceDetailScreen. Use the ConfirmDialog from ModalSystem for suspend confirmation. Flash messages use the transient notification system. Debouncing: track last action timestamp, reject actions within 1000ms. Status-gating: check workspace.status before allowing action.",
+    "dependencies": [
+      "tui-workspace-data-hooks",
+      "tui-workspace-status-stream",
+      "tui-sync-toast-flash-system",
+      "tui-workspace-e2e-helpers"
+    ],
+    "estimateHours": 8
+  },
+  {
+    "id": "tui-workspace-create-form",
+    "title": "Workspace creation form with validation",
+    "type": "feature",
+    "featureName": "TUI_WORKSPACE_CREATE_FORM",
+    "description": "Implement the TUI_WORKSPACE_CREATE_FORM feature — a form screen for creating new workspaces. Contains: (1) Name input — single-line text input with real-time validation: required, max 63 chars, regex ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$, auto-lowercases uppercase input, rejects invalid characters at keystroke time; (2) Snapshot selector — single-select dropdown populated from workspace snapshots API, optional field, supports j/k navigation within dropdown and '/' to filter; (3) Submit button — 'Create' label, shows 'Creating...' with braille spinner during submission; (4) Cancel button — returns to previous screen. Form behavior: Tab/Shift+Tab cycles between fields, Ctrl+S submits from anywhere, Esc cancels (with 'Discard changes?' confirmation if form is dirty). On successful creation, navigates to WorkspaceDetail for the new workspace. Server error handling: 409 (name conflict) shows 'Name already taken', 403 (permission denied) shows 'Not authorized', 422 (validation error) shows field-specific errors. Double-submit prevention: disable form during submission.",
+    "acceptanceCriteria": [
+      "Form renders with Name input, Snapshot selector, Create button, Cancel button",
+      "Name input accepts lowercase alphanumeric and hyphens only",
+      "Uppercase characters auto-converted to lowercase on input",
+      "Invalid characters (spaces, special chars) rejected at keystroke time (not inserted)",
+      "Validation error shown below name input: 'Required' when empty on submit, 'Must start with letter or number' for leading hyphen",
+      "Name input enforces max 63 character limit",
+      "Snapshot selector shows list of available snapshots from API",
+      "Snapshot selector supports j/k navigation and '/' filter",
+      "Snapshot selector is optional — 'None' is a valid selection",
+      "Tab moves focus: Name → Snapshot → Create → Cancel",
+      "Shift+Tab moves focus in reverse order",
+      "Ctrl+S submits form from any focused field",
+      "Enter submits when Create button is focused",
+      "Create button shows 'Creating...' spinner during API call",
+      "All form fields disabled during submission",
+      "On success, navigates to WorkspaceDetail for the new workspace",
+      "On 409 error, shows 'Name already taken' below name input",
+      "On 403 error, shows 'Not authorized' as error banner",
+      "Esc with dirty form shows 'Discard changes?' confirmation dialog",
+      "Esc with clean form navigates back immediately",
+      "Breadcrumb shows 'New Workspace' in header bar",
+      "Responsive: form fields use full width at 80×24, centered with padding at 120×40+"
+    ],
+    "implementationNotes": "Implement in apps/tui/src/screens/Workspaces/WorkspaceCreateScreen.tsx. Uses FormSystem for field management and validation. Name validation regex: /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/. Snapshot list fetched via useWorkspaceSnapshots() on mount. Form state tracked via FormSystem with fields: [{ name: 'name', type: 'text', required: true, validate: nameValidator }, { name: 'snapshot_id', type: 'select', required: false }]. On submit, call useCreateWorkspace().create({ name, snapshot_id }). On success, push WorkspaceDetail screen with the returned workspace ID.",
+    "dependencies": [
+      "tui-workspace-data-hooks",
+      "tui-workspace-screen-scaffold",
+      "tui-sync-toast-flash-system",
+      "tui-workspace-e2e-helpers"
+    ],
+    "estimateHours": 10
+  },
+  {
+    "id": "tui-workspace-ssh-info",
+    "title": "SSH connection info panel with token countdown",
+    "type": "feature",
+    "featureName": "TUI_WORKSPACE_SSH_INFO",
+    "description": "Implement the TUI_WORKSPACE_SSH_INFO feature — the SSH connection info panel displayed as a tab in workspace detail view and as a standalone accessible component. Shows SSH connection metadata when workspace is running: Host, Port, Username, SSH Command (full command string), Access Token (masked, with TTL countdown). Features: (1) Token TTL countdown — displays remaining time in 'Xm Ys' format (≥60s) or 'Xs' format (<60s), color transitions from green (>2m) to yellow (30s-2m) to red (<30s); (2) Auto-refresh — when token expires, automatically fetches new SSH info; (3) Copy-to-clipboard — 'c' copies full SSH command, 'y' copies ssh_host value; (4) Manual refresh — 'r' key refreshes SSH info (debounced, 2s cooldown); (5) Status-aware placeholders — when workspace is not running, shows contextual message: 'Workspace is starting...' (starting), 'Workspace is suspended. Press r to resume.' (suspended), 'Workspace is stopped.' (stopped). Responsive layout: 80×24 shows Command and Token only; 120×40 shows all standard fields; 200×60+ shows extended fields (Workspace ID, VM ID).",
+    "acceptanceCriteria": [
+      "SSH info panel shows Host, Port, Username, Command, Token when workspace is running",
+      "Token TTL countdown updates every second",
+      "Countdown shows 'Xm Ys' format when ≥60s remaining",
+      "Countdown shows 'Xs' format when <60s remaining",
+      "Countdown color: green when >2m, yellow when 30s-2m, red when <30s",
+      "Token auto-refreshes when countdown reaches 0 (new GET /api/.../ssh call)",
+      "'c' key copies full SSH command to clipboard, shows 'Copied!' flash for 2s",
+      "'y' key copies ssh_host value to clipboard, shows 'Copied!' flash for 2s",
+      "If clipboard unavailable, shows 'Copy not available — use command below' message",
+      "'r' key refreshes SSH info with spinner, debounced to 2s cooldown",
+      "When workspace not running, shows status-specific placeholder message",
+      "Suspended workspace placeholder includes 'Press r to resume' hint",
+      "SSH info auto-fetches when workspace transitions to 'running' via SSE",
+      "SSH info clears when workspace transitions away from 'running'",
+      "At 80×24: only Command and Token TTL shown",
+      "At 120×40: Host, Port, Username, Command, Token shown",
+      "At 200×60+: all fields including Workspace ID and VM ID shown",
+      "Command field truncated at terminal_width - 6 chars with '...' (full value in clipboard)",
+      "Loading spinner shown during initial SSH info fetch"
+    ],
+    "implementationNotes": "Implement in apps/tui/src/screens/Workspaces/WorkspaceSSHInfo.tsx. Uses useWorkspaceSSH() hook for data fetching. Token TTL tracked via tokenExpiresAt from the hook, countdown via useTimeline or setInterval. Copy uses copyToClipboard() from clipboard utility. Status awareness via useWorkspaceStatusStream() — gated rendering based on workspace status. The component is rendered inside WorkspaceDetailScreen's SSH tab. At minimum breakpoint, use a simplified layout showing only the most critical fields.",
+    "dependencies": [
+      "tui-workspace-data-hooks",
+      "tui-clipboard-util",
+      "tui-workspace-status-stream",
+      "tui-workspace-e2e-helpers"
+    ],
+    "estimateHours": 10
+  },
+  {
+    "id": "tui-workspace-detail-view",
+    "title": "Multi-tab workspace detail view",
+    "type": "feature",
+    "featureName": "TUI_WORKSPACE_DETAIL_VIEW",
+    "description": "Implement the TUI_WORKSPACE_DETAIL_VIEW feature — the comprehensive workspace detail screen with multi-tab interface. Header section: workspace name, real-time status badge, owner, creation date, persistence flag (persistent/ephemeral), uptime counter (when running) or suspension duration (when suspended). Four tabs: (1) Overview — metadata grid showing all workspace properties (ID, name, status, repo, owner, persistence, idle timeout, created/updated timestamps, parent workspace if fork, snapshot if restored from one); (2) SSH — renders WorkspaceSSHInfo component (TUI_WORKSPACE_SSH_INFO); (3) Sessions — paginated list of active terminal sessions with session ID, status, dimensions (cols×rows), last activity, idle timeout; actions: '+' to create session, '-' to destroy selected session; (4) Snapshots — paginated list of workspace snapshots with name, creation date; actions: 'n' to create snapshot, 'D' to delete selected. Tab navigation: 1/2/3/4 keys or Tab/Shift+Tab. Action keybindings: 's' to suspend (when running), 'r' to resume (when suspended), 'D' to delete workspace (with confirmation). Breadcrumb shows workspace name. Real-time status updates via SSE. Responsive layout adapts all tabs to terminal size.",
+    "acceptanceCriteria": [
+      "Detail header renders workspace name, status badge, owner, creation date, persistence flag",
+      "Uptime counter increments every second when workspace status is 'running'",
+      "Suspension duration shows elapsed time since suspended_at when status is 'suspended'",
+      "Tab bar shows: [1] Overview  [2] SSH  [3] Sessions  [4] Snapshots",
+      "Keys 1/2/3/4 switch between tabs instantly",
+      "Tab/Shift+Tab cycles through tabs",
+      "Active tab visually highlighted (underline or bold + primary color)",
+      "Overview tab shows all workspace metadata in labeled rows",
+      "SSH tab renders WorkspaceSSHInfo component with full functionality",
+      "Sessions tab shows paginated list of sessions with status and activity info",
+      "'+' key in Sessions tab creates new session with current terminal dimensions",
+      "'-' key in Sessions tab destroys selected session with confirmation",
+      "Snapshots tab shows paginated list of snapshots with name and date",
+      "'n' key in Snapshots tab creates snapshot (prompts for name)",
+      "'D' key in Snapshots tab deletes selected snapshot with confirmation",
+      "'s' key triggers suspend action (delegates to suspend/resume feature)",
+      "'r' key triggers resume action (delegates to suspend/resume feature)",
+      "'D' key (outside Sessions/Snapshots context) deletes workspace with confirmation",
+      "Status badge updates in real-time via SSE",
+      "Breadcrumb shows workspace name in header bar",
+      "q/Esc pops back to workspace list",
+      "j/k scrolls content within current tab",
+      "Responsive layout: all tabs adapt to 80×24, 120×40, 200×60+ breakpoints",
+      "Loading spinner on initial workspace detail fetch",
+      "Error state shown if workspace not found (404)"
+    ],
+    "implementationNotes": "Implement in apps/tui/src/screens/Workspaces/WorkspaceDetailScreen.tsx. Uses DetailView layout component for scrollable content. Tab state managed locally (useState for activeTab). Uses useWorkspace() for detail data, useWorkspaceSessions() for Sessions tab, useWorkspaceSnapshots() for Snapshots tab. SSH tab renders <WorkspaceSSHInfo workspaceId={id} />. Uptime counter: calculate diff between now and workspace.created_at (or last status change), update via useTimeline or 1s interval. Actions delegate to useWorkspaceSuspendResume() hook. Session creation uses terminal dimensions from useTerminalDimensions(). Register all keybindings via useScreenKeybindings() with tab-aware conditionals ('+'/'-' only active on Sessions tab, 'n' only active on Snapshots tab).",
+    "dependencies": [
+      "tui-workspace-data-hooks",
+      "tui-workspace-screen-scaffold",
+      "tui-workspace-status-stream",
+      "tui-workspace-suspend-resume",
+      "tui-workspace-ssh-info",
+      "tui-detail-view-component",
+      "tui-workspace-e2e-helpers"
+    ],
+    "estimateHours": 14
+  }
+]

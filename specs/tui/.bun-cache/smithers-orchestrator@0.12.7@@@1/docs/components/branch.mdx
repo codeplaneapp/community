@@ -1,0 +1,138 @@
+---
+title: <Branch>
+description: Conditional branching that executes one of two paths based on a boolean condition.
+---
+
+<Warning>
+  **JSX API** — This page documents the JSX-based API. For the declarative alternative, see [TOON](/toon/overview).
+</Warning>
+
+`<Branch>` evaluates a boolean condition and executes exactly one of two branches: the `then` element when the condition is `true`, or the optional `else` element when the condition is `false`.
+
+## Import
+
+```tsx
+import { Branch } from "smithers-orchestrator";
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `if` | `boolean` | **(required)** | The condition to evaluate. When `true`, the `then` branch executes. When `false`, the `else` branch executes (if provided). |
+| `then` | `ReactElement` | **(required)** | The element to render and execute when the condition is `true`. |
+| `else` | `ReactElement` | `undefined` | The element to render and execute when the condition is `false`. If omitted and the condition is `false`, nothing executes. |
+| `skipIf` | `boolean` | `false` | When `true`, the entire branch is skipped regardless of the condition. The component returns `null`. |
+
+## Basic usage
+
+```tsx
+<Workflow name="deploy-pipeline">
+  <Task id="test" output={outputs.test}>
+    {{ passed: true, error: null }}
+  </Task>
+
+  <Branch
+    if={ctx.output(outputs.test, { nodeId: "test" }).passed}
+    then={
+      <Task id="deploy" output={outputs.deploy}>
+        {{ url: "https://prod.example.com" }}
+      </Task>
+    }
+    else={
+      <Task id="notify-failure" output={outputs.notifyFailure}>
+        {{ message: "Tests failed, skipping deploy." }}
+      </Task>
+    }
+  />
+</Workflow>
+```
+
+If the `test` task's output has `passed: true`, the `deploy` task runs. Otherwise, `notify-failure` runs.
+
+## Without an else branch
+
+The `else` prop is optional. When omitted and the condition is `false`, nothing executes for that branch.
+
+```tsx
+<Branch
+  if={ctx.input.needsReview}
+  then={
+    <Task id="review" output={outputs.review} agent={reviewAgent}>
+      Review the changes.
+    </Task>
+  }
+/>
+```
+
+## Branching into complex sub-graphs
+
+Each branch can contain any workflow element, not just a single `<Task>`. Use `<Sequence>`, `<Parallel>`, or other components to build complex sub-graphs:
+
+```tsx
+<Branch
+  if={ctx.output(outputs.triage, { nodeId: "triage" }).severity === "critical"}
+  then={
+    <Sequence>
+      <Task id="hotfix" output={outputs.hotfix} agent={codeAgent}>
+        Write a hotfix for the critical issue.
+      </Task>
+      <Task id="emergency-deploy" output={outputs.emergencyDeploy}>
+        {{ deployed: true }}
+      </Task>
+    </Sequence>
+  }
+  else={
+    <Task id="add-to-backlog" output={outputs.backlog}>
+      {{ queued: true }}
+    </Task>
+  }
+/>
+```
+
+## Conditional skipping
+
+Use `skipIf` to bypass the entire branch, regardless of the `if` condition:
+
+```tsx
+<Branch
+  skipIf={ctx.input.dryRun}
+  if={testsPass}
+  then={<Task id="deploy" output={outputs.deploy}>{{ ok: true }}</Task>}
+/>
+```
+
+When `skipIf` is `true`, the component returns `null` and neither the `then` nor `else` branch is mounted.
+
+## How conditions are evaluated
+
+The `if` prop is evaluated at **render time**, when the JSX tree is constructed. This means the condition is based on data available in the context (`ctx`) at the point the workflow tree is built for that frame.
+
+Because Smithers re-renders the workflow tree each frame, branch conditions can depend on the outputs of previously completed tasks:
+
+```tsx
+export default smithers(db, (ctx) => (
+  <Workflow name="adaptive">
+    <Task id="check" output={outputs.check} agent={checkAgent}>
+      Check whether the system is healthy.
+    </Task>
+    <Branch
+      if={ctx.outputMaybe(outputs.check, { nodeId: "check" })?.healthy === true}
+      then={<Task id="proceed" output={outputs.proceed}>{{ ok: true }}</Task>}
+      else={<Task id="remediate" output={outputs.remediate} agent={fixAgent}>Fix it.</Task>}
+    />
+  </Workflow>
+));
+```
+
+Use `ctx.outputMaybe()` instead of `ctx.output()` when the upstream task may not have completed yet (e.g., on the first render frame before the task runs).
+
+## Rendering
+
+Internally, `<Branch>` renders the chosen child (`then` or `else`) wrapped in a `<smithers:branch>` host element. Only the selected branch's tasks are mounted into the execution plan. The non-selected branch's tasks are not present in the task graph.
+
+## Notes
+
+- Only one branch executes per render frame. The non-selected branch is not mounted.
+- `then` and `else` accept a single `ReactElement` each. Wrap multiple elements in `<Sequence>` or `<Parallel>` if you need more than one child per branch.
+- Branch conditions are re-evaluated on each render frame, which is how Smithers supports data-dependent control flow.

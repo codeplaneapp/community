@@ -1,0 +1,657 @@
+[
+  {
+    "id": "tui-repo-data-hooks",
+    "title": "Repository data hooks adapter layer",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create TUI-side adapter hooks that consume @codeplane/ui-core for repository data access. Includes: useRepo(owner, repo) for single repo metadata, useRepos(options?) for paginated repo list with sort/visibility/owner filters, useRepoReadme(owner, repo) for README content, useStarRepo(owner, repo) for star/unstar with optimistic updates, useClipboard() for copy-to-clipboard. These hooks wrap the shared ui-core hooks with TUI-specific error handling (401 → auth screen, 429 → retry-after display) and pagination patterns (cursor-based with fetchMore). All hooks must work within the AuthProvider/APIClientProvider context.",
+    "dependencies": [
+      "tui-auth-token-loading"
+    ],
+    "files": [
+      "apps/tui/src/hooks/useRepo.ts",
+      "apps/tui/src/hooks/useRepos.ts",
+      "apps/tui/src/hooks/useRepoReadme.ts",
+      "apps/tui/src/hooks/useStarRepo.ts",
+      "apps/tui/src/hooks/useClipboard.ts"
+    ],
+    "testFiles": [],
+    "acceptanceCriteria": [
+      "useRepo() fetches GET /api/repos/:owner/:repo and returns { data, isLoading, error, refetch }",
+      "useRepos() fetches GET /api/user/repos with cursor pagination, sort, visibility params and returns PaginatedResult<RepoSummary>",
+      "useRepoReadme() fetches GET /api/repos/:owner/:repo/readme and returns { content, contentType, filename, isLoading, error }",
+      "useStarRepo() provides { isStarred, toggle } with optimistic UI (immediate state update, revert on error)",
+      "useClipboard() provides { copy(text), supported } using terminal clipboard sequences",
+      "All hooks propagate 401 errors to AuthProvider for app-shell auth error screen",
+      "All hooks handle 429 rate-limit errors with retry-after period extraction"
+    ]
+  },
+  {
+    "id": "tui-repo-tree-hooks",
+    "title": "Repository tree and file content hooks",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create TUI-side hooks for repository file tree browsing and file content fetching. Includes: useRepoTree(owner, repo, path?, ref?) for lazy directory listing, useFileContent(owner, repo, changeId, filePath) for file content retrieval, useBookmarks(owner, repo) for bookmark list (used by both bookmark tab and code explorer ref picker). These hooks support the code explorer's lazy-loading pattern where subdirectories are fetched on-demand when expanded.",
+    "dependencies": [
+      "tui-auth-token-loading"
+    ],
+    "files": [
+      "apps/tui/src/hooks/useRepoTree.ts",
+      "apps/tui/src/hooks/useFileContent.ts",
+      "apps/tui/src/hooks/useBookmarks.ts"
+    ],
+    "testFiles": [],
+    "acceptanceCriteria": [
+      "useRepoTree() fetches GET /api/repos/:owner/:repo/contents with optional path and ref query params",
+      "useRepoTree() returns { entries, isLoading, error, refetch } with entries sorted directories-first then alphabetical",
+      "useFileContent() fetches GET /api/repos/:owner/:repo/file/:change_id/{filePath} and returns { content, language, size, lineCount, isLoading, error }",
+      "useBookmarks() fetches GET /api/repos/:owner/:repo/bookmarks and returns { bookmarks, isLoading, error, refetch } with default bookmark first",
+      "useRepoTree() supports pagination for directories with 100+ entries",
+      "useFileContent() handles binary files (returns isBinary flag), empty files, and files exceeding 5MB/100K lines (truncation)"
+    ]
+  },
+  {
+    "id": "tui-repo-jj-hooks",
+    "title": "Repository jj-native data hooks (changes, conflicts, operations)",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create TUI-side hooks for jj-native repository concepts. Includes: useChanges(owner, repo, options?) for paginated change history with sort and filter, useRepoConflicts(owner, repo) for conflicted changes and per-change file conflicts, useOperationLog(owner, repo) for paginated operation audit trail. These hooks support the jj-native views that differentiate Codeplane from git-only forges.",
+    "dependencies": [
+      "tui-auth-token-loading"
+    ],
+    "files": [
+      "apps/tui/src/hooks/useChanges.ts",
+      "apps/tui/src/hooks/useRepoConflicts.ts",
+      "apps/tui/src/hooks/useOperationLog.ts"
+    ],
+    "testFiles": [],
+    "acceptanceCriteria": [
+      "useChanges() fetches GET /api/repos/:owner/:repo/changes with cursor pagination (50 per page, max 1000 in memory)",
+      "useChanges() supports sort options: newest-first, oldest-first, author A-Z",
+      "useChanges() returns change_id, commit_id, description, author_name, has_conflict, is_empty, parent_change_ids, created_at",
+      "useRepoConflicts() fetches GET /api/repos/:owner/:repo/changes?has_conflict=true and per-change file conflicts",
+      "useRepoConflicts() returns changes sorted by conflict file count descending, then change_id ascending",
+      "useOperationLog() fetches GET /api/repos/:owner/:repo/operations with cursor pagination (50 per page, max 5000 in memory)",
+      "All hooks support refetch(), error state, and loading state"
+    ]
+  },
+  {
+    "id": "tui-repo-tab-bar-component",
+    "title": "Horizontal tab bar component for repository sub-views",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Build a reusable TabBar component that renders a fixed horizontal row of tabs with numeric prefixes (1:Label, 2:Label, ...), supports Tab/Shift+Tab cycling (wrapping at both ends), number key direct jump (1-6), and h/l or Left/Right arrow navigation (non-wrapping). Active tab uses reverse-video + underline styling, inactive tabs use muted color. Tab labels abbreviate at 80-99 columns (e.g., 1:Bkmk, 2:Chng) and show full text at 100+ columns. The component suppresses tab switching when text input or modal has focus. Tab state is managed via a shared context so it persists when navigating away and back to the same repo.",
+    "dependencies": [
+      "tui-responsive-layout",
+      "tui-theme-tokens"
+    ],
+    "files": [
+      "apps/tui/src/components/TabBar.tsx",
+      "apps/tui/src/hooks/useTabNavigation.ts"
+    ],
+    "testFiles": [],
+    "acceptanceCriteria": [
+      "TabBar renders a single horizontal row with 6 tabs showing numeric prefix and label",
+      "Tab/Shift+Tab cycles forward/backward with wrapping at both ends",
+      "Number keys 1-6 jump directly to the corresponding tab",
+      "h/Left and l/Right navigate tabs without wrapping",
+      "Active tab renders with reverse-video + underline styling",
+      "Inactive tabs render in muted color",
+      "Tab labels abbreviate at 80-99 column width: Bkmk, Chng, Code, Cnfl, OpLog, Sett",
+      "Tab labels show full text at 100+ columns: Bookmarks, Changes, Code, Conflicts, Op Log, Settings",
+      "Tab switching is suppressed when text input or modal overlay has focus",
+      "Active tab index persists in context across navigation away/back to same repo"
+    ]
+  },
+  {
+    "id": "tui-repo-screen-scaffold",
+    "title": "Repository detail screen scaffold with tab routing",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Build the RepoOverviewScreen shell component that hosts the repository detail experience. This includes: (1) a repo header section showing full_name, visibility badge, archive badge, and stats; (2) the TabBar component rendering 6 tabs; (3) a content area that conditionally renders the active tab's content component; (4) registration in the screen registry with requiresRepo: true. The scaffold connects useRepo() for metadata, manages the active tab index, and renders loading/error states. Each tab content component is mounted on activation and unmounted on deactivation (no state preservation across tab switches per spec). The scaffold also provides the repoContext to child components via context.",
+    "dependencies": [
+      "tui-repo-data-hooks",
+      "tui-repo-tab-bar-component",
+      "tui-screen-router",
+      "tui-detail-view-component",
+      "tui-loading-states"
+    ],
+    "files": [
+      "apps/tui/src/screens/Repository/RepoDetailScreen.tsx",
+      "apps/tui/src/screens/Repository/RepoHeader.tsx",
+      "apps/tui/src/screens/Repository/RepoContext.tsx"
+    ],
+    "testFiles": [],
+    "acceptanceCriteria": [
+      "RepoDetailScreen fetches repo metadata via useRepo(owner, repo) on mount",
+      "Header shows full_name, PUBLIC/PRIVATE badge, ARCHIVED badge (if applicable), star count, fork count",
+      "TabBar renders below header with 6 tabs: Bookmarks, Changes, Code, Conflicts, Op Log, Settings",
+      "Active tab content component is rendered in the content area below the tab bar",
+      "Tab content is unmounted when switching tabs (fresh mount, no state preservation)",
+      "Loading state shows centered spinner with 'Loading…' while repo metadata is fetching",
+      "Error state shows inline error with 'Press R to retry' hint",
+      "Screen is registered in screen registry with requiresRepo: true",
+      "repoContext (owner, repo, repoData) is provided to child components via React context",
+      "Breadcrumb updates to show 'owner/repo' when this screen is active"
+    ]
+  },
+  {
+    "id": "tui-repo-sidebar-split-layout",
+    "title": "Sidebar + main split layout component for code explorer",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Build a SplitLayout component that renders a two-panel layout: left sidebar (25% width at standard, 30% at large) and right main content (remaining width). The sidebar is hidden by default at minimum breakpoint (80×24) and toggleable with Ctrl+B at all sizes. The focused panel has a primary-colored border, the unfocused panel has a default border. Tab or Ctrl+W toggles focus between panels. The component manages which panel has keyboard focus and routes keyboard events to the focused panel's handler.",
+    "dependencies": [
+      "tui-responsive-layout",
+      "tui-theme-tokens"
+    ],
+    "files": [
+      "apps/tui/src/components/SplitLayout.tsx",
+      "apps/tui/src/hooks/usePanelFocus.ts"
+    ],
+    "testFiles": [],
+    "acceptanceCriteria": [
+      "SplitLayout renders two panels side by side: sidebar (left) and main (right)",
+      "Sidebar width is 25% at standard breakpoint, 30% at large breakpoint",
+      "Sidebar is hidden at minimum breakpoint (80×24) by default",
+      "Ctrl+B toggles sidebar visibility at all breakpoints",
+      "Tab or Ctrl+W toggles focus between sidebar and main panels",
+      "Focused panel border uses primary color, unfocused panel uses default border color",
+      "Keyboard events are routed only to the focused panel's handler",
+      "When sidebar is hidden, main panel takes 100% width and always has focus"
+    ]
+  },
+  {
+    "id": "tui-repo-list-screen",
+    "title": "Repository list screen with search, sort, and filter",
+    "type": "feature",
+    "featureName": "TUI_REPO_LIST_SCREEN",
+    "description": "Implement the full-screen repository browser (reached via 'g r' or ':repos'). Renders a ScrollableList of the authenticated user's repositories with rich metadata columns. Supports sort cycling (o key: recently updated → name A-Z → name Z-A → most stars → recently created), visibility filter (v key: all → public → private), owner filter (w key: all → per-owner), and text search (/ key: client-side substring). Uses cursor-based pagination (30 per page, max 1000 in memory). Star/unstar with s key (optimistic). Enter opens repo overview. Responsive columns: minimum (name, visibility, timestamp), standard (+description, language, stars), large (+forks, issues, bookmark). Register in screen registry as RepoList with requiresRepo: false.",
+    "dependencies": [
+      "tui-repo-data-hooks",
+      "tui-screen-router",
+      "tui-responsive-layout",
+      "tui-theme-tokens",
+      "tui-loading-states"
+    ],
+    "files": [
+      "apps/tui/src/screens/Repository/RepoListScreen.tsx",
+      "apps/tui/src/screens/Repository/RepoListRow.tsx",
+      "apps/tui/src/screens/Repository/RepoListFilters.tsx"
+    ],
+    "testFiles": [
+      "e2e/tui/repository.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Full-screen list of user's repos fetched via useRepos() with cursor pagination",
+      "Sort cycling with 'o' key through 5 sort modes, sort indicator shown in toolbar",
+      "Visibility filter with 'v' key cycling: All → Public → Private, active filter shown as badge",
+      "Owner filter with 'w' key cycling through unique owners extracted from loaded repos",
+      "Text search with '/' activating inline filter, real-time client-side substring match",
+      "Esc clears active filter and returns focus to list",
+      "Column layout adapts to 3 breakpoints (minimum/standard/large)",
+      "Enter on focused row pushes RepoOverview screen with owner/repo params",
+      "s key stars/unstars focused repo with optimistic UI",
+      "Pagination at 80% scroll depth, 'Loading more…' indicator, max 1000 items cap",
+      "Empty state: 'No repositories found.' centered in muted text",
+      "Error state: inline error with 'Press R to retry'",
+      "Breadcrumb shows 'Repositories' when this screen is active"
+    ]
+  },
+  {
+    "id": "tui-repo-overview",
+    "title": "Repository overview screen with metadata, stats, and README",
+    "type": "feature",
+    "featureName": "TUI_REPO_OVERVIEW",
+    "description": "Implement the repository overview — the anchor content that displays when no tab is explicitly selected (or the initial view before tab navigation). This is a scrollable view within the RepoDetailScreen showing: repo metadata (owner, default bookmark, clone URL, created/updated timestamps), stats row (stars ★, forks ⑂, watchers 👁, issues count), topics as inline tags, fork indicator with parent navigation, description (wrapped), and the rendered README. Uses useRepo() for metadata and useRepoReadme() for README. Star toggle with 's', clone URL copy with 'c'. The overview occupies the content area and shares space with the tab bar above it.",
+    "dependencies": [
+      "tui-repo-screen-scaffold",
+      "tui-repo-data-hooks",
+      "tui-bootstrap-and-renderer",
+      "tui-detail-view-component",
+      "tui-responsive-layout"
+    ],
+    "files": [
+      "apps/tui/src/screens/Repository/RepoOverview.tsx",
+      "apps/tui/src/screens/Repository/RepoMetadata.tsx",
+      "apps/tui/src/screens/Repository/RepoStats.tsx"
+    ],
+    "testFiles": [
+      "e2e/tui/repository.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Overview renders in scrollbox with sections: header, metadata, stats, topics, fork indicator, description, README",
+      "Metadata shows owner, default bookmark, clone URL, created_at, updated_at",
+      "Stats row shows: ★ N stars, ⑂ N forks, 👁 N watchers, N issues",
+      "Topics render as inline comma-separated tags",
+      "Fork indicator shows parent repo name with Enter to navigate, or '[deleted repository]' if parent deleted",
+      "Description wrapped to content width",
+      "README renders via MarkdownRenderer component (or 'No README found.' placeholder)",
+      "'s' key toggles star with optimistic UI and status bar confirmation",
+      "'c' key copies clone URL to clipboard with 'Copied!' confirmation",
+      "j/k scrolls within the scrollbox",
+      "Responsive layout: minimum hides optional metadata, standard shows all, large adds padding",
+      "Loading state: metadata loads first, 'Loading README…' shown below while README fetches",
+      "README fetch failure shows 'Unable to load README. Press R to retry.' without affecting metadata display"
+    ]
+  },
+  {
+    "id": "tui-repo-tab-navigation",
+    "title": "Repository tab navigation with 6-tab bar",
+    "type": "feature",
+    "featureName": "TUI_REPO_TAB_NAVIGATION",
+    "description": "Implement the 6-tab navigation system within the repository detail screen. Tabs are: 1:Bookmarks, 2:Changes, 3:Code, 4:Conflicts, 5:Op Log, 6:Settings. Uses the TabBar component. Each tab panel manages its own loading/error state independently. Tab switching does not trigger full-screen spinner. Active tab persists when navigating away and back to the same repo within a session. Tab labels abbreviate at 80-99 columns. The tab bar is positioned between the repo header and the content area.",
+    "dependencies": [
+      "tui-repo-tab-bar-component",
+      "tui-repo-screen-scaffold"
+    ],
+    "files": [
+      "apps/tui/src/screens/Repository/RepoTabRouter.tsx"
+    ],
+    "testFiles": [
+      "e2e/tui/repository.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "6 tabs render in the tab bar: Bookmarks, Changes, Code, Conflicts, Op Log, Settings",
+      "Tab/Shift+Tab cycles through tabs with wrapping",
+      "Number keys 1-6 jump directly to tabs",
+      "Active tab uses reverse-video + underline styling",
+      "Tab content area renders the active tab's component",
+      "Each tab independently manages loading/error states",
+      "Tab switching does not show full-screen loading spinner",
+      "Active tab index persists across navigate-away and navigate-back to same repo",
+      "Tab labels abbreviate at 80-99 columns (Bkmk, Chng, Code, Cnfl, OpLog, Sett)",
+      "Tab switching suppressed when text input or modal has focus"
+    ]
+  },
+  {
+    "id": "tui-repo-bookmarks-view",
+    "title": "Repository bookmarks tab view with CRUD operations",
+    "type": "feature",
+    "featureName": "TUI_REPO_BOOKMARKS_VIEW",
+    "description": "Implement Tab 1 (Bookmarks) content: a scrollable list of jj bookmarks. Default bookmark shown first with ★ prefix in primary color, remaining sorted alphabetically. Each row: name, change ID (12ch), commit ID (12ch), tracking indicator, default badge. j/k navigation, Enter opens change detail, d opens diff view, c copies bookmark name, / filters by name. Write-access users: n opens creation form (name + target change ID fields, Ctrl+S submits), x deletes with y/n confirmation (optimistic). R refreshes. Empty state: 'No bookmarks. Create one with n.' Uses useBookmarks() hook.",
+    "dependencies": [
+      "tui-repo-screen-scaffold",
+      "tui-repo-tree-hooks",
+      "tui-sync-toast-flash-system"
+    ],
+    "files": [
+      "apps/tui/src/screens/Repository/BookmarksView.tsx",
+      "apps/tui/src/screens/Repository/BookmarkRow.tsx",
+      "apps/tui/src/screens/Repository/BookmarkCreateForm.tsx"
+    ],
+    "testFiles": [
+      "e2e/tui/repository.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Bookmarks fetched via useBookmarks() from GET /api/repos/:owner/:repo/bookmarks",
+      "Default bookmark displayed first with ★ prefix in primary color",
+      "Non-default bookmarks sorted alphabetically",
+      "Each row shows: name, target change ID, target commit ID, tracking indicator, default badge",
+      "j/k navigates, Enter opens change detail, d opens diff view",
+      "c copies bookmark name with 'Copied!' status bar confirmation",
+      "/ activates inline filter (case-insensitive name substring match)",
+      "Section header shows 'Bookmarks (N)' count",
+      "n opens creation form for write-access users (name + target change ID fields)",
+      "x on non-default bookmark shows y/n confirmation, deletion is optimistic",
+      "x on default bookmark shows 'Cannot delete the default bookmark.' in status bar",
+      "R triggers hard refresh from API",
+      "Responsive column visibility: minimum (name, default, tracking), standard (+change ID, commit ID), large (expanded widths)",
+      "Empty state: 'No bookmarks. Create one with n.'",
+      "Error state: inline error with 'Press R to retry'"
+    ]
+  },
+  {
+    "id": "tui-repo-changes-view",
+    "title": "Repository changes tab view with jj change history",
+    "type": "feature",
+    "featureName": "TUI_REPO_CHANGES_VIEW",
+    "description": "Implement Tab 2 (Changes) content: a scrollable list of jj changes (commit history). Each row: short change ID (8ch, primary color), conflict indicator (⚠ warning), empty indicator (∅ muted), description first line, author name, relative timestamp. Sorted newest-first by default. Supports sort cycling (o key: newest → oldest → author A-Z), fuzzy filter (/ key: across change_id, description, author_name), cursor-based pagination (50 per page, auto-load at 80% scroll, max 1000). Tree indicators (│├└) shown at 120+ columns for parent-child relationships. Conflict rows use warning background tint, empty rows use dimmed style. Enter opens change detail, d opens diff view. Count header: 'N changes' or 'M of N changes' when filtered.",
+    "dependencies": [
+      "tui-repo-screen-scaffold",
+      "tui-repo-jj-hooks"
+    ],
+    "files": [
+      "apps/tui/src/screens/Repository/ChangesView.tsx",
+      "apps/tui/src/screens/Repository/ChangeRow.tsx"
+    ],
+    "testFiles": [
+      "e2e/tui/repository.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Changes fetched via useChanges() with cursor pagination (50 per page, max 1000)",
+      "Each row: change ID (8ch primary), ⚠ conflict indicator, ∅ empty indicator, description first line, author, timestamp",
+      "Sorted newest-first by default",
+      "o key cycles: Newest first → Oldest first → Author A-Z",
+      "/ activates fuzzy filter across change_id, description, author_name",
+      "Content header shows 'N changes' or 'M of N changes' when filtered",
+      "Auto-pagination at 80% scroll depth with 'Loading more…' indicator",
+      "Tree indicators (│├└) shown at 120+ columns using parent_change_ids",
+      "Conflict rows have warning background tint, empty rows use dimmed style",
+      "Enter opens change detail screen, d opens diff view directly",
+      "Responsive columns: minimum (ID, indicators, description, timestamp), standard (+author, tree), large (expanded widths)",
+      "Empty state: 'No changes yet.' centered muted text",
+      "Error state: inline error with 'Press R to retry'"
+    ]
+  },
+  {
+    "id": "tui-repo-file-tree",
+    "title": "Repository file tree sidebar component",
+    "type": "feature",
+    "featureName": "TUI_REPO_FILE_TREE",
+    "description": "Implement the file tree sidebar component used within the code explorer (and reusable in diff viewer). Renders a hierarchical directory/file listing with: directories prefixed ▸ (collapsed) / ▾ (expanded) in bold/primary, files prefixed with space for alignment. Lazy-loads subdirectories on Enter/Right expand. Focused entry highlighted with reverse-video. j/k navigation, Enter expands/collapses directories or selects files. Indentation: 1 space/level at minimum, 2 spaces/level at standard+. Max 20 nesting levels. Loading shows ⟳ spinner per directory, errors show ✗ in red. Symlinks shown with → suffix, submodules with ◆ prefix. Bookmark selector at top (B to open picker). / for fuzzy file search within tree. Pagination for directories with 100+ entries.",
+    "dependencies": [
+      "tui-repo-screen-scaffold",
+      "tui-repo-tree-hooks",
+      "tui-responsive-layout"
+    ],
+    "files": [
+      "apps/tui/src/screens/Repository/FileTree.tsx",
+      "apps/tui/src/screens/Repository/FileTreeNode.tsx",
+      "apps/tui/src/hooks/useFileTree.ts"
+    ],
+    "testFiles": [
+      "e2e/tui/repository.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Hierarchical tree rendering with directories and files sorted (dirs first, then files, both alphabetical)",
+      "Directories prefixed with ▸ (collapsed) / ▾ (expanded) in bold primary color",
+      "Files prefixed with space for alignment, default text color",
+      "Lazy-loading: root entries fetched on mount, subdirectories on-demand when expanded",
+      "Focused entry highlighted with reverse-video",
+      "j/k and Up/Down navigate, Enter expands/collapses dirs or selects files",
+      "Indentation: 1 space/level at 80×24, 2 spaces/level at 120×40+",
+      "Max 20 nesting levels with capped indentation",
+      "Loading directory shows ⟳ spinner, errors show ✗ in red",
+      "Empty directory shows '(empty)' placeholder",
+      "Symlinks shown with → suffix, submodules with ◆ prefix",
+      "B opens bookmark/ref picker at top of sidebar",
+      "/ activates fuzzy file search within tree",
+      "Pagination for directories with 100+ entries",
+      "Selected file path shown in breadcrumb and emitted to parent for preview"
+    ]
+  },
+  {
+    "id": "tui-repo-file-preview",
+    "title": "Repository file preview panel with syntax highlighting",
+    "type": "feature",
+    "featureName": "TUI_REPO_FILE_PREVIEW",
+    "description": "Implement the file preview panel (right side of code explorer split). Shows selected file content with: pinned header row (path, language, size, line count), syntax-highlighted code via <code> component with line numbers, toggleable markdown rendering for .md/.mdx files (m key), search within file (/ key with n/N navigation), copy operations (y copies path, Y copies content up to 1MB). Line numbers: 4-char gutter at <120 cols, 6-char at 120+, toggleable with n key. Word wrap off by default, toggleable with w key. Binary files show placeholder, empty files show 'Empty file'. Large files (>100K lines or >5MB) truncated at 10K lines with warning. Non-UTF-8 shows U+FFFD replacements.",
+    "dependencies": [
+      "tui-repo-screen-scaffold",
+      "tui-repo-tree-hooks",
+      "tui-bootstrap-and-renderer",
+      "tui-responsive-layout"
+    ],
+    "files": [
+      "apps/tui/src/screens/Repository/FilePreview.tsx",
+      "apps/tui/src/screens/Repository/FilePreviewHeader.tsx",
+      "apps/tui/src/hooks/useFileSearch.ts"
+    ],
+    "testFiles": [
+      "e2e/tui/repository.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Pinned header row shows: file path (truncated from left at min), language, human-readable size, line count",
+      "Text files rendered via <code> component with Tree-sitter syntax highlighting",
+      "Line numbers displayed: 4-char gutter at <120 cols, 6-char at 120+, toggleable with n key",
+      "Markdown files (.md, .mdx) default to rendered view via <markdown>, toggleable with m key",
+      "Word wrap off by default, toggleable with w key",
+      "/ activates search within file (literal text), n/N navigate matches with wrapping",
+      "y copies file path to clipboard, Y copies content (max 1MB)",
+      "Binary files show 'Binary file — preview not available'",
+      "Empty files show 'Empty file' placeholder",
+      "Large files (>100K lines or >5MB) truncated at 10K lines with warning message",
+      "Non-UTF-8 content shows U+FFFD replacements with NON-UTF8 badge in header",
+      "j/k scrolls within file content",
+      "Max 10,000 chars per line in non-wrap mode"
+    ]
+  },
+  {
+    "id": "tui-repo-code-explorer",
+    "title": "Repository code explorer with file tree + preview split",
+    "type": "feature",
+    "featureName": "TUI_REPO_CODE_EXPLORER",
+    "description": "Implement Tab 3 (Code) content: a two-panel split layout with file tree sidebar (left) and file preview (right). Uses the SplitLayout component. Sidebar shows FileTree component, main area shows FilePreview component. Tab or Ctrl+W toggles focus between panels. Ctrl+B toggles sidebar visibility. When a file is selected in the tree, the preview panel loads its content. Bookmark selector in sidebar allows switching refs. Path breadcrumb shows current directory. The code explorer composes FileTree and FilePreview as child components, managing the selected file state and passing it between them.",
+    "dependencies": [
+      "tui-repo-sidebar-split-layout",
+      "tui-repo-file-tree",
+      "tui-repo-file-preview"
+    ],
+    "files": [
+      "apps/tui/src/screens/Repository/CodeExplorer.tsx"
+    ],
+    "testFiles": [
+      "e2e/tui/repository.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Two-panel split: FileTree sidebar (25% standard, 30% large) + FilePreview main area",
+      "Sidebar hidden at minimum breakpoint, toggleable with Ctrl+B",
+      "Tab or Ctrl+W toggles focus between sidebar and main panels",
+      "Focused panel has primary-colored border, unfocused has default border",
+      "File selection in tree loads content in preview panel",
+      "Bookmark/ref selector at top of sidebar (B to open picker)",
+      "Path breadcrumb shows current directory path",
+      "When sidebar hidden, main panel takes full width",
+      "Initial state: root directory loaded, first file (or README) auto-selected for preview",
+      "Keyboard events routed to focused panel only"
+    ]
+  },
+  {
+    "id": "tui-repo-readme-render",
+    "title": "Repository README rendering section in overview",
+    "type": "feature",
+    "featureName": "TUI_REPO_README_RENDER",
+    "description": "Implement the README rendering section within the repository overview screen. Renders as the final section in the overview scrollbox below metadata, stats, topics, and description. Uses useRepoReadme() to fetch content and detects content type (markdown vs plaintext). Markdown rendered via <markdown> component supporting: h1-h6, lists (nested), code blocks with syntax highlighting, inline code, bold, italic, blockquotes (max 5 levels), tables (box-drawing), links (URL in muted parentheses). Plaintext rendered as preformatted in <code>. Supports multiple README conventions (README.md, README.markdown, README.txt, README). Section preceded by horizontal separator. HTML tags shown as literal text. Images shown as [Image: alt]. ANSI escapes stripped. Front matter stripped. Max 10,000 lines with truncation message. Responsive width: 78/118/198 chars at min/standard/large.",
+    "dependencies": [
+      "tui-repo-data-hooks",
+      "tui-bootstrap-and-renderer",
+      "tui-responsive-layout"
+    ],
+    "files": [
+      "apps/tui/src/screens/Repository/ReadmeSection.tsx"
+    ],
+    "testFiles": [
+      "e2e/tui/repository.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "README section renders as final section in overview scrollbox",
+      "Horizontal separator line (─ chars in border color) above section",
+      "Section label: 'README' in bold with detected filename in muted text",
+      "Markdown content rendered via <markdown> component with all formatting support",
+      "Plaintext content rendered as preformatted in <code>",
+      "Code blocks show language hints and syntax highlighting",
+      "Links show URL in muted parentheses after link text",
+      "HTML tags displayed as literal text (not rendered)",
+      "Images shown as '[Image: alt]' in muted text",
+      "ANSI escape sequences stripped before rendering",
+      "Front matter (YAML between ---) stripped from display",
+      "Max 10,000 lines with truncation message and hint to view in code explorer",
+      "Responsive width: 78 chars (80×24), 118 chars (120×40), 198 chars (200×60)",
+      "No README: shows 'No README found.' in muted text",
+      "README fetch failure: 'Unable to load README. Press R to retry.' (metadata still visible)"
+    ]
+  },
+  {
+    "id": "tui-repo-conflicts-view",
+    "title": "Repository conflicts tab view with jj-native conflict display",
+    "type": "feature",
+    "featureName": "TUI_REPO_CONFLICTS_VIEW",
+    "description": "Implement Tab 4 (Conflicts) content: a hierarchical list of jj-native conflicts grouped by change. Section header: 'Conflicts (N changes, M files)' with ⚠ warning or ✓ success status. Changes sorted by conflict file count descending. Change rows show: change ID, commit ID, description first line, author (standard+), conflict count badge. File rows under expanded changes: resolution icon (✓ green / ✗ yellow), file path, conflict type (2-sided, modify-delete, etc.). Resolved files show strikethrough. h toggles show/hide resolved (default: hidden). x expands all, z collapses all. Enter on change toggles expand, Enter on file opens diff. / filters by file path. R refreshes. Empty: 'No conflicts. All clear! ✓'. Max 500 changes, 1000 files per change.",
+    "dependencies": [
+      "tui-repo-screen-scaffold",
+      "tui-repo-jj-hooks"
+    ],
+    "files": [
+      "apps/tui/src/screens/Repository/ConflictsView.tsx",
+      "apps/tui/src/screens/Repository/ConflictChangeRow.tsx",
+      "apps/tui/src/screens/Repository/ConflictFileRow.tsx"
+    ],
+    "testFiles": [
+      "e2e/tui/repository.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Conflicts fetched via useRepoConflicts() hook",
+      "Section header: 'Conflicts (N changes, M files)' with status icon",
+      "Changes sorted by conflict file count descending, then change_id ascending",
+      "Change rows: change ID (12ch), commit ID (12ch), description first line, author (standard+), conflict count badge",
+      "File rows indented 2 spaces: resolution icon, file path, conflict type",
+      "Resolved files show strikethrough on path, ✓ green icon",
+      "Unresolved files show ✗ yellow icon",
+      "h toggles show/hide resolved conflicts (default: hidden)",
+      "Enter on change toggles expand/collapse, Enter on file opens diff view",
+      "d opens diff view on file row, v opens change detail on change row",
+      "x expands all changes, z collapses all",
+      "/ filters by file path (case-insensitive substring)",
+      "R refreshes from API",
+      "Empty state: 'No conflicts. All clear! ✓'",
+      "All-resolved with hide-resolved: 'All conflicts resolved. Press h to show resolved.'"
+    ]
+  },
+  {
+    "id": "tui-repo-operation-log",
+    "title": "Repository operation log tab view",
+    "type": "feature",
+    "featureName": "TUI_REPO_OPERATION_LOG",
+    "description": "Implement Tab 5 (Op Log) content: a chronological audit trail of jj operations. Listed newest-first. Each row: operation type (snapshot, rebase, bookmark, etc.), description, relative timestamp, and (at sufficient width) operation ID and user. Cursor-based pagination (50 per page, max 5000). Inline detail view on Enter showing full operation ID, parent operation ID, type, description, user, absolute timestamp. / filters by type or description. y copies focused operation's full ID. R refreshes. Empty: 'No operations recorded.' Responsive columns: minimum (type, description, timestamp), standard (+op ID), large (+user, parent ID).",
+    "dependencies": [
+      "tui-repo-screen-scaffold",
+      "tui-repo-jj-hooks"
+    ],
+    "files": [
+      "apps/tui/src/screens/Repository/OperationLogView.tsx",
+      "apps/tui/src/screens/Repository/OperationRow.tsx",
+      "apps/tui/src/screens/Repository/OperationDetail.tsx"
+    ],
+    "testFiles": [
+      "e2e/tui/repository.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Operations fetched via useOperationLog() with cursor pagination (50 per page)",
+      "Listed newest-first (descending by created_at)",
+      "Each row: type, description, relative timestamp",
+      "Cursor-based pagination with 'Loading more…' indicator, max 5000 in memory",
+      "Enter opens inline detail view: full op ID, parent op ID, type, description, user, absolute timestamp",
+      "/ filters by operation type or description (case-insensitive substring)",
+      "y copies focused operation's full ID with 'Copied!' confirmation",
+      "R refreshes (resets to page 1)",
+      "Empty state: 'No operations recorded.'",
+      "Responsive columns: minimum (type, description, timestamp), standard (+op ID), large (+user, parent ID)",
+      "j/k navigates, G jumps to last, gg jumps to first",
+      "Error state: inline error with 'Press R to retry'"
+    ]
+  },
+  {
+    "id": "tui-repo-settings-view",
+    "title": "Repository settings tab view with admin configuration",
+    "type": "feature",
+    "featureName": "TUI_REPO_SETTINGS_VIEW",
+    "description": "Implement Tab 6 (Settings) content: a vertically scrollable form-like layout with sections: General (name, description, default bookmark, topics), Visibility (public/private toggle), Archive (archive/unarchive), Danger Zone (transfer ownership, delete repo — red border/header). Editable fields activate with Enter for inline edit mode (input/textarea), Ctrl+S saves via PATCH /api/repos/:owner/:repo, Esc cancels. Saves are optimistic. Visibility and archive toggles require y/n confirmation. Delete requires typing repo name to confirm. Users without admin access see read-only mode with 'Admin access required' messages, Danger Zone hidden. Topics: comma-separated, max 20, 1-35 lowercase alphanumeric/hyphens. Responsive: single column at minimum, side-by-side at standard+.",
+    "dependencies": [
+      "tui-repo-screen-scaffold",
+      "tui-repo-data-hooks",
+      "tui-sync-toast-flash-system"
+    ],
+    "files": [
+      "apps/tui/src/screens/Repository/SettingsView.tsx",
+      "apps/tui/src/screens/Repository/SettingsSection.tsx",
+      "apps/tui/src/screens/Repository/SettingsField.tsx",
+      "apps/tui/src/screens/Repository/DangerZone.tsx"
+    ],
+    "testFiles": [
+      "e2e/tui/repository.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Four sections render: General, Visibility, Archive, Danger Zone",
+      "General section: name, description, default bookmark, topics as editable fields",
+      "Enter activates inline edit mode (input for single-line, textarea for description)",
+      "Ctrl+S saves via PATCH /api/repos/:owner/:repo, Esc cancels",
+      "Saves are optimistic with revert on server error",
+      "Visibility section: shows current state, toggle requires y/n confirmation",
+      "Archive section: archive/unarchive action with y/n confirmation",
+      "Danger Zone: red border and header, transfer prompts for new owner, delete requires typing repo name",
+      "After successful delete, navigate to repo list screen",
+      "After successful transfer, navigate to new owner's repo URL",
+      "Read-only mode for non-admin users: edits suppressed, Danger Zone hidden",
+      "Read-only Enter shows 'Admin access required' in status bar",
+      "Topics: max 20, each 1-35 lowercase alphanumeric/hyphens, client-side validation",
+      "Description: max 1024 chars, multi-line textarea",
+      "Name: 1-100 chars, alphanumeric/hyphens/underscores/dots, no leading dots or trailing .git",
+      "j/k navigates between fields/sections, R refreshes"
+    ]
+  },
+  {
+    "id": "tui-repo-search-filter",
+    "title": "Repository-scoped search and filter surface",
+    "type": "feature",
+    "featureName": "TUI_REPO_SEARCH_FILTER",
+    "description": "Implement the unified search and filtering surface within a repository context. Activated by / to open inline search input, or structured filter controls (f state, l label, a assignee, o sort). Context-aware: adapts search targets to active sub-screen (issues: title/body/label; files: path fuzzy; bookmarks: name; changes: description; wiki: title/body; conflicts: path/type; operations: type/description). Real-time client-side filtering for <200 items, debounced (300ms) server-side for larger sets. Filter toolbar visible when any non-default filter active. Multiple filters compose and apply simultaneously. Filter state local to tab instance, resets on navigation. Max 120 chars in search input. Zero-result empty state with hint. Responsive: badges at minimum, labels at standard, labels+counts at large.",
+    "dependencies": [
+      "tui-repo-screen-scaffold",
+      "tui-repo-data-hooks",
+      "tui-responsive-layout"
+    ],
+    "files": [
+      "apps/tui/src/screens/Repository/RepoSearchFilter.tsx",
+      "apps/tui/src/hooks/useRepoFilter.ts",
+      "apps/tui/src/hooks/useDebounce.ts"
+    ],
+    "testFiles": [
+      "e2e/tui/repository.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "/ activates inline search input with 🔍 icon + query text + cursor",
+      "Search targets adapt to active sub-screen context",
+      "Real-time client-side filtering for <200 items",
+      "Debounced (300ms) server-side search for larger result sets",
+      "Matched count displayed: 'X of Y'",
+      "Esc clears search and returns focus to list",
+      "Filter toolbar visible when non-default filter active",
+      "Multiple filters compose and apply simultaneously",
+      "Filter state local to tab instance, resets on navigation",
+      "Max 120 characters in search input",
+      "Zero-result state: 'No results match the current filters. Press Esc to clear search, or adjust filters.'",
+      "Server-side search error: 'Search failed. Press R to retry'",
+      "Responsive: badges at minimum, labels at standard, labels+counts at large",
+      "Case-insensitive substring matching for all text filters"
+    ]
+  },
+  {
+    "id": "tui-repo-keyboard-shortcuts",
+    "title": "Repository keyboard shortcut dispatch and help integration",
+    "type": "feature",
+    "featureName": "TUI_REPO_KEYBOARD_SHORTCUTS",
+    "description": "Implement the useRepoKeyboard() hook that orchestrates all keyboard dispatch for the repository screen. Composes keybindings from all repository sub-features: overview, tab navigation, and active tab content panel. Follows 7-layer priority hierarchy: input → modal → go-to → tab content → tab bar → repo-wide → global. No two keybindings in same active context produce different actions. Help overlay (?) displays all active keybindings organized into labeled groups: Global, Go To, Repository, Tab Navigation, and active tab group. Status bar shows context-sensitive hints (3 at minimum, 6-8 at standard, all at large). Command palette (:) includes all repository actions as searchable commands. Repository-wide shortcuts: s (star), c (copy URL), n (new item), R (retry). Multi-key sequences: g g (scroll top), g + destination. All handlers execute within 16ms.",
+    "dependencies": [
+      "tui-repo-screen-scaffold",
+      "tui-repo-tab-navigation",
+      "tui-help-overlay",
+      "tui-command-palette"
+    ],
+    "files": [
+      "apps/tui/src/screens/Repository/useRepoKeyboard.ts",
+      "apps/tui/src/screens/Repository/repoCommands.ts"
+    ],
+    "testFiles": [
+      "e2e/tui/repository.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "useRepoKeyboard() composes keybindings from overview, tab nav, and active tab content",
+      "7-layer priority hierarchy: input → modal → go-to → tab content → tab bar → repo-wide → global",
+      "No keybinding conflicts in same active context",
+      "? displays help overlay with groups: Global, Go To, Repository, Tab Navigation, active tab",
+      "Status bar hints update within one render frame of focus changes",
+      ": opens command palette with all repository actions searchable",
+      "s star/unstar, c copy URL, n new item — suppressed when input/modal focused",
+      "R retry — active only in error state",
+      "g g scrolls to top, g + key activates go-to navigation",
+      "Tab/Shift+Tab switches tabs at repo level, navigates fields within forms",
+      "Number keys 1-6 switch tabs at repo level, pass through in text inputs",
+      "q pops repository screen",
+      "Rapid key presses processed sequentially without dropping events",
+      "All handlers execute within 16ms",
+      "Keybinding groups registered with help overlay system",
+      "Status bar shows 3 hints at minimum, 6-8 at standard, all at large width"
+    ]
+  }
+]

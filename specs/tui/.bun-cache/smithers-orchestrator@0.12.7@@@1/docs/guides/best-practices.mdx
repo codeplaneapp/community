@@ -1,0 +1,344 @@
+---
+title: Best Practices
+description: Guidelines for designing effective Smithers workflows that produce reliable, high-quality results.
+---
+
+These guidelines help you get the most out of Smithers. They focus on how to structure agent tasks, write effective prompts, and design workflows that produce consistent results.
+
+## Give Agents Big, Coherent Tasks
+
+Agents perform better with a single, well-scoped task than with many micro-steps. Every task boundary is a context boundary -- the agent loses conversational state between tasks. Only split into multiple tasks when:
+
+- The context changes significantly (different codebase area, different concern).
+- You need an explicit checkpoint or approval gate.
+- A later task depends on the structured output of an earlier one.
+
+```tsx
+// assuming outputs from createSmithers
+
+// Avoid: splitting one logical operation into many tiny tasks
+<Sequence>
+  <Task id="read-files" output={outputs.files} agent={codeAgent}>Read the config files</Task>
+  <Task id="find-bugs" output={outputs.bugs} agent={codeAgent}>Find bugs in the files</Task>
+  <Task id="fix-bugs" output={outputs.fixes} agent={codeAgent}>Fix the bugs you found</Task>
+  <Task id="write-fixes" output={outputs.written} agent={codeAgent}>Write the fixes to disk</Task>
+</Sequence>
+
+// Better: one coherent task with tools
+<Task id="fix-config-bugs" output={outputs.result} agent={codeAgentWithTools}>
+  {`Analyze the config files in ${ctx.input.configDir}, find any bugs,
+fix them, and write the corrected files. Return a summary of changes.`}
+</Task>
+```
+
+The second approach gives the agent full context and lets it use tools (`read`, `edit`, `bash`) to accomplish everything in one pass.
+
+## Use Measurable Stop Conditions for Loops
+
+`<Loop>` should stop based on a concrete, measurable signal -- not a subjective judgment. Good stop conditions:
+
+- Tests passing (boolean)
+- Approval flag from a reviewer (boolean)
+- Score exceeding a threshold (number comparison)
+- All items in a list processed (array length check)
+
+```tsx
+// Good: concrete stop condition
+// assuming outputs from createSmithers
+<Loop
+  until={ctx.outputMaybe(outputs.review, { nodeId: "review" })?.approved === true}
+  maxIterations={5}
+  onMaxReached="return-last"
+>
+  <Sequence>
+    <Task id="implement" output={outputs.implement} agent={implementer}>
+      {`Implement the feature. Previous feedback: ${
+        ctx.outputMaybe(outputs.review, { nodeId: "review" })?.feedback ?? "None yet"
+      }`}
+    </Task>
+    <Task id="review" output={outputs.review} agent={reviewer}>
+      {`Review the implementation. Approve if it meets requirements.
+Return JSON with approved (boolean) and feedback (string).`}
+    </Task>
+  </Sequence>
+</Loop>
+```
+
+Always set `maxIterations` to prevent infinite loops. Use `onMaxReached: "return-last"` to gracefully accept the last result if the loop does not converge.
+
+## Ask for Validation in Prompts
+
+Do not assume the agent will run checks without being asked. If you need tests, linting, or verification, put it explicitly in the prompt:
+
+```tsx
+// assuming outputs from createSmithers
+
+// Vague -- agent might not verify
+<Task id="implement" output={outputs.result} agent={codeAgent}>
+  Fix the authentication bug.
+</Task>
+
+// Better -- explicit verification instructions
+<Task id="implement" output={outputs.result} agent={codeAgentWithTools}>
+  {`Fix the authentication bug in ${ctx.input.file}.
+
+After making changes:
+1. Run the test suite with \`bun test\`
+2. Verify the specific failing test passes
+3. Check that no other tests regressed
+
+Return JSON with:
+- summary (string): what you changed
+- testsRun (number): how many tests ran
+- testsPassed (number): how many passed
+- filesChanged (string[]): list of modified files`}
+</Task>
+```
+
+## Request Structured Reports
+
+Design your output schemas to capture the data you need for downstream tasks and human inspection. The agent should return fields you can act on programmatically:
+
+```tsx
+const { Workflow, smithers, outputs } = createSmithers({
+  analysis: z.object({
+    summary: z.string(),
+    issuesFound: z.number(),
+    criticalIssues: z.number(),
+    filesAnalyzed: z.array(z.string()),
+    recommendations: z.array(z.object({
+      file: z.string(),
+      line: z.number(),
+      severity: z.enum(["low", "medium", "high", "critical"]),
+      description: z.string(),
+      suggestedFix: z.string(),
+    })),
+  }),
+});
+```
+
+This lets you:
+
+- Conditionally branch based on `criticalIssues > 0`.
+- Generate summary reports from structured data.
+- Track metrics across runs.
+- Feed specific recommendations into a fix task.
+
+## Use outputSchema for Type Safety
+
+The `outputSchema` prop ensures the agent's response matches your expected structure. It provides three benefits:
+
+1. **Validation** -- Responses are validated against the Zod schema, with auto-retry on failure.
+2. **Auto-injection** -- When children are JSX/MDX elements, `props.schema` is auto-injected with a JSON example.
+3. **Cache key** -- The schema shape is part of the cache key, so schema changes invalidate stale caches.
+
+```tsx
+const reviewSchema = z.object({
+  approved: z.boolean(),
+  feedback: z.string().min(10),
+  score: z.number().int().min(1).max(10),
+});
+
+// assuming outputs from createSmithers
+<Task id="review" output={outputs.review} outputSchema={reviewSchema} agent={reviewer}>
+  <ReviewPrompt code={ctx.output(outputs.implement, { nodeId: "implement" }).code} />
+</Task>
+```
+
+## Design for Resumability
+
+Structure your workflow so that resuming after a crash produces correct results:
+
+- **Use deterministic task IDs.** Do not use timestamps, random strings, or array indices.
+- **Make tasks idempotent where possible.** If a task writes files, design it so re-running produces the same result.
+- **Use `ctx.outputMaybe()` for conditional rendering.** This ensures tasks only mount when their dependencies are satisfied.
+
+```tsx
+// Good: deterministic, conditional, resumable
+// assuming outputs from createSmithers
+export default smithers((ctx) => {
+  const analysis = ctx.outputMaybe(outputs.analysis, { nodeId: "analyze" });
+  const fix = ctx.outputMaybe(outputs.fix, { nodeId: "fix" });
+
+  return (
+    <Workflow name="robust">
+      <Sequence>
+        <Task id="analyze" output={outputs.analysis} agent={analyst}>
+          Analyze the codebase.
+        </Task>
+        {analysis ? (
+          <Task id="fix" output={outputs.fix} agent={fixer}>
+            {`Fix: ${analysis.summary}`}
+          </Task>
+        ) : null}
+        {fix ? (
+          <Task id="report" output={outputs.report}>
+            {{ summary: fix.explanation, filesChanged: fix.files }}
+          </Task>
+        ) : null}
+      </Sequence>
+    </Workflow>
+  );
+});
+```
+
+## Keep Prompts and Schemas Separate from Logic
+
+For maintainability, separate your workflow's concerns:
+
+- **`schemas.ts`** -- All Zod schemas in one file.
+- **`agents.ts`** -- Agent configuration (model, system prompt, tools).
+- **`prompts/`** -- MDX prompt templates.
+- **`workflow.tsx`** -- Composition only (how tasks connect).
+
+This makes it easy to iterate on prompts without touching workflow logic, and to swap agents or models without changing schemas.
+
+## Set Reasonable Timeouts and Retry Limits
+
+Every agent task should have a timeout. Agent calls can hang due to rate limits, network issues, or unexpectedly long generation times:
+
+```tsx
+{/* assuming outputs from createSmithers */}
+<Task
+  id="analyze"
+  output={outputs.analysis}
+  agent={analyst}
+  timeoutMs={120_000}   // 2 minutes
+  retries={2}            // 3 total attempts
+>
+  Analyze the codebase.
+</Task>
+```
+
+Guidelines:
+
+- **Simple analysis tasks**: 30-60 seconds timeout, 1-2 retries.
+- **Tool-using tasks** (read, edit, bash): 2-5 minutes timeout, 1-2 retries.
+- **Large generation tasks**: 5-10 minutes timeout, 0-1 retries.
+- **Non-critical tasks**: add `continueOnFail` so failures do not block the workflow.
+
+## Use Caching for Iterative Development
+
+Enable caching during development to avoid re-running expensive agent calls while iterating on downstream tasks:
+
+```tsx
+<Workflow name="my-workflow" cache>
+```
+
+The cache key includes the prompt, model, tools, schema, and JJ pointer. Changing any of these invalidates the cache for that task. This means you can safely iterate on a downstream task's prompt without re-running upstream tasks.
+
+Disable caching in production if you need fresh results on every run.
+
+## Example: Complete Review Loop
+
+Here is a full example combining these practices -- a review loop with structured output, measurable stop conditions, explicit validation instructions, and reasonable error handling:
+
+```tsx
+import { createSmithers, Task, Sequence, Loop } from "smithers-orchestrator";
+import { ToolLoopAgent as Agent } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { read, grep, bash, edit, write } from "smithers-orchestrator";
+import { z } from "zod";
+
+const { Workflow, smithers, outputs } = createSmithers({
+  implement: z.object({
+    summary: z.string(),
+    filesChanged: z.array(z.string()),
+    testsRun: z.number(),
+    testsPassed: z.number(),
+  }),
+  review: z.object({
+    approved: z.boolean(),
+    feedback: z.string(),
+    score: z.number().int().min(1).max(10),
+  }),
+  report: z.object({
+    title: z.string(),
+    body: z.string(),
+    iterations: z.number(),
+    finalScore: z.number(),
+  }),
+});
+
+const implementer = new Agent({
+  model: anthropic("claude-sonnet-4-20250514"),
+  instructions: "You are a senior engineer. Implement changes, run tests, and return structured JSON.",
+  tools: { read, grep, bash, edit, write },
+});
+
+const reviewer = new Agent({
+  model: anthropic("claude-sonnet-4-20250514"),
+  instructions: "You are a strict code reviewer. Return structured JSON with your assessment.",
+  tools: { read, grep },
+});
+
+export default smithers((ctx) => {
+  const review = ctx.outputMaybe(outputs.review, { nodeId: "review" });
+  const implement = ctx.outputMaybe(outputs.implement, { nodeId: "implement" });
+
+  return (
+    <Workflow name="review-loop">
+      <Sequence>
+        <Loop
+          until={review?.approved === true}
+          maxIterations={3}
+          onMaxReached="return-last"
+        >
+          <Sequence>
+            <Task
+              id="implement"
+              output={outputs.implement}
+              agent={implementer}
+              timeoutMs={300_000}
+              retries={1}
+            >
+              {`Implement: ${ctx.input.description}
+
+${review?.feedback ? `Previous review feedback:\n${review.feedback}` : ""}
+
+After making changes:
+1. Run \`bun test\` and report results
+2. Verify your changes address the requirements
+
+Return JSON with summary, filesChanged, testsRun, testsPassed.`}
+            </Task>
+
+            <Task
+              id="review"
+              output={outputs.review}
+              agent={reviewer}
+              timeoutMs={120_000}
+              retries={1}
+            >
+              {`Review the implementation.
+Summary: ${implement?.summary ?? "pending"}
+Files changed: ${implement?.filesChanged?.join(", ") ?? "none"}
+Tests: ${implement?.testsPassed ?? 0}/${implement?.testsRun ?? 0} passed
+
+Approve only if tests pass and the code is clean.
+Return JSON with approved (boolean), feedback (string), score (1-10).`}
+            </Task>
+          </Sequence>
+        </Loop>
+
+        {review ? (
+          <Task id="report" output={outputs.report}>
+            {{
+              title: `Review: ${ctx.input.description}`,
+              body: review.feedback,
+              iterations: ctx.iterationCount("review", "review") ?? 1,
+              finalScore: review.score,
+            }}
+          </Task>
+        ) : null}
+      </Sequence>
+    </Workflow>
+  );
+});
+```
+
+## Next Steps
+
+- [Patterns](/guides/patterns) -- Project structure and naming conventions.
+- [Structured Output](/guides/structured-output) -- Schema validation details.
+- [Error Handling](/guides/error-handling) -- Retries, timeouts, and fallback paths.

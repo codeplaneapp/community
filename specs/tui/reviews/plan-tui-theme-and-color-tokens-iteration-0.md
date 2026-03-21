@@ -1,0 +1,11 @@
+NOT LGTM.
+1. Missing data-source wiring: HeaderBar/StatusBar changes depend on `connectionStatus`, `syncState`, and `unreadCount`, but the plan does not define where these come from (and does not specify any `@codeplane/ui-core` hook integration for them).
+2. Breadcrumb step is underspecified: current HeaderBar uses a single truncated string; styling only the last segment requires segment-aware truncation logic, which the plan does not define.
+3. StatusBar hint-coloring is underspecified: converting one truncatable hint string into many colored spans needs explicit width/truncation rules to avoid overflow/regressions at 80x24.
+4. Token mapping gap: plan says `theme[statusToToken(syncState)]`, but current status is `"synced"` and `statusToToken` does not map `synced`; this would produce incorrect color unless mapping/state values are updated.
+5. Test section is not actionable enough: "append describe blocks exactly as specified" references an external plan without including concrete test bodies/assertions/snapshot expectations.
+6. Internal inconsistency: plan asks for consistency checks like "no hardcoded strings" but only removes a subset; hardcoded colors remain in multiple files (`ScreenRouter.tsx`, `PlaceholderScreen.tsx`, `TabbedDetailView.tsx`, `AgentSessionListScreen.tsx`, etc.).
+7. Keyboard-spec alignment is incomplete: tests mention focus/help/Esc flows, but implementation steps do not define required behavior updates; likely failures would be frontend gaps, not backend-dependent gaps.
+8. NO_COLOR verification is vague: equating NO_COLOR handling to `ansi16` fallback is not clearly defined as acceptable behavior, and no explicit expected output criteria are provided.
+9. Minor specificity issue: Step 3 import guidance (`hooks/useTheme.js` "or relative paths") is ambiguous and error-prone for nested Agent component paths.
+10. OpenTUI key event naming compatibility (`escape` vs `Escape`, ctrl combo names) is not pinned down in the plan, increasing risk of brittle tests.

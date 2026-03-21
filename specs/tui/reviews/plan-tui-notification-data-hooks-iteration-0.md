@@ -1,0 +1,9 @@
+Not LGTM.
+1. Step 2 imports are invalid: `@codeplane/ui-core/src/hooks/internal/` has no barrel export, and `parseResponseError` is not exported from `@codeplane/ui-core/src/client/index.js` (it is in `@codeplane/ui-core/src/types/errors.js`). This plan will not compile as written.
+2. OpenTUI integration is underspecified for the behaviors the tests assert. The plan adds data hooks, but the tests require screen-level keyboard/layout behavior (scroll-to-load, `/` focus, `Esc` clear, breakpoint rendering). There is no step wiring `useKeyboard`, `useTerminalDimensions`/`useOnResize`, or `<scrollbox>` handlers in a notifications screen.
+3. Keyboard contract mismatch: the plan tests filter switching with `Tab`/`Shift+Tab` and refetch with `Ctrl+R`, but the notification interaction spec uses `f` for All/Unread toggle and `R` for retry in error context. This creates spec drift.
+4. Eviction strategy is incomplete/risky: if `usePaginatedQuery` also enforces `maxItems`, it can evict items before your custom oldest-read-first policy runs, breaking unread-preservation guarantees. The plan needs one authoritative cap strategy.
+5. `markAllRead` rollback is not fully specified under async races (SSE prepends, refetch, concurrent mutate). It needs a deterministic rollback context/token strategy.
+6. SSE contract details are ambiguous: channel naming, replay/Last-Event-ID behavior, and dedupe precedence between prepended/paginated/override states are not fully specified.
+7. E2E key simulation details are weak for the current harness: sequences like `ctrl+r`, `Shift+R`, and `Escape` are not guaranteed to emit actual control keys with the existing helper implementation.
+8. File targeting is mostly correct (`apps/tui/src` and `e2e/tui`), but the plan is not implementation-complete for the UI behaviors it claims. It needs explicit screen wiring steps plus corrected imports/keybindings.

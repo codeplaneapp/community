@@ -1,0 +1,9 @@
+Not LGTM.
+1. `@codeplane/ui-core` data-access boundary is missing. The plan never explicitly states that `MessageBlock`/`ToolBlock` must consume zero `ui-core` hooks and that parent screens own `useAgentSession/useAgentMessages/useAgentStream` and pass materialized props/callbacks. This is required for scope correctness.
+2. OpenTUI API usage is under-specified in critical places. Step 4/5 call for `<code>`/`<markdown>` rendering but do not explicitly require passing `syntaxStyle={defaultSyntaxStyle}` everywhere, even though `syntaxStyle` is required by OpenTUI for both components.
+3. Keyboard scope is inconsistent with ticket scope. Step 7 requires `x`/`X`/`Enter` interaction tests, but this ticket is presentational components only; keybinding ownership is in parent screens. Without an explicit parent-integration step, these tests are out-of-scope and likely fail for the wrong reason.
+4. `SyntaxStyle.fromStyles(...)` singleton creation in Step 1 has no failure strategy. If native style creation fails at module import time, the TUI can crash on startup. Plan needs explicit fallback/error handling.
+5. Unknown message-part recovery is tested (Step 7 edge case) but not specified in implementation steps for `MessageBlock` (no required exhaustive/default render path).
+6. Test plan is not implementation-ready: no fixture source, no deterministic spinner/time control, and no snapshot-stability strategy for streaming frames/resizes, so high flake risk.
+7. 64KB truncation requirement is ambiguous: plan says “size limit” but does not define byte semantics vs JS string length (Unicode/multibyte mismatch).
+8. Path targeting is mostly correct (`apps/tui/src/**`, `e2e/tui/**`), but Step 6’s `bun run check` location/command is not validated against workspace scripts.

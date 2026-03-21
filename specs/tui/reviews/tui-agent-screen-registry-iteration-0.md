@@ -1,0 +1,12 @@
+Findings (ordered by severity):
+1. BLOCKER: The new E2E suite does not validate behavior because the harness is still a hard-throw stub at /Users/williamcory/codeplane/specs/tui/e2e/tui/helpers.ts:20. Running `bun test e2e/tui/agents-registry.test.ts` produced 0 pass / 35 fail, all failing before any assertion.
+2. BLOCKER: The new registry is not wired to the active router registry. The app router still exports / uses /Users/williamcory/codeplane/specs/tui/apps/tui/src/router/screens.ts (Agents -> Placeholder at :108-110) via /Users/williamcory/codeplane/specs/tui/apps/tui/src/router/index.ts:5, while the new agent registry lives separately in /Users/williamcory/codeplane/specs/tui/apps/tui/src/navigation/screenRegistry.ts:151-174.
+3. BLOCKER: New navigation/command/deep-link entrypoints appear unused at runtime. Repo-wide search shows only definitions/exports for `buildCommandRegistry`, `goToBindings/executeGoTo`, and `parseCliArgs/buildInitialStack` (e.g. /Users/williamcory/codeplane/specs/tui/apps/tui/src/commands/index.ts:13 and /Users/williamcory/codeplane/specs/tui/apps/tui/src/navigation/index.ts:3-5), with no consuming imports.
+4. HIGH: `executeGoTo` pushes `RepoOverview` whenever `repoContext` exists, even for non-repo destinations (e.g. Dashboard/Notifications), because condition is `if (repoContext)` instead of repo-scoped logic. See /Users/williamcory/codeplane/specs/tui/apps/tui/src/navigation/goToBindings.ts:40-48.
+5. HIGH: Deep-link handling for `repos` is inconsistent: `SCREEN_ID_MAP` maps `repos` -> `RepoList`, but switch returns Dashboard stack instead of RepoList. See /Users/williamcory/codeplane/specs/tui/apps/tui/src/navigation/deepLinks.ts:24 and :132-133.
+6. MEDIUM: Test framework choice conflicts with PRD guidance (`@microsoft/tui-test`); this file uses `bun:test` + custom helper stub (/Users/williamcory/codeplane/specs/tui/e2e/tui/agents-registry.test.ts:1-2), so the required terminal harness contract is not actually exercised.
+7. MEDIUM/NIT: `screenRegistry` comments promise required-param validation at push time (/Users/williamcory/codeplane/specs/tui/apps/tui/src/navigation/screenRegistry.ts:39-43), but no validation layer is implemented in this ticket.
+
+Additional checks:
+- No direct API calls found in modified agent/navigation/command files (no `fetch`/axios/etc.), which is good for the "no direct API calls" requirement.
+- `bun run typecheck` also fails in this workspace, but with broad pre-existing dependency/type setup issues beyond this ticket.

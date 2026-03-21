@@ -1,0 +1,11 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`TUI_AGENT_CHAT_SCREEN terminal snapshots SNAP-CHAT-007: Error state — red error with Press R to retry 1`] = `""`;
+
+exports[`TUI_AGENT_CHAT_SCREEN terminal snapshots SNAP-CHAT-008: User message rendering — role label You in primary color, message body, timestamp 1`] = `""`;
+
+exports[`TUI_AGENT_CHAT_SCREEN terminal snapshots SNAP-CHAT-009: Agent message rendering — role label Agent in success color, markdown body, timestamp 1`] = `""`;
+
+exports[`TUI_AGENT_CHAT_SCREEN terminal snapshots SNAP-CHAT-024: Failed message indicator — message with red error text and Press R to retry 1`] = `""`;
+
+exports[`TUI_AGENT_CHAT_SCREEN terminal snapshots SNAP-CHAT-025: Pending message indicator — message with Sending in muted text 1`] = `""`;

@@ -1,0 +1,11 @@
+Findings (ordered by severity):
+1. Blocking: test suite is red. `bun test e2e/tui/app-shell.test.ts --timeout 30000` finished with `99 pass / 56 fail`; all newly added responsive E2E cases fail (`RESP-LAY-001` through `RESP-LAY-016` in `/Users/williamcory/codeplane/specs/tui/e2e/tui/app-shell.test.ts:1266`). `bun test e2e/tui/app-shell.test.ts -t "useLayout — edge cases"` also fails on `EDGE-LAY-005` (`/Users/williamcory/codeplane/specs/tui/e2e/tui/app-shell.test.ts:1434`).
+2. Blocking: ticket objective (“single entry point for responsive layout decisions”) is not achieved in current app code. Responsive logic is still duplicated in consumers instead of using `useLayout`: `/Users/williamcory/codeplane/specs/tui/apps/tui/src/components/TabbedDetailView.tsx:134` and `/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/Agents/components/MessageBlock.tsx:74`.
+3. High: the “useLayout — computed values” tests do not execute `useLayout`; they re-implement equivalent formulas/switches in inline `bunEval` scripts (`/Users/williamcory/codeplane/specs/tui/e2e/tui/app-shell.test.ts:1157`). This is tautological and will miss regressions in `useLayout` internals.
+4. Medium: `modalHeight` behavior in hook is not aligned with design constraints. Hook sets `minimum/unsupported -> "90%"` and `large -> "50%"` (`/Users/williamcory/codeplane/specs/tui/apps/tui/src/hooks/useLayout.ts:89`), while design explicitly specifies modal width adaptation at minimum but not this height scaling.
+5. Medium: new barrel exports are added (`/Users/williamcory/codeplane/specs/tui/apps/tui/src/types/index.ts:1`, `/Users/williamcory/codeplane/specs/tui/apps/tui/src/hooks/index.ts:50`) but there is no direct import test proving those barrels are the supported consumption path.
+
+Additional verification:
+- OpenTUI hook usage in the ticketed hook is syntactically correct (`useTerminalDimensions` from `@opentui/react` in `/Users/williamcory/codeplane/specs/tui/apps/tui/src/hooks/useLayout.ts:2`).
+- No direct API calls were introduced in the changed files; no bypass of `@codeplane/ui-core` data hooks was found.
+- `bun run check` currently fails (exit 2) in `apps/tui`, so repository/type health is not green for acceptance.

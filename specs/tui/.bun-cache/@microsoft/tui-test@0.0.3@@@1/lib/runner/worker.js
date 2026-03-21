@@ -1,0 +1,323 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+import process from "node:process";
+import { EventEmitter } from "node:events";
+import workerpool from "workerpool";
+import { Suite } from "../test/suite.js";
+import { spawn } from "../terminal/term.js";
+import { defaultShell } from "../terminal/shell.js";
+import { expect } from "../test/test.js";
+import { poll } from "../utils/poll.js";
+import { flushSnapshotExecutionCache } from "../test/matchers/toMatchSnapshot.js";
+import { saveTrace } from "../trace/tracer.js";
+const importSet = new Set();
+const runTest = async (testId, testSuite, updateSnapshot, trace, tracePoints, importPath, shellReadyTimeout) => {
+    process.setSourceMapsEnabled(true);
+    globalThis.suite = testSuite;
+    globalThis.tests = globalThis.tests ?? {};
+    globalThis.__expectState = { updateSnapshot };
+    if (!importSet.has(importPath)) {
+        await import(importPath);
+        importSet.add(importPath);
+    }
+    const test = globalThis.tests[testId];
+    const { shell, rows, columns, env, program } = test.suite.options ?? {};
+    const traceEmitter = new EventEmitter();
+    traceEmitter.on("data", (data, time) => tracePoints.push({ data, time }));
+    traceEmitter.on("size", (rows, cols) => tracePoints.push({ rows, cols }));
+    const terminal = await spawn({
+        shell: shell ?? defaultShell,
+        rows: rows ?? 30,
+        cols: columns ?? 80,
+        env,
+        program,
+    }, trace, traceEmitter);
+    // add slight delay for node-pty teardown
+    let programExited;
+    if (program != null) {
+        programExited = new Promise((resolve) => {
+            terminal.onExit(() => setTimeout(resolve, 100));
+        });
+    }
+    const allTests = Object.values(globalThis.tests);
+    const testPath = test.filePath();
+    const testSignature = test.titlePath().slice(1).join(" › ");
+    const signatureIdenticalTests = allTests.filter((t) => t.filePath() === testPath &&
+        t.titlePath().slice(1).join(" › ") === testSignature);
+    const signatureIdx = signatureIdenticalTests.findIndex((t) => t.id == test.id);
+    const currentConcurrentTestName = () => `${testSignature} | ${signatureIdx + 1}`;
+    expect.setState({
+        ...expect.getState(),
+        testPath,
+        currentTestName: test.title,
+        currentConcurrentTestName,
+    });
+    // wait on the shell to be ready with the prompt
+    if (program == null) {
+        const shellReady = await poll(() => {
+            const view = terminal
+                .getViewableBuffer()
+                .map((row) => row.join(""))
+                .join("\n");
+            return view.includes(">  ");
+        }, 50, shellReadyTimeout);
+        if (!shellReady) {
+            try {
+                terminal.kill();
+            }
+            catch {
+                // ignore
+            }
+            throw new Error(`shell readiness timeout: the shell prompt was not detected within ${shellReadyTimeout / 1000}s`);
+        }
+    }
+    else if (programExited) {
+        await Promise.race([
+            programExited,
+            new Promise((r) => setTimeout(r, 5000)),
+        ]);
+    }
+    try {
+        await Promise.resolve(test.testFunction({ terminal }));
+    }
+    finally {
+        try {
+            terminal.kill();
+        }
+        catch {
+            // terminal can pre-terminate if program is provided
+        }
+    }
+};
+export async function runTestWorker(test, importPath, { timeout, updateSnapshot, shellReadyTimeout }, trace, pool, reporter, attempt, traceFolder) {
+    const snapshots = [];
+    if (test.expectedStatus === "skipped") {
+        reporter.startTest(test, {
+            status: "pending",
+            duration: 0,
+            snapshots,
+        });
+        return {
+            status: "skipped",
+            duration: 0,
+            snapshots,
+        };
+    }
+    return new Promise((resolve) => {
+        let startTime = Date.now();
+        let reportStarted = false;
+        let stdout = "";
+        let stderr = "";
+        try {
+            const poolPromise = pool.exec("testWorker", [
+                test.id,
+                getMockSuite(test),
+                updateSnapshot,
+                trace,
+                importPath,
+                attempt,
+                traceFolder,
+                shellReadyTimeout,
+            ], {
+                on: (payload) => {
+                    if (payload.stdout) {
+                        stdout += payload.stdout;
+                    }
+                    if (payload.stderr) {
+                        stderr += payload.stderr;
+                    }
+                    if (payload.errorMessage) {
+                        resolve({
+                            status: "unexpected",
+                            error: payload.errorMessage,
+                            duration: payload.duration,
+                            snapshots,
+                            stdout,
+                            stderr,
+                        });
+                    }
+                    else if (payload.startTime && !reportStarted) {
+                        reporter.startTest(test, {
+                            status: "pending",
+                            duration: 0,
+                            snapshots,
+                        });
+                        reportStarted = true;
+                        startTime = payload.startTime;
+                    }
+                    else if (payload.snapshotResult) {
+                        snapshots.push({
+                            name: payload.snapshotName,
+                            result: payload.snapshotResult,
+                        });
+                    }
+                },
+            });
+            if (timeout > 0) {
+                poolPromise.timeout(timeout);
+            }
+            poolPromise
+                .then(() => {
+                if (!reportStarted) {
+                    reporter.startTest(test, {
+                        status: "pending",
+                        duration: 0,
+                        snapshots,
+                    });
+                }
+                resolve({
+                    status: "expected",
+                    duration: Date.now() - startTime,
+                    snapshots,
+                    stdout,
+                    stderr,
+                });
+            })
+                .catch((e) => {
+                const duration = startTime != null ? Date.now() - startTime : -1;
+                if (!reportStarted) {
+                    reporter.startTest(test, {
+                        status: "pending",
+                        duration: 0,
+                        snapshots,
+                    });
+                }
+                if (typeof e === "string") {
+                    resolve({
+                        status: "unexpected",
+                        error: e,
+                        duration,
+                        snapshots,
+                        stdout,
+                        stderr,
+                    });
+                }
+                else if (e instanceof workerpool.Promise.TimeoutError) {
+                    resolve({
+                        status: "unexpected",
+                        error: `Error: worker was terminated as the timeout (${timeout} ms) was exceeded`,
+                        duration,
+                        snapshots,
+                        stdout,
+                        stderr,
+                    });
+                }
+                else if (e instanceof Error) {
+                    resolve({
+                        status: "unexpected",
+                        error: e.stack ?? e.message,
+                        duration,
+                        snapshots,
+                        stdout,
+                        stderr,
+                    });
+                }
+                else {
+                    resolve({
+                        status: "unexpected",
+                        error: `Unknown worker error: ${String(e)}`,
+                        duration,
+                        snapshots,
+                        stdout,
+                        stderr,
+                    });
+                }
+            });
+        }
+        catch (e) {
+            const duration = startTime != null ? Date.now() - startTime : -1;
+            if (!reportStarted) {
+                reporter.startTest(test, {
+                    status: "pending",
+                    duration: 0,
+                    snapshots,
+                });
+            }
+            if (typeof e === "string") {
+                resolve({
+                    status: "unexpected",
+                    error: e,
+                    duration,
+                    snapshots,
+                    stdout,
+                    stderr,
+                });
+            }
+            else if (e instanceof workerpool.Promise.TimeoutError) {
+                resolve({
+                    status: "unexpected",
+                    error: `Error: worker was terminated as the timeout (${timeout} ms) was exceeded`,
+                    duration,
+                    snapshots,
+                    stdout,
+                    stderr,
+                });
+            }
+            else if (e instanceof Error) {
+                resolve({
+                    status: "unexpected",
+                    error: e.stack ?? e.message,
+                    duration,
+                    snapshots,
+                    stdout,
+                    stderr,
+                });
+            }
+        }
+    });
+}
+const getMockSuite = (test) => {
+    let testSuite = test.suite;
+    const newSuites = [];
+    while (testSuite != null) {
+        if (testSuite.type !== "describe") {
+            newSuites.push(new Suite(testSuite.title, testSuite.type, testSuite.options));
+        }
+        testSuite = testSuite.parentSuite;
+    }
+    for (let i = 0; i < newSuites.length - 1; i++) {
+        newSuites[i].parentSuite = newSuites[i + 1];
+    }
+    return newSuites[0];
+};
+const testWorker = async (testId, testSuite, updateSnapshot, trace, importPath, attempt, traceFolder, shellReadyTimeout) => {
+    flushSnapshotExecutionCache();
+    const startTime = Date.now();
+    const tracePoints = [{ data: "", time: startTime }];
+    workerpool.workerEmit({
+        startTime,
+    });
+    try {
+        await runTest(testId, testSuite, updateSnapshot, trace, tracePoints, importPath, shellReadyTimeout);
+    }
+    catch (e) {
+        let errorMessage;
+        if (typeof e == "string") {
+            errorMessage = e;
+        }
+        else if (e instanceof Error) {
+            errorMessage = e.stack ?? e.message;
+        }
+        if (errorMessage) {
+            const duration = Date.now() - startTime;
+            workerpool.workerEmit({
+                errorMessage,
+                duration,
+            });
+        }
+    }
+    if (trace) {
+        await saveTrace(tracePoints, testId, attempt, traceFolder);
+    }
+};
+if (!workerpool.isMainThread) {
+    process.on("uncaughtException", () => {
+        // prevent worker crashes from unhandled native errors
+    });
+    process.on("unhandledRejection", () => {
+        // prevent worker crashes from unhandled promise rejections
+    });
+    workerpool.worker({
+        testWorker: testWorker,
+    });
+}

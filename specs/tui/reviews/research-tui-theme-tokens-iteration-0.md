@@ -1,0 +1,10 @@
+Not LGTM.
+
+Findings:
+1. OpenTUI API coverage is too shallow for this ticket. The research only cites RGBA constructors, but the ticket also requires attribute/token usage context (e.g., token compatibility with OpenTUI styling props and attribute flags). Missing references include `engineering/tui-theme-tokens.md:77` (RGBA used by `fg`/`bg`/`borderColor`/`backgroundColor`) and `engineering/tui-theme-tokens.md:259-287` (`TextAttributes`).
+2. `@codeplane/ui-core` dependency analysis is missing. For this ticket, the correct conclusion is that no ui-core hooks are needed (theme tokens are local, no API layer). That is explicitly stated in `engineering/tui-theme-tokens.md:445`, and corroborated by current theme modules (`apps/tui/src/theme/detect.ts`, `apps/tui/src/theme/index.ts`) having no ui-core imports. The research does not identify this.
+3. Existing TUI code-pattern exploration is incomplete. It covers `theme/detect.ts`, `theme/index.ts`, and Agent `colors.ts`, but misses key adjacent patterns that affect correctness and integration: `apps/tui/src/lib/diff-syntax.ts:93-119` (existing tier detection + tier switch), `apps/tui/src/theme/syntaxStyle.ts:1-6` (module-level tier resolution), `apps/tui/src/hooks/useDiffSyntaxStyle.ts:16-23` (future ThemeProvider tier handoff), and `apps/tui/src/providers/index.ts:4-6` (ThemeProvider planned in provider stack).
+4. The research lacks line-level citations throughout, despite being a spec-quality investigation request. It names files but does not anchor claims to concrete lines, which weakens auditability.
+5. Test-plan depth is insufficiently tied to the engineering spec IDs. It says “26 tests” but does not map to required test groups/IDs in `engineering/tui-theme-tokens.md:480-540` (e.g., `TOKEN-STATUS-*`, `TOKEN-ATTR-*`, `TOKEN-GUARD-*`, compatibility expectations around the muted ANSI discrepancy at `apps/tui/src/screens/Agents/components/colors.ts:22` vs `engineering/tui-theme-tokens.md:468`).
+
+Conclusion: good start, but not robust enough for this ticket’s bar.

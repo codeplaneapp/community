@@ -1,0 +1,10 @@
+Not LGTM. Blocking issues:
+1. SSE architecture is underspecified and inconsistent: Step 2 says “use @codeplane/ui-core/src/sse/createSSEReader.ts (or EventSource)”. That “or” is not acceptable for implementation planning; it must define one concrete path and contract (ticket auth, reconnect/backoff, channel dispatch, cleanup) using stable @codeplane/ui-core exports, not ad-hoc internal imports.
+2. Keyboard interaction requirements are not covered. The plan does not validate the design-spec workflow (`g w`, `j/k`, `Enter`, `q`/`Esc`, `gg`/`G`, `Ctrl+D/U`). It mostly deep-links via CLI args, which bypasses keyboard-first behavior.
+3. The `--screen workspaces` assumption is fragile: current deep-link handling for many screens is partial, so `launchTUIWithWorkspaceContext()` may not reliably land on Workspaces. The helper needs a keyboard fallback path.
+4. E2E philosophy conflict: file-based SSE injection in client runtime is effectively a test-only transport mock path, while the PRD states E2E should run against real API/daemon fixtures. This needs explicit justification/scope or server-side SSE fixture support.
+5. Pathing has a collision risk: adding `e2e/tui/helpers/` while `e2e/tui/helpers.ts` already exists can break/ambiguate extensionless imports (`./helpers`) already present in tests.
+6. SSE injection details are not robust enough for a strict spec: no explicit offset tracking, partial-line buffering, malformed JSON handling, duplicate event handling, watcher race behavior, or deterministic teardown semantics.
+7. Coverage gaps remain: no explicit 200x60 validation, and fixture status coverage appears narrower than full workspace lifecycle states expected by ticket acceptance criteria.
+
+The plan targets the correct top-level areas (`apps/tui/src` and `e2e/tui`) but is not precise or complete enough to approve.

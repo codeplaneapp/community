@@ -1,0 +1,6 @@
+Not LGTM.
+1. Missing implementation step: the plan never wires `ThemeProvider` into the actual runtime provider tree (`apps/tui/src/index.tsx`/app shell). It explicitly allows `PROVIDER-SNAP-*` to fail, which leaves the ticket functionally incomplete and does not satisfy the provider-order invariant in the engineering spec.
+2. Keyboard-spec coverage gap: there is no regression check that global keybindings (`q`, `Esc`, `:`, `g*`) still behave per design after introducing the new provider wrapper. Requirement #4 is therefore not validated.
+3. Data-layer criterion is unaddressed: this ticket should explicitly state "no `@codeplane/ui-core` data hooks are used/changed" and add a guard test to prevent accidental `@codeplane/ui-core` imports in `ThemeProvider`/theme hooks.
+4. Verification command ambiguity: `bun run check` is scoped to `apps/tui`, but `bun test e2e/tui/app-shell.test.ts` is ambiguous/wrong from that cwd. The plan should specify exact working directories and commands.
+5. Barrel export consistency nit: plan uses `./ThemeProvider.js` while existing `providers/index.ts` currently exports `./NavigationProvider` without extension. Choose one convention and enforce it to avoid import-style drift.

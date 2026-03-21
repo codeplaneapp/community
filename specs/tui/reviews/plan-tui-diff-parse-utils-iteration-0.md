@@ -1,0 +1,9 @@
+Not LGTM.
+1. Requirement 1 (OpenTUI usage) is not fully satisfied: the plan says it reuses @opentui/core diff internals, but Step 2 imports parsePatch from 'diff' without specifying the exact supported module/contract, and it does not define how width-sensitive behavior is wired to OpenTUI hooks (useTerminalDimensions/useOnResize) at call sites.
+2. Requirement 2 (@codeplane/ui-core data access) is missing: there is no explicit step for how patch text is sourced from @codeplane/ui-core hooks/types, no input contract, and no integration test proving real ui-core payload compatibility.
+3. Requirement 4 (keyboard interactions) is not covered: no implementation or tests tie parsed structures to required diff keybindings (j/k, [, ], t, w, x, z) or related focus/scroll behavior; snapshots alone do not validate key-driven behavior.
+4. Functional model gap: ParsedDiff only models hunks; it omits file-level grouping/metadata needed for file-tree navigation and next/previous file actions in the diff screen.
+5. Semantics risk: clamping hunk starts to min 1 can corrupt valid added/deleted-file hunks (start 0 cases), and the split-line-map rule to exclude filler lines breaks visual-index parity needed for synchronized split scrolling/cursor mapping.
+6. Offset logic is ambiguous: Step 2 computes hunkVisualOffsets without collapse state, then Step 5 recomputes with collapseState; single source of truth and update triggers are unspecified.
+7. Test placement is mis-scoped: pure unit-test matrix is assigned to e2e/tui/diff.test.ts; parser unit tests should live in source-level test files, with e2e focused on terminal interaction and snapshots.
+8. Requirement 3 is mostly met (targets point to apps/tui/src and e2e/tui), but the above gaps block approval.

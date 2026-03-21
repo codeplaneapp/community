@@ -1,0 +1,9 @@
+Not LGTM.
+1. Criterion #1 is not fully satisfied: the plan defines RGBA tokens but does not verify actual OpenTUI rendering integration (for example token usage through `<text>`, `<diff>`, borders, or hook-driven layout contexts).
+2. Criterion #2 is not explicitly covered: there is no invariant/check that `tui-theme-tokens` must remain data-layer-free and avoid any new `@codeplane/ui-core` data-access usage.
+3. Criterion #4 is missing: no keyboard-behavior verification is included (global keys like `?`, `:`, `q`, `Esc`, `Ctrl+C`, or go-to sequences) to prove theme work does not regress the interaction model.
+4. `statusToToken` is under-specified: no canonical status matrix is listed, no trimming/hyphen normalization rules are defined, and cross-surface status variants are not enumerated, which risks inconsistent mappings.
+5. Immutability is incomplete: `Object.freeze()` only freezes the token container, not RGBA internals; the plan should include an explicit mutation-guard test for RGBA value integrity.
+6. The plan knowingly leaves an unresolved compatibility gap (`ANSI256 muted` discrepancy) for a follow-up ticket; with strict quality gates this is a blocker, not a nit.
+7. Test strategy is too implementation-centric: 26 `bunEval` checks in an E2E file validate internals, but there is no required user-visible snapshot/assertion that themed colors are actually applied in terminal output across tiers (`truecolor`, `ansi256`, `ansi16`, `NO_COLOR`, `TERM=dumb`).
+8. Criterion #3 is mostly satisfied: planned code targets `apps/tui/src/` and tests target `e2e/tui/`, but scope guards should explicitly prohibit unrelated file edits.

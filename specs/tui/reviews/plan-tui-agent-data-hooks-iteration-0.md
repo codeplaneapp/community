@@ -1,0 +1,8 @@
+Not LGTM. Major blocking issues:
+1) Scope mismatch (P0): The plan implements `packages/ui-core/...` and explicitly excludes `apps/tui/src` plus `e2e/tui/`. Your acceptance criteria require code in `apps/tui/src/` and tests in `e2e/tui/`.
+2) OpenTUI usage missing (P0): The plan explicitly says "No OpenTUI imports" and contains no validation of `<box>`, `<scrollbox>`, `<text>`, `<input>`, `<select>`, `<code>`, `<diff>`, `<markdown>` or hooks (`useKeyboard`, `useTerminalDimensions`, `useOnResize`, `useTimeline`).
+3) Keyboard interaction coverage missing (P0): No implementation or tests for required global/navigation keys (`?`, `:`, `q`, `Esc`, `Ctrl+C`, `g` sequences, `j/k/h/l`, diff keys, tab keys).
+4) Data-access integration incomplete (P1): It defines `@codeplane/ui-core` hooks but does not prove TUI screens consume them end-to-end; no wiring plan for screen-level containers/state in `apps/tui/src`.
+5) Test strategy conflicts (P1): The plan prioritizes package-local `bun:test` unit tests and even says to keep expected-failing integration tests active; this conflicts with a stable validation pipeline and with the stated TUI E2E strategy.
+6) Missing acceptance detail (P2): No explicit verification matrix for 80x24 behavior, SSE streaming UX in screen state, and terminal-specific error/retry interaction paths.
+Required fix: Either split this into a pure `@codeplane/ui-core` ticket (with scope/criteria adjusted) and a separate TUI integration ticket, or expand this plan to include `apps/tui/src` integration and `e2e/tui/` keyboard/data-flow tests that explicitly validate OpenTUI component/hook usage and design-spec keybindings.

@@ -1,0 +1,11 @@
+Not LGTM.
+
+1) OpenTUI API coverage is incomplete and partially incorrect. The research only mentions `useKeyboard` + basic key shape, but misses critical API details used by this ticket: `KeyEvent.stopPropagation()`/`preventDefault()` (`/Users/williamcory/codeplane/specs/tui/apps/tui/node_modules/@opentui/core/lib/KeyHandler.d.ts:25-28`) and `useKeyboard` release/event semantics (`/Users/williamcory/codeplane/specs/tui/apps/tui/node_modules/@opentui/react/src/hooks/use-keyboard.d.ts:2-22`). It also claims `context/opentui` was not found, but it exists at `/Users/williamcory/codeplane/context/opentui`.
+
+2) `@codeplane/ui-core` hook identification is not accurate for this ticket. The write-up lists broad hooks (e.g. `useRepos`, `useLandings`, `useNotifications`, `useSearch`, `useUser`, `useWorkflows`) but these are not exported in the current local `ui-core` index (`/Users/williamcory/codeplane/specs/tui/packages/ui-core/src/index.ts:21-90`). For `tui-nav-chrome-eng-02`, the key dependency is keyboard/navigation infrastructure, not those data hooks.
+
+3) Existing TUI keybinding patterns were not fully explored. The claim that global interception is localized to `GlobalKeybindings.tsx` is false. `useKeyboard` is currently used in multiple places: `/Users/williamcory/codeplane/specs/tui/apps/tui/src/components/GlobalKeybindings.tsx:52`, `/Users/williamcory/codeplane/specs/tui/apps/tui/src/components/ErrorBoundary.tsx:61`, `/Users/williamcory/codeplane/specs/tui/apps/tui/src/components/TerminalTooSmallScreen.tsx:4`, `/Users/williamcory/codeplane/specs/tui/apps/tui/src/components/TabbedDetailView.tsx:167`, `/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/Agents/AgentSessionReplayScreen.tsx:83`, `/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/Agents/hooks/useChatKeybindings.ts:32`.
+
+4) The research misses a concrete relevant defect: `GlobalKeybindings` treats `goToBindings` like an object (`/Users/williamcory/codeplane/specs/tui/apps/tui/src/components/GlobalKeybindings.tsx:19`), but `goToBindings` is an array (`/Users/williamcory/codeplane/specs/tui/apps/tui/src/navigation/goToBindings.ts:15-29`). That weakens the “clean migration path” conclusion.
+
+5) The document lacks line-level citations for claims, which is below the required depth for this ticket.

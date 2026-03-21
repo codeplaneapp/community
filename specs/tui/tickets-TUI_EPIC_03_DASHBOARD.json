@@ -1,0 +1,329 @@
+[
+  {
+    "id": "tui-dashboard-screen-scaffold",
+    "title": "Scaffold Dashboard screen directory, entry component, and router registration",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the `apps/tui/src/screens/Dashboard/` directory structure with an `index.tsx` entry component. Register the Dashboard screen in the screen registry (`apps/tui/src/router/screens.ts`) with screenId `dashboard`, title `Dashboard`, and no required context. The Dashboard must be the default screen when the TUI launches without `--screen` arguments (stack depth 1). Wire the `g d` go-to keybinding to navigate to this screen. The component should initially render a placeholder layout with header 'Dashboard' in the breadcrumb and an empty content area. Ensure the screen integrates with the existing NavigationProvider, HeaderBar breadcrumb, and StatusBar keybinding hints.",
+    "dependencies": [
+      "tui-screen-router",
+      "tui-header-bar",
+      "tui-status-bar",
+      "tui-global-keybindings"
+    ],
+    "files": [
+      "apps/tui/src/screens/Dashboard/index.tsx",
+      "apps/tui/src/router/screens.ts"
+    ],
+    "acceptanceCriteria": [
+      "Dashboard screen registered in screen registry with id 'dashboard'",
+      "Dashboard is the default screen when TUI launches without --screen args",
+      "Dashboard is root of navigation stack (stack depth 1)",
+      "g d go-to keybinding navigates to dashboard from any screen",
+      "HeaderBar shows 'Dashboard' as breadcrumb",
+      "q on dashboard quits the TUI (root screen behavior)"
+    ]
+  },
+  {
+    "id": "tui-dashboard-data-hooks",
+    "title": "Create or wire @codeplane/ui-core data hooks consumed by the Dashboard",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Ensure the following data hooks are available for TUI consumption from `@codeplane/ui-core` (or create TUI-side wrappers if ui-core is not yet available):\n\n- `useRepos(filters?)` → `{ items: RepoSummary[], totalCount, loading, error, loadMore, hasMore, retry }`\n  - Calls `GET /api/user/repos?page=N&per_page=20`, sorted by `updated_at` desc\n- `useStarredRepos(filters?)` → `{ items: RepoSummary[], totalCount, loading, error, loadMore, hasMore, retry }`\n  - Calls `GET /api/user/starred?page=N&per_page=20`, sorted by `stars.created_at` desc\n- `useOrgs(filters?)` → `{ items: OrgSummary[], totalCount, loading, error, loadMore, hasMore, retry }`\n  - Calls `GET /api/user/orgs?page=N&per_page=20`, sorted by `id` asc\n- `useActivity(username, { page, perPage, type? })` → `{ items: ActivitySummary[], totalCount, loading, error, loadMore, hasMore, retry, setFilter }`\n  - Calls `GET /api/users/:username/activity?page=N&per_page=30&type=<filter>`, sorted by `created_at` desc\n- `useUser()` → `{ user: UserProfile, loading, error }` — already expected from AuthProvider, ensure it provides the `username` field for the activity feed endpoint.\n\nAll hooks must support cursor-based or page-based pagination, return loading/error/retry, and integrate with the APIClientProvider for auth headers. Include the TypeScript interfaces: `RepoSummary`, `OrgSummary`, `ActivitySummary`, `UserProfile`.",
+    "dependencies": [
+      "tui-navigation-provider",
+      "tui-auth-token-loading"
+    ],
+    "files": [
+      "apps/tui/src/hooks/useRepos.ts",
+      "apps/tui/src/hooks/useStarredRepos.ts",
+      "apps/tui/src/hooks/useOrgs.ts",
+      "apps/tui/src/hooks/useActivity.ts",
+      "apps/tui/src/types/dashboard.ts"
+    ],
+    "acceptanceCriteria": [
+      "useRepos() fetches from GET /api/user/repos with pagination, returns items/loading/error/loadMore/hasMore/retry",
+      "useStarredRepos() fetches from GET /api/user/starred with pagination",
+      "useOrgs() fetches from GET /api/user/orgs with pagination",
+      "useActivity(username, opts) fetches from GET /api/users/:username/activity with page-based pagination and optional type filter",
+      "All hooks handle 401 (propagate to auth error), 429 (expose retry-after), 5xx (expose error message)",
+      "All hooks integrate with APIClientProvider for auth headers",
+      "TypeScript interfaces exported: RepoSummary, OrgSummary, ActivitySummary"
+    ]
+  },
+  {
+    "id": "tui-dashboard-panel-component",
+    "title": "Build the DashboardPanel reusable wrapper component",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create a `DashboardPanel` component at `apps/tui/src/screens/Dashboard/DashboardPanel.tsx` that wraps each of the four dashboard sections. The panel provides:\n\n1. **Title rendering**: Bold text in `primary` color (ANSI 33) at the top of the panel. In compact/stacked mode, title includes `[N/4]` position indicator.\n2. **Border highlighting**: Focused panel uses `primary` color border (ANSI 33); unfocused panels use `border` color (ANSI 240). Uses single-line box-drawing characters.\n3. **Inline filter input**: When activated (via `/`), shows an `<input>` at the top of the panel with placeholder text. Filter applies client-side via a callback. Shows match count 'N of M'. Esc clears filter and returns focus to list.\n4. **Scrollable content area**: Wraps children in `<scrollbox>` with flexGrow={1}.\n5. **Loading state**: Centered braille spinner with 'Loading…' text in muted color.\n6. **Empty state**: Centered muted text (configurable message).\n7. **Error state**: Error message in `error` color with 'Press R to retry' hint.\n8. **Per-panel error boundary**: Catches render errors so one panel crashing doesn't affect others.\n\nProps: `title: string`, `focused: boolean`, `index: number`, `total: number`, `isCompact: boolean`, `loading: boolean`, `error: Error | null`, `emptyMessage: string`, `onRetry: () => void`, `filterActive: boolean`, `filterQuery: string`, `onFilterChange: (q: string) => void`, `onFilterClose: () => void`, `onFilterSubmit: () => void`, `matchCount?: { matched: number, total: number }`, `children: ReactNode`.",
+    "dependencies": [
+      "tui-dashboard-screen-scaffold",
+      "tui-theme-provider",
+      "tui-loading-states"
+    ],
+    "files": [
+      "apps/tui/src/screens/Dashboard/DashboardPanel.tsx"
+    ],
+    "acceptanceCriteria": [
+      "Panel renders title in bold primary color with count indicator in compact mode",
+      "Focused panel has primary-colored border (ANSI 33), unfocused has border color (ANSI 240)",
+      "Filter input appears when filterActive=true, shows match count 'N of M'",
+      "Loading state shows braille spinner with 'Loading…'",
+      "Empty state shows configurable muted message",
+      "Error state shows red error message with 'Press R to retry'",
+      "Per-panel error boundary catches crashes without affecting siblings",
+      "Content area is scrollable via scrollbox"
+    ]
+  },
+  {
+    "id": "tui-dashboard-grid-layout",
+    "title": "Implement the responsive 2×2 grid / single-column stacked dashboard layout",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the dashboard layout system at `apps/tui/src/screens/Dashboard/DashboardLayout.tsx` that arranges four panels in either a 2-column, 2-row grid (standard/large terminals) or a single-column stacked layout (minimum terminals).\n\n**Grid mode** (120×40+):\n- Top row: Recent Repos (left 50%) | Organizations (right 50%)\n- Bottom row: Starred Repos (left 50%) | Activity Feed (right 50%)\n- Panels separated by single-line box-drawing borders using `border` color\n- Quick-actions bar as the final row (1 row fixed height) with top border\n\n**Stacked mode** (80×24 – 119×39):\n- Single panel visible at a time, determined by focused panel index\n- Panel title includes `[N/4]` position indicator\n- Quick-actions bar includes `Tab:next panel` hint\n- Tab/Shift+Tab cycles between panels\n\n**Unsupported** (< 80×24): delegates to global 'Terminal too small' gate.\n\nUses `useBreakpoint()` and `useTerminalDimensions()` from the responsive layout hooks. Layout recalculation is synchronous on SIGWINCH (useOnResize). Content area height = terminal height - 2 (header + status bar). Quick-actions bar always anchored at the bottom.\n\nResize from grid→stacked preserves which panel had focus. Resize from stacked→grid shows all panels with preserved focus.",
+    "dependencies": [
+      "tui-dashboard-screen-scaffold",
+      "tui-dashboard-panel-component",
+      "tui-responsive-layout"
+    ],
+    "files": [
+      "apps/tui/src/screens/Dashboard/DashboardLayout.tsx"
+    ],
+    "acceptanceCriteria": [
+      "At 120×40+: 2-column, 2-row grid with all 4 panels visible, 50% width each column",
+      "At 80×24–119×39: single-column stacked layout, one panel visible at a time with [N/4] indicator",
+      "Below 80×24: delegates to global terminal-too-small gate",
+      "Quick-actions bar always anchored at bottom, 1 row fixed height",
+      "Resize triggers synchronous re-layout with no artifacts",
+      "Focus preserved through layout mode transitions (grid↔stacked)",
+      "Content area spans full width and height between header and status bar"
+    ]
+  },
+  {
+    "id": "tui-dashboard-panel-focus-manager",
+    "title": "Implement dashboard panel focus cycling and per-panel focus memory",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create a `useDashboardFocus` hook at `apps/tui/src/screens/Dashboard/useDashboardFocus.ts` that manages:\n\n1. **Panel focus cycling**: Tab cycles forward through panels (Recent Repos → Organizations → Starred Repos → Activity Feed → Recent Repos). Shift+Tab cycles backward. Exactly one panel has focus at any time.\n2. **Column navigation**: In grid mode, `h` moves focus to the left column and `l` moves to the right column (same row).\n3. **Focus memory**: Each panel remembers its cursor position (focused item index). Switching away and back preserves the cursor position.\n4. **Input focus state**: Tracks whether a text input (filter) is active. When input is focused, single-character keys (q, g, c, n, s, f, h, l) are passed to the input, not intercepted as navigation or quick-action keys. Only Esc and Ctrl+C remain global.\n5. **Keyboard routing**: Within a focused panel, j/k/Down/Up move the item cursor. G jumps to last item. g g jumps to first item. Ctrl+D/Ctrl+U page up/down. Enter selects.\n6. **Scroll position memory**: Each panel remembers its scroll position independently.\n\nThe hook returns: `{ focusedPanel: number, setFocusedPanel, panelFocusState: Record<number, { cursorIndex: number, scrollOffset: number }>, isInputFocused: boolean, setInputFocused }`.\n\nIntegrates with `useKeyboard()` from OpenTUI and `useGlobalKeybindings()` suppression when input is focused.",
+    "dependencies": [
+      "tui-dashboard-panel-component",
+      "tui-dashboard-grid-layout"
+    ],
+    "files": [
+      "apps/tui/src/screens/Dashboard/useDashboardFocus.ts"
+    ],
+    "acceptanceCriteria": [
+      "Tab cycles focus forward: 0→1→2→3→0 (wrap)",
+      "Shift+Tab cycles focus backward: 0→3→2→1→0 (wrap)",
+      "h/l move focus left/right between columns in grid mode",
+      "Per-panel cursor position preserved when switching panels",
+      "Per-panel scroll position preserved when switching panels",
+      "Input focus state tracked: single-char keys pass to input when active",
+      "j/k/G/gg/Ctrl+D/Ctrl+U keyboard navigation within focused panel",
+      "Focused panel indicated visually (primary border color)"
+    ]
+  },
+  {
+    "id": "tui-dashboard-e2e-test-infra",
+    "title": "Set up Dashboard E2E test file, fixtures, and test helpers",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the E2E test infrastructure for the Dashboard screen:\n\n1. **Test file**: `e2e/tui/dashboard.test.ts` using `@microsoft/tui-test` framework.\n2. **Test fixtures**: Seed data for a test user with:\n   - 5+ repositories (mix of public/private, varying star counts and descriptions)\n   - 3+ organizations (mix of public/limited/private visibility)\n   - 4+ starred repositories\n   - 10+ activity feed events (mix of create, fork, archive, transfer types)\n   - An empty user fixture (zero repos, orgs, starred, activity)\n3. **Helper functions**:\n   - `launchTUI(opts: { width, height })` — spawn TUI at specific terminal dimensions\n   - `waitForDashboard()` — wait for all 4 panels to finish loading (or show empty state)\n   - `sendKeys(keys: string[])` — send keypress sequences\n   - `assertPanelFocused(panelIndex: number)` — verify which panel has focus\n   - `assertScreenContent(regex: RegExp)` — match terminal content\n   - `captureSnapshot()` — capture terminal output for golden-file comparison\n4. **Test structure**: Organized into describe blocks matching the verification sections: 'Terminal Snapshot Tests', 'Keyboard Interaction Tests', 'Responsive Tests', 'Data Loading Tests', 'Edge Case Tests'.\n\nTests that fail due to unimplemented backend features are left failing — never skipped or commented out.",
+    "dependencies": [
+      "tui-dashboard-screen-scaffold"
+    ],
+    "files": [
+      "e2e/tui/dashboard.test.ts",
+      "e2e/tui/fixtures/dashboard-fixtures.ts",
+      "e2e/tui/helpers/dashboard-helpers.ts"
+    ],
+    "acceptanceCriteria": [
+      "dashboard.test.ts created with @microsoft/tui-test framework",
+      "Test fixtures provide deterministic seed data for repos, orgs, starred, activity",
+      "Empty user fixture provided for empty-state tests",
+      "Helper functions for TUI launch, key sending, content assertion, snapshot capture",
+      "Tests organized into describe blocks: snapshots, keyboard, responsive, data, edge cases",
+      "Tests run against real API server with test fixtures (no mocks)",
+      "Failing tests due to unimplemented backends are left failing, never skipped"
+    ]
+  },
+  {
+    "id": "tui-dashboard-screen",
+    "title": "Implement the Dashboard screen — root home screen with four-panel grid, lifecycle, and integration",
+    "type": "feature",
+    "featureName": "TUI_DASHBOARD_SCREEN",
+    "description": "Implement the full Dashboard screen as the root home screen of the TUI. This is the master orchestration component that composes all four panels (Recent Repos, Organizations, Starred Repos, Activity Feed) and the Quick Actions bar into a cohesive screen.\n\n**Screen lifecycle**:\n- Default screen when TUI launches without `--screen` arguments (stack depth 1)\n- `q` on dashboard quits TUI (root screen)\n- `g d` go-to keybinding always returns to dashboard, replacing the stack\n- Dashboard appears in command palette as 'Dashboard' / ':dashboard' / ':home'\n\n**Layout**:\n- 2-column, 2-row grid at standard+ (120×40+): top-left=Recent Repos, top-right=Organizations, bottom-left=Starred Repos, bottom-right=Activity Feed\n- Single-column stacked at minimum (80×24–119×39): one panel visible at a time, Tab cycles\n- Quick-actions bar at bottom of content area\n- Panels separated by box-drawing borders\n\n**Panel focus**:\n- Tab/Shift+Tab cycles panels. h/l for column navigation in grid mode\n- Focused panel has primary-colored border (ANSI 33)\n- Focus preserved per panel (cursor position + scroll)\n\n**Inline filter**: `/` activates filter in focused panel. Client-side fuzzy match. Shows 'N of M'. Esc clears.\n\n**Data loading**:\n- All 4 panels load concurrently on mount\n- Each panel independently shows loading/error/data states\n- Failed panels show error with 'Press R to retry'\n- Data cached for 60 seconds for back-navigation\n\n**Performance**: First render with cached data within 50ms. Spinners within 200ms. Panel scroll at 60fps.\n\n**Responsive**: 80×24 stacked, 120×40 grid, 200×60 expanded. Resize triggers synchronous re-layout.\n\n**E2E tests**: All snapshot tests (SNAP-DASH-001 through SNAP-DASH-015), keyboard tests (KEY-DASH-001 through KEY-DASH-020), responsive tests (RESIZE-DASH-001 through RESIZE-DASH-007), data loading tests (DATA-DASH-001 through DATA-DASH-007), and edge case tests (EDGE-DASH-001 through EDGE-DASH-008) from the TUI_DASHBOARD_SCREEN spec.",
+    "dependencies": [
+      "tui-dashboard-screen-scaffold",
+      "tui-dashboard-data-hooks",
+      "tui-dashboard-panel-component",
+      "tui-dashboard-grid-layout",
+      "tui-dashboard-panel-focus-manager",
+      "tui-dashboard-e2e-test-infra"
+    ],
+    "files": [
+      "apps/tui/src/screens/Dashboard/index.tsx",
+      "apps/tui/src/screens/Dashboard/DashboardScreen.tsx",
+      "e2e/tui/dashboard.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Dashboard is default screen at launch, root of navigation stack (depth 1)",
+      "q quits TUI, g d returns to dashboard from any screen",
+      "2×2 grid at 120×40+, single-column stacked at 80×24",
+      "Tab/Shift+Tab/h/l cycle panel focus; focused panel has primary border",
+      "All 4 panels load concurrently, each independently shows loading/error/data",
+      "/ activates inline filter with client-side fuzzy match and N of M count",
+      "R retries failed panel fetch",
+      "Focus and scroll preserved per panel across switches",
+      "Resize triggers synchronous re-layout with no artifacts",
+      "First render with cached data < 50ms, spinners within 200ms",
+      "All SNAP-DASH, KEY-DASH, RESIZE-DASH, DATA-DASH, EDGE-DASH tests pass"
+    ]
+  },
+  {
+    "id": "tui-dashboard-repos-list",
+    "title": "Implement the Recent Repositories panel on the Dashboard",
+    "type": "feature",
+    "featureName": "TUI_DASHBOARD_REPOS_LIST",
+    "description": "Implement the Recent Repositories panel (top-left quadrant of the Dashboard grid).\n\n**Data**: Fetches via `useRepos()` calling `GET /api/user/repos?page=N&per_page=20`, sorted by `updated_at` descending.\n\n**Row layout**:\n- Full name (`owner/name`) in `primary` color (ANSI 33), truncated at column width with `…`\n- Description in `muted` color (ANSI 245), truncated\n- Visibility badge: `◆ public` in `success` color (ANSI 34) or `◇ private` in `muted` color\n- Star count in `muted` color, K-abbreviated above 999\n- Relative timestamp of `updated_at` in `muted` color\n\n**Header**: 'Repositories (N)' where N is total count. '/ filter' hint on the right.\n\n**Keyboard**: j/k navigate, Enter pushes repo overview screen (breadcrumb: 'Dashboard > owner/repo'), G/gg jump, Ctrl+D/U page, / filter, Esc clear filter, R retry on error.\n\n**Pagination**: Cursor-based, loads next page at 80% scroll. 'Loading more…' indicator. Cap at 500 items.\n\n**Empty state**: 'No repositories yet. Create one with `codeplane repo create`.' in muted.\n\n**Responsive columns**:\n- 80×24: full_name (50ch) + visibility + timestamp. Description and stars hidden.\n- 120×40: full_name (40ch) + description (40ch) + visibility + stars + timestamp.\n- 200×60: full_name (60ch) + description (80ch) + visibility + stars + bookmark badge + timestamp.\n\n**E2E tests**: All snapshot, keyboard, responsive, and integration tests from TUI_DASHBOARD_REPOS_LIST spec.",
+    "dependencies": [
+      "tui-dashboard-data-hooks",
+      "tui-dashboard-panel-component",
+      "tui-dashboard-panel-focus-manager",
+      "tui-dashboard-e2e-test-infra"
+    ],
+    "files": [
+      "apps/tui/src/screens/Dashboard/ReposList.tsx",
+      "e2e/tui/dashboard.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Displays user's repos sorted by updated_at desc from useRepos()",
+      "Each row: full_name (primary), description (muted), visibility badge, star count, timestamp",
+      "Header shows 'Repositories (N)' with total count",
+      "j/k navigate, Enter pushes repo overview, G/gg jump, Ctrl+D/U page",
+      "/ activates inline filter (client-side, case-insensitive), Esc clears",
+      "Pagination at 80% scroll, 'Loading more…' indicator, 500-item cap",
+      "Empty state: 'No repositories yet. Create one with `codeplane repo create`.'",
+      "Error state: red message + 'Press R to retry'",
+      "Responsive: 80×24 hides description/stars, 120×40 full layout, 200×60 expanded",
+      "All dashboard-repos snapshot, keyboard, responsive, and integration tests pass"
+    ]
+  },
+  {
+    "id": "tui-dashboard-orgs-list",
+    "title": "Implement the Organizations panel on the Dashboard",
+    "type": "feature",
+    "featureName": "TUI_DASHBOARD_ORGS_LIST",
+    "description": "Implement the Organizations panel (top-right quadrant of the Dashboard grid).\n\n**Data**: Fetches via `useOrgs()` calling `GET /api/user/orgs?page=N&per_page=20`, sorted by `id` ascending (creation order).\n\n**Row layout**:\n- Organization name in `primary` color (ANSI 33), truncated at column width with `…`\n- Visibility badge: `public` in `success` (green), `limited` in `warning` (yellow), `private` in `error` (red)\n- Description in `muted` color, truncated\n- Location in `muted` color, truncated (standard+)\n- Website in `muted` color, truncated (large only)\n\n**Header**: 'Organizations (N)' where N is total count.\n\n**Keyboard**: j/k navigate, Enter pushes org overview screen (breadcrumb: 'Dashboard > org-name'), G/gg jump, Ctrl+D/U page, / filter, Esc clear filter, R retry on error.\n\n**Pagination**: Cursor-based, loads next page at 80% scroll. 'Loading more…' indicator. Cap at 500 items.\n\n**Empty state**: 'No organizations yet. Create one with `codeplane org create`.' in muted.\n\n**Responsive columns**:\n- 80×24: name (50ch) + visibility badge only.\n- 120×40: name (30ch) + visibility + description (40ch) + location (20ch).\n- 200×60: name (40ch) + visibility + description (60ch) + location (30ch) + website (30ch).\n\n**E2E tests**: All snapshot, keyboard, responsive, and integration tests from TUI_DASHBOARD_ORGS_LIST spec.",
+    "dependencies": [
+      "tui-dashboard-data-hooks",
+      "tui-dashboard-panel-component",
+      "tui-dashboard-panel-focus-manager",
+      "tui-dashboard-e2e-test-infra"
+    ],
+    "files": [
+      "apps/tui/src/screens/Dashboard/OrgsList.tsx",
+      "e2e/tui/dashboard.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Displays user's orgs sorted by id asc from useOrgs()",
+      "Each row: name (primary), visibility badge (colored), description (muted), location, website",
+      "Visibility badges: public=green, limited=yellow, private=red",
+      "Header shows 'Organizations (N)' with total count",
+      "j/k navigate, Enter pushes org overview, G/gg jump, Ctrl+D/U page",
+      "/ activates inline filter, Esc clears, case-insensitive match on name/description",
+      "Pagination at 80% scroll, 'Loading more…' indicator, 500-item cap",
+      "Empty state: 'No organizations yet. Create one with `codeplane org create`.'",
+      "Responsive: 80×24 name+visibility only, 120×40 adds description+location, 200×60 adds website",
+      "All dashboard-orgs snapshot, keyboard, responsive, and integration tests pass"
+    ]
+  },
+  {
+    "id": "tui-dashboard-starred-repos",
+    "title": "Implement the Starred Repositories panel on the Dashboard",
+    "type": "feature",
+    "featureName": "TUI_DASHBOARD_STARRED_REPOS",
+    "description": "Implement the Starred Repositories panel (bottom-left quadrant of the Dashboard grid).\n\n**Data**: Fetches via `useStarredRepos()` calling `GET /api/user/starred?page=N&per_page=20`, sorted by starring time descending.\n\n**Row layout**: Identical to ReposList format:\n- Full name (`owner/name`) in `primary` color, truncated with `…`\n- Description in `muted` color, truncated (hidden at minimum)\n- Visibility badge: `◆` for public (success), `◇` for private (muted)\n- Star count: K-abbreviated above 999, M-abbreviated above 999,999. 0 stars = empty (not '★ 0')\n\n**Header**: 'Starred Repos' in bold primary. In compact mode: 'Starred Repos [3/4]'.\n\n**Keyboard**: j/k navigate, Enter pushes repo overview (breadcrumb: 'Dashboard > owner/repo'), G/gg jump, Ctrl+D/U page, / filter with match count 'N of M', Esc clears, Enter in filter selects first match, R retry on error, h/l column navigation in grid.\n\n**Pagination**: Cursor-based, loads at 80% scroll. 'Loading more…' indicator. Cap at 200 items (10 pages × 20).\n\n**Empty state**: 'No starred repositories' in muted.\n\n**Responsive columns**:\n- 80×24: full_name (60ch) + visibility + star count. Description hidden.\n- 120×40: full_name (40ch) + description (30ch) + visibility + stars.\n- 200×60: full_name (50ch) + description (60ch) + visibility + stars + bookmark badge.\n\n**E2E tests**: All SNAP-STAR, KEY-STAR, RESP-STAR, and INT-STAR tests from TUI_DASHBOARD_STARRED_REPOS spec.",
+    "dependencies": [
+      "tui-dashboard-data-hooks",
+      "tui-dashboard-panel-component",
+      "tui-dashboard-panel-focus-manager",
+      "tui-dashboard-e2e-test-infra"
+    ],
+    "files": [
+      "apps/tui/src/screens/Dashboard/StarredReposList.tsx",
+      "e2e/tui/dashboard.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Displays user's starred repos sorted by starring time desc from useStarredRepos()",
+      "Each row: full_name (primary), visibility badge (◆/◇), star count (K/M abbreviated, 0=empty)",
+      "Description shown at standard+, hidden at minimum",
+      "/ filter with match count 'N of M', Enter selects first match",
+      "Pagination at 80% scroll, 200-item cap",
+      "Empty state: 'No starred repositories' in muted",
+      "Filter with no results: 'No matching repositories'",
+      "Focus memory preserved across panel switches",
+      "All SNAP-STAR, KEY-STAR, RESP-STAR, INT-STAR tests pass"
+    ]
+  },
+  {
+    "id": "tui-dashboard-activity-feed",
+    "title": "Implement the Activity Feed panel on the Dashboard",
+    "type": "feature",
+    "featureName": "TUI_DASHBOARD_ACTIVITY_FEED",
+    "description": "Implement the Activity Feed panel (bottom-right quadrant of the Dashboard grid).\n\n**Data**: Fetches via `useActivity(username, { page, perPage, type? })` calling `GET /api/users/:username/activity?page=N&per_page=30`, sorted by `created_at` descending. Username from `useUser().user.username`.\n\n**Row layout**:\n- Event type icon (single char, color-coded): ◆ create (green), ⑂ fork (blue), ⊘ archive (gray), ⊙ unarchive (green), → transfer (yellow), ✕ delete (red), • other (gray)\n- Summary text: human-readable sentence, truncated\n- Target type label (large only)\n- Relative timestamp in `muted` color\n\n**Header**: 'Activity (N)' with total count. Active filter shown as '[Created]' in warning color. 'f filter' hint.\n\n**Event type filter**: `f` cycles forward: All → Created → Forked → Archived → Transferred → All. `Shift+F` cycles backward. Filter change re-fetches from page 1 with `type` param, resets scroll to top.\n\n**Navigation**: Enter on activity with `target_type === 'repository'` pushes repo overview. Enter on non-navigable target is no-op.\n\n**Keyboard**: j/k navigate, Enter navigates to target, f/Shift+F filter, G/gg jump, Ctrl+D/U page, R retry.\n\n**Pagination**: Page-based, 30 items/page, loads at 80% scroll. 300-item cap.\n\n**Empty states**: 'No recent activity.' (no data). 'No activity matching filter.' (filter produces zero results).\n\n**Responsive**:\n- 80×24: summary (55ch) + timestamp. Icon hidden.\n- 120×40: icon + summary (80ch) + timestamp.\n- 200×60: icon + summary (120ch) + target type + timestamp.\n\n**E2E tests**: All snapshot, keyboard, responsive, and integration tests from TUI_DASHBOARD_ACTIVITY_FEED spec.",
+    "dependencies": [
+      "tui-dashboard-data-hooks",
+      "tui-dashboard-panel-component",
+      "tui-dashboard-panel-focus-manager",
+      "tui-dashboard-e2e-test-infra"
+    ],
+    "files": [
+      "apps/tui/src/screens/Dashboard/ActivityFeed.tsx",
+      "e2e/tui/dashboard.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Displays user's activity sorted by created_at desc from useActivity()",
+      "Each row: event icon (color-coded), summary text, relative timestamp",
+      "Event icons: ◆ create, ⑂ fork, ⊘ archive, → transfer, ✕ delete, • other",
+      "f cycles filter forward, Shift+F backward; filter re-fetches with type param",
+      "Active filter label shown in header as '[Created]' etc. in warning color",
+      "Enter navigates to target repo (or no-op for non-navigable)",
+      "Page-based pagination, 30 items/page, 300-item cap",
+      "Empty states: 'No recent activity.' and 'No activity matching filter.'",
+      "501 API response treated as 'Activity feed not yet available.'",
+      "Responsive: 80×24 hides icon, 120×40 full, 200×60 adds target type",
+      "All dashboard-activity snapshot, keyboard, responsive, and integration tests pass"
+    ]
+  },
+  {
+    "id": "tui-dashboard-quick-actions",
+    "title": "Implement the Quick Actions bar on the Dashboard",
+    "type": "feature",
+    "featureName": "TUI_DASHBOARD_QUICK_ACTIONS",
+    "description": "Implement the Quick Actions bar — a single-row toolbar anchored at the bottom of the dashboard content area, above the global status bar.\n\n**Actions**:\n- `c` → push create-repository screen\n- `i` → push create-issue screen (if repo context exists) or show transient 'Select a repository first' in warning color (ANSI 178) for 2 seconds\n- `n` → push notifications screen\n- `s` → push global search screen\n- `/` → activate inline filter for currently focused panel\n\n**Rendering**:\n- Each action: bold key character + muted-color label (ANSI 245)\n- Separated by 2 spaces (standard), 3 spaces (large)\n- At minimum (80×24): compact labels (`c:repo`, `i:issue`, `n:notifs`, `s:search`, `/:filter`) + `Tab:next panel` hint\n- At standard (120×40): full labels (`c:new repo`, `i:new issue`, `n:notifications`, `s:search`, `/:filter`)\n- At large (200×60): full labels with extra padding\n- Priority-based overflow hiding: `/:filter` hidden first, then `s:search`, then `i:new issue`, then `n:notifications`. `c:new repo` always visible.\n- Top border in `border` color (ANSI 240)\n\n**Suppression**: Quick-action keys are no-op when:\n- Filter input or any text input is focused\n- Go-to mode active (g prefix)\n- Modal overlay open (command palette, help overlay)\n- Current screen is not the dashboard\n\n**Transient message**: When `i` pressed without repo context, bar content is replaced with 'Select a repository first' in warning color for 2 seconds, then auto-restores.\n\n**Screen transitions triggered by quick actions complete within 50ms.**\n\n**E2E tests**: All SNAP-QA, KEY-QA, RESP-QA, and INT-QA tests from TUI_DASHBOARD_QUICK_ACTIONS spec.",
+    "dependencies": [
+      "tui-dashboard-grid-layout",
+      "tui-dashboard-panel-focus-manager",
+      "tui-dashboard-screen"
+    ],
+    "files": [
+      "apps/tui/src/screens/Dashboard/QuickActionsBar.tsx",
+      "e2e/tui/dashboard.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Bar renders as single row at bottom of dashboard content with top border",
+      "c pushes create-repo, n pushes notifications, s pushes search, / activates filter",
+      "i pushes create-issue with repo context, or shows transient 'Select a repository first' for 2s",
+      "Bold key characters + muted labels at all breakpoints",
+      "Compact labels at 80×24 with Tab:next panel hint",
+      "Priority-based overflow hiding: / hidden first, c always visible",
+      "Keys suppressed when filter focused, modal open, or go-to mode active",
+      "Keys suppressed on non-dashboard screens",
+      "Screen transitions < 50ms",
+      "q after navigation returns to dashboard with bar intact",
+      "All SNAP-QA, KEY-QA, RESP-QA, INT-QA tests pass"
+    ]
+  }
+]

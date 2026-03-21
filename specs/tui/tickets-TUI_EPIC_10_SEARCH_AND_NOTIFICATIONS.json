@@ -1,0 +1,365 @@
+[
+  {
+    "id": "tui-search-screen-scaffold",
+    "title": "Search screen scaffold — layout, screen registration, search input with debounce",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the SearchScreen component at apps/tui/src/screens/Search/SearchScreen.tsx. Register it in the screen registry as ScreenName.Search (requiresRepo: false). Implement the screen layout: search input at top with auto-focus on mount, tab bar placeholder area, results area placeholder, and status bar keybinding hints. Implement the search input with 300ms debounce, Backspace, Ctrl+U clear, Esc unfocus/pop logic, / to refocus, and 120-char max. Wire up the g s go-to keybinding destination and :search command palette entry. Set up the breadcrumb as 'Search'. Create the e2e test file scaffold at e2e/tui/search.test.ts with launchTUI helper integration.",
+    "dependencies": [
+      "tui-screen-router",
+      "tui-responsive-layout",
+      "tui-goto-keybindings",
+      "tui-command-palette"
+    ],
+    "files": [
+      "apps/tui/src/screens/Search/SearchScreen.tsx",
+      "apps/tui/src/screens/Search/index.ts",
+      "e2e/tui/search.test.ts"
+    ],
+    "estimated_effort": "M"
+  },
+  {
+    "id": "tui-search-data-hooks",
+    "title": "Search data hooks adapter — useSearch integration with parallel API calls and per-tab state management",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create apps/tui/src/hooks/useSearchTabs.ts that wraps @codeplane/ui-core's useSearch() hook for TUI consumption. Implement: (1) parallel dispatch to all 4 search endpoints (repos, issues, users, code) on query change, (2) per-tab state management (items, cursor/page, isLoading, error, totalCount, scrollPosition, focusedIndex), (3) page-based pagination with 30 items/page and 300-item cap per tab, (4) query abort on new query dispatch (cancel in-flight requests), (5) debounce integration (300ms), (6) empty query guard (no API calls for <1 char), (7) query trimming, (8) error state per tab (partial failures), (9) retry mechanism per tab. The hook should return { tabs: TabState[], activeTabIndex, setActiveTab, query, setQuery, fetchMore }.",
+    "dependencies": [
+      "tui-navigation-provider",
+      "tui-theme-provider"
+    ],
+    "files": [
+      "apps/tui/src/hooks/useSearchTabs.ts",
+      "apps/tui/src/screens/Search/types.ts"
+    ],
+    "estimated_effort": "L"
+  },
+  {
+    "id": "tui-search-tab-bar-component",
+    "title": "Search tab bar component with count badges and responsive labels",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create apps/tui/src/screens/Search/SearchTabBar.tsx — a reusable horizontal tab bar for the search screen. Renders 4 tabs (Repositories, Issues, Users, Code) with count badges from API responses. Active tab: bold + underline + primary color (ANSI 33). Inactive tabs: muted color (ANSI 245). Responsive labels: at minimum '1:Repos(N) 2:Issues(N) 3:Users(N) 4:Code(N)' separated by 2 spaces; at standard/large 'Repositories (N) | Issues (N) | Users (N) | Code (N)'. Count badge abbreviation above 9999 ('10k+'). No count badge shown before first query dispatch. Single row height, never wraps. Tab bar re-renders synchronously on resize.",
+    "dependencies": [
+      "tui-responsive-layout",
+      "tui-theme-provider"
+    ],
+    "files": [
+      "apps/tui/src/screens/Search/SearchTabBar.tsx"
+    ],
+    "estimated_effort": "S"
+  },
+  {
+    "id": "tui-search-result-row-components",
+    "title": "Search result row renderers for repos, issues, users, and code tabs",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create per-type result row components at apps/tui/src/screens/Search/results/: (1) RepoResultRow.tsx — owner/repo (max 50ch), description (truncated), visibility badge, star count, language, topic tags (max 3 + '+N'). (2) IssueResultRow.tsx — repo context (max 30ch muted), #number (primary), title (truncated), state badge (green/red), relative timestamp (muted). (3) UserResultRow.tsx — username (primary, max 20ch), display_name in parens (muted, max 30ch), no avatar. (4) CodeResultRow.tsx — repo context (muted), file path (primary, max 60ch, truncated from left with .../), code snippet via <code> with syntax highlighting, match highlighting (bold+primary for <em> tags), gutter. All rows support responsive column visibility based on breakpoint. Focused row uses reverse video.",
+    "dependencies": [
+      "tui-responsive-layout",
+      "tui-theme-provider"
+    ],
+    "files": [
+      "apps/tui/src/screens/Search/results/RepoResultRow.tsx",
+      "apps/tui/src/screens/Search/results/IssueResultRow.tsx",
+      "apps/tui/src/screens/Search/results/UserResultRow.tsx",
+      "apps/tui/src/screens/Search/results/CodeResultRow.tsx",
+      "apps/tui/src/screens/Search/results/index.ts"
+    ],
+    "estimated_effort": "L"
+  },
+  {
+    "id": "tui-notification-list-scaffold",
+    "title": "Notification list screen scaffold — layout, screen registration, filter toolbar",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the NotificationListScreen component at apps/tui/src/screens/Notifications/NotificationListScreen.tsx. Register in screen registry as ScreenName.Notifications (requiresRepo: false). Implement layout: title row 'Notifications (N unread)', filter toolbar with All/Unread toggle and search input, scrollbox for notification rows, empty/error/loading states. Wire up g n go-to destination, :notifications command palette entry, --screen notifications deep-link. Breadcrumb: 'Dashboard > Notifications'. Create NotificationRow component with: unread indicator, source type icon (emoji + text fallbacks), subject (bold if unread), body preview (muted, truncated), relative timestamp. Responsive column visibility per breakpoint. Create e2e test file scaffold at e2e/tui/notifications.test.ts.",
+    "dependencies": [
+      "tui-screen-router",
+      "tui-responsive-layout",
+      "tui-goto-keybindings",
+      "tui-command-palette"
+    ],
+    "files": [
+      "apps/tui/src/screens/Notifications/NotificationListScreen.tsx",
+      "apps/tui/src/screens/Notifications/NotificationRow.tsx",
+      "apps/tui/src/screens/Notifications/index.ts",
+      "e2e/tui/notifications.test.ts"
+    ],
+    "estimated_effort": "L"
+  },
+  {
+    "id": "tui-notification-data-hooks",
+    "title": "Notification data hooks adapter — useNotifications integration with pagination and optimistic mutations",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create apps/tui/src/hooks/useNotificationsAdapter.ts that wraps @codeplane/ui-core's useNotifications() for TUI consumption. Implement: (1) page-based pagination via GET /api/notifications/list?page=N&per_page=30, (2) 500-item memory cap with oldest read eviction, (3) client-side filtering (All/Unread status toggle, substring search across subject + body), (4) optimistic markRead(id) via PATCH /api/notifications/:id with revert on error, (5) optimistic markAllRead() via PUT /api/notifications/mark-read with revert on error, (6) unreadCount derivation from loaded data, (7) prepend capability for SSE-delivered notifications with deduplication by id, (8) sorted by created_at descending.",
+    "dependencies": [
+      "tui-navigation-provider",
+      "tui-theme-provider"
+    ],
+    "files": [
+      "apps/tui/src/hooks/useNotificationsAdapter.ts"
+    ],
+    "estimated_effort": "L"
+  },
+  {
+    "id": "tui-notification-sse-channel-hook",
+    "title": "Notification SSE channel hook — useNotificationStream with deduplication and reconnection",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create apps/tui/src/hooks/useNotificationStream.ts that subscribes to the user_notifications_{userId} SSE channel via the SSEProvider context. Implement: (1) useSSEChannel subscription on mount, cleanup on unmount, (2) event parsing from SSE data field (JSON NotificationResponse), (3) deduplication against in-memory notification list by id (sliding window of 1000 IDs), (4) Last-Event-ID tracking for reconnection replay, (5) connection state exposure (connected/reconnecting/disconnected/failed), (6) liveness detection (45s timeout from last keep-alive), (7) exponential backoff tracking (1s/2s/4s/8s/16s/30s cap, reset on success), (8) permanent failure after 20 consecutive failed reconnects, (9) malformed JSON handling (log warning, skip event), (10) unknown event type silently ignored.",
+    "dependencies": [
+      "tui-theme-provider"
+    ],
+    "files": [
+      "apps/tui/src/hooks/useNotificationStream.ts"
+    ],
+    "estimated_effort": "M"
+  },
+  {
+    "id": "tui-notification-badge-component",
+    "title": "Notification badge components for header bar and status bar with real-time SSE updates",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create apps/tui/src/components/NotificationBadge.tsx with two sub-components: HeaderBadge renders '[N]' in warning color (ANSI 178) when count > 0, hidden when 0, max '99+', positioned right of connection indicator. StatusBarBadge renders diamond N in primary color (ANSI 33) when count > 0, diamond in muted color (ANSI 245) when 0, 2-second bold pulse on count increase, max '99+'. Both consume unreadCount from useNotifications(), retain last known count on SSE disconnect, support optimistic decrements, never hidden (flexShrink=0, max 6ch).",
+    "dependencies": [
+      "tui-notification-data-hooks",
+      "tui-notification-sse-channel-hook",
+      "tui-header-bar",
+      "tui-status-bar",
+      "tui-theme-provider"
+    ],
+    "files": [
+      "apps/tui/src/components/NotificationBadge.tsx"
+    ],
+    "estimated_effort": "M"
+  },
+  {
+    "id": "tui-search-filter-infrastructure",
+    "title": "Search inline filter infrastructure — filter bar component, picker modals, per-tab filter state",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create apps/tui/src/screens/Search/filters/: (1) SearchFilterBar.tsx — single-line row between tab bar and results, shows active filter chips separated by pipe, responsive condensed/full format. (2) FilterPickerModal.tsx — centered modal overlay with fuzzy-searchable list, j/k navigation, Enter confirm, Esc dismiss, supports single-select and multi-select. (3) useSearchFilters.ts hook — per-tab filter state management for Issues (state/labels/repo), Repos (visibility/language), Code (language/repo), Users (none). Filter state tab-local, session-scoped, reset on screen pop. Server-side filter changes re-query only affected tab. Client-side filters apply predicates to loaded results.",
+    "dependencies": [
+      "tui-search-data-hooks",
+      "tui-search-tab-bar-component",
+      "tui-responsive-layout"
+    ],
+    "files": [
+      "apps/tui/src/screens/Search/filters/SearchFilterBar.tsx",
+      "apps/tui/src/screens/Search/filters/FilterPickerModal.tsx",
+      "apps/tui/src/screens/Search/filters/useSearchFilters.ts",
+      "apps/tui/src/screens/Search/filters/index.ts"
+    ],
+    "estimated_effort": "L"
+  },
+  {
+    "id": "tui-search-screen-feature",
+    "title": "TUI_SEARCH_SCREEN — Global search screen with input, tabs, results, and all search keybindings",
+    "type": "feature",
+    "featureName": "TUI_SEARCH_SCREEN",
+    "description": "Implement the complete SearchScreen feature. Wire together the search input (auto-focus, 300ms debounce, Ctrl+U clear, Backspace, Esc unfocus/pop, / refocus, 120ch max), tab bar (rendered below input), and results area (scrollbox below tab bar). Implement all screen-level keybindings: /, Esc (context-dependent), Enter (input to focus results; results to navigate), Backspace, Ctrl+U, q (pop), R (retry), j/k/G/gg/Ctrl+D/Ctrl+U in results. Implement states: empty query, searching, zero results, error with retry. Implement partial API failure handling. Implement parallel API dispatch. Implement auto-tab-selection logic. Register screen keybindings with help overlay. Write all snapshot tests and relevant keyboard/integration tests from the spec. All tests target e2e/tui/search.test.ts.",
+    "dependencies": [
+      "tui-search-screen-scaffold",
+      "tui-search-data-hooks",
+      "tui-search-tab-bar-component",
+      "tui-search-result-row-components"
+    ],
+    "files": [
+      "apps/tui/src/screens/Search/SearchScreen.tsx",
+      "e2e/tui/search.test.ts"
+    ],
+    "estimated_effort": "XL"
+  },
+  {
+    "id": "tui-search-repos-tab-feature",
+    "title": "TUI_SEARCH_REPOS_TAB — Repository search results tab with navigation and pagination",
+    "type": "feature",
+    "featureName": "TUI_SEARCH_REPOS_TAB",
+    "description": "Implement the Repositories tab (tab 1) on the search screen. Render repository results from GET /api/search/repositories using RepoResultRow. Implement j/k navigation, Enter pushes RepoOverview, q returns with state preserved, pagination at 80% scroll (30/page, 300 cap). Responsive columns: 80x24 name+stars only; 120x40 full; 200x60 extended descriptions. Truncation: repo name 50ch, description to remaining width. Per-tab state preservation. Write the 83 tests from the spec (19 snapshot, 33 keyboard, 15 responsive, 16 integration).",
+    "dependencies": [
+      "tui-search-screen-feature"
+    ],
+    "files": [
+      "apps/tui/src/screens/Search/results/RepoResultRow.tsx",
+      "apps/tui/src/screens/Search/tabs/ReposTab.tsx",
+      "e2e/tui/search.test.ts"
+    ],
+    "estimated_effort": "L"
+  },
+  {
+    "id": "tui-search-issues-tab-feature",
+    "title": "TUI_SEARCH_ISSUES_TAB — Cross-repository issue search results tab",
+    "type": "feature",
+    "featureName": "TUI_SEARCH_ISSUES_TAB",
+    "description": "Implement the Issues tab (tab 2) on the search screen. Render issue results from GET /api/search/issues using IssueResultRow. Implement j/k navigation, Enter pushes IssueDetail with breadcrumb, q returns with state preserved. Pagination at 80% (30/page, 300 cap). Server-side state filtering via o key (All/Open/Closed cycle). Responsive columns per breakpoint. Per-tab state preservation. Write all tests from the spec.",
+    "dependencies": [
+      "tui-search-screen-feature"
+    ],
+    "files": [
+      "apps/tui/src/screens/Search/results/IssueResultRow.tsx",
+      "apps/tui/src/screens/Search/tabs/IssuesTab.tsx",
+      "e2e/tui/search.test.ts"
+    ],
+    "estimated_effort": "L"
+  },
+  {
+    "id": "tui-search-users-tab-feature",
+    "title": "TUI_SEARCH_USERS_TAB — User discovery search results tab",
+    "type": "feature",
+    "featureName": "TUI_SEARCH_USERS_TAB",
+    "description": "Implement the Users tab (tab 3) on the search screen. Render user results from GET /api/search/users using UserResultRow. j/k navigation, Enter pushes user profile, q returns with state preserved. Pagination at 80% (30/page, 300 cap). No inline filters (f is no-op). Zero results: 'No users match query'. Per-tab state preservation. Write all tests from the spec.",
+    "dependencies": [
+      "tui-search-screen-feature"
+    ],
+    "files": [
+      "apps/tui/src/screens/Search/results/UserResultRow.tsx",
+      "apps/tui/src/screens/Search/tabs/UsersTab.tsx",
+      "e2e/tui/search.test.ts"
+    ],
+    "estimated_effort": "M"
+  },
+  {
+    "id": "tui-search-code-tab-feature",
+    "title": "TUI_SEARCH_CODE_TAB — Cross-repository code search with syntax highlighting",
+    "type": "feature",
+    "featureName": "TUI_SEARCH_CODE_TAB",
+    "description": "Implement the Code tab (tab 4) on the search screen. Render code results from GET /api/search/code using CodeResultRow. Multi-line results with header line and code snippet via <code> component. Match highlighting for <em> tags. Snippet lines vary by breakpoint. j/k navigates by full result. Enter pushes code explorer. Pagination at 80% (30/page, 300 cap). Per-tab state preservation. Write all tests from the spec.",
+    "dependencies": [
+      "tui-search-screen-feature"
+    ],
+    "files": [
+      "apps/tui/src/screens/Search/results/CodeResultRow.tsx",
+      "apps/tui/src/screens/Search/tabs/CodeTab.tsx",
+      "e2e/tui/search.test.ts"
+    ],
+    "estimated_effort": "L"
+  },
+  {
+    "id": "tui-search-tab-navigation-feature",
+    "title": "TUI_SEARCH_TAB_NAVIGATION — Tab cycling, direct jump, per-tab state, and responsive tab bar",
+    "type": "feature",
+    "featureName": "TUI_SEARCH_TAB_NAVIGATION",
+    "description": "Implement the complete tab navigation system for the search screen. Tab/Shift+Tab cycling with wrapping. Direct jump via 1-4 (5-9,0 no-ops). h/l/Left/Right without wrapping. Context-sensitive suppression: numbers as literals in search input, all suppressed in modals, numbers suppressed during g go-to. Per-tab independent scroll + focus, preserved across switches, reset on new query. Auto-selection logic. Shared query across all tabs. Responsive tab bar labels. Status bar hints. Help overlay integration. Write all tests from the spec.",
+    "dependencies": [
+      "tui-search-screen-feature",
+      "tui-search-tab-bar-component"
+    ],
+    "files": [
+      "apps/tui/src/screens/Search/SearchTabBar.tsx",
+      "apps/tui/src/screens/Search/SearchScreen.tsx",
+      "e2e/tui/search.test.ts"
+    ],
+    "estimated_effort": "L"
+  },
+  {
+    "id": "tui-search-inline-filter-feature",
+    "title": "TUI_SEARCH_INLINE_FILTER — Per-tab inline filtering with filter bar and picker modals",
+    "type": "feature",
+    "featureName": "TUI_SEARCH_INLINE_FILTER",
+    "description": "Implement the inline filter system across all search tabs. Toggle via f. Issues: o cycles state (server-side), l label picker (multi-select, client-side), r repo picker (single-select). Repos: v visibility (client-side), l language picker. Code: l language, r repo. Users: no filters. Picker modals with fuzzy search. x clears all tab-local filters. Filters tab-local, session-scoped. Server-side changes re-query only affected tab. Client-side shows '(showing M)' indicator. Responsive condensed format at minimum. Write all tests from the spec.",
+    "dependencies": [
+      "tui-search-filter-infrastructure",
+      "tui-search-screen-feature",
+      "tui-search-repos-tab-feature",
+      "tui-search-issues-tab-feature",
+      "tui-search-code-tab-feature"
+    ],
+    "files": [
+      "apps/tui/src/screens/Search/filters/SearchFilterBar.tsx",
+      "apps/tui/src/screens/Search/filters/FilterPickerModal.tsx",
+      "apps/tui/src/screens/Search/filters/useSearchFilters.ts",
+      "e2e/tui/search.test.ts"
+    ],
+    "estimated_effort": "XL"
+  },
+  {
+    "id": "tui-notification-list-screen-feature",
+    "title": "TUI_NOTIFICATION_LIST_SCREEN — Full notification inbox with pagination, filtering, and search",
+    "type": "feature",
+    "featureName": "TUI_NOTIFICATION_LIST_SCREEN",
+    "description": "Implement the complete NotificationListScreen. Wire together title row, filter toolbar, scrollable notification list with pagination (30/page, 500 cap at 80% scroll), empty/error/loading states. Each row with unread indicator, source icon, subject, body preview, timestamp. Keybindings: j/k, Enter, /, Esc (priority chain), G/gg, Ctrl+D/U, r, R, f, Space, q. SSE integration for prepended notifications. Client-side search. Responsive columns per breakpoint. Write all 111 tests from the spec.",
+    "dependencies": [
+      "tui-notification-list-scaffold",
+      "tui-notification-data-hooks",
+      "tui-notification-sse-channel-hook"
+    ],
+    "files": [
+      "apps/tui/src/screens/Notifications/NotificationListScreen.tsx",
+      "apps/tui/src/screens/Notifications/NotificationRow.tsx",
+      "e2e/tui/notifications.test.ts"
+    ],
+    "estimated_effort": "XL"
+  },
+  {
+    "id": "tui-notification-detail-nav-feature",
+    "title": "TUI_NOTIFICATION_DETAIL_NAV — Navigate from notification to source resource with type-driven routing",
+    "type": "feature",
+    "featureName": "TUI_NOTIFICATION_DETAIL_NAV",
+    "description": "Implement source-type routing from notification list. Enter routes based on source_type to issue-detail, landing-detail, workflow-run-detail, or workspace-detail. Uses denormalized fields (repo_owner, repo_name, resource_number) for synchronous navigation. Legacy fallback via GET /api/notifications/:id/source with Resolving indicator and spinner. Handle 404, 403, null source_id, unknown source_type. Mark read on navigate (optimistic, concurrent, never blocks). State preservation on q return. Breadcrumb context. Double-Enter guard. Cancel resolution via Esc/j/k/q. Write all tests from the spec.",
+    "dependencies": [
+      "tui-notification-list-screen-feature"
+    ],
+    "files": [
+      "apps/tui/src/screens/Notifications/useNotificationNavigation.ts",
+      "apps/tui/src/screens/Notifications/NotificationListScreen.tsx",
+      "e2e/tui/notifications.test.ts"
+    ],
+    "estimated_effort": "L"
+  },
+  {
+    "id": "tui-notification-mark-read-feature",
+    "title": "TUI_NOTIFICATION_MARK_READ — Single and batch mark-read with optimistic updates and revert",
+    "type": "feature",
+    "featureName": "TUI_NOTIFICATION_MARK_READ",
+    "description": "Implement mark-read interactions. Single r: PATCH /api/notifications/:id (optimistic, no-op if read). Batch R: PUT /api/notifications/mark-read (optimistic, no-op if 0 unread). Error handling: 404 reverts + row removed, 429 reverts + rate limit message, 500 reverts all. In-flight guards. Unread filter + r: row exits after 200ms, focus advances. Unread filter + R: empty state. Badge synchronization. Rapid r guard. Suppressed when search input focused. SSE notification after R creates count=1. Write all tests from the spec.",
+    "dependencies": [
+      "tui-notification-list-screen-feature",
+      "tui-notification-data-hooks"
+    ],
+    "files": [
+      "apps/tui/src/screens/Notifications/NotificationListScreen.tsx",
+      "apps/tui/src/hooks/useNotificationsAdapter.ts",
+      "e2e/tui/notifications.test.ts"
+    ],
+    "estimated_effort": "L"
+  },
+  {
+    "id": "tui-notification-sse-stream-feature",
+    "title": "TUI_NOTIFICATION_SSE_STREAM — Real-time notification streaming via SSE with reconnection and replay",
+    "type": "feature",
+    "featureName": "TUI_NOTIFICATION_SSE_STREAM",
+    "description": "Implement complete SSE notification streaming. Ticket-based auth via POST /api/auth/sse-ticket with bearer fallback. Establish after auth + initial fetch. Event dispatch to badges and notification list. Deduplication (1000-ID window). Reconnection with exponential backoff (1s-30s cap), 20 failures = permanent. Last-Event-ID replay. Keep-alive consumption (15s server, 45s client timeout). Status bar indicators. Notification list prepend with reverse-video flash. 500-item cap with oldest-read eviction. Singleton connection. Clean shutdown. Auth 401 stops retry. Write all tests from the spec.",
+    "dependencies": [
+      "tui-notification-sse-channel-hook",
+      "tui-notification-list-screen-feature",
+      "tui-notification-badge-component"
+    ],
+    "files": [
+      "apps/tui/src/hooks/useNotificationStream.ts",
+      "apps/tui/src/screens/Notifications/NotificationListScreen.tsx",
+      "e2e/tui/notifications.test.ts"
+    ],
+    "estimated_effort": "XL"
+  },
+  {
+    "id": "tui-notification-badge-feature",
+    "title": "TUI_NOTIFICATION_BADGE — Persistent notification badge in header and status bar with real-time updates",
+    "type": "feature",
+    "featureName": "TUI_NOTIFICATION_BADGE",
+    "description": "Implement the complete notification badge feature. Header bar: '[N]' warning color when >0, hidden when 0, max '99+'. Status bar: diamond N primary when >0, diamond muted when 0, 2s bold pulse on increase. Both: same unreadCount source, update in same render frame as SSE, retain stale count on disconnect, optimistic decrements, revert on error, visible at all breakpoints, never hidden. Color fallback for 16-color. Boundary handling. <1ms render. Integrate into HeaderBar and StatusBar. Write all 43 tests from the spec (12 snapshot, 7 keyboard, 7 SSE, 5 resize, 9 edge case, 3 integration).",
+    "dependencies": [
+      "tui-notification-badge-component",
+      "tui-notification-sse-stream-feature"
+    ],
+    "files": [
+      "apps/tui/src/components/NotificationBadge.tsx",
+      "apps/tui/src/components/HeaderBar.tsx",
+      "apps/tui/src/components/StatusBar.tsx",
+      "e2e/tui/notifications.test.ts",
+      "e2e/tui/app-shell.test.ts"
+    ],
+    "estimated_effort": "L"
+  }
+]

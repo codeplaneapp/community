@@ -1,0 +1,8 @@
+Not LGTM.
+1. The plan never includes the critical integration step in the real diff UI (e.g., Diff screen/view components) to pass `filetype` and `syntaxStyle` into OpenTUI `<diff>`. As written, it can ship utilities/hooks with no user-visible behavior.
+2. `@codeplane/ui-core` data-access compliance is not specified. The plan does not require sourcing `language`/`path` from the actual diff hooks (e.g., `useChangeDiff`/`useLandingDiff`), so requirement #2 is unverifiable.
+3. Hook lifecycle is unsafe as specified: using `useRef` + cleanup that destroys `styleRef.current` can destroy the wrong instance on tier changes / StrictMode remount patterns. Cleanup must capture and destroy the specific instance created for that render.
+4. Keyboard coverage does not match the TUI diff design spec. Tests mention `t`, `]`, `[`, and some scrolling, but miss required diff interactions like `w`, `x`, `z` (and complete navigation parity such as explicit `k`/paging/jump behaviors if parity is claimed).
+5. The “color capability tiers” section does not actually test tiers (`truecolor` vs `ansi256` vs `ansi16`) via controlled env/capability conditions; it mostly tests terminal dimensions/resizing.
+6. E2E section lacks executable specificity: it is mostly scenario names/comments without fixture setup, command flow, concrete assertions, or deterministic harness steps; some checks (e.g., proving `.destroy()` execution/native cleanup) are not realistically verifiable via black-box tui E2E without added instrumentation.
+7. Path targeting is correct (`apps/tui/src` and `e2e/tui`), but the above gaps are blocking.

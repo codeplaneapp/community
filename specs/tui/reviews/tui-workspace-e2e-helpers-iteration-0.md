@@ -1,0 +1,14 @@
+Not LGTM.
+
+Blocking findings (ordered by severity):
+1. Test failures: `bun test e2e/tui/helpers/__tests__/workspaces.test.ts e2e/tui/workspaces.test.ts --timeout 30000` returns `33 pass / 6 fail`. All integration cases fail waiting for "Workspaces" (error thrown at `/Users/williamcory/codeplane/specs/tui/e2e/tui/helpers.ts:261`).
+2. Helper API mismatch: `launchTUIWithWorkspaceContext` advertises `screen: "workspace-detail"` and `--id` (`/Users/williamcory/codeplane/specs/tui/e2e/tui/helpers/workspaces.ts:98`, `/Users/williamcory/codeplane/specs/tui/e2e/tui/helpers/workspaces.ts:113`), but deep-link parsing only maps `workspaces` and falls back for unsupported screens (`/Users/williamcory/codeplane/specs/tui/apps/tui/src/navigation/deepLinks.ts:27`, `/Users/williamcory/codeplane/specs/tui/apps/tui/src/navigation/deepLinks.ts:222`).
+3. `SSEProvider` is not robust as claimed: production branch is effectively a no-op (`/Users/williamcory/codeplane/specs/tui/apps/tui/src/providers/SSEProvider.tsx:76`), with no real ticket auth/reconnect/backfill behavior from the design spec; additionally, provider stack is not mounted in app entry (`/Users/williamcory/codeplane/specs/tui/apps/tui/src/index.tsx:1`).
+4. Resource-leak risk in tests: `terminate()`/`cleanup()` are not protected by `finally` in failing paths (`/Users/williamcory/codeplane/specs/tui/e2e/tui/workspaces.test.ts:13`, `/Users/williamcory/codeplane/specs/tui/e2e/tui/workspaces.test.ts:33`, `/Users/williamcory/codeplane/specs/tui/e2e/tui/workspaces.test.ts:43`).
+5. ESM portability nit: CommonJS `require()` is used inside ESM helper (`/Users/williamcory/codeplane/specs/tui/e2e/tui/helpers/workspaces.ts:232`, `/Users/williamcory/codeplane/specs/tui/e2e/tui/helpers/workspaces.ts:237`, `/Users/williamcory/codeplane/specs/tui/e2e/tui/helpers/workspaces.ts:242`).
+6. Flaky transition logic: `waitForStatusTransition` waits for `toStatus` appearance but does not ensure `fromStatus` disappearance, allowing false positives (`/Users/williamcory/codeplane/specs/tui/e2e/tui/helpers/workspaces.ts:165`).
+
+Requirement-specific checks:
+- OpenTUI components/hooks: touched `apps/tui/src` code (`SSEProvider`) does not use OpenTUI hooks/components, so there is no positive validation of OpenTUI usage in this ticket.
+- Keyboard model compliance: new workspace helper/integration tests do not validate required key-driven interactions (`g w`, `j/k`, `Enter`); they rely on deep-link launch and text waits.
+- Data access contract: no direct API calls were introduced in changed files; however, SSE production path also does not consume shared `@codeplane/ui-core` SSE utilities as expected.

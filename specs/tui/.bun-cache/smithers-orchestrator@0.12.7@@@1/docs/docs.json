@@ -1,0 +1,235 @@
+{
+  "name": "Smithers",
+  "theme": "mint",
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#1F6FEB"
+  },
+  "redirects": [
+    { "source": "/docs", "destination": "/introduction" },
+    { "source": "/docs/introduction", "destination": "/introduction" },
+    { "source": "/docs/installation", "destination": "/installation" },
+    { "source": "/docs/quickstart", "destination": "/quickstart" },
+    { "source": "/toon", "destination": "/toon/overview" },
+    { "source": "/jsx", "destination": "/jsx/overview" },
+    { "source": "/effect", "destination": "/toon/overview" },
+    { "source": "/effect/:slug*", "destination": "/toon/overview" },
+    { "source": "/docs/concepts/:slug*", "destination": "/concepts/:slug*" },
+    { "source": "/docs/components/:slug*", "destination": "/components/:slug*" },
+    { "source": "/docs/guides/:slug*", "destination": "/guides/:slug*" },
+    { "source": "/docs/runtime/:slug*", "destination": "/runtime/:slug*" },
+    { "source": "/docs/cli/:slug*", "destination": "/cli/:slug*" },
+    { "source": "/docs/integrations/:slug*", "destination": "/integrations/:slug*" },
+    { "source": "/docs/examples/:slug*", "destination": "/examples/:slug*" },
+    { "source": "/docs/reference/:slug*", "destination": "/reference/:slug*" },
+    { "source": "/docs/ralph", "destination": "/components/loop" },
+    { "source": "/docs/loop", "destination": "/components/loop" },
+    { "source": "/components/ralph", "destination": "/components/loop" },
+    { "source": "/docs/task", "destination": "/components/task" },
+    { "source": "/docs/workflow", "destination": "/components/workflow" },
+    { "source": "/docs/sequence", "destination": "/components/sequence" },
+    { "source": "/docs/parallel", "destination": "/components/parallel" },
+    { "source": "/docs/branch", "destination": "/components/branch" },
+    { "source": "/docs/structured-output", "destination": "/guides/structured-output" },
+    { "source": "/concepts/context", "destination": "/toon/overview" },
+    { "source": "/concepts/renderer-internals", "destination": "/concepts/planner-internals" }
+  ],
+  "navigation": {
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Getting Started",
+          "href": "/introduction",
+          "pages": [
+            "introduction",
+            "installation",
+            "quickstart"
+          ]
+        },
+        {
+          "anchor": "Core Concepts",
+          "href": "/concepts/execution-model",
+          "pages": [
+            "concepts/execution-model",
+            "concepts/data-model",
+            "concepts/approvals",
+            "concepts/caching",
+            "concepts/planner-internals"
+          ]
+        },
+        {
+          "anchor": "Runtime",
+          "href": "/runtime/run-workflow",
+          "pages": [
+            "runtime/run-workflow",
+            "runtime/render-frame",
+            "runtime/events",
+            "runtime/revert"
+          ]
+        },
+        {
+          "anchor": "CLI",
+          "href": "/cli/overview",
+          "pages": [
+            "cli/overview"
+          ]
+        },
+        {
+          "anchor": "Integrations",
+          "href": "/integrations/tools",
+          "pages": [
+            "integrations/tools",
+            "integrations/linear",
+            "integrations/cli-agents",
+            "integrations/sdk-agents",
+            "integrations/baml",
+            "integrations/server",
+            "integrations/pi-plugin",
+            "integrations/pi-integration"
+          ]
+        }
+      ]
+    },
+    "tabs": [
+      {
+        "tab": "TOON",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "toon/overview",
+              "toon/installation",
+              "toon/quickstart"
+            ]
+          },
+          {
+            "group": "Authoring",
+            "pages": [
+              "toon/schemas",
+              "toon/nodes",
+              "toon/components",
+              "toon/prompts",
+              "toon/inline-code",
+              "toon/imports"
+            ]
+          },
+          {
+            "group": "Examples",
+            "pages": [
+              "examples/toon-hello",
+              "examples/toon-bugfix",
+              "examples/toon-review-loop",
+              "examples/toon-parallel"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/toon-spec",
+              "reference/errors"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "JSX",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "jsx/overview",
+              "jsx/installation",
+              "jsx/quickstart"
+            ]
+          },
+          {
+            "group": "Components",
+            "pages": [
+              "components/workflow",
+              "components/task",
+              "components/sequence",
+              "components/parallel",
+              "components/branch",
+              "components/loop",
+              "components/approval",
+              "components/merge-queue",
+              "components/worktree"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/tutorial-workflow",
+              "guides/project-structure",
+              "guides/model-selection",
+              "guides/review-loop",
+              "guides/dynamic-tickets",
+              "guides/mdx-prompts",
+              "integrations/baml",
+              "guides/structured-output",
+              "guides/error-handling",
+              "guides/patterns",
+              "guides/resumability",
+              "guides/hot-reload",
+              "guides/debugging",
+              "guides/monitoring-logs",
+              "guides/best-practices",
+              "guides/vcs",
+              "guides/troubleshooting"
+            ]
+          },
+          {
+            "group": "Examples",
+            "pages": [
+              "examples/hello-world",
+              "examples/dynamic-plan",
+              "examples/loop",
+              "examples/multi-agent-review",
+              "examples/approval-gate",
+              "examples/tools-agent",
+              {
+                "group": "Ghost Docs: workflows/",
+                "pages": [
+                  "examples/workflow-hello",
+                  "examples/workflow-approval",
+                  "examples/workflow-quickstart"
+                ]
+              },
+              {
+                "group": "Ghost Docs: worktree-feature/",
+                "pages": [
+                  "examples/worktree-feature-workflow",
+                  "examples/worktree-feature-schemas",
+                  "examples/worktree-feature-prompts",
+                  "examples/worktree-feature-run-sh"
+                ]
+              },
+              {
+                "group": "Ghost Docs: Scripts & Config",
+                "pages": [
+                  "examples/generate-llms-txt",
+                  "examples/ci-workflow",
+                  "examples/agents-md"
+                ]
+              },
+              {
+                "group": "Ghost Docs: Claude Code Plugins",
+                "pages": [
+                  "examples/claude-plugin-skill",
+                  "examples/claude-plugin-orchestrator"
+                ]
+              }
+            ]
+          },
+        {
+          "group": "Reference",
+          "pages": [
+              "reference/types",
+              "reference/errors"
+          ]
+        }
+      ]
+    }
+  ]
+  }
+}

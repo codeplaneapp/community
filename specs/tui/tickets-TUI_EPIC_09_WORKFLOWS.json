@@ -1,0 +1,394 @@
+[
+  {
+    "id": "tui-workflow-screen-scaffold",
+    "title": "Scaffold Workflows screen directory structure and screen registry entries",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the `apps/tui/src/screens/Workflows/` directory structure with index barrel exports and register all workflow screen IDs in the screen router registry (`apps/tui/src/router/screens.ts`). Screen IDs to register: `workflow-list`, `workflow-run-list`, `workflow-run-detail`, `workflow-log-viewer`, `workflow-artifacts`, `workflow-caches`. Each screen gets a placeholder component that renders its title and a 'not implemented' message. Wire `g f` go-to keybinding to push `workflow-list` (requires repo context). Wire deep-link `--screen workflows`, `--screen workflow-runs`, `--screen workflow-run`, `--screen workflow-caches` argument parsing.",
+    "dependencies": [
+      "tui-screen-router",
+      "tui-global-keybindings"
+    ],
+    "files": [
+      "apps/tui/src/screens/Workflows/index.ts",
+      "apps/tui/src/screens/Workflows/WorkflowListScreen.tsx",
+      "apps/tui/src/screens/Workflows/WorkflowRunListScreen.tsx",
+      "apps/tui/src/screens/Workflows/WorkflowRunDetailScreen.tsx",
+      "apps/tui/src/screens/Workflows/WorkflowLogViewer.tsx",
+      "apps/tui/src/screens/Workflows/WorkflowArtifactsView.tsx",
+      "apps/tui/src/screens/Workflows/WorkflowCacheView.tsx",
+      "apps/tui/src/router/screens.ts"
+    ],
+    "acceptanceCriteria": [
+      "All 6 workflow screen IDs are registered in the screen registry",
+      "`g f` with repo context navigates to workflow-list screen",
+      "Deep-link `--screen workflows --repo owner/repo` opens workflow list",
+      "Each placeholder screen renders its title and pops on `q`",
+      "Breadcrumb trail renders correctly for each screen"
+    ]
+  },
+  {
+    "id": "tui-workflow-data-hooks",
+    "title": "Implement workflow data hooks adapter for TUI consumption of @codeplane/ui-core",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create or wire the data hooks that TUI workflow screens consume from `@codeplane/ui-core`. Hooks needed: `useWorkflowDefinitions(repo, page, perPage)` → `GET /api/repos/:owner/:repo/workflows`, `useWorkflowRuns(repo, filters)` → `GET /api/repos/:owner/:repo/workflows/runs`, `useWorkflowRunDetail(repo, runId)` → `GET /api/repos/:owner/:repo/workflows/runs/:id`, `useWorkflowRunArtifacts(repo, runId)` → `GET /api/repos/:owner/:repo/actions/runs/:id/artifacts`, `useWorkflowCaches(repo, filters)` → `GET /api/repos/:owner/:repo/caches`, `useWorkflowCacheStats(repo)` → `GET /api/repos/:owner/:repo/caches/stats`, `useDispatchWorkflow(repo, workflowId)` → `POST .../dispatches`, `useWorkflowRunCancel(repo, runId)`, `useWorkflowRunRerun(repo, runId)`, `useWorkflowRunResume(repo, runId)`, `useDeleteWorkflowArtifact(repo, runId, name)`, `useDeleteWorkflowCache(repo, cacheId)`. Each hook returns `{ data, loading, error, mutate/loadMore }` consistent with the existing hook API pattern. Mutation hooks support optimistic updates with rollback.",
+    "dependencies": [
+      "tui-navigation-provider"
+    ],
+    "files": [
+      "apps/tui/src/hooks/useWorkflowDefinitions.ts",
+      "apps/tui/src/hooks/useWorkflowRuns.ts",
+      "apps/tui/src/hooks/useWorkflowRunDetail.ts",
+      "apps/tui/src/hooks/useWorkflowRunArtifacts.ts",
+      "apps/tui/src/hooks/useWorkflowCaches.ts",
+      "apps/tui/src/hooks/useWorkflowActions.ts",
+      "apps/tui/src/hooks/useDispatchWorkflow.ts"
+    ],
+    "acceptanceCriteria": [
+      "All workflow data hooks are implemented and export correct TypeScript types",
+      "Hooks use the APIClientProvider context for auth and base URL",
+      "Mutation hooks implement optimistic update + rollback on error",
+      "Page-based pagination hooks support `page` and `per_page` parameters",
+      "Loading, error, and empty states are correctly tracked",
+      "Memory caps enforced: 300 definitions, 500 runs, 200 artifacts"
+    ]
+  },
+  {
+    "id": "tui-workflow-sse-hooks",
+    "title": "Implement workflow SSE streaming hooks for log streaming and run status events",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create SSE hooks for real-time workflow data. `useWorkflowLogStream(owner, repo, runId)` — connects to `GET /api/repos/:owner/:repo/runs/:id/logs` via SSEProvider with ticket-based auth. Returns `{ logs: Map<stepId, LogLine[]>, steps, runStatus, connectionHealth, reconnect, lastEventId }`. Handles event types: `log` (incremental lines), `status` (step/run status changes), `done` (run completion). Deduplicates replayed log lines by log_id. `useWorkflowRunSSE(owner, repo, runIds)` — lighter SSE hook for run list that listens for status transitions on multiple runs. Implements: ticket acquisition via `POST /api/auth/sse-ticket`, reconnection with exponential backoff (1s→30s cap), `Last-Event-ID` header on reconnect, keep-alive timeout at 45s, max 20 reconnection attempts. Connection cleanup on unmount. Virtual scroll window of 10,000 lines per step with FIFO eviction.",
+    "dependencies": [
+      "tui-theme-provider",
+      "tui-workflow-data-hooks"
+    ],
+    "files": [
+      "apps/tui/src/hooks/useWorkflowLogStream.ts",
+      "apps/tui/src/hooks/useWorkflowRunSSE.ts",
+      "apps/tui/src/hooks/useSSETicket.ts"
+    ],
+    "acceptanceCriteria": [
+      "SSE connection established within 500ms of hook mount",
+      "Log events render incrementally (no buffer-then-flush)",
+      "ANSI color codes in log content preserved for terminal passthrough",
+      "Reconnection uses exponential backoff with 30s cap",
+      "Last-Event-ID sent on reconnect for event replay",
+      "Replayed log lines deduplicated by log_id",
+      "Virtual scroll window caps at 10,000 lines per step with FIFO eviction",
+      "Connection cleaned up on unmount",
+      "connectionHealth exposes 'healthy' | 'degraded' | 'disconnected'"
+    ]
+  },
+  {
+    "id": "tui-workflow-ui-utils",
+    "title": "Create shared workflow UI utilities: status icons, duration formatting, color mapping",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create shared utility module `apps/tui/src/screens/Workflows/utils.ts` with: (1) `getRunStatusIcon(status)` → returns `{ icon: string, color: ThemeToken }` for success(✓/green), failure(✗/red), running(◎/yellow), queued(◌/cyan), cancelled(✕/gray), timeout(⏱/yellow). (2) `getStepStatusIcon(status)` → returns icon/color for success(✓/green), failure(✗/red), running(◎/yellow), pending(◌/gray), skipped(⊘/gray). (3) `formatDuration(seconds | null)` → '45s', '1m 23s', '2h 5m', '—'. (4) `getDurationColor(seconds)` → green(<60), default(60-300), yellow(300-900), red(>900). (5) `formatRelativeTime(timestamp)` → '3d', '1w', '2mo', '1y', 'now', '—'. (6) `getMiniStatusBar(recentRuns[])` → 5-char colored dot string. (7) `formatBytes(bytes)` → '89 B', '345 KB', '2.1 MB', '1.2 GB'. (8) `abbreviateSHA(sha)` → 7-char truncation. (9) `formatRunCount(n)` → K-abbreviation above 999. (10) No-color fallback variants for all icon functions.",
+    "dependencies": [
+      "tui-theme-provider"
+    ],
+    "files": [
+      "apps/tui/src/screens/Workflows/utils.ts",
+      "apps/tui/src/screens/Workflows/types.ts"
+    ],
+    "acceptanceCriteria": [
+      "All status icon mappings match the spec (glyph + ANSI color code)",
+      "Duration formatting handles null, 0, seconds, minutes, hours correctly",
+      "Duration color coding matches spec thresholds",
+      "Mini status bar renders exactly 5 chars with correct colors",
+      "Byte formatting handles B/KB/MB/GB/TB magnitudes",
+      "SHA abbreviation always returns exactly 7 chars",
+      "Run count K-abbreviation activates above 999",
+      "All functions have no-color fallback variants"
+    ]
+  },
+  {
+    "id": "tui-workflow-list-screen",
+    "title": "Implement workflow definition list screen with filtering, search, and mini status bar",
+    "type": "feature",
+    "featureName": "TUI_WORKFLOW_LIST_SCREEN",
+    "description": "Implement the Workflow List screen at `apps/tui/src/screens/Workflows/WorkflowListScreen.tsx`. Full-screen view showing all workflow definitions for the current repository. Title row 'Workflows (N)' with total count. Filter toolbar with active/inactive cycling via `f` (All→Active→Inactive→All) and text search via `/`. Scrollable list with WorkflowRow components showing: active status icon (● green / ○ gray), workflow name, file path (truncated from left), latest run status badge, mini status bar (5 colored dots), trigger type, relative timestamp. Vim navigation (j/k/G/gg/Ctrl+D/Ctrl+U). `Enter` pushes workflow-run-list. `d` opens dispatch confirmation for dispatchable workflows. Page-based pagination (page size 30, 300-item cap). Responsive: 80×24 shows icon+name+badge+minibar only; 120×40 adds path, trigger, timestamp; 200×60+ adds run count and avg duration. Status bar hints: 'j/k:nav Enter:runs d:dispatch f:filter q:back'. Write E2E tests in `e2e/tui/workflows.test.ts` covering all SNAP-WF, KEY-WF, RESP-WF, INT-WF, and EDGE-WF test cases (115 tests total).",
+    "dependencies": [
+      "tui-workflow-screen-scaffold",
+      "tui-workflow-data-hooks",
+      "tui-workflow-ui-utils",
+      "tui-list-component",
+      "tui-modal-component"
+    ],
+    "files": [
+      "apps/tui/src/screens/Workflows/WorkflowListScreen.tsx",
+      "apps/tui/src/screens/Workflows/components/WorkflowRow.tsx",
+      "apps/tui/src/screens/Workflows/components/MiniStatusBar.tsx",
+      "apps/tui/src/screens/Workflows/components/WorkflowFilterToolbar.tsx",
+      "e2e/tui/workflows.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Screen renders between header and status bars with correct breadcrumb",
+      "Workflow definitions fetched via useWorkflowDefinitions() with page-based pagination",
+      "Each row shows: status icon, name, path, latest run badge, mini status bar, trigger, timestamp",
+      "Active/inactive filter cycles via `f` with client-side filtering",
+      "Text search via `/` filters by name and path",
+      "Enter on workflow pushes workflow-run-list with correct context",
+      "`d` opens dispatch confirmation for dispatchable workflows, status bar message for non-dispatchable",
+      "Responsive layout adapts at all 3 breakpoints",
+      "Page-based pagination with 300-item memory cap",
+      "Empty state, loading state, and error state render correctly",
+      "All 115 E2E tests written and validate spec behavior"
+    ]
+  },
+  {
+    "id": "tui-workflow-run-list",
+    "title": "Implement workflow run list with status filtering, animated spinners, and SSE status updates",
+    "type": "feature",
+    "featureName": "TUI_WORKFLOW_RUN_LIST",
+    "description": "Implement the Workflow Run List screen at `apps/tui/src/screens/Workflows/WorkflowRunListScreen.tsx`. Shows all runs for a specific workflow definition. Title row '{workflow_name} › Runs (N)'. Filter toolbar with status cycling via `f` (All→Running→Queued→Success→Failure→Cancelled→Finished→All) — status filter triggers server-side API request with `state` param. Text search via `/` for client-side filtering on trigger ref and commit SHA. Run rows show: status icon (animated ◐◓◑◒ spinner for running at 250ms via useTimeline), run ID (#N), trigger event, trigger ref, commit SHA (7-char), duration (color-coded), relative timestamp. Duration color coding: green <1m, default 1-5m, yellow 5-15m, red >15m. Running run elapsed time updates every 1s via local timer. Actions on focused runs: `Enter` opens run detail, `c` cancel, `r` rerun, `m` resume (immediate optimistic, no confirmation overlay). SSE subscription for real-time status transitions on visible running runs. `Ctrl+R` manual refresh. Page-based pagination (page size 30, 500-item memory cap). Responsive at all 3 breakpoints. Write all SNAP-WFR, KEY-WFR, RESP-WFR, INT-WFR, and EDGE-WFR E2E tests (138 total).",
+    "dependencies": [
+      "tui-workflow-screen-scaffold",
+      "tui-workflow-data-hooks",
+      "tui-workflow-sse-hooks",
+      "tui-workflow-ui-utils",
+      "tui-list-component"
+    ],
+    "files": [
+      "apps/tui/src/screens/Workflows/WorkflowRunListScreen.tsx",
+      "apps/tui/src/screens/Workflows/components/RunRow.tsx",
+      "apps/tui/src/screens/Workflows/components/RunFilterToolbar.tsx",
+      "e2e/tui/workflows.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Screen renders with breadcrumb 'Dashboard > owner/repo > Workflows > {name} > Runs'",
+      "Run list fetched via useWorkflowRuns() with server-side state filtering",
+      "Each row shows: status icon (animated for running), run ID, event, ref, SHA, duration, timestamp",
+      "Status filter cycling via `f` triggers fresh API request and resets pagination",
+      "Running run spinner animates at 250ms (◐◓◑◒) via useTimeline",
+      "Running run elapsed time updates every 1s",
+      "Duration color coding matches spec thresholds",
+      "Cancel/rerun/resume actions execute immediately with optimistic UI and rollback on error",
+      "SSE events update run status inline without manual refresh",
+      "`Ctrl+R` forces page re-fetch",
+      "Page-based pagination with 500-item memory cap",
+      "Responsive layout at all 3 breakpoints",
+      "All 138 E2E tests written"
+    ]
+  },
+  {
+    "id": "tui-workflow-run-detail",
+    "title": "Implement workflow run detail with step list, inline log expansion, and SSE streaming",
+    "type": "feature",
+    "featureName": "TUI_WORKFLOW_RUN_DETAIL",
+    "description": "Implement the Workflow Run Detail screen at `apps/tui/src/screens/Workflows/WorkflowRunDetailScreen.tsx`. Three sections: (1) Metadata header with run status badge (animated for running), workflow name, run #, trigger event/ref, commit SHA, timing info. Elapsed time updates every 1s via useTimeline for active runs. (2) Step list — vertically stacked nodes ordered by position. Each step: status icon, name, duration. `Enter` toggles inline log expansion below step row. `l` opens full-screen log viewer. Steps update in real-time via SSE status events. (3) Inline log panel — when step expanded, logs render below step row with left border, line numbers, ANSI passthrough via `<code>`. SSE log events render incrementally. Auto-follow on by default (toggled with `f`). `e` toggles dispatch inputs section for manually dispatched runs. Confirmation overlays for actions (c/r/R) with spinner during API call. On rerun success, navigates to new run. On resume success, re-establishes SSE. On cancel success, SSE closes. Responsive at all breakpoints.",
+    "dependencies": [
+      "tui-workflow-screen-scaffold",
+      "tui-workflow-data-hooks",
+      "tui-workflow-sse-hooks",
+      "tui-workflow-ui-utils",
+      "tui-detail-view-component",
+      "tui-modal-component"
+    ],
+    "files": [
+      "apps/tui/src/screens/Workflows/WorkflowRunDetailScreen.tsx",
+      "apps/tui/src/screens/Workflows/components/RunHeader.tsx",
+      "apps/tui/src/screens/Workflows/components/StepList.tsx",
+      "apps/tui/src/screens/Workflows/components/StepRow.tsx",
+      "apps/tui/src/screens/Workflows/components/InlineLogPanel.tsx",
+      "apps/tui/src/screens/Workflows/components/DispatchInputsSection.tsx",
+      "apps/tui/src/screens/Workflows/components/ActionConfirmationOverlay.tsx",
+      "e2e/tui/workflows.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Screen renders with breadcrumb ending in '#{run-number}'",
+      "Run metadata header shows status badge, workflow name, run #, trigger info, timing",
+      "Elapsed time updates every 1s for running workflows",
+      "Step list renders all nodes ordered by position with status icons",
+      "Enter toggles inline log expansion with left-border panel below step",
+      "Inline log panel renders lines with line numbers and ANSI passthrough",
+      "SSE log events render incrementally in expanded step",
+      "SSE status events update step statuses and run status in real-time",
+      "Auto-follow scrolls to latest log line (toggleable with `f`)",
+      "`l` opens full-screen log viewer for focused step",
+      "`e` toggles dispatch inputs section for manually dispatched runs",
+      "Action confirmation overlays work with spinner and error handling",
+      "Rerun navigates to new run; resume re-establishes SSE; cancel closes SSE",
+      "Responsive at all 3 breakpoints"
+    ]
+  },
+  {
+    "id": "tui-workflow-log-stream",
+    "title": "Implement full-screen log viewer with SSE streaming, ANSI passthrough, step navigation, and search",
+    "type": "feature",
+    "featureName": "TUI_WORKFLOW_LOG_STREAM",
+    "description": "Implement the full-screen log viewer at `apps/tui/src/screens/Workflows/WorkflowLogViewer.tsx`. Reached via `l` from run detail or deep-link. Layout: step selector bar at top with status badges per step, log scrollbox below. Step selector: `[`/`]` for prev/next step, number keys 1-9 for direct selection. Each step has independent scroll position. Log content: line numbers in gutter (4ch at 80×24, 6ch at 120×40, 8ch at 200×60+), stream indicator column (stdout/stderr, hidden at 80×24 where stderr uses red line number), and log content with ANSI color passthrough. SSE streaming via useWorkflowLogStream: incremental rendering, ticket-based auth, exponential backoff reconnection, Last-Event-ID replay, dedup by log_id. Auto-follow on by default for in-progress runs; toggled via `f`; disabled on manual scroll; re-enabled via `G`. Step badges update via SSE status events (spinner for running at 80ms via useTimeline). Search via `/`: opens input, highlights matches in reverse video, `n`/`N` navigate matches, operates on ANSI-stripped text, case-insensitive. Connection health indicator in status bar (green/yellow/red dot). `R` manual reconnect (debounced 2s). Virtual scrolling for 100K+ lines with 10K-line window. At 80×24: collapsed step selector `[< build >]`. At 200×60+: step durations and byte count. Write all LOG-* E2E tests (97 total).",
+    "dependencies": [
+      "tui-workflow-screen-scaffold",
+      "tui-workflow-sse-hooks",
+      "tui-workflow-ui-utils"
+    ],
+    "files": [
+      "apps/tui/src/screens/Workflows/WorkflowLogViewer.tsx",
+      "apps/tui/src/screens/Workflows/components/StepSelectorBar.tsx",
+      "apps/tui/src/screens/Workflows/components/LogContentPanel.tsx",
+      "apps/tui/src/screens/Workflows/components/LogSearchOverlay.tsx",
+      "e2e/tui/workflows.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "SSE connection established within 500ms of mount with ticket-based auth",
+      "Log lines render incrementally within 16ms of SSE event receipt",
+      "ANSI color codes in log content are passed through to terminal",
+      "Line numbers rendered in muted gutter, stderr distinguished by color/indicator",
+      "Step selector bar shows all steps with status badges that update via SSE",
+      "`[`/`]` navigate steps with independent scroll positions preserved",
+      "Auto-follow enabled by default; disabled on manual scroll; toggled with `f`; re-enabled with `G`",
+      "Search (`/`) highlights matches, `n`/`N` navigate, operates on ANSI-stripped text",
+      "Reconnection with exponential backoff + Last-Event-ID replay + dedup",
+      "Connection health shown in status bar as colored dot",
+      "Virtual scrolling supports 100K+ lines with 10K window",
+      "Responsive at all 3 breakpoints with step selector adaptation",
+      "All 97 LOG-* E2E tests written"
+    ]
+  },
+  {
+    "id": "tui-workflow-actions",
+    "title": "Implement cancel/rerun/resume action system with confirmation overlays and optimistic updates",
+    "type": "feature",
+    "featureName": "TUI_WORKFLOW_ACTIONS",
+    "description": "Implement the cross-cutting workflow action system that serves both the run detail and run list screens. Two interaction models: (1) On run detail: `c` cancel (running/queued), `r` rerun (terminal states), `R` resume (cancelled/failed) — each opens a confirmation overlay with action label, run #, workflow name, Confirm/Cancel buttons. Spinner during API call. Error displayed inline in overlay with retry option. On success: cancel→status transitions to cancelled + SSE closes; rerun→navigate to new run; resume→SSE re-establishes. (2) On run list: `c` cancel, `r` rerun, `m` resume — immediate optimistic update without confirmation overlay. Optimistic state reverts with 200ms red flash on API error. State gating: pressing action key in incompatible state shows 3s auto-dismiss status bar message. Permission gating: read-only users see dimmed hints, get 'Permission denied' on action. Handle 403 (permission denied), 409 (state conflict), 404 (not found), 429 (rate limit). Responsive confirmation overlays: 90% at 80×24, 40% at 120×40, 35% at 200×60+. SSE status event during open overlay updates state; if incompatible, overlay shows 'Run state changed' and dismisses.",
+    "dependencies": [
+      "tui-workflow-run-detail",
+      "tui-workflow-run-list",
+      "tui-workflow-data-hooks",
+      "tui-modal-component"
+    ],
+    "files": [
+      "apps/tui/src/screens/Workflows/components/ActionConfirmationOverlay.tsx",
+      "apps/tui/src/screens/Workflows/hooks/useWorkflowAction.ts",
+      "apps/tui/src/screens/Workflows/hooks/useOptimisticRunAction.ts",
+      "e2e/tui/workflows.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Cancel/rerun/resume available from both run detail (with confirmation) and run list (optimistic)",
+      "Actions call correct API endpoints: POST .../cancel, .../rerun, .../resume",
+      "State gating enforced: cancel only running/queued, rerun only terminal, resume only cancelled/failed",
+      "Invalid state press shows descriptive 3s status bar message",
+      "Permission gating: dimmed hints for read-only, 'Permission denied' on action",
+      "Confirmation overlay shows action label, run #, workflow name, Confirm/Cancel buttons",
+      "Spinner during API call replaces Confirm button text",
+      "Error handling: 403, 409, 404, 429 responses handled with user-visible messages",
+      "On rerun success, new run ID returned and navigated to on detail screen",
+      "Optimistic updates on run list revert with 200ms red flash on error",
+      "SSE status event during open overlay triggers state reconciliation"
+    ]
+  },
+  {
+    "id": "tui-workflow-dispatch",
+    "title": "Implement workflow dispatch modal with dynamic form, ref selector, and input type resolution",
+    "type": "feature",
+    "featureName": "TUI_WORKFLOW_DISPATCH",
+    "description": "Implement the workflow dispatch overlay at `apps/tui/src/screens/Workflows/components/DispatchOverlay.tsx`. Triggered by `d` on a dispatchable workflow in the workflow list. Centered modal with border in primary color, surface background. Header: 'Dispatch Workflow' bold primary + workflow name. Ref input pre-populated with 'main'. Dynamic form fields from workflow's `on.workflow_dispatch.inputs` config: string inputs → `<input>`, boolean inputs → `[true]`/`[false]` toggle (Space/Enter), choice inputs → `<select>` dropdown (j/k navigate, Enter select). Input fields show label (key name), pre-filled default value, and muted description text. Tab order: Ref → inputs → Dispatch → Cancel. `Ctrl+S` or Enter on Dispatch submits. `Esc` or Enter on Cancel dismisses. During submission: 'Dispatching...' + spinner, fields non-interactive, double-submit prevention. On 204 success: overlay closes, status bar flashes 'Workflow dispatched ✓' green 3s, run summaries refresh. Error responses (400/403/404/409/429/network) show inline red error. On 401: overlay closes → auth error screen. Ref validation: no `..`, no control chars, no leading/trailing slashes, max 255 chars. Input values max 1000 chars. Max 20 rendered inputs. `d` on non-dispatchable: status bar 'Workflow does not support manual dispatch'. `d` without write access: status bar 'Permission denied'. Responsive: 90% at 80×24, 50% at standard/large. Focus trap in overlay. Write all SNAP-WFD, KEY-WFD, RESP-WFD, INT-WFD, EDGE-WFD tests (76 total).",
+    "dependencies": [
+      "tui-workflow-list-screen",
+      "tui-workflow-data-hooks",
+      "tui-form-component",
+      "tui-modal-component"
+    ],
+    "files": [
+      "apps/tui/src/screens/Workflows/components/DispatchOverlay.tsx",
+      "apps/tui/src/screens/Workflows/components/DispatchFormFields.tsx",
+      "apps/tui/src/screens/Workflows/hooks/useDispatchForm.ts",
+      "e2e/tui/workflows.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "`d` on dispatchable workflow opens centered dispatch modal overlay",
+      "`d` on non-dispatchable shows status bar message, no overlay",
+      "`d` without write access shows 'Permission denied'",
+      "Ref input pre-populated with 'main', editable, validates against patterns",
+      "Dynamic form fields render based on workflow config input types",
+      "Boolean inputs toggle between [true]/[false] on Space/Enter",
+      "Choice inputs render as select dropdown with j/k/Enter interaction",
+      "Tab/Shift+Tab navigates form fields in correct order",
+      "Ctrl+S submits from any field; Enter on Dispatch button submits",
+      "During submission: spinner, disabled fields, double-submit prevention",
+      "Success: overlay closes, status bar flash, run summaries refresh",
+      "Error responses handled inline within overlay",
+      "Focus trapped within overlay; global keys suppressed",
+      "Responsive sizing at all breakpoints",
+      "All 76 dispatch E2E tests written"
+    ]
+  },
+  {
+    "id": "tui-workflow-artifacts-view",
+    "title": "Implement artifact browser with detail overlay, download delegation, and delete confirmation",
+    "type": "feature",
+    "featureName": "TUI_WORKFLOW_ARTIFACTS_VIEW",
+    "description": "Implement the Workflow Artifacts View at `apps/tui/src/screens/Workflows/WorkflowArtifactsView.tsx`. Full-screen view of artifacts for a specific workflow run, reached via `a` from run detail. Title row 'Artifacts (N)' with total combined size. Filter toolbar with status cycling (All→Ready→Pending→Expired) via `f`, sort cycling (created/name/size in asc/desc) via `s`, and text search via `/`. Artifact rows: status icon (● ready/green, ◎ pending/yellow, ○ expired/gray), name, content type, size (human-readable via formatBytes), expiration countdown, release indicator (📎), created timestamp. `Enter` opens detail overlay (60%×50% modal with full metadata: name, type, size in raw+formatted, status, created/confirmed/expires timestamps, GCS path truncated, release attachment details). `D` (shift+d) initiates download via CLI delegation (`codeplane artifact download`), shows progress in status bar. `x` opens delete confirmation overlay (40%×25%, error border, 'Are you sure?' prompt). Delete: optimistic removal, `DELETE /api/repos/:owner/:repo/actions/runs/:id/artifacts/:name`. No pagination (all loaded at once, 200-item cap). Responsive at all breakpoints. Write all SNAP-ART, KEY-ART, RESP-ART, INT-ART, EDGE-ART tests (122 total).",
+    "dependencies": [
+      "tui-workflow-run-detail",
+      "tui-workflow-data-hooks",
+      "tui-workflow-ui-utils",
+      "tui-list-component",
+      "tui-modal-component"
+    ],
+    "files": [
+      "apps/tui/src/screens/Workflows/WorkflowArtifactsView.tsx",
+      "apps/tui/src/screens/Workflows/components/ArtifactRow.tsx",
+      "apps/tui/src/screens/Workflows/components/ArtifactDetailOverlay.tsx",
+      "apps/tui/src/screens/Workflows/components/ArtifactDeleteConfirmation.tsx",
+      "apps/tui/src/screens/Workflows/components/ArtifactFilterToolbar.tsx",
+      "e2e/tui/workflows.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Screen reachable via `a` from run detail, shows correct breadcrumb",
+      "Title shows 'Artifacts (N)' with total combined size",
+      "Artifact rows show: status icon, name, content type, size, expiration, release indicator, timestamp",
+      "Status filter (f) and sort (s) cycling work with client-side filtering",
+      "Enter opens detail overlay with full metadata including release attachment info",
+      "D initiates download via CLI delegation with status bar progress",
+      "x opens delete confirmation; Enter confirms; Esc cancels",
+      "Delete is optimistic with rollback on error",
+      "Pending/expired artifacts block download with appropriate messages",
+      "Responsive at all breakpoints (columns adapt)",
+      "Empty state, loading state, error state render correctly",
+      "All 122 artifact E2E tests written"
+    ]
+  },
+  {
+    "id": "tui-workflow-cache-view",
+    "title": "Implement cache management screen with statistics banner, filters, single/bulk delete",
+    "type": "feature",
+    "featureName": "TUI_WORKFLOW_CACHE_VIEW",
+    "description": "Implement the Workflow Cache View at `apps/tui/src/screens/Workflows/WorkflowCacheView.tsx`. Repository-level screen reached via `a` from workflow list, `:caches` command palette, or `--screen workflow-caches` deep-link. Layout: (1) Statistics banner showing cache count, total storage (formatBytes), repo quota with visual usage bar (Unicode block chars ████░░ with percentage), max archive size, TTL, last hit timestamp. Usage bar color: default <90%, yellow ≥90%, red =100%. (2) Filter bar with bookmark filter (`b`), key filter (`f`), text search (`/`), clear all filters (`x`), sort indicator. Active filters shown as pills. (3) Scrollable cache list with rows: status icon (✓ finalized/green, ◌ pending/yellow), cache key, bookmark name, size, hit count, last hit, expiration. `Enter` expands inline detail. `d` single-cache delete with confirmation overlay. `D` bulk-clear all matching filters with confirmation showing count/size. `s` sort cycling (created/last hit/size/hits). `R` manual refresh. Page-based pagination (30 per page, 500 total cap). Responsive at all breakpoints (stats banner adapts from 1 to 3 lines).",
+    "dependencies": [
+      "tui-workflow-screen-scaffold",
+      "tui-workflow-data-hooks",
+      "tui-workflow-ui-utils",
+      "tui-list-component",
+      "tui-modal-component"
+    ],
+    "files": [
+      "apps/tui/src/screens/Workflows/WorkflowCacheView.tsx",
+      "apps/tui/src/screens/Workflows/components/CacheStatsBanner.tsx",
+      "apps/tui/src/screens/Workflows/components/CacheRow.tsx",
+      "apps/tui/src/screens/Workflows/components/CacheFilterBar.tsx",
+      "apps/tui/src/screens/Workflows/components/CacheDetailPanel.tsx",
+      "apps/tui/src/screens/Workflows/components/CacheDeleteConfirmation.tsx",
+      "e2e/tui/workflows.test.ts"
+    ],
+    "acceptanceCriteria": [
+      "Screen reachable via `a` from workflow list, `:caches` command palette, and deep-link",
+      "Statistics banner shows cache count, storage used/quota, usage bar with percentage, TTL, last hit",
+      "Usage bar renders with correct colors based on usage percentage",
+      "Filter bar supports bookmark filter (`b`), key filter (`f`), search (`/`), clear all (`x`)",
+      "Active filters displayed as pills with clear individual/all options",
+      "Cache rows show: status icon, key, bookmark, size, hits, last hit, expiration",
+      "Enter expands inline detail for focused cache entry",
+      "`d` single-cache delete with confirmation overlay",
+      "`D` bulk-clear with confirmation showing count and total size of matching caches",
+      "`s` cycles sort order (created/last hit/size/hits)",
+      "Pagination with 30 per page, 500 total cap",
+      "Responsive: stats banner adapts from 1 line (80×24) to 3 lines (200×60+)",
+      "Empty state, loading state, error state render correctly"
+    ]
+  }
+]

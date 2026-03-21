@@ -1,0 +1,480 @@
+[
+  {
+    "id": "tui-navigation-provider",
+    "title": "Implement NavigationProvider with stack-based screen routing and context",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the NavigationProvider that manages the screen navigation stack consumed by the ScreenRouter, HeaderBar breadcrumbs, and all go-to/deep-link features. (1) providers/NavigationProvider.tsx: React context providing push(screen, params), pop(), replace(screen, params), reset(screen, params), canPop(), stack (read-only), current (top of stack). (2) router/types.ts: ScreenEntry type { id: string, params?: Record<string, string> }, NavigationContextType interface. (3) Stack model: array of ScreenEntry, max depth 32, oldest entry dropped on overflow, push deduplicates consecutive identical screens. (4) push() adds to stack, pop() removes top (no-op on root), replace() swaps top, reset() clears to single entry. (5) useNavigation() consumer hook. (6) Stack is not persisted across TUI restarts. (7) All operations are synchronous and trigger re-render.",
+    "acceptanceCriteria": [
+      "NavigationProvider wraps children with navigation context",
+      "useNavigation() hook returns push, pop, replace, reset, canPop, stack, current",
+      "push() adds ScreenEntry to stack with params",
+      "pop() removes top entry, no-op when stack has single entry",
+      "replace() swaps top entry",
+      "reset() clears stack to single entry",
+      "Max stack depth of 32 enforced, oldest dropped on overflow",
+      "Consecutive duplicate screens deduplicated on push",
+      "ScreenEntry type defined with id and optional params",
+      "All operations synchronous"
+    ],
+    "implementationFiles": [
+      "apps/tui/src/providers/NavigationProvider.tsx",
+      "apps/tui/src/router/types.ts",
+      "apps/tui/src/hooks/useNavigation.ts"
+    ],
+    "dependencies": [],
+    "estimatedEffort": "M"
+  },
+  {
+    "id": "tui-screen-registry",
+    "title": "Implement screen registry mapping screen IDs to React components",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the screen registry that maps screen IDs to their React component and metadata. (1) router/screens.ts: frozen record mapping screen ID strings to { component: React.ComponentType, title: string, requiresRepo?: boolean, requiresOrg?: boolean }. Initial registry includes placeholder components for all 15 screens: dashboard, repo-list, repo-detail, issues, issue-detail, landings, landing-detail, diff, workspaces, workflows, search, notifications, agents, settings, organizations, sync, wiki. (2) Placeholder screen component: centered text showing screen name + params, used until real screens are implemented. (3) getScreen(id) lookup function with undefined return for unknown IDs. (4) getAllScreenIds() for command palette integration. (5) Screen IDs are string literals, not enums, for extensibility.",
+    "acceptanceCriteria": [
+      "Screen registry maps all 15+ screen IDs to component and metadata",
+      "Each entry includes component, title, requiresRepo, requiresOrg flags",
+      "Placeholder components render screen name and params for unimplemented screens",
+      "getScreen(id) returns screen entry or undefined",
+      "getAllScreenIds() returns all registered screen IDs",
+      "Registry is frozen at module load",
+      "Screen IDs are string literals"
+    ],
+    "implementationFiles": [
+      "apps/tui/src/router/screens.ts",
+      "apps/tui/src/screens/PlaceholderScreen.tsx"
+    ],
+    "dependencies": [
+      "tui-navigation-provider"
+    ],
+    "estimatedEffort": "S"
+  },
+  {
+    "id": "tui-screen-router",
+    "title": "Implement ScreenRouter component that renders current screen from navigation stack",
+    "type": "feature",
+    "featureName": "TUI_SCREEN_ROUTER",
+    "description": "Implement the ScreenRouter per TUI_SCREEN_ROUTER.md. (1) router/ScreenRouter.tsx: reads current screen from NavigationProvider context, looks up component in screen registry, renders component with params as props, wraps in error boundary per-screen. (2) Screen transitions: unmounts previous screen, mounts new screen, no animation, target <50ms. (3) Unknown screen ID: renders error message with 'Press q to go back' hint. (4) Empty stack guard: pushes dashboard as default. (5) Each screen component receives { params, navigation } props. (6) Screen key prop ensures full unmount/remount on navigation. (7) Integration with AppShell: ScreenRouter is the content area child between HeaderBar and StatusBar.",
+    "acceptanceCriteria": [
+      "ScreenRouter renders the component for the current top-of-stack screen",
+      "Screen transitions complete in under 50ms",
+      "Unknown screen ID shows error with back hint",
+      "Empty stack defaults to dashboard",
+      "Screen components receive params and navigation props",
+      "Previous screen fully unmounts on navigation",
+      "Per-screen error boundary isolates crashes",
+      "ScreenRouter integrates as content area in AppShell layout"
+    ],
+    "implementationFiles": [
+      "apps/tui/src/router/ScreenRouter.tsx"
+    ],
+    "testFile": "e2e/tui/app-shell.test.ts",
+    "dependencies": [
+      "tui-navigation-provider",
+      "tui-screen-registry",
+      "tui-bootstrap-and-renderer"
+    ],
+    "estimatedEffort": "M"
+  },
+  {
+    "id": "tui-header-bar",
+    "title": "Implement HeaderBar with breadcrumb trail, repo context, and status badges",
+    "type": "feature",
+    "featureName": "TUI_HEADER_BAR",
+    "description": "Implement the header bar per TUI_HEADER_BAR.md. (1) components/HeaderBar.tsx: single-row fixed-height component with three sections in a flexbox row. (2) Left section — breadcrumb trail: renders navigation stack as 'Screen > Screen > Screen' with ' > ' separators (muted color), current screen in primary/bold, previous screens in muted, truncates from left when width exceeds 40% of terminal width (shows '… > Parent > Current'). (3) Center section — repository context: shows 'owner/repo' when a repo-context screen is active, 'owner/repo#number' for issue/landing detail, omitted when no repo context, muted color. (4) Right section — connection status indicator (● green connected, ● yellow syncing, ● red disconnected) and notification badge (unread count in parentheses, primary color when >0, muted when 0, hidden when 0 at minimum breakpoint). (5) Responsive: at minimum breakpoint, center section hidden, breadcrumb allows 60% width. (6) Border: bottom single-line border in border color token.",
+    "acceptanceCriteria": [
+      "Header bar renders as single fixed row at top of screen",
+      "Breadcrumb trail shows navigation stack with > separators",
+      "Current screen name in primary color and bold",
+      "Previous screens in muted color",
+      "Breadcrumb truncates from left with … prefix when too wide",
+      "Repository context shown in center when applicable",
+      "Connection status indicator with color-coded dot",
+      "Notification badge shows unread count",
+      "Bottom border in border color token",
+      "Center section hidden at minimum breakpoint",
+      "Notification badge hidden when 0 at minimum breakpoint"
+    ],
+    "implementationFiles": [
+      "apps/tui/src/components/HeaderBar.tsx"
+    ],
+    "testFile": "e2e/tui/app-shell.test.ts",
+    "dependencies": [
+      "tui-navigation-provider",
+      "tui-theme-and-color-tokens",
+      "tui-bootstrap-and-renderer"
+    ],
+    "estimatedEffort": "M"
+  },
+  {
+    "id": "tui-status-bar",
+    "title": "Implement StatusBar with keybinding hints, sync status, and notification count",
+    "type": "feature",
+    "featureName": "TUI_STATUS_BAR",
+    "description": "Implement the status bar per TUI_STATUS_BAR.md. (1) components/StatusBar.tsx: single-row fixed-height component at bottom of screen with three sections. (2) Left section — context-sensitive keybinding hints: shows 3-5 most relevant keybindings for the current screen as 'key:action' pairs separated by spaces (e.g., 'j/k:navigate  Enter:open  /:search  ?:help'), muted color for keys, default for actions. Hints change based on active screen, overlay state, and go-to mode. During go-to mode, replaces hints with 'g + …' showing available destinations. (3) Center section — sync status: text label with icon showing daemon sync state (✓ Connected in success, ⟳ Syncing in warning with spinner, ✗ Disconnected in error, ⚡ Conflict in warning). (4) Right section — notification count: bell icon + unread count ('🔔 3'), primary color when >0, muted when 0. Updates in real-time via SSE. (5) Top border in border color. (6) Responsive: at minimum breakpoint, show max 3 hint pairs and abbreviate sync label.",
+    "acceptanceCriteria": [
+      "Status bar renders as single fixed row at bottom of screen",
+      "Left section shows context-sensitive keybinding hints",
+      "Hints update when active screen changes",
+      "Go-to mode replaces hints with destination list",
+      "Center section shows sync status with color-coded icon",
+      "Sync states: connected (green), syncing (yellow+spinner), disconnected (red), conflict (yellow)",
+      "Right section shows notification count with bell icon",
+      "Notification count updates in real-time via SSE context",
+      "Top border in border color token",
+      "Minimum breakpoint shows max 3 hints and abbreviated sync"
+    ],
+    "implementationFiles": [
+      "apps/tui/src/components/StatusBar.tsx"
+    ],
+    "testFile": "e2e/tui/app-shell.test.ts",
+    "dependencies": [
+      "tui-theme-and-color-tokens",
+      "tui-bootstrap-and-renderer",
+      "tui-navigation-provider"
+    ],
+    "estimatedEffort": "M"
+  },
+  {
+    "id": "tui-modal-component",
+    "title": "Implement Modal overlay component with focus trap and dismiss behavior",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the shared Modal component used by CommandPalette, HelpOverlay, and confirmation dialogs. (1) components/Modal.tsx: absolutely positioned box centered on screen with configurable width/height (percentage or absolute), single-line border in border color, surface background color, renders children inside bordered container. (2) Focus trap: keyboard events captured by modal, not propagated to underlying screen. (3) Dismiss: Esc closes modal, calls onDismiss callback. (4) Responsive sizing: accepts breakpoint-aware width/height props (e.g., { minimum: '90%', standard: '60%', large: '50%' }). (5) Optional title bar row at top of modal with centered title text. (6) Overlay does not unmount underlying screen (screen stays rendered but unfocused). (7) useModal() hook: { isOpen, open(content), close() } for imperative control.",
+    "acceptanceCriteria": [
+      "Modal renders centered overlay on top of screen content",
+      "Single-line border in border color token",
+      "Surface background color applied",
+      "Esc dismisses modal and calls onDismiss",
+      "Focus trapped within modal — keys don't reach underlying screen",
+      "Width and height accept responsive breakpoint values",
+      "Optional title bar renders at top",
+      "Underlying screen stays mounted but unfocused",
+      "useModal() hook provides isOpen, open, close"
+    ],
+    "implementationFiles": [
+      "apps/tui/src/components/Modal.tsx",
+      "apps/tui/src/hooks/useModal.ts"
+    ],
+    "dependencies": [
+      "tui-theme-and-color-tokens",
+      "tui-bootstrap-and-renderer"
+    ],
+    "estimatedEffort": "M"
+  },
+  {
+    "id": "tui-list-component",
+    "title": "Implement reusable ListComponent with vim-style keyboard navigation",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the shared ListComponent used across all list screens (issues, repos, landings, notifications, etc.). (1) components/ListComponent.tsx: scrollbox-wrapped vertical list with focused row highlighting (reverse video or accent background). Props: items array, renderItem function, onSelect callback, onMultiSelect callback, emptyMessage. (2) hooks/useKeyboardNavigation.ts: j/Down move cursor down, k/Up move cursor up, G jump to bottom, gg jump to top, Ctrl+D page down, Ctrl+U page up, Enter select focused item, Space toggle multi-select. Returns { focusedIndex, setFocusedIndex, handlers }. (3) Pagination: onEndReached callback fires when scroll reaches 80% of content, shows InlineLoading at bottom during fetch. (4) hooks/useListSelection.ts: multi-select state with Space toggle, selectedIds set, selectAll, clearSelection. (5) Empty state: centered muted message when items array is empty. (6) Keyboard navigation only active when list has focus (not during search input).",
+    "acceptanceCriteria": [
+      "ListComponent renders scrollable vertical list of items",
+      "j/Down moves cursor down, k/Up moves cursor up",
+      "G jumps to bottom, gg jumps to top of list",
+      "Ctrl+D pages down, Ctrl+U pages up",
+      "Enter triggers onSelect with focused item",
+      "Space toggles multi-select on focused item",
+      "Focused row visually highlighted",
+      "onEndReached fires at 80% scroll for pagination",
+      "Empty state shows centered muted message",
+      "useKeyboardNavigation hook reusable independently",
+      "useListSelection hook tracks multi-select state",
+      "Navigation inactive when search input has focus"
+    ],
+    "implementationFiles": [
+      "apps/tui/src/components/ListComponent.tsx",
+      "apps/tui/src/hooks/useKeyboardNavigation.ts",
+      "apps/tui/src/hooks/useListSelection.ts"
+    ],
+    "dependencies": [
+      "tui-theme-and-color-tokens",
+      "tui-bootstrap-and-renderer"
+    ],
+    "estimatedEffort": "L"
+  },
+  {
+    "id": "tui-detail-view-component",
+    "title": "Implement reusable DetailView with scrollable sections",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the shared DetailView component used for issue detail, landing detail, workspace detail, etc. (1) components/DetailView.tsx: scrollbox-wrapped vertical layout with gap between sections. Props: header (ReactNode), sections array of { title: string, content: ReactNode }, footer (ReactNode). (2) Section rendering: title in bold with underline separator, content below. (3) Scrolling: j/k scroll content, Ctrl+D/Ctrl+U page scroll. (4) Section jumping: Tab/Shift+Tab cycles between sections, number keys 1-9 jump to section by index. (5) Back navigation: q pops screen. (6) Integrates with markdown and code components from OpenTUI for rich content rendering.",
+    "acceptanceCriteria": [
+      "DetailView renders scrollable vertical layout with sections",
+      "Each section has bold title with underline separator",
+      "j/k scrolls content within view",
+      "Ctrl+D/Ctrl+U pages through content",
+      "Tab/Shift+Tab cycles between sections",
+      "Number keys 1-9 jump to section by index",
+      "q triggers back navigation",
+      "Header and footer areas supported",
+      "Sections accept arbitrary ReactNode content"
+    ],
+    "implementationFiles": [
+      "apps/tui/src/components/DetailView.tsx"
+    ],
+    "dependencies": [
+      "tui-theme-and-color-tokens",
+      "tui-bootstrap-and-renderer"
+    ],
+    "estimatedEffort": "M"
+  },
+  {
+    "id": "tui-form-component",
+    "title": "Implement reusable FormComponent with tab navigation and validation",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the shared FormComponent used for issue create, landing create, settings edit, etc. (1) components/FormComponent.tsx: vertical layout of form fields with Tab/Shift+Tab navigation between fields. Props: fields array of { type: 'input'|'textarea'|'select', label, name, value, options?, required?, validation? }, onSubmit, onCancel. (2) Field types: input (single-line text via OpenTUI <input>), textarea (multi-line via OpenTUI <input> with multiline), select (dropdown via OpenTUI <select>). (3) hooks/useFormNavigation.ts: Tab moves to next field, Shift+Tab to previous, Enter on submit button submits, Ctrl+S submits from anywhere, Esc cancels. (4) Validation: required field check on submit, custom validation function per field, error message shown below field in error color. (5) Submit/Cancel buttons at bottom. (6) Focused field highlighted with primary color border. (7) Dirty state tracking for unsaved changes warning.",
+    "acceptanceCriteria": [
+      "FormComponent renders vertical list of labeled form fields",
+      "Tab/Shift+Tab cycles between fields",
+      "Enter on submit button triggers onSubmit",
+      "Ctrl+S submits from any field",
+      "Esc triggers onCancel",
+      "Input, textarea, and select field types supported",
+      "Required field validation on submit",
+      "Custom validation function per field",
+      "Validation errors shown below field in error color",
+      "Focused field highlighted with primary color border",
+      "useFormNavigation hook reusable independently",
+      "Dirty state tracked for unsaved changes"
+    ],
+    "implementationFiles": [
+      "apps/tui/src/components/FormComponent.tsx",
+      "apps/tui/src/hooks/useFormNavigation.ts"
+    ],
+    "dependencies": [
+      "tui-theme-and-color-tokens",
+      "tui-bootstrap-and-renderer"
+    ],
+    "estimatedEffort": "L"
+  },
+  {
+    "id": "tui-responsive-layout",
+    "title": "Implement responsive layout system with breakpoints, sidebar toggle, and size adaptations",
+    "type": "feature",
+    "featureName": "TUI_RESPONSIVE_LAYOUT",
+    "description": "Implement responsive layout per TUI_RESPONSIVE_LAYOUT.md. (1) hooks/useBreakpoint.ts: reads terminal dimensions via useTerminalDimensions() from @opentui/react, classifies into breakpoints: 'unsupported' (<80x24), 'minimum' (80x24–119x39), 'standard' (120x40–199x59), 'large' (200x60+). Re-evaluates on resize via useOnResize(). (2) hooks/useResponsiveValue.ts: useResponsiveValue({ minimum: val1, standard: val2, large: val3 }) returns value for current breakpoint. (3) Sidebar toggle: Ctrl+B toggles sidebar visibility, sidebar at 25% width in standard/large, hidden at minimum, state persisted in React state. (4) 'Terminal too small' screen: when unsupported, render centered message showing current dimensions and minimum required, auto-restores when resized above threshold. (5) List column adaptation: minimum shows title+status only, standard shows all columns, large shows expanded metadata. (6) Modal sizing: minimum 90%, standard 60%, large 50%. (7) Diff view: minimum forces unified only, standard/large allow split toggle.",
+    "acceptanceCriteria": [
+      "useBreakpoint() returns current breakpoint name based on terminal size",
+      "Four breakpoints: unsupported, minimum, standard, large",
+      "Breakpoint re-evaluated on terminal resize",
+      "useResponsiveValue() returns breakpoint-appropriate value",
+      "Ctrl+B toggles sidebar visibility",
+      "Sidebar 25% width at standard/large, hidden at minimum",
+      "Terminal too small message shown below 80x24",
+      "Auto-restore layout when resized above minimum",
+      "List views adapt columns per breakpoint",
+      "Modal width adapts per breakpoint",
+      "Diff forced to unified at minimum breakpoint"
+    ],
+    "implementationFiles": [
+      "apps/tui/src/hooks/useBreakpoint.ts",
+      "apps/tui/src/hooks/useResponsiveValue.ts",
+      "apps/tui/src/components/TerminalTooSmall.tsx"
+    ],
+    "testFile": "e2e/tui/app-shell.test.ts",
+    "dependencies": [
+      "tui-bootstrap-and-renderer",
+      "tui-theme-and-color-tokens"
+    ],
+    "estimatedEffort": "M"
+  },
+  {
+    "id": "tui-global-keybindings",
+    "title": "Implement global keybinding system with scope management and KeybindingProvider",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the KeybindingProvider and global keybinding infrastructure consumed by all screens. (1) providers/KeybindingProvider.tsx: manages keybinding scopes (global, screen, overlay), resolves key events through priority layers (text input → modal → go-to mode → screen → global), provides registerKeybinding/unregisterKeybinding via context. (2) hooks/useGlobalKeybindings.ts: registers the always-active global keybindings — ? (toggle help), : (open command palette), q (pop screen / quit on root), Esc (close overlay or same as q), Ctrl+C (immediate quit). (3) Keybinding registration: { key: string, scope: 'global'|'screen'|'overlay', handler: () => void, description: string, when?: () => boolean }. (4) Scope priority: overlay > screen > global. (5) Input suppression: when a text input has focus, single-character keybindings are suppressed (only Ctrl/Esc/Enter reach the keybinding system). (6) useKeybindings() consumer hook for screen-specific bindings.",
+    "acceptanceCriteria": [
+      "KeybindingProvider manages scoped keybinding registration",
+      "Global keybindings active on every screen: ?, :, q, Esc, Ctrl+C",
+      "Scope priority: overlay > screen > global",
+      "Text input suppresses single-character keybindings",
+      "Ctrl and Esc keys always reach keybinding system",
+      "registerKeybinding/unregisterKeybinding available via context",
+      "Keybindings include description for help overlay integration",
+      "useKeybindings() hook for screen-specific registration",
+      "q pops screen, quits on root dashboard",
+      "Ctrl+C triggers immediate process exit"
+    ],
+    "implementationFiles": [
+      "apps/tui/src/providers/KeybindingProvider.tsx",
+      "apps/tui/src/hooks/useGlobalKeybindings.ts",
+      "apps/tui/src/hooks/useKeybindings.ts"
+    ],
+    "dependencies": [
+      "tui-bootstrap-and-renderer",
+      "tui-navigation-provider"
+    ],
+    "estimatedEffort": "L"
+  },
+  {
+    "id": "tui-goto-keybindings",
+    "title": "Implement go-to mode with g-prefix two-key chord navigation",
+    "type": "feature",
+    "featureName": "TUI_GOTO_KEYBINDINGS",
+    "description": "Implement go-to keybindings per TUI_GOTO_KEYBINDINGS.md. (1) Go-to mode activation: pressing g enters go-to mode, status bar updates to show available destinations, 1500ms timeout auto-cancels if no second key pressed. (2) Destination map: gd→Dashboard, gi→Issues (requires repo), gl→Landings (requires repo), gr→Repository list, gw→Workspaces, gn→Notifications, gs→Search, ga→Agents, go→Organizations, gf→Workflows (requires repo), gk→Wiki (requires repo). (3) Context validation: destinations marked requiresRepo only navigate when repo context exists in current screen params, otherwise show transient status bar warning 'No repository context' for 2s. (4) Navigation: successful go-to pushes target screen onto navigation stack. (5) Cancel: Esc or timeout cancels go-to mode, restores normal status bar. (6) gg special case: when in a list, gg jumps to top of list (not go-to mode); when not in a list context, g then g within timeout is ignored. (7) Integration with KeybindingProvider at global scope.",
+    "acceptanceCriteria": [
+      "Pressing g activates go-to mode",
+      "Status bar shows available go-to destinations during go-to mode",
+      "1500ms timeout cancels go-to mode",
+      "gd navigates to Dashboard",
+      "gi navigates to Issues when repo context exists",
+      "gl navigates to Landings when repo context exists",
+      "gr navigates to Repository list",
+      "gw navigates to Workspaces",
+      "gn navigates to Notifications",
+      "gs navigates to Search",
+      "ga navigates to Agents",
+      "go navigates to Organizations",
+      "gf navigates to Workflows when repo context exists",
+      "gk navigates to Wiki when repo context exists",
+      "Repo-required destinations show warning when no repo context",
+      "Esc cancels go-to mode",
+      "gg in list context jumps to top (not go-to)"
+    ],
+    "implementationFiles": [
+      "apps/tui/src/hooks/useGotoMode.ts"
+    ],
+    "testFile": "e2e/tui/app-shell.test.ts",
+    "dependencies": [
+      "tui-global-keybindings",
+      "tui-navigation-provider",
+      "tui-screen-registry",
+      "tui-status-bar"
+    ],
+    "estimatedEffort": "M"
+  },
+  {
+    "id": "tui-command-palette",
+    "title": "Implement CommandPalette overlay with fuzzy search and command execution",
+    "type": "feature",
+    "featureName": "TUI_COMMAND_PALETTE",
+    "description": "Implement the command palette per TUI_COMMAND_PALETTE.md. (1) components/CommandPalette.tsx: modal overlay activated by : keybinding, renders centered modal (60% width standard, 90% minimum), contains search input at top and scrollable result list below. (2) Search input: text input with auto-focus, fuzzy matching against command titles and aliases, results update on every keystroke, debounced at 16ms. (3) Result list: ranked by match score, shows command title + optional description + keybinding hint (muted), j/k or arrows navigate results, Enter executes selected command, max 15 visible results with scroll. (4) Command sources: navigation targets (all screens from registry), go-to shortcuts, screen-specific actions (fetched from current screen's registered commands). (5) Context-sensitive: commands requiring repo context shown but disabled (muted) when no repo context. (6) Dismiss: Esc closes palette, clears input. (7) Empty state: 'No matching commands' in muted text. (8) Uses @codeplane/ui-core fuzzy search utilities if available, otherwise simple substring match.",
+    "acceptanceCriteria": [
+      "Command palette opens on : keybinding",
+      "Modal overlay with search input and result list",
+      "Fuzzy search filters commands on every keystroke",
+      "Results ranked by match score",
+      "j/k and arrow keys navigate result list",
+      "Enter executes selected command",
+      "Commands include navigation targets and screen actions",
+      "Context-dependent commands disabled without required context",
+      "Esc dismisses palette and clears input",
+      "Empty state shows 'No matching commands'",
+      "Max 15 visible results with scroll",
+      "Keybinding hints shown in muted color for commands that have them",
+      "Auto-focus on search input when opened"
+    ],
+    "implementationFiles": [
+      "apps/tui/src/components/CommandPalette.tsx"
+    ],
+    "testFile": "e2e/tui/app-shell.test.ts",
+    "dependencies": [
+      "tui-modal-component",
+      "tui-global-keybindings",
+      "tui-screen-registry",
+      "tui-navigation-provider",
+      "tui-list-component"
+    ],
+    "estimatedEffort": "L"
+  },
+  {
+    "id": "tui-help-overlay",
+    "title": "Implement HelpOverlay showing grouped keybindings for current screen",
+    "type": "feature",
+    "featureName": "TUI_HELP_OVERLAY",
+    "description": "Implement the help overlay per TUI_HELP_OVERLAY.md. (1) components/HelpOverlay.tsx: modal overlay activated by ? keybinding (toggle — second ? closes), renders centered modal (60% width standard, 90% minimum, 70% height). (2) Content: grouped keybinding reference showing all active keybindings organized into sections: 'Global' (always shown), 'Go To' (g-prefix destinations), and current screen-specific group (title derived from active screen). (3) Each group: bold section title, then rows of 'key' (primary color, right-aligned fixed width) + 'description' (default color). (4) Scrollable: j/k scroll, Ctrl+D/Ctrl+U page scroll when content exceeds modal height. (5) Data source: reads registered keybindings from KeybindingProvider context, no API calls. (6) Dismiss: Esc or ? closes overlay. (7) Footer: 'Press ? or Esc to close' in muted text.",
+    "acceptanceCriteria": [
+      "Help overlay opens on ? keybinding",
+      "Second ? press closes overlay (toggle behavior)",
+      "Esc closes overlay",
+      "Shows grouped keybindings: Global, Go To, screen-specific",
+      "Key names in primary color, descriptions in default color",
+      "Bold section titles for each group",
+      "Content scrollable with j/k and Ctrl+D/Ctrl+U",
+      "Reads keybindings from KeybindingProvider context",
+      "No API calls — purely local data",
+      "Footer shows dismiss hint in muted text",
+      "Modal sized responsively per breakpoint"
+    ],
+    "implementationFiles": [
+      "apps/tui/src/components/HelpOverlay.tsx"
+    ],
+    "testFile": "e2e/tui/app-shell.test.ts",
+    "dependencies": [
+      "tui-modal-component",
+      "tui-global-keybindings",
+      "tui-theme-and-color-tokens"
+    ],
+    "estimatedEffort": "M"
+  },
+  {
+    "id": "tui-deep-link-launch",
+    "title": "Implement deep-link launch via CLI flags --screen, --repo, --org",
+    "type": "feature",
+    "featureName": "TUI_DEEP_LINK_LAUNCH",
+    "description": "Implement deep-link launch per TUI_DEEP_LINK_LAUNCH.md. (1) CLI argument parsing in index.tsx: --screen <id> (target screen), --repo <owner/repo> (repository context), --org <name> (organization context). Parsed via process.argv or minimist. (2) Stack pre-population: when --screen is provided, build a logical navigation stack so q/back works naturally. E.g., --screen issues --repo owner/repo builds stack: [Dashboard, RepoList, RepoDetail(owner/repo), Issues(owner/repo)]. (3) Validation: unknown --screen ID shows transient 5-second error on status bar then falls back to Dashboard. --repo format validated as 'owner/repo', invalid format shows error. --screen requiring repo without --repo shows error. (4) --repo without --screen navigates to repo detail. --org without --screen navigates to org overview. (5) No flags: normal Dashboard launch. (6) Flags parsed before React mount, stack set on NavigationProvider initial state.",
+    "acceptanceCriteria": [
+      "--screen flag navigates to specified screen on launch",
+      "--repo flag sets repository context as owner/repo",
+      "--org flag sets organization context",
+      "Navigation stack pre-populated for natural back navigation",
+      "Unknown --screen shows error and falls back to Dashboard",
+      "Invalid --repo format shows validation error",
+      "--screen requiring repo without --repo shows error",
+      "--repo alone navigates to repo detail",
+      "--org alone navigates to org overview",
+      "No flags launches to Dashboard",
+      "Flags parsed before React mount",
+      "Transient errors display for 5 seconds"
+    ],
+    "implementationFiles": [
+      "apps/tui/src/util/deepLink.ts"
+    ],
+    "testFile": "e2e/tui/app-shell.test.ts",
+    "dependencies": [
+      "tui-navigation-provider",
+      "tui-screen-registry",
+      "tui-screen-router",
+      "tui-bootstrap-and-renderer"
+    ],
+    "estimatedEffort": "M"
+  },
+  {
+    "id": "tui-app-shell-integration",
+    "title": "Integrate AppShell layout: HeaderBar + ScreenRouter + StatusBar + overlays",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Wire together all EPIC_02 components into the final AppShell layout in app.tsx. (1) Update app.tsx to compose the full layout: HeaderBar (1 row fixed top) + ScreenRouter (flex content area) + StatusBar (1 row fixed bottom), with an overlay layer for Modal/CommandPalette/HelpOverlay rendered above content. (2) Mount KeybindingProvider in the provider hierarchy between NavigationProvider and AppShell. (3) Wire useGlobalKeybindings() at AppShell level to register ?, :, q, Esc, Ctrl+C. (4) Wire deep-link parsing from index.tsx into NavigationProvider initial state. (5) Wire responsive layout: TerminalTooSmall shown when unsupported breakpoint, normal layout otherwise. (6) Ensure overlay state management: only one overlay at a time (command palette or help, not both). (7) Integration test: full provider stack → AppShell → HeaderBar + ScreenRouter + StatusBar renders correctly at all breakpoints.",
+    "acceptanceCriteria": [
+      "AppShell renders HeaderBar + ScreenRouter + StatusBar in correct layout",
+      "Overlay layer renders above content for modals",
+      "KeybindingProvider in correct position in provider hierarchy",
+      "Global keybindings (?, :, q, Esc, Ctrl+C) active",
+      "Deep-link flags populate initial navigation state",
+      "TerminalTooSmall shown below 80x24",
+      "Only one overlay visible at a time",
+      "Full provider stack composes correctly",
+      "Layout stable across all three breakpoints",
+      "Screen transitions work end-to-end through ScreenRouter"
+    ],
+    "implementationFiles": [
+      "apps/tui/src/app.tsx"
+    ],
+    "testFile": "e2e/tui/app-shell.test.ts",
+    "dependencies": [
+      "tui-screen-router",
+      "tui-header-bar",
+      "tui-status-bar",
+      "tui-global-keybindings",
+      "tui-command-palette",
+      "tui-help-overlay",
+      "tui-responsive-layout",
+      "tui-deep-link-launch",
+      "tui-goto-keybindings"
+    ],
+    "estimatedEffort": "L"
+  }
+]

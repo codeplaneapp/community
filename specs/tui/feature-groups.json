@@ -1,0 +1,387 @@
+{
+  "runId": "7fac9555-4e1b-499d-a4d3-17a823e9eb34",
+  "nodeId": "generate-groups",
+  "iteration": 0,
+  "groups": [
+    {
+      "id": "TUI_EPIC_01_FOUNDATION",
+      "title": "Foundation — Bootstrap, Auth, Theme, Error Handling",
+      "description": "Core runtime infrastructure: terminal setup/teardown, React 19 + OpenTUI renderer initialization, auth token loading and validation gate, theme/color token system with color depth detection, error boundary with recovery, and loading state primitives. This group produces a running TUI process that authenticates and renders an empty shell.",
+      "priority": "P0",
+      "estimated_feature_count": 5,
+      "depends_on": [],
+      "e2e_test_file": "e2e/tui/app-shell.test.ts",
+      "implementation_targets": [
+        "apps/tui/src/index.tsx",
+        "apps/tui/src/providers/ThemeProvider.tsx",
+        "apps/tui/src/providers/AuthProvider.tsx",
+        "apps/tui/src/providers/APIClientProvider.tsx",
+        "apps/tui/src/providers/SSEProvider.tsx",
+        "apps/tui/src/components/ErrorScreen.tsx",
+        "apps/tui/src/components/LoadingSpinner.tsx",
+        "apps/tui/src/theme/tokens.ts",
+        "apps/tui/src/theme/detect.ts"
+      ],
+      "features": [
+        "TUI_BOOTSTRAP_AND_RENDERER",
+        "TUI_AUTH_TOKEN_LOADING",
+        "TUI_THEME_AND_COLOR_TOKENS",
+        "TUI_ERROR_BOUNDARY",
+        "TUI_LOADING_STATES"
+      ]
+    },
+    {
+      "id": "TUI_EPIC_02_NAVIGATION_AND_CHROME",
+      "title": "Navigation, Chrome & Global Affordances",
+      "description": "Stack-based screen router, header bar with breadcrumb trail, status bar with keybinding hints, go-to mode two-key chords, deep-link launch via CLI arguments, responsive layout system with breakpoint detection and sidebar toggle, command palette overlay, and help overlay. This group completes the app shell so that screens can be plugged in.",
+      "priority": "P0",
+      "estimated_feature_count": 8,
+      "depends_on": [
+        "TUI_EPIC_01_FOUNDATION"
+      ],
+      "e2e_test_file": "e2e/tui/app-shell.test.ts",
+      "implementation_targets": [
+        "apps/tui/src/app.tsx",
+        "apps/tui/src/router/ScreenRouter.tsx",
+        "apps/tui/src/router/screens.ts",
+        "apps/tui/src/router/types.ts",
+        "apps/tui/src/providers/NavigationProvider.tsx",
+        "apps/tui/src/components/HeaderBar.tsx",
+        "apps/tui/src/components/StatusBar.tsx",
+        "apps/tui/src/components/CommandPalette.tsx",
+        "apps/tui/src/components/HelpOverlay.tsx",
+        "apps/tui/src/components/Modal.tsx",
+        "apps/tui/src/components/ListComponent.tsx",
+        "apps/tui/src/components/DetailView.tsx",
+        "apps/tui/src/components/FormComponent.tsx",
+        "apps/tui/src/hooks/useBreakpoint.ts",
+        "apps/tui/src/hooks/useResponsiveValue.ts",
+        "apps/tui/src/hooks/useGlobalKeybindings.ts",
+        "apps/tui/src/hooks/useKeyboardNavigation.ts"
+      ],
+      "features": [
+        "TUI_SCREEN_ROUTER",
+        "TUI_HEADER_BAR",
+        "TUI_STATUS_BAR",
+        "TUI_COMMAND_PALETTE",
+        "TUI_HELP_OVERLAY",
+        "TUI_RESPONSIVE_LAYOUT",
+        "TUI_DEEP_LINK_LAUNCH",
+        "TUI_GOTO_KEYBINDINGS"
+      ]
+    },
+    {
+      "id": "TUI_EPIC_03_DASHBOARD",
+      "title": "Dashboard Screen",
+      "description": "The root home screen: four-panel grid showing recent repositories, organizations, starred repos, and activity feed. Includes quick action shortcuts for common operations. This is the first full screen and serves as an integration test for the foundation and navigation infrastructure.",
+      "priority": "P1",
+      "estimated_feature_count": 6,
+      "depends_on": [
+        "TUI_EPIC_01_FOUNDATION",
+        "TUI_EPIC_02_NAVIGATION_AND_CHROME"
+      ],
+      "e2e_test_file": "e2e/tui/dashboard.test.ts",
+      "implementation_targets": [
+        "apps/tui/src/screens/Dashboard/"
+      ],
+      "features": [
+        "TUI_DASHBOARD_SCREEN",
+        "TUI_DASHBOARD_REPOS_LIST",
+        "TUI_DASHBOARD_ORGS_LIST",
+        "TUI_DASHBOARD_STARRED_REPOS",
+        "TUI_DASHBOARD_ACTIVITY_FEED",
+        "TUI_DASHBOARD_QUICK_ACTIONS"
+      ]
+    },
+    {
+      "id": "TUI_EPIC_04_REPOSITORY",
+      "title": "Repository Browser & Code Explorer",
+      "description": "Repository list with search/filter, repository overview with tab navigation, code explorer with file tree sidebar and file preview, bookmark and change views, conflict display, operation log, README rendering, and repository settings. The heaviest screen group with 14 features covering the full jj-native repository experience.",
+      "priority": "P1",
+      "estimated_feature_count": 14,
+      "depends_on": [
+        "TUI_EPIC_01_FOUNDATION",
+        "TUI_EPIC_02_NAVIGATION_AND_CHROME"
+      ],
+      "e2e_test_file": "e2e/tui/repository.test.ts",
+      "implementation_targets": [
+        "apps/tui/src/screens/Repository/"
+      ],
+      "features": [
+        "TUI_REPO_LIST_SCREEN",
+        "TUI_REPO_OVERVIEW",
+        "TUI_REPO_TAB_NAVIGATION",
+        "TUI_REPO_BOOKMARKS_VIEW",
+        "TUI_REPO_CHANGES_VIEW",
+        "TUI_REPO_CODE_EXPLORER",
+        "TUI_REPO_FILE_TREE",
+        "TUI_REPO_FILE_PREVIEW",
+        "TUI_REPO_README_RENDER",
+        "TUI_REPO_CONFLICTS_VIEW",
+        "TUI_REPO_OPERATION_LOG",
+        "TUI_REPO_SETTINGS_VIEW",
+        "TUI_REPO_SEARCH_FILTER",
+        "TUI_REPO_KEYBOARD_SHORTCUTS"
+      ]
+    },
+    {
+      "id": "TUI_EPIC_05_ISSUES",
+      "title": "Issues — List, Detail, CRUD, Comments",
+      "description": "Issue list screen with state/label/assignee filtering and search, issue detail view with markdown body rendering, create and edit forms, close/reopen actions, comment list and comment creation, label display, and issue-specific keyboard shortcuts. Full CRUD lifecycle for the issue tracker.",
+      "priority": "P1",
+      "estimated_feature_count": 11,
+      "depends_on": [
+        "TUI_EPIC_01_FOUNDATION",
+        "TUI_EPIC_02_NAVIGATION_AND_CHROME"
+      ],
+      "e2e_test_file": "e2e/tui/issues.test.ts",
+      "implementation_targets": [
+        "apps/tui/src/screens/Issues/"
+      ],
+      "features": [
+        "TUI_ISSUE_LIST_SCREEN",
+        "TUI_ISSUE_LIST_FILTERS",
+        "TUI_ISSUE_LIST_SEARCH",
+        "TUI_ISSUE_DETAIL_VIEW",
+        "TUI_ISSUE_CREATE_FORM",
+        "TUI_ISSUE_EDIT_FORM",
+        "TUI_ISSUE_CLOSE_REOPEN",
+        "TUI_ISSUE_COMMENT_LIST",
+        "TUI_ISSUE_COMMENT_CREATE",
+        "TUI_ISSUE_LABELS_DISPLAY",
+        "TUI_ISSUE_KEYBOARD_SHORTCUTS"
+      ]
+    },
+    {
+      "id": "TUI_EPIC_06_LANDINGS",
+      "title": "Landing Requests — List, Detail, Reviews, Comments",
+      "description": "Landing request list with state filtering, landing detail view with tabbed interface (change stack, reviews, comments, checks, conflicts), create and edit forms, review submission form, and landing-specific keyboard shortcuts. The landing detail's diff tab navigates to the Diff screen (cross-group integration with Epic 07).",
+      "priority": "P1",
+      "estimated_feature_count": 12,
+      "depends_on": [
+        "TUI_EPIC_01_FOUNDATION",
+        "TUI_EPIC_02_NAVIGATION_AND_CHROME"
+      ],
+      "cross_group_integrations": [
+        "TUI_EPIC_07_DIFF_VIEWER"
+      ],
+      "e2e_test_file": "e2e/tui/landings.test.ts",
+      "implementation_targets": [
+        "apps/tui/src/screens/Landings/"
+      ],
+      "features": [
+        "TUI_LANDING_LIST_SCREEN",
+        "TUI_LANDING_LIST_FILTERS",
+        "TUI_LANDING_DETAIL_VIEW",
+        "TUI_LANDING_CREATE_FORM",
+        "TUI_LANDING_EDIT_FORM",
+        "TUI_LANDING_CHANGE_STACK",
+        "TUI_LANDING_REVIEWS_VIEW",
+        "TUI_LANDING_REVIEW_FORM",
+        "TUI_LANDING_COMMENTS_VIEW",
+        "TUI_LANDING_CHECKS_VIEW",
+        "TUI_LANDING_CONFLICT_STATUS",
+        "TUI_LANDING_KEYBOARD_SHORTCUTS"
+      ]
+    },
+    {
+      "id": "TUI_EPIC_07_DIFF_VIEWER",
+      "title": "Diff Viewer — Unified, Split, Syntax, Comments",
+      "description": "Full diff viewing experience: unified and split view modes with toggle, file tree sidebar for multi-file navigation, syntax highlighting, line numbers, whitespace toggle, scroll synchronization in split mode, hunk expand/collapse, and inline comment support. Used standalone and embedded in landing detail via navigation push.",
+      "priority": "P1",
+      "estimated_feature_count": 12,
+      "depends_on": [
+        "TUI_EPIC_01_FOUNDATION",
+        "TUI_EPIC_02_NAVIGATION_AND_CHROME"
+      ],
+      "cross_group_integrations": [
+        "TUI_EPIC_06_LANDINGS"
+      ],
+      "e2e_test_file": "e2e/tui/diff.test.ts",
+      "implementation_targets": [
+        "apps/tui/src/screens/Diff/"
+      ],
+      "features": [
+        "TUI_DIFF_SCREEN",
+        "TUI_DIFF_UNIFIED_VIEW",
+        "TUI_DIFF_SPLIT_VIEW",
+        "TUI_DIFF_VIEW_TOGGLE",
+        "TUI_DIFF_FILE_TREE",
+        "TUI_DIFF_FILE_NAVIGATION",
+        "TUI_DIFF_SYNTAX_HIGHLIGHT",
+        "TUI_DIFF_LINE_NUMBERS",
+        "TUI_DIFF_WHITESPACE_TOGGLE",
+        "TUI_DIFF_SCROLL_SYNC",
+        "TUI_DIFF_EXPAND_COLLAPSE",
+        "TUI_DIFF_INLINE_COMMENTS"
+      ]
+    },
+    {
+      "id": "TUI_EPIC_08_WORKSPACES",
+      "title": "Workspaces — List, Detail, Actions, SSE Streaming",
+      "description": "Workspace list and detail views, create form, suspend/resume actions, SSH connection info display, and real-time status streaming via SSE. Covers the full workspace lifecycle from creation through active use to suspension.",
+      "priority": "P2",
+      "estimated_feature_count": 6,
+      "depends_on": [
+        "TUI_EPIC_01_FOUNDATION",
+        "TUI_EPIC_02_NAVIGATION_AND_CHROME"
+      ],
+      "e2e_test_file": "e2e/tui/workspaces.test.ts",
+      "implementation_targets": [
+        "apps/tui/src/screens/Workspaces/"
+      ],
+      "features": [
+        "TUI_WORKSPACE_LIST_SCREEN",
+        "TUI_WORKSPACE_DETAIL_VIEW",
+        "TUI_WORKSPACE_CREATE_FORM",
+        "TUI_WORKSPACE_SUSPEND_RESUME",
+        "TUI_WORKSPACE_SSH_INFO",
+        "TUI_WORKSPACE_STATUS_STREAM"
+      ]
+    },
+    {
+      "id": "TUI_EPIC_09_WORKFLOWS",
+      "title": "Workflows — Runs, Log Streaming, Dispatch, Artifacts",
+      "description": "Workflow list, run list, run detail with log streaming (ANSI color passthrough via SSE), cancel/rerun/resume actions, workflow dispatch trigger, artifact browser, and cache management views. Operational CI/CD interface with real-time log output.",
+      "priority": "P2",
+      "estimated_feature_count": 8,
+      "depends_on": [
+        "TUI_EPIC_01_FOUNDATION",
+        "TUI_EPIC_02_NAVIGATION_AND_CHROME"
+      ],
+      "e2e_test_file": "e2e/tui/workflows.test.ts",
+      "implementation_targets": [
+        "apps/tui/src/screens/Workflows/"
+      ],
+      "features": [
+        "TUI_WORKFLOW_LIST_SCREEN",
+        "TUI_WORKFLOW_RUN_LIST",
+        "TUI_WORKFLOW_RUN_DETAIL",
+        "TUI_WORKFLOW_LOG_STREAM",
+        "TUI_WORKFLOW_ACTIONS",
+        "TUI_WORKFLOW_DISPATCH",
+        "TUI_WORKFLOW_ARTIFACTS_VIEW",
+        "TUI_WORKFLOW_CACHE_VIEW"
+      ]
+    },
+    {
+      "id": "TUI_EPIC_10_SEARCH_AND_NOTIFICATIONS",
+      "title": "Search & Notifications — Global Cross-Cutting Features",
+      "description": "Global search across repositories, issues, users, and code with tab navigation and inline filtering. Notification inbox with navigate-to-resource, mark read (single and all), SSE streaming for real-time updates, and notification badge in the status bar. Both are cross-cutting features that span all domains.",
+      "priority": "P2",
+      "estimated_feature_count": 12,
+      "depends_on": [
+        "TUI_EPIC_01_FOUNDATION",
+        "TUI_EPIC_02_NAVIGATION_AND_CHROME"
+      ],
+      "e2e_test_files": [
+        "e2e/tui/search.test.ts",
+        "e2e/tui/notifications.test.ts"
+      ],
+      "implementation_targets": [
+        "apps/tui/src/screens/Search/",
+        "apps/tui/src/screens/Notifications/",
+        "apps/tui/src/hooks/useSSEChannel.ts"
+      ],
+      "features": [
+        "TUI_SEARCH_SCREEN",
+        "TUI_SEARCH_REPOS_TAB",
+        "TUI_SEARCH_ISSUES_TAB",
+        "TUI_SEARCH_USERS_TAB",
+        "TUI_SEARCH_CODE_TAB",
+        "TUI_SEARCH_TAB_NAVIGATION",
+        "TUI_SEARCH_INLINE_FILTER",
+        "TUI_NOTIFICATION_LIST_SCREEN",
+        "TUI_NOTIFICATION_DETAIL_NAV",
+        "TUI_NOTIFICATION_MARK_READ",
+        "TUI_NOTIFICATION_SSE_STREAM",
+        "TUI_NOTIFICATION_BADGE"
+      ]
+    },
+    {
+      "id": "TUI_EPIC_11_AGENTS",
+      "title": "Agent Chat — Sessions, Streaming, Replay",
+      "description": "Agent session list, chat interface with message input and streaming response display via SSE, session creation, and replay mode for completed sessions. Self-contained screen group with its own SSE channel for incremental token rendering with progressive markdown formatting.",
+      "priority": "P2",
+      "estimated_feature_count": 5,
+      "depends_on": [
+        "TUI_EPIC_01_FOUNDATION",
+        "TUI_EPIC_02_NAVIGATION_AND_CHROME"
+      ],
+      "e2e_test_file": "e2e/tui/agents.test.ts",
+      "implementation_targets": [
+        "apps/tui/src/screens/Agents/"
+      ],
+      "features": [
+        "TUI_AGENT_SESSION_LIST",
+        "TUI_AGENT_CHAT_SCREEN",
+        "TUI_AGENT_MESSAGE_SEND",
+        "TUI_AGENT_SESSION_REPLAY",
+        "TUI_AGENT_SESSION_CREATE"
+      ]
+    },
+    {
+      "id": "TUI_EPIC_12_SETTINGS_AND_ORGS",
+      "title": "Settings & Organizations — Account & Team Management",
+      "description": "User settings screen with profile, emails, SSH keys, tokens, notification preferences, and connected accounts sections. Organization list, overview with members and teams, team detail view, and organization settings. Both are form-heavy management screens with similar interaction patterns.",
+      "priority": "P3",
+      "estimated_feature_count": 13,
+      "depends_on": [
+        "TUI_EPIC_01_FOUNDATION",
+        "TUI_EPIC_02_NAVIGATION_AND_CHROME"
+      ],
+      "e2e_test_files": [
+        "e2e/tui/settings.test.ts",
+        "e2e/tui/organizations.test.ts"
+      ],
+      "implementation_targets": [
+        "apps/tui/src/screens/Settings/",
+        "apps/tui/src/screens/Organizations/"
+      ],
+      "features": [
+        "TUI_SETTINGS_SCREEN",
+        "TUI_SETTINGS_PROFILE",
+        "TUI_SETTINGS_EMAILS",
+        "TUI_SETTINGS_SSH_KEYS",
+        "TUI_SETTINGS_TOKENS",
+        "TUI_SETTINGS_NOTIFICATION_PREFS",
+        "TUI_SETTINGS_CONNECTED_ACCOUNTS",
+        "TUI_ORG_LIST_SCREEN",
+        "TUI_ORG_OVERVIEW",
+        "TUI_ORG_MEMBERS_VIEW",
+        "TUI_ORG_TEAMS_VIEW",
+        "TUI_ORG_TEAM_DETAIL",
+        "TUI_ORG_SETTINGS_VIEW"
+      ]
+    },
+    {
+      "id": "TUI_EPIC_13_SYNC_AND_WIKI",
+      "title": "Sync Status & Wiki — Daemon Integration & Content",
+      "description": "Daemon sync status display with conflict list, resolve and force-sync actions, and persistent status indicator in the global status bar. Wiki page list, wiki detail view with markdown rendering, and wiki search. Both are lower-dependency screen groups that can be implemented independently and in parallel.",
+      "priority": "P3",
+      "estimated_feature_count": 8,
+      "depends_on": [
+        "TUI_EPIC_01_FOUNDATION",
+        "TUI_EPIC_02_NAVIGATION_AND_CHROME"
+      ],
+      "e2e_test_files": [
+        "e2e/tui/sync.test.ts",
+        "e2e/tui/wiki.test.ts"
+      ],
+      "implementation_targets": [
+        "apps/tui/src/screens/Sync/",
+        "apps/tui/src/screens/Wiki/"
+      ],
+      "features": [
+        "TUI_SYNC_STATUS_SCREEN",
+        "TUI_SYNC_CONFLICT_LIST",
+        "TUI_SYNC_RESOLVE_ACTION",
+        "TUI_SYNC_FORCE_SYNC",
+        "TUI_SYNC_STATUS_INDICATOR",
+        "TUI_WIKI_LIST_SCREEN",
+        "TUI_WIKI_DETAIL_VIEW",
+        "TUI_WIKI_SEARCH"
+      ]
+    }
+  ]
+}

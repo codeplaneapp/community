@@ -1,0 +1,9 @@
+Not LGTM.
+
+High:
+1. OpenTUI API coverage is incomplete. The research never maps ThemeProvider to current OpenTUI color-consumer surfaces (for example `/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/Agents/components/MessageBlock.tsx:38` and `/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/Agents/components/ToolBlock.tsx:76`) or to tier-aware usage already documented in code (`/Users/williamcory/codeplane/specs/tui/apps/tui/src/hooks/useDiffSyntaxStyle.ts:17`).
+2. `@codeplane/ui-core` dependency analysis is missing. For this ticket it should explicitly state whether any ui-core hooks are required (none for provider creation) and identify existing ui-core hook consumers that could be affected by provider wiring (`/Users/williamcory/codeplane/specs/tui/apps/tui/src/hooks/useAgentStream.ts:5`, `/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/Agents/AgentSessionListScreen.tsx:2`, `/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/Agents/AgentChatScreen.tsx:5`).
+
+Medium:
+3. Existing TUI pattern exploration is partial. It references `NavigationProvider` but omits the paired guard-hook pattern (`/Users/williamcory/codeplane/specs/tui/apps/tui/src/hooks/useNavigation.ts:10`), provider-stack integration point (`/Users/williamcory/codeplane/specs/tui/apps/tui/src/index.tsx:11`), and current migration marker (`/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/Agents/components/colors.ts:1`).
+4. The document has no file+line citations for its own claims. This workflow requires concrete evidence, including the precise insertion context in tests (`/Users/williamcory/codeplane/specs/tui/e2e/tui/app-shell.test.ts:1463`).

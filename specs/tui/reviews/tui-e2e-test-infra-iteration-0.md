@@ -1,0 +1,15 @@
+Findings (highest severity first):
+1. [P0] E2E harness is not attached to a real terminal surface. `launchTUI` uses `Bun.spawn` with `stdout: "pipe"`/`stdin: "pipe"` instead of a PTY (`/Users/williamcory/codeplane/specs/tui/e2e/tui/helpers.ts:137-143`), so rendered screen state is not captured. Repro: launching and waiting 1.5s yields `snapshot().length === 0`.
+2. [P0] Key simulation is incorrect for non-printable keys. `sendKeys` writes literal strings like `"Enter"`/`"Tab"` to stdin (`/Users/williamcory/codeplane/specs/tui/e2e/tui/helpers.ts:171-177`) instead of terminal control sequences, invalidating keyboard interaction tests.
+3. [P0] The local `@microsoft/tui-test` package is a no-op shim. `createTestTui` just returns `{}` (`/Users/williamcory/codeplane/specs/tui/packages/tui-test/index.js:1`), so import resolution is satisfied but functionality is not.
+4. [P1] `INFRA-004` is a false-positive test. It catches any thrown error and only asserts error text is not `"stub"` (`/Users/williamcory/codeplane/specs/tui/e2e/tui/app-shell.test.ts:1003-1010`), so broken launch behavior still passes.
+5. [P1] `launchTimeoutMs` is exposed but unused; timeout behavior is not implemented (`/Users/williamcory/codeplane/specs/tui/e2e/tui/helpers.ts:23`, `:62`).
+6. [P1] App bootstrap is missing, so OpenTUI app-shell behavior cannot be exercised. `apps/tui/src/index.tsx` exports types only and does not create renderer/root or mount UI (`/Users/williamcory/codeplane/specs/tui/apps/tui/src/index.tsx:1-22`).
+7. [P1] Keyboard spec mismatch: agents go-to is repo-gated in code (`requiresRepo: true`) at `/Users/williamcory/codeplane/specs/tui/apps/tui/src/navigation/goToBindings.ts:28` and `/Users/williamcory/codeplane/specs/tui/apps/tui/src/navigation/screenRegistry.ts:153`, but design defines `g a` as global.
+8. [P1] Data access: no direct `fetch` calls found in `apps/tui/src` (good), but hooks import unresolved/internal ui-core paths and package wiring is incomplete (`/Users/williamcory/codeplane/specs/tui/apps/tui/src/hooks/useQuery.ts:2-3`; `/Users/williamcory/codeplane/specs/tui/apps/tui/package.json:12-17` lacks `@codeplane/ui-core`). `bun run check` fails accordingly.
+9. [P2] Timeout config is inconsistent. `e2e/tui/bunfig.toml` sets timeout (`/Users/williamcory/codeplane/specs/tui/e2e/tui/bunfig.toml:1-3`), but test script hardcodes `--timeout` and root package has no `test:e2e` script despite the claim (`/Users/williamcory/codeplane/specs/tui/apps/tui/package.json:10`, `/Users/williamcory/codeplane/specs/tui/package.json:10-13`).
+
+Test evidence:
+- `bun run test:e2e` (from `apps/tui`) produced repeated `waitForText` failures (`Dashboard`, `Issues`, `Repositories` not found).
+- `bun test ../../e2e/tui/app-shell.test.ts -t "INFRA-" --timeout 30000` passed 10/10, but those tests are too weak to validate real infra.
+- `bun run check` (from `apps/tui`) fails with multiple TS/module-resolution errors.

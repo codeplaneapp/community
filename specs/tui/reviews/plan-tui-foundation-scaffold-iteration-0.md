@@ -1,0 +1,8 @@
+Not LGTM. The plan has multiple blocking gaps:
+1) Data-access contract mismatch: it never scaffolds `@codeplane/ui-core` usage (no `useRepos/useIssues/...` integration point), and `package.json` only adds `@codeplane/sdk`. This fails the stated TUI PRD data model requirement.
+2) Verification step is currently impossible as written: `launchTUI()` still throws at `/Users/williamcory/codeplane/specs/tui/e2e/tui/helpers.ts:20`, so `bun test e2e/tui/app-shell.test.ts` fails immediately (confirmed locally).
+3) Step 4.2 is underspecified: new tests are said to use `run`/`bunEval`, but `/Users/williamcory/codeplane/specs/tui/e2e/tui/app-shell.test.ts` currently imports only `launchTUI` (line 2). Import changes and coexistence strategy are missing.
+4) OpenTUI correctness coverage is incomplete: the plan validates hook imports, but does not validate JSX component typing/usage for required primitives (`<box>`, `<scrollbox>`, `<text>`, `<input>`, `<select>`, `<code>`, `<diff>`, `<markdown>`).
+5) Keyboard-spec conformance is not explicitly verified: no plan-level matrix tying tests to required global/list/form/diff keybindings (`?`, `:`, `Esc`, `Ctrl+C`, `j/k/h/l`, etc.).
+6) Ticket boundary/scope is muddy: this foundation scaffold plan introduces E2E harness changes but does not actually implement a usable harness, creating failing verification flow instead of deterministic scaffold validation.
+7) Command mismatch: plan says `pnpm install`; ticket text for this scaffold references `bun install` verification. Pick one canonical install path and encode it explicitly.

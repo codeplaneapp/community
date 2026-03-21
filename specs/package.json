@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun run generate.tsx",
+    "dev": "bun run generate/index.tsx",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

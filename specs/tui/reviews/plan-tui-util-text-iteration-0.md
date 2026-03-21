@@ -1,0 +1,10 @@
+Not LGTM. The plan has multiple gaps and ambiguities:
+1. OpenTUI component/hook verification is missing. The plan never states whether `useKeyboard`, `useTerminalDimensions`, `useOnResize`, or rendering components are impacted or intentionally untouched, and it provides no non-regression coverage for text behavior inside real OpenTUI-rendered screens.
+2. `@codeplane/ui-core` data-access verification is missing. This may be a pure-util ticket, but the plan should explicitly mark data hooks as N/A and ensure no coupling/regression in ui-core-driven screens.
+3. Test strategy conflicts with the TUI PRD. It places `bun:test` unit tests under `e2e/tui/`, while the documented e2e surface is `@microsoft/tui-test` keyboard/snapshot behavior tests. Either move unit tests out of `e2e/` or add true e2e tests there.
+4. Keyboard-interaction requirement is not covered. No tests validate that key-driven flows (`?`, `:`, `q`, `Esc`, `g` sequences, list nav) still behave correctly where these formatting utilities are used.
+5. Behavioral spec is underdefined for terminal correctness: no rules for Unicode grapheme clusters, double-width characters, combining marks, ANSI escape sequences, tabs/newlines normalization, or `maxWidth/maxChars <= 0` across all functions (especially `wrapText` and `formatErrorSummary`).
+6. Plan says it will remove duplicated magic numbers/formatting across screens, but there is no step to migrate existing call sites to the new util/constants modules.
+7. “Compilation check” inside a test is underspecified and brittle (`bun run check` may not exist); typecheck should be a deterministic CI step/command, not a test case side effect.
+
+Required before approval: clarify N/A vs integration impact for OpenTUI/ui-core, separate unit vs e2e test layers correctly, add keyboard-focused non-regression tests where utilities are consumed, fully specify width semantics and edge cases, and include call-site migration steps.

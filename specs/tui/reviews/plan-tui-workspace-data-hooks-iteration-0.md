@@ -1,0 +1,10 @@
+Not LGTM.
+1. [CRITICAL] The plan explicitly excludes `apps/tui/src/` and `e2e/tui/` (Phase 6 deferred), which violates your review requirement #3 and leaves no TUI-facing deliverable for this ticket.
+2. [CRITICAL] OpenTUI usage is not specified at all. There is no plan coverage for required TUI primitives/hooks (`<box>`, `<scrollbox>`, `useKeyboard`, `useTerminalDimensions`, `useOnResize`, `useTimeline`), so requirement #1 is not satisfied.
+3. [CRITICAL] Keyboard interaction compliance is missing. The plan contains zero implementation/testing steps for design-spec keybindings (global, go-to, list/form navigation in `design.md:27-55` and `design.md:117-159`), so requirement #4 is unverified.
+4. [HIGH] Pagination contract is underspecified/misaligned: ticket criteria call for cursor-based behavior and a 200-item memory cap (`tickets-TUI_EPIC_08_WORKSPACES.json:7-9,21`), while the plan relies on `usePaginatedQuery`, which currently hardcodes `page`/`per_page` query params (`packages/ui-core/src/hooks/internal/usePaginatedQuery.ts:79-81`) and does not define cursor semantics in this plan.
+5. [HIGH] The plan does not include `apps/tui/src/hooks` adapters despite ticket implementation notes requiring them (`tickets-TUI_EPIC_08_WORKSPACES.json:21`). It only plans `packages/ui-core` hooks/barrels.
+6. [MEDIUM] Acceptance-shape mismatch is unresolved: ticket criteria mention mutation surfaces like `{ create, isSubmitting }` / `{ remove, isDeleting }` (`tickets-TUI_EPIC_08_WORKSPACES.json:16-17`), but the plan standardizes on `mutate`/`isLoading` without explicitly reconciling this.
+7. [MEDIUM] Verification commands are toolchain-inconsistent (`pnpm tsc --noEmit`) with the local package scripts (`packages/ui-core/package.json` uses `bun` scripts), reducing execution reliability.
+
+To pass, the plan must add explicit `apps/tui/src` integration phases, `e2e/tui` coverage with `@microsoft/tui-test`, concrete keyboard/OpenTUI implementation steps, and cursor-pagination/memory-cap details aligned to ticket acceptance criteria.

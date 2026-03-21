@@ -1,0 +1,12 @@
+Not LGTM.
+
+1. Contract mismatch with ticket acceptance criteria: the plan does not specify `useWorkspaceStatusStream` returning `{ status, connectionState, reconnect, lastEventTimestamp }`; it instead describes `{ status, connectionState, lastEvent, error }`.
+2. Keyboard interaction gap: no implementation/test step for retry via `R` (required by design error handling and workspace stream behavior). Returning `reconnect()` is missing from the plan, so `R` cannot be wired cleanly.
+3. `useWorkspaceListStatusStream` signature is underspecified: plan says it accepts only `workspaceIds`, but stream setup requires repo context (`owner`, `repo`) per endpoint contract.
+4. Keepalive handling is flawed as written: the plan resets liveness timers on parsed SSE events, but current `createSSEReader` only exposes `onEvent` and does not surface `: keep-alive` comments. Idle-but-healthy streams will be falsely marked degraded/disconnected unless parser/comment handling is extended.
+5. Auth fallback is incorrect/ambiguous: plan says fallback to Bearer token; this codebase uses `Authorization: token <token>`.
+6. Replay/dedup is not robustly specified: no explicit Last-Event-ID persistence strategy and no fallback dedup key when events lack IDs (workspace live events are commonly id-less). Dedup-by-ID alone is insufficient.
+7. Data-access/provider prerequisite is missing: plan uses `@codeplane/ui-core` hooks but does not include validation/wiring for required API client context, which can crash at runtime if provider alignment is wrong.
+8. Architecture mismatch unresolved: ticket implementation notes say build on `SSEProvider`/`useSSEChannel` with `workspace_status_{idWithoutDashes}`; this plan bypasses that with direct per-hook stream readers and does not reconcile the contradiction.
+9. Test plan is incomplete against TUI requirements: no explicit keyboard-path assertions (`R`, `q`/`Esc`, `g w`), no explicit status-bar integration assertions tied to connection states, and test placement naming drifts from the PRD’s `e2e/tui/workspaces.test.ts` mapping.
+10. OpenTUI integration coverage is missing for this change set: no step verifies that stream state is surfaced through existing OpenTUI interaction/render pathways (status bar + key handling hooks).

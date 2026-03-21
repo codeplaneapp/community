@@ -1,0 +1,448 @@
+[
+  {
+    "id": "tui-settings-tab-container",
+    "title": "Build Settings tab container with sidebar/horizontal tab navigation",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the Settings tab container component that provides the two-panel layout (sidebar + content) at standard/large breakpoints and horizontal tab bar at minimum (80×24). The container manages: sidebar rendering with 7 section items (Home, Profile, Emails, SSH Keys, Tokens, Notifications, Connected Accounts), active section state tracking, section index indicators (1–7), focus zone switching between sidebar and content via Tab/Shift+Tab, sidebar collapse to horizontal tabs at minimum breakpoint, section keybinding registration, and breadcrumb updates (Settings > {section}). This is the shared shell that all settings sub-feature tabs render inside. Implementation in apps/tui/src/screens/Settings/SettingsTabContainer.tsx.",
+    "dependencies": [
+      "tui-screen-router",
+      "tui-app-shell-integration",
+      "tui-theme-provider"
+    ],
+    "estimateHours": 8,
+    "acceptanceCriteria": [
+      "Sidebar renders 7 section items with index numbers and ▶ marker on active section",
+      "Tab/Shift+Tab switches focus between sidebar and content area",
+      "1–7 number keys jump directly to sections (not captured when input focused)",
+      "At 80×24 sidebar collapses to horizontal tab bar with abbreviated labels",
+      "At 120×40 full sidebar renders alongside content area",
+      "Breadcrumb updates to 'Settings > {section}' on section change",
+      "Section switch triggers content area swap without navigation stack push",
+      "Focused sidebar item uses reverse video with primary color",
+      "Keybinding hints in status bar update per section"
+    ]
+  },
+  {
+    "id": "tui-settings-data-hooks",
+    "title": "Create TUI adapters for user settings data hooks",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create TUI-side adapter hooks that wrap @codeplane/ui-core data hooks for all user settings endpoints. Hooks needed: useUser(), useUpdateUser(), useUserEmails(), useAddEmail(), useDeleteEmail(), useSendVerification(), useUserSSHKeys(), useAddSSHKey(), useDeleteSSHKey(), useUserTokens(), useCreateToken(), useDeleteToken(), useNotificationPreferences(), useUpdateNotificationPreferences(), useUserConnectedAccounts(), useDisconnectAccount(). Each hook should provide loading/error/data states and mutation functions with optimistic update support. Implementation in apps/tui/src/hooks/useSettingsData.ts.",
+    "dependencies": [
+      "tui-navigation-provider",
+      "tui-theme-provider"
+    ],
+    "estimateHours": 6,
+    "acceptanceCriteria": [
+      "All settings hooks return { data, isLoading, error, refetch } pattern",
+      "Mutation hooks return { mutate, isLoading, error } pattern",
+      "Optimistic updates apply immediately and revert on error",
+      "401 errors propagate to auth error state",
+      "429 errors expose retry-after timing",
+      "Cache invalidation after successful mutations"
+    ]
+  },
+  {
+    "id": "tui-org-data-hooks",
+    "title": "Create TUI adapters for organization data hooks",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create TUI-side adapter hooks that wrap @codeplane/ui-core data hooks for all organization endpoints. Hooks needed: useOrgs() with cursor pagination, useOrg(orgName), useOrgMembers(orgName) with pagination, useOrgTeams(orgName) with pagination, useOrgRepos(orgName) with pagination, useOrgRole(orgName) for viewer's role, useAddOrgMember(), useRemoveOrgMember(), useCreateTeam(), useUpdateTeam(), useDeleteTeam(), useTeam(orgName, teamName), useTeamMembers(), useTeamRepos(), useUpdateOrg(), useDeleteOrg(). Each hook provides loading/error/data/pagination states. Implementation in apps/tui/src/hooks/useOrgData.ts.",
+    "dependencies": [
+      "tui-navigation-provider",
+      "tui-theme-provider"
+    ],
+    "estimateHours": 8,
+    "acceptanceCriteria": [
+      "All list hooks return PaginatedResult pattern with cursor pagination",
+      "useOrgs() supports loadMore() and hasMore for scroll-to-end pagination",
+      "useOrgRole() resolves viewer's role (owner/member/null) from org data",
+      "Mutation hooks handle optimistic updates with revert",
+      "401 errors propagate to auth error state",
+      "500-item memory cap enforced on paginated lists"
+    ]
+  },
+  {
+    "id": "tui-managed-list-with-actions",
+    "title": "Build reusable managed list component with inline CRUD actions",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create a ManagedList component that extends ScrollableList with inline CRUD action patterns used across settings and org screens. Features: inline add form rendering above the list, inline delete/revoke confirmation prompts below focused row, action keybinding registration (a/c for add, d/x for delete, p/v for contextual actions), action guard states (preventing double-submit, in-flight guards), empty state rendering with action hints, success/error flash messages (green confirmation for 3s, red error with retry), optimistic item removal with revert on error, and focus management after add/delete operations. This is the shared pattern used by Emails, SSH Keys, Tokens, Connected Accounts, Members, and Teams lists. Implementation in apps/tui/src/components/ManagedList.tsx.",
+    "dependencies": [
+      "tui-sync-toast-flash-system"
+    ],
+    "estimateHours": 10,
+    "acceptanceCriteria": [
+      "Inline add form renders above list and captures keyboard input",
+      "Delete confirmation renders inline below focused row with y/n/Esc handling",
+      "Optimistic removal applies immediately and reverts on API error",
+      "Success flash messages appear in green for 3 seconds",
+      "Error messages render in red with retry hint",
+      "Focus advances to next item after successful delete",
+      "Focus returns to first item after successful add",
+      "Double-submit prevention via in-flight state guards",
+      "Empty state renders with action hint (e.g., 'Press a to add')"
+    ]
+  },
+  {
+    "id": "tui-org-context-provider",
+    "title": "Build organization context provider for nested org screens",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create an OrgContextProvider that wraps organization sub-screens (Overview, Members, Teams, Team Detail, Settings) and provides shared state: org name, org data, viewer role (owner/member), and org-level error handling. The provider fetches org data via useOrg() on mount and makes it available via useOrgContext() hook. It handles 404 (org not found), 403→404 concealment for non-members of non-public orgs, and caches org data for child screens. Implementation in apps/tui/src/providers/OrgContextProvider.tsx.",
+    "dependencies": [
+      "tui-org-data-hooks"
+    ],
+    "estimateHours": 4,
+    "acceptanceCriteria": [
+      "useOrgContext() returns { org, orgName, viewerRole, isLoading, error }",
+      "viewerRole is correctly resolved as 'owner' | 'member' | null",
+      "403 responses render as 404 (conceals org existence)",
+      "404 renders 'Organization not found' with q to go back",
+      "Org data is cached for child screen navigation",
+      "Auth errors (401) propagate to app-shell auth error"
+    ]
+  },
+  {
+    "id": "tui-tabbed-detail-view",
+    "title": "Build tabbed detail view component for org overview and team detail",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create a TabbedDetailView component that provides: a header/metadata section, a tab bar with numbered tabs (Tab/Shift+Tab cycling, 1-N direct jump), lazy-loaded tab content areas, per-tab scroll position preservation, per-tab list with filter support, and tab-aware keybinding context. Used by Org Overview (4 tabs: Repos/Members/Teams/Settings) and Team Detail (2 tabs: Members/Repos). Features: tab count badges, role-conditional tab visibility (e.g., Settings tab only for owners), tab data caching after first load, and responsive tab label abbreviation at minimum breakpoint. Implementation in apps/tui/src/components/TabbedDetailView.tsx.",
+    "dependencies": [],
+    "estimateHours": 8,
+    "acceptanceCriteria": [
+      "Tab bar renders with numbered tabs and active tab highlight",
+      "Tab/Shift+Tab cycles through tabs with wrapping",
+      "1-N number keys jump directly to tabs",
+      "Tab content renders lazily on first activation",
+      "Per-tab scroll position preserved across tab switches",
+      "Conditional tab visibility based on role/permission prop",
+      "Tab labels abbreviate at minimum breakpoint",
+      "Tab count badges show item counts from data hooks"
+    ]
+  },
+  {
+    "id": "tui-settings-screen",
+    "title": "Implement Settings screen container with home summary dashboard",
+    "type": "feature",
+    "featureName": "TUI_SETTINGS_SCREEN",
+    "description": "Implement the Settings screen as a full-screen view registered in the screen router. Features: settings tab container with 7 sections, Home section with 6 summary cards (Profile, Emails, SSH Keys, Tokens, Notifications, Connected Accounts), concurrent data fetching for summary cards, loading skeleton per card, inline error per card with R-to-retry, card navigation with j/k and Enter to navigate to section, responsive behavior at all breakpoints, deep-link support (--screen settings), command palette entry (:settings), and go-to keybinding registration. Implementation in apps/tui/src/screens/Settings/SettingsScreen.tsx and apps/tui/src/screens/Settings/SettingsHome.tsx. Tests in e2e/tui/settings.test.ts.",
+    "dependencies": [
+      "tui-settings-tab-container",
+      "tui-settings-data-hooks",
+      "tui-screen-router"
+    ],
+    "estimateHours": 12,
+    "acceptanceCriteria": [
+      "Settings screen renders as full-screen view between header and status bars",
+      "Reachable via :settings command palette, --screen settings deep-link, and g s go-to",
+      "Breadcrumb reads 'Dashboard > Settings' (or '> {section}' when sub-section active)",
+      "Home section shows 6 summary cards with live counts/status",
+      "Each card fetches data concurrently with independent loading/error states",
+      "Summary cards navigable with j/k, Enter navigates to section",
+      "Sidebar lists all 7 sections with index numbers",
+      "q pops the screen",
+      "146 test cases defined in settings.test.ts (left failing if backend unimplemented)"
+    ]
+  },
+  {
+    "id": "tui-settings-profile",
+    "title": "Implement Settings Profile tab with edit form",
+    "type": "feature",
+    "featureName": "TUI_SETTINGS_PROFILE",
+    "description": "Implement the Profile tab (tab 1) within the Settings screen. Features: read-only profile summary (@username, member since, admin badge), editable form with 4 fields (Display Name, Bio, Avatar URL, Email), Tab/Shift+Tab field navigation, Ctrl+S submission, dirty state tracking with discard confirmation dialog, optimistic save with Saving.../Profile updated feedback, form validation (character limits, URL format), responsive bio height (3/6/10 lines by breakpoint), abbreviated labels at minimum size. Tests in e2e/tui/settings.test.ts.",
+    "dependencies": [
+      "tui-settings-screen",
+      "tui-sync-toast-flash-system",
+      "tui-settings-data-hooks"
+    ],
+    "estimateHours": 10,
+    "acceptanceCriteria": [
+      "Profile tab renders as default tab (tab 1) within Settings",
+      "Read-only summary shows @username, member-since date, admin badge if applicable",
+      "Four editable fields: Display Name, Bio, Avatar URL, Email",
+      "Display Name receives initial focus on tab selection",
+      "Ctrl+S submits only modified fields via PATCH /api/user",
+      "Esc with dirty form shows discard confirmation dialog",
+      "Bio field is multi-line with character counter and responsive height",
+      "Success shows green 'Profile updated' for 3 seconds",
+      "422 errors highlight offending fields with red border"
+    ]
+  },
+  {
+    "id": "tui-settings-emails",
+    "title": "Implement Settings Emails tab with add/delete/primary/verify actions",
+    "type": "feature",
+    "featureName": "TUI_SETTINGS_EMAILS",
+    "description": "Implement the Emails tab (tab 2) within the Settings screen. Features: persistent add-email form at top with input, primary toggle, and Add button, scrollable email list with Primary/Verified/Unverified badges, j/k list navigation, a to focus add input, d to delete with inline y/N confirmation, p to set primary, v to send verification (with 15s cooldown), client-side validation (non-empty, contains @, 3-254 chars), max 10 emails cap, optimistic updates, responsive column layout. Tests in e2e/tui/settings.test.ts.",
+    "dependencies": [
+      "tui-settings-screen",
+      "tui-managed-list-with-actions",
+      "tui-settings-data-hooks"
+    ],
+    "estimateHours": 10,
+    "acceptanceCriteria": [
+      "Emails tab renders as tab 2 within Settings",
+      "Add email form visible at top with input, primary toggle, Add button",
+      "Email list sorted: primary first, then by created_at ascending",
+      "Each row shows email, Primary badge (blue), Verified/Unverified badge, date",
+      "d on non-primary shows inline delete confirmation",
+      "d on primary shows 'Cannot delete primary email' flash",
+      "p on verified non-primary sets as primary with re-sort",
+      "v on unverified sends verification with 15s cooldown",
+      "Max 10 emails: input disabled with message",
+      "Client-side validation before API call"
+    ]
+  },
+  {
+    "id": "tui-settings-ssh-keys",
+    "title": "Implement Settings SSH Keys tab with add/delete/detail actions",
+    "type": "feature",
+    "featureName": "TUI_SETTINGS_SSH_KEYS",
+    "description": "Implement the SSH Keys tab (tab 3) within the Settings screen. Features: scrollable key list sorted newest first, each row with title/type badge/fingerprint/date, Enter to toggle inline detail panel, a opens Add SSH Key modal overlay (Title + Key textarea), d opens delete confirmation bar, key type badges (Ed25519 in primary, others in muted), fingerprint truncation by breakpoint, modal form submission with Adding.../SSH key added feedback, 409 duplicate fingerprint handling, responsive column layout. Tests in e2e/tui/settings.test.ts.",
+    "dependencies": [
+      "tui-settings-screen",
+      "tui-managed-list-with-actions",
+      "tui-settings-data-hooks",
+      "tui-sync-toast-flash-system"
+    ],
+    "estimateHours": 10,
+    "acceptanceCriteria": [
+      "SSH Keys tab renders as tab 3 within Settings",
+      "Key list sorted by created_at descending (newest first)",
+      "Each row shows title, key type badge, SHA256 fingerprint, relative date",
+      "Enter toggles inline detail panel with full fingerprint and exact timestamp",
+      "a opens Add SSH Key modal with Title and Key fields",
+      "d opens delete confirmation with 'Delete SSH key {title}?' prompt",
+      "409 Conflict shows 'This key is already registered'",
+      "Fingerprint truncated at 80×24, full at 120×40+",
+      "Empty state: 'No SSH keys registered. Press a to add'"
+    ]
+  },
+  {
+    "id": "tui-settings-tokens",
+    "title": "Implement Settings Tokens tab with create/revoke/reveal flow",
+    "type": "feature",
+    "featureName": "TUI_SETTINGS_TOKENS",
+    "description": "Implement the Tokens tab (tab 4) within the Settings screen. Features: scrollable token list (newest first) with name/identifier/scopes/timestamp, two-line entries at standard+ (single-line at minimum), a opens create form with name input and scope multi-select checklist (10 scopes with Space toggle), Ctrl+S/Enter submits, token reveal panel with one-time display and success border, Enter/Esc dismisses reveal, d opens revoke confirmation, optimistic revoke with revert, state machine (loading→list→creating→revealing→list), admin scope handling. Tests in e2e/tui/settings.test.ts.",
+    "dependencies": [
+      "tui-settings-screen",
+      "tui-managed-list-with-actions",
+      "tui-settings-data-hooks",
+      "tui-sync-toast-flash-system"
+    ],
+    "estimateHours": 12,
+    "acceptanceCriteria": [
+      "Tokens tab renders as tab 4 within Settings",
+      "Token list displays name (bold), ••••{last_eight} (monospace), scope badges, timestamp",
+      "a opens multi-field create form with name input and 10-scope checklist",
+      "Space toggles scope selection with [✓]/[ ] indicators",
+      "Submit disabled until name non-empty AND ≥1 scope selected",
+      "On 201: token reveal panel shows full codeplane_* token with warning",
+      "Enter/Esc dismisses reveal panel, token zeroed from memory",
+      "d shows revoke confirmation with y/N, optimistic removal",
+      "Admin scopes show (admin) suffix for non-admin users",
+      "State machine prevents invalid transitions (no double-submit)"
+    ]
+  },
+  {
+    "id": "tui-settings-notification-prefs",
+    "title": "Implement Settings Notification Preferences tab with toggle",
+    "type": "feature",
+    "featureName": "TUI_SETTINGS_NOTIFICATION_PREFS",
+    "description": "Implement the Notification Preferences tab (tab 5) within the Settings screen. Features: global notification toggle [ON]/[OFF] with Space/Enter to flip, immediate PUT on toggle (no save button), optimistic toggle with revert on error, [Saving...] state in yellow, [Saved ✓] in green for 2s, read-only notification types list (7 event categories), repository subscriptions count with CLI hint, double-submit prevention via state machine guard, responsive layout. Tests in e2e/tui/settings.test.ts.",
+    "dependencies": [
+      "tui-settings-screen",
+      "tui-settings-data-hooks"
+    ],
+    "estimateHours": 6,
+    "acceptanceCriteria": [
+      "Notification Preferences tab renders as tab 5 within Settings",
+      "Toggle card shows 'Enable notifications' with [ON]/[OFF] indicator",
+      "Space or Enter flips toggle and immediately sends PUT",
+      "During PUT: toggle shows [Saving…] in yellow, input blocked",
+      "On success: [Saved ✓] in green for 2 seconds",
+      "On failure: revert to previous state, red error with 'Press r to retry'",
+      "Notification types list shows all 7 event categories",
+      "Repository subscriptions section shows watched count",
+      "'Granular per-type controls coming soon.' footer in muted italic"
+    ]
+  },
+  {
+    "id": "tui-settings-connected-accounts",
+    "title": "Implement Settings Connected Accounts tab with disconnect flow",
+    "type": "feature",
+    "featureName": "TUI_SETTINGS_CONNECTED_ACCOUNTS",
+    "description": "Implement the Connected Accounts tab (tab 6) within the Settings screen. Features: scrollable list of connected OAuth accounts, each row showing provider name, provider icon/badge, connected email/username, and connection date, d to disconnect with confirmation dialog, optimistic removal with revert on error, empty state with 'Run codeplane auth connect <provider>' hint, responsive layout. Tests in e2e/tui/settings.test.ts.",
+    "dependencies": [
+      "tui-settings-screen",
+      "tui-managed-list-with-actions",
+      "tui-settings-data-hooks"
+    ],
+    "estimateHours": 6,
+    "acceptanceCriteria": [
+      "Connected Accounts tab renders as tab 6 within Settings",
+      "List shows connected OAuth accounts with provider, username, date",
+      "d opens disconnect confirmation dialog",
+      "Successful disconnect removes account from list",
+      "Optimistic removal reverts on API error",
+      "Empty state: 'No connected accounts' with CLI hint",
+      "Footer: 'Run codeplane auth connect <provider> to connect'"
+    ]
+  },
+  {
+    "id": "tui-org-list-screen",
+    "title": "Implement Organization List screen with search, sort, and visibility filter",
+    "type": "feature",
+    "featureName": "TUI_ORG_LIST_SCREEN",
+    "description": "Implement the Organization List screen as a full-screen view registered in the screen router. Features: paginated org list via useOrgs() with cursor-based pagination, title 'Organizations (N)', persistent filter toolbar with search input (/), sort cycling (o: Created oldest/newest, Name A-Z/Z-A), visibility cycling (v: All/Public/Limited/Private), client-side sort and filter, visibility badges (green public, yellow limited, red private), responsive column layout (name+badge at 80×24, +description+location at 120×40, +website at 200×60), Enter pushes org overview, c pushes create form, 500-item pagination cap, deep-link and command palette entry. Tests in e2e/tui/organizations.test.ts.",
+    "dependencies": [
+      "tui-screen-router",
+      "tui-org-data-hooks"
+    ],
+    "estimateHours": 12,
+    "acceptanceCriteria": [
+      "Org list renders as full-screen view reachable via g o, :orgs, --screen orgs",
+      "Breadcrumb reads 'Dashboard > Organizations'",
+      "Title shows 'Organizations (N)' with total count from API",
+      "Filter toolbar always visible with search input, sort label, visibility label",
+      "/ focuses search input for client-side substring matching on name/description",
+      "o cycles sort: Created oldest → newest → Name A-Z → Z-A",
+      "v cycles visibility: All → Public → Limited → Private",
+      "Visibility badges color-coded: green/yellow/red",
+      "Enter on org pushes org overview screen",
+      "Cursor-based pagination with 500-item cap",
+      "97 test cases defined in organizations.test.ts"
+    ]
+  },
+  {
+    "id": "tui-org-overview",
+    "title": "Implement Organization Overview screen with tabbed content",
+    "type": "feature",
+    "featureName": "TUI_ORG_OVERVIEW",
+    "description": "Implement the Organization Overview screen showing org metadata and tabbed content. Features: header with org name (bold, primary), visibility badge, description (word-wrapped), website, location, timestamps, tab bar with Repos (default)/Members/Teams/Settings (owner-only), lazy-loaded tab data, per-tab scrollable lists with j/k navigation and Enter to open, per-tab client-side filter via /, per-tab scroll position preservation, responsive metadata compaction, 404 handling for non-existent orgs. Tests in e2e/tui/organizations.test.ts.",
+    "dependencies": [
+      "tui-org-list-screen",
+      "tui-org-context-provider",
+      "tui-tabbed-detail-view",
+      "tui-org-data-hooks"
+    ],
+    "estimateHours": 14,
+    "acceptanceCriteria": [
+      "Org overview renders org name, visibility badge, metadata, tab bar",
+      "Empty optional fields omitted (no blank lines or 'N/A')",
+      "Tab bar: Repos (default), Members, Teams, Settings (owner-only)",
+      "Tab/Shift+Tab and 1-4 switch tabs",
+      "Each tab's data loads lazily on first activation",
+      "Per-tab filter via / with case-insensitive client-side matching",
+      "Per-tab scroll position preserved across tab switches",
+      "Settings tab (4) pushes org settings screen (owner only)",
+      "404/403→404 handling for non-existent/non-member orgs",
+      "Breadcrumb: 'Organizations > {org-name}'"
+    ]
+  },
+  {
+    "id": "tui-org-members-view",
+    "title": "Implement Organization Members View with add/remove actions",
+    "type": "feature",
+    "featureName": "TUI_ORG_MEMBERS_VIEW",
+    "description": "Implement the Organization Members View as a full-screen list of org members. Features: paginated member list with role badges (owner/yellow, member/gray), username and display name columns, role filter cycling (f: All/Owners/Members), search via /, add member overlay for owners (a: username input + role select), remove member confirmation for owners (r: with y/N), last-owner protection, responsive columns (username only at 80×24, +display_name at 120×40), 500-member pagination cap. Tests in e2e/tui/organizations.test.ts.",
+    "dependencies": [
+      "tui-org-overview",
+      "tui-managed-list-with-actions",
+      "tui-org-data-hooks",
+      "tui-org-context-provider"
+    ],
+    "estimateHours": 12,
+    "acceptanceCriteria": [
+      "Members view renders as full-screen with 'Members (N)' header",
+      "Role badges: owner in yellow, member in gray",
+      "f cycles role filter: All → Owners → Members",
+      "/ activates search (client-side substring on username/display_name)",
+      "a opens add member overlay (owner only) with username + role",
+      "r opens remove member confirmation (owner only)",
+      "Last owner cannot be removed (409 handled, status bar message)",
+      "a/r hints hidden from status bar for non-owners",
+      "Cursor-based pagination with 500-member cap",
+      "119 test cases defined in organizations.test.ts"
+    ]
+  },
+  {
+    "id": "tui-org-teams-view",
+    "title": "Implement Organization Teams View with create action",
+    "type": "feature",
+    "featureName": "TUI_ORG_TEAMS_VIEW",
+    "description": "Implement the Organization Teams View as a full-screen list of org teams. Features: paginated team list with permission badges (read/green, write/yellow, admin/red), team name and description columns, filter via /, Enter pushes team detail, c pushes create team form (owner only), role-aware empty state, responsive columns (name+badge at 80×24, +description+timestamp at 120×40, +member count at 200×60), 500-team pagination cap. Tests in e2e/tui/organizations.test.ts.",
+    "dependencies": [
+      "tui-org-overview",
+      "tui-org-data-hooks",
+      "tui-org-context-provider"
+    ],
+    "estimateHours": 8,
+    "acceptanceCriteria": [
+      "Teams view renders with 'Teams (N)' header",
+      "Permission badges: read/green, write/yellow, admin/red",
+      "Enter on team pushes team detail screen",
+      "/ activates filter (client-side substring on name/description)",
+      "c pushes create team form (owner only, no-op for members)",
+      "Status bar shows c:create only for owners",
+      "Empty state: owner sees create hint, member sees ask-owner hint",
+      "Cursor-based pagination with 500-team cap"
+    ]
+  },
+  {
+    "id": "tui-org-team-detail",
+    "title": "Implement Organization Team Detail screen with members/repos tabs",
+    "type": "feature",
+    "featureName": "TUI_ORG_TEAM_DETAIL",
+    "description": "Implement the Team Detail screen showing team metadata and two tabs (Members, Repositories). Features: header with team name (bold), permission badge, description (word-wrapped), timestamps, two tabs with counts, Members tab with username/display_name list, Repositories tab with name/visibility/description list, owner actions (e: edit team, D: delete with name confirmation, a: add member/repo via fuzzy search, x: remove focused item), read-only for non-owners, responsive column layouts, per-tab pagination. Tests in e2e/tui/organizations.test.ts.",
+    "dependencies": [
+      "tui-org-teams-view",
+      "tui-tabbed-detail-view",
+      "tui-managed-list-with-actions",
+      "tui-org-data-hooks",
+      "tui-org-context-provider"
+    ],
+    "estimateHours": 14,
+    "acceptanceCriteria": [
+      "Team detail shows team name, permission badge, description, timestamps",
+      "Two tabs: Members (default) and Repositories with counts",
+      "Members tab: paginated list of team members with username/display_name",
+      "Repos tab: paginated list of team repos with name/visibility/description",
+      "Owner actions: e (edit), D (delete), a (add), x (remove)",
+      "Non-owners see read-only view with no mutation keybindings",
+      "Delete confirmation requires typing exact team name",
+      "Breadcrumb: 'org-name > Teams > team-name'"
+    ]
+  },
+  {
+    "id": "tui-org-settings-view",
+    "title": "Implement Organization Settings View with general/members/teams/danger zone",
+    "type": "feature",
+    "featureName": "TUI_ORG_SETTINGS_VIEW",
+    "description": "Implement the Organization Settings View as an owner-only screen with four sections: General Settings (name/description/visibility/website/location form with save), Members (paginated list with add/remove), Teams (paginated list with create/edit/delete), and Danger Zone (delete org with name confirmation). Features: section navigation via Tab/Shift+Tab, form dirty tracking and Ctrl+S save, visibility change confirmation modal, rename URL warning, member add/remove overlays, team create/edit/delete modals, danger zone with red border and exact-name-match deletion, responsive layouts. Tests in e2e/tui/organizations.test.ts.",
+    "dependencies": [
+      "tui-org-overview",
+      "tui-sync-toast-flash-system",
+      "tui-managed-list-with-actions",
+      "tui-sync-toast-flash-system",
+      "tui-org-data-hooks",
+      "tui-org-context-provider"
+    ],
+    "estimateHours": 16,
+    "acceptanceCriteria": [
+      "Settings view accessible only by org owners (s from overview)",
+      "Non-owners see access denied message, auto-pop after 3s",
+      "Four sections: General Settings, Members, Teams, Danger Zone",
+      "General Settings: 5-field form with dirty tracking and Ctrl+S save",
+      "Visibility change to more restrictive triggers confirmation",
+      "Members section: paginated list with add (a) and remove (d/x)",
+      "Teams section: paginated list with create (c), edit (e), delete (d/x)",
+      "Danger Zone: red border, delete requires typing exact org name",
+      "Successful org delete navigates to dashboard",
+      "Breadcrumb: 'Dashboard > org-name > Settings'"
+    ]
+  }
+]

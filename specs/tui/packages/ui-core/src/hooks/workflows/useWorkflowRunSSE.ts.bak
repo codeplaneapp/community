@@ -1,0 +1,312 @@
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useAPIClient } from "../../client/context.js";
+import { getSSETicket } from "../../sse/getSSETicket.js";
+import { createSSEReader } from "../../sse/createSSEReader.js";
+import type {
+  StatusEvent,
+  DoneEvent,
+  WorkflowStreamConnectionState,
+  ConnectionHealth,
+  WorkflowRunSSEState,
+} from "../../../../apps/tui/src/hooks/workflow-stream-types.js";
+import { TERMINAL_STATUSES, type WorkflowRunStatus } from "../../../../apps/tui/src/hooks/workflow-types.js";
+
+const INITIAL_BACKOFF_MS = 1_000;
+const MAX_BACKOFF_MS = 30_000;
+const BACKOFF_MULTIPLIER = 2;
+const MAX_RECONNECT_ATTEMPTS = 20;
+const KEEPALIVE_TIMEOUT_MS = 45_000;
+
+export interface WorkflowRunSSEOptions {
+  enabled?: boolean;
+  onStatusChange?: (runId: number, status: WorkflowRunStatus) => void;
+  onDone?: (runId: number, status: WorkflowRunStatus) => void;
+}
+
+export function useWorkflowRunSSE(
+  owner: string,
+  repo: string,
+  runIds: number[],
+  options?: WorkflowRunSSEOptions,
+): WorkflowRunSSEState {
+  const client = useAPIClient();
+  const enabled = options?.enabled ?? true;
+
+  const isMounted = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const backoffRef = useRef(INITIAL_BACKOFF_MS);
+  const reconnectAttemptsRef = useRef(0);
+  const keepaliveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backoffTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastEventIdRef = useRef<string | null>(null);
+  const lastConnectedAtRef = useRef<string | null>(null);
+
+  const optionsRef = useRef(options);
+  const runIdsRef = useRef<number[]>(runIds);
+
+  const [runStatuses, setRunStatuses] = useState<Map<number, WorkflowRunStatus>>(new Map());
+  const [connectionState, setConnectionState] = useState<WorkflowStreamConnectionState>("idle");
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
+
+  const clearKeepaliveTimer = useCallback(() => {
+    if (keepaliveTimerRef.current) {
+      clearTimeout(keepaliveTimerRef.current);
+      keepaliveTimerRef.current = null;
+    }
+  }, []);
+
+  const checkAutoDisconnect = useCallback((currentStatuses: Map<number, WorkflowRunStatus>) => {
+    if (runIdsRef.current.length === 0) return false;
+    const allTerminal = runIdsRef.current.every(id => {
+      const status = currentStatuses.get(id);
+      return status && TERMINAL_STATUSES.has(status);
+    });
+
+    if (allTerminal) {
+      if (isMounted.current) {
+        setConnectionState("completed");
+      }
+      clearKeepaliveTimer();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      return true;
+    }
+    return false;
+  }, [clearKeepaliveTimer]);
+
+  const processStatusEvent = useCallback((data: StatusEvent) => {
+    if (isMounted.current) {
+      setRunStatuses((prev) => {
+        const next = new Map(prev);
+        next.set(data.run_id, data.run_status);
+        checkAutoDisconnect(next);
+        return next;
+      });
+    }
+    optionsRef.current?.onStatusChange?.(data.run_id, data.run_status);
+  }, [checkAutoDisconnect]);
+
+  const processDoneEvent = useCallback((data: DoneEvent) => {
+    if (isMounted.current) {
+      setRunStatuses((prev) => {
+        const next = new Map(prev);
+        next.set(data.run_id, data.final_status);
+        checkAutoDisconnect(next);
+        return next;
+      });
+    }
+    optionsRef.current?.onDone?.(data.run_id, data.final_status);
+  }, [checkAutoDisconnect]);
+
+  const initiateReconnection = useCallback(() => {
+    if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+      const err = new Error("Max reconnection attempts reached");
+      if (isMounted.current) {
+        setConnectionState("failed");
+        setError(err);
+      }
+      return;
+    }
+
+    if (isMounted.current) {
+      setConnectionState("reconnecting");
+    }
+
+    if (backoffTimerRef.current) {
+      clearTimeout(backoffTimerRef.current);
+    }
+
+    reconnectAttemptsRef.current += 1;
+    const currentBackoff = backoffRef.current;
+    
+    backoffTimerRef.current = setTimeout(() => {
+      backoffTimerRef.current = null;
+      connectToStream(true);
+    }, currentBackoff);
+
+    backoffRef.current = Math.min(currentBackoff * BACKOFF_MULTIPLIER, MAX_BACKOFF_MS);
+  }, []);
+
+  const resetKeepaliveTimer = useCallback(() => {
+    clearKeepaliveTimer();
+    keepaliveTimerRef.current = setTimeout(() => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      initiateReconnection();
+    }, KEEPALIVE_TIMEOUT_MS);
+  }, [clearKeepaliveTimer, initiateReconnection]);
+
+  const connectToStream = useCallback(async (isReconnect: boolean) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    if (!isReconnect && isMounted.current) {
+      setConnectionState("connecting");
+    }
+
+    if (checkAutoDisconnect(runStatuses)) {
+       return; // Already complete
+    }
+
+    try {
+      const ticketResult = await getSSETicket(client, abortController.signal).catch(() => null);
+      
+      if (abortController.signal.aborted) return;
+
+      const url = new URL(`/api/repos/${owner}/${repo}/runs/status`, client.baseUrl);
+      url.searchParams.set("run_ids", runIdsRef.current.join(","));
+      const headers: Record<string, string> = {
+        Accept: "text/event-stream"
+      };
+
+      if (ticketResult?.ticket) {
+        url.searchParams.set("ticket", ticketResult.ticket);
+      } else {
+        const token = client.getToken?.();
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+      }
+
+      await createSSEReader({
+        url: url.toString(),
+        signal: abortController.signal,
+        headers,
+        lastEventId: lastEventIdRef.current ?? undefined,
+        onOpen: () => {
+          if (isMounted.current) {
+            setConnectionState("connected");
+            setError(null);
+            const now = new Date().toISOString();
+            lastConnectedAtRef.current = now;
+          }
+          backoffRef.current = INITIAL_BACKOFF_MS;
+          reconnectAttemptsRef.current = 0;
+          resetKeepaliveTimer();
+        },
+        onEvent: (event) => {
+          resetKeepaliveTimer();
+          if (event.id && isMounted.current) {
+            lastEventIdRef.current = event.id;
+          }
+          if (event.event === "keep-alive") return;
+
+          try {
+            const parsed = JSON.parse(event.data);
+            switch (event.event) {
+              case "status":
+                processStatusEvent(parsed);
+                break;
+              case "done":
+                processDoneEvent(parsed);
+                break;
+              case "error":
+                if (isMounted.current) {
+                  setError(new Error(parsed.message || "Unknown stream error"));
+                }
+                break;
+            }
+          } catch (e) {
+            // Drop malformed events
+          }
+        },
+        onError: (err) => {
+          clearKeepaliveTimer();
+          if (!abortController.signal.aborted) {
+            initiateReconnection();
+          }
+        },
+        onClose: () => {
+          clearKeepaliveTimer();
+          if (!abortController.signal.aborted && isMounted.current) {
+             initiateReconnection();
+          }
+        }
+      });
+    } catch (err: any) {
+      if (err.name === "AbortError") return;
+      clearKeepaliveTimer();
+      initiateReconnection();
+    }
+  }, [
+    client, owner, repo, 
+    clearKeepaliveTimer, resetKeepaliveTimer, 
+    initiateReconnection, 
+    processStatusEvent, processDoneEvent,
+    checkAutoDisconnect, runStatuses
+  ]);
+
+  const runIdsSerialized = [...runIds].sort().join(",");
+  useEffect(() => {
+    runIdsRef.current = runIds;
+    
+    if (!enabled || runIds.length === 0) {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      clearKeepaliveTimer();
+      return;
+    }
+
+    // Reset counters when inputs change
+    reconnectAttemptsRef.current = 0;
+    backoffRef.current = INITIAL_BACKOFF_MS;
+    connectToStream(false);
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      clearKeepaliveTimer();
+      if (backoffTimerRef.current) {
+        clearTimeout(backoffTimerRef.current);
+        backoffTimerRef.current = null;
+      }
+    };
+  }, [enabled, owner, repo, runIdsSerialized, connectToStream, clearKeepaliveTimer]);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  const reconnect = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    reconnectAttemptsRef.current = 0;
+    backoffRef.current = INITIAL_BACKOFF_MS;
+    connectToStream(false);
+  }, [connectToStream]);
+
+  const connectionHealth: ConnectionHealth = useMemo(() => ({
+    state: connectionState,
+    reconnectAttempts: reconnectAttemptsRef.current,
+    maxReconnectAttempts: MAX_RECONNECT_ATTEMPTS,
+    lastConnectedAt: lastConnectedAtRef.current,
+    lastError: error
+  }), [connectionState, error]);
+
+  return {
+    runStatuses,
+    connectionHealth,
+    reconnect
+  };
+}

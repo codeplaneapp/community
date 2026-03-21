@@ -1,0 +1,197 @@
+---
+title: "Ghost: Worktree Feature MDX Prompts"
+description: "Example from scripts/worktree-feature/components/*.mdx — MDX prompt templates used in the worktree-feature pipeline for discovery, implementation, review, validation, and reporting."
+---
+
+# scripts/worktree-feature/ — MDX Prompt Templates
+
+<Note>
+**Ghost doc** — These are real MDX prompt files from the `scripts/worktree-feature/components/` directory. They demonstrate how to use MDX as structured, interpolated prompt templates for agent tasks.
+</Note>
+
+## How MDX Prompts Work
+
+Each `.mdx` file is imported as a JSX component and rendered as children of a `<Task>`. Props are interpolated via `{props.xxx}` syntax:
+
+```tsx
+import ImplementPrompt from "./Implement.mdx";
+
+<Task id="implement" output={outputs.implement} agent={codex}>
+  <ImplementPrompt
+    ticketId="vcs-jj-rewrite"
+    ticketTitle="Rewrite VCS layer"
+    ticketDescription="Full rewrite of the VCS abstraction"
+    acceptanceCriteria="Tests pass"
+  />
+</Task>
+```
+
+## Discover.mdx
+
+Prompt for breaking a PRD into ordered implementation tickets.
+
+```mdx
+TICKET DISCOVERY — Break PRD into Ordered Implementation Tickets
+
+GOAL: Break the PRD into ordered, independently-implementable tickets.
+
+STEPS:
+1. Read the PRD thoroughly
+2. Explore the codebase to understand current state
+3. Break the PRD into tickets ordered by dependency
+4. Each ticket should be the smallest independently testable unit
+
+TICKET ID RULES:
+- IDs MUST be lowercase kebab-case slugs (e.g. "vcs-jj-rewrite")
+- NEVER use numeric IDs like T-001 — they collide across runs
+```
+
+## Implement.mdx
+
+Prompt for full end-to-end ticket implementation with iterative feedback.
+
+```mdx
+IMPLEMENTATION — Ticket: {props.ticketId} — {props.ticketTitle}
+
+Implement FULLY end-to-end. Do NOT stop until fully implemented + ALL tests pass.
+
+TICKET DESCRIPTION:
+{props.ticketDescription}
+
+ACCEPTANCE CRITERIA:
+- {props.acceptanceCriteria}
+
+FILES TO MODIFY: {JSON.stringify(props.filesToModify)}
+FILES TO CREATE: {JSON.stringify(props.filesToCreate)}
+
+{props.previousImplementation ? `
+PREVIOUS ATTEMPT:
+What was done: ${props.previousImplementation.whatWasDone}
+Fix issues from previous attempt.` : ""}
+
+{props.reviewFixes ? `
+REVIEW FIXES NEEDED:
+${props.reviewFixes}` : ""}
+
+IMPLEMENTATION RULES:
+1. Implement ticket FULLY — nothing unfinished
+2. Follow existing framework patterns exactly
+3. ALL commits go directly on main. NEVER create branches.
+4. After implementing, run tests
+5. If tests fail, fix before moving on.
+```
+
+## Review.mdx
+
+Prompt for extremely strict code review against PRD specifications.
+
+```mdx
+CODE REVIEW — Ticket: {props.ticketId} — {props.ticketTitle} — Reviewer: {props.reviewer}
+
+EXTREMELY strict code reviewer.
+
+FILES CHANGED:
+Created: {JSON.stringify(props.filesCreated)}
+Modified: {JSON.stringify(props.filesModified)}
+
+Review against:
+1. CORRECTNESS — Matches PRD exactly?
+2. CODE QUALITY — DRY? Follows patterns?
+3. TEST COVERAGE — Every edge case?
+4. TYPE SAFETY — No `any` or unsafe casts?
+
+APPROVAL POLICY:
+- ANY way to improve the code → MUST be improved.
+- approved: true ONLY when there are genuinely ZERO issues.
+```
+
+## Validate.mdx
+
+Prompt for independent verification of implementation correctness.
+
+```mdx
+VALIDATION — Ticket: {props.ticketId} — {props.ticketTitle}
+
+Independently verify implementation correctness.
+Don't trust implementation agent claims — run everything yourself.
+
+CANONICAL CHECK: Run `bun test`
+ALL tests must pass.
+
+ZERO TOLERANCE:
+- ALL tests pass. No exceptions.
+- Type errors count as failures.
+```
+
+## ReviewFix.mdx
+
+Prompt for addressing all issues from code review.
+
+```mdx
+REVIEW FIX — Ticket: {props.ticketId} — {props.ticketTitle}
+
+REVIEW ISSUES:
+{JSON.stringify(props.issues, null, 2)}
+
+REVIEW FEEDBACK:
+{props.feedback}
+
+RULES:
+1. Fix every legitimate issue
+2. If FALSE POSITIVE: record in output JSON
+3. Run tests after fixes
+```
+
+## Report.mdx
+
+Prompt for generating a concise implementation report.
+
+```mdx
+REPORTING — Ticket: {props.ticketId} — {props.ticketTitle}
+
+IMPLEMENTATION SUMMARY:
+{props.whatWasDone}
+
+PRE-COMPUTED METRICS (echo these back exactly):
+- filesChanged: {props.filesChanged}
+- reviewRounds: {props.reviewRounds}
+
+Assess: Anything go wrong? Agent struggle? Lessons for future?
+```
+
+## System Prompt — system-prompt.mdx
+
+The top-level system prompt is also MDX, using custom components to inject context:
+
+```mdx
+# Smithers Framework — Worktree + MergeQueue Implementation
+
+## PRD
+<Prd />
+
+## Smithers Framework Context
+<SmithersContext />
+
+## Coding Conventions
+- Follow existing patterns exactly
+- Run `bun test` to validate changes
+- Atomic commits with emoji prefixes
+```
+
+The `<Prd />` and `<SmithersContext />` components are injected at render time via `renderMdx()`:
+
+```ts
+import { renderMdx } from "smithers-orchestrator";
+import SystemPromptMdx from "./prompts/system-prompt.mdx";
+
+export const SYSTEM_PROMPT = renderMdx(SystemPromptMdx, {
+  components: { Prd: () => prdContent, SmithersContext: () => contextContent },
+});
+```
+
+## What This Demonstrates
+
+- **MDX as prompt templates** — Each `.mdx` file is a structured prompt with JSX interpolation for dynamic content.
+- **Props-driven prompts** — Components pass ticket data, previous results, and feedback as props to MDX templates.
+- **Conditional sections** — `{props.previousImplementation ? ... : ""}` adds context only when iterating.
+- **`renderMdx()`** — Composes large system prompts from multiple sources using custom MDX components.

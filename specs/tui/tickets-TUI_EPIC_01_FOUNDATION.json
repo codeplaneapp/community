@@ -1,0 +1,385 @@
+[
+  {
+    "id": "tui-foundation-scaffold",
+    "title": "Scaffold TUI app package structure, dependencies, and directory layout",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the foundational TUI app package from scratch. This includes:\n\n1. `apps/tui/package.json` with exact-pinned dependencies: `@opentui/core`, `@opentui/react`, `react` (19.x), `@codeplane/sdk`. Dev deps: `typescript`, `@types/react`, `bun-types`.\n2. `apps/tui/tsconfig.json` configured for React 19 JSX with `@opentui/react/jsx-runtime`, Bun target, path aliases.\n3. Directory structure:\n   - `apps/tui/src/index.tsx` — empty entry point placeholder\n   - `apps/tui/src/providers/` — provider components directory\n   - `apps/tui/src/components/` — shared components directory\n   - `apps/tui/src/hooks/` — custom hooks directory\n   - `apps/tui/src/theme/` — theme system directory\n   - `apps/tui/src/screens/` — screen components directory\n   - `apps/tui/src/util/` — utilities directory\n4. Verify `bun install` succeeds and TypeScript compiles with no errors.\n5. Verify `@opentui/core` createCliRenderer and `@opentui/react` createRoot are importable.\n\nThis ticket produces no runnable TUI — just a valid, importable package structure.",
+    "acceptanceCriteria": [
+      "apps/tui/package.json exists with all required dependencies at exact versions",
+      "apps/tui/tsconfig.json compiles with zero errors",
+      "bun install succeeds in the workspace",
+      "All directory stubs exist: src/providers/, src/components/, src/hooks/, src/theme/, src/screens/, src/util/",
+      "Import of @opentui/core and @opentui/react resolves correctly",
+      "Import of @codeplane/sdk resolves correctly"
+    ],
+    "dependencies": [],
+    "files": [
+      "apps/tui/package.json",
+      "apps/tui/tsconfig.json",
+      "apps/tui/src/index.tsx"
+    ],
+    "estimateHours": 2
+  },
+  {
+    "id": "tui-e2e-test-infra",
+    "title": "Set up TUI E2E test infrastructure with @microsoft/tui-test helpers",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the E2E test infrastructure for all TUI tests. This includes:\n\n1. `e2e/tui/helpers.ts` — shared test utilities:\n   - `launchTUI(options?)` function that starts the TUI process with configurable terminal dimensions, env vars, and CLI args. Returns a `TUITestInstance` with `sendKeys()`, `sendText()`, `waitForText()`, `waitForNoText()`, `snapshot()`, `getLine()`, `resize()`, `terminate()`, `rows`, `cols`.\n   - Terminal snapshot comparison utilities.\n   - Helper to set up test credential store via `CODEPLANE_TEST_CREDENTIAL_STORE_FILE`.\n   - Helper to configure mock API server responses for test isolation.\n2. `e2e/tui/app-shell.test.ts` — empty test file skeleton with describe blocks for each TUI_APP_SHELL feature.\n3. Test configuration that runs via `bun test` with appropriate timeouts for terminal interaction tests.\n4. Ensure `@microsoft/tui-test` is added as a dev dependency in the appropriate package.json.\n\nThe helpers must handle TUI process lifecycle: launch, interact, assert, terminate. Each test gets a fresh TUI instance with no shared state.",
+    "acceptanceCriteria": [
+      "e2e/tui/helpers.ts exports launchTUI() function with full TUITestInstance interface",
+      "e2e/tui/app-shell.test.ts exists with describe blocks for foundation features",
+      "@microsoft/tui-test is installed as a dev dependency",
+      "bun test e2e/tui/ runs without configuration errors (tests may fail but infrastructure works)",
+      "launchTUI() correctly spawns a TUI process and returns a controllable test instance",
+      "Test instances clean up terminal state on terminate()"
+    ],
+    "dependencies": [
+      "tui-foundation-scaffold"
+    ],
+    "files": [
+      "e2e/tui/helpers.ts",
+      "e2e/tui/app-shell.test.ts"
+    ],
+    "estimateHours": 4
+  },
+  {
+    "id": "tui-color-detection",
+    "title": "Implement terminal color capability detection module",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the color capability detection module at `apps/tui/src/theme/detect.ts`. This is a pure function module with no React dependencies, used by ThemeProvider at startup.\n\nImplementation:\n1. `detectColorCapability(): ColorTier` function that returns `'truecolor' | 'ansi256' | 'ansi16'`.\n2. Detection cascade:\n   - Check `COLORTERM` env var: `'truecolor'` or `'24bit'` → truecolor tier\n   - Check `TERM` env var: contains `'256color'` → ansi256 tier\n   - Check for `NO_COLOR=1` or `TERM=dumb` → ansi16 tier (most constrained)\n   - Default fallback → ansi256 tier\n3. Export `ColorTier` type.\n4. Export `isUnicodeSupported(): boolean` for spinner character selection (checks TERM is not 'dumb' and NO_COLOR is not set).\n\nThis module makes zero API calls and has zero React dependencies. It reads only environment variables.",
+    "acceptanceCriteria": [
+      "detectColorCapability() returns 'truecolor' when COLORTERM=truecolor",
+      "detectColorCapability() returns 'truecolor' when COLORTERM=24bit",
+      "detectColorCapability() returns 'ansi256' when TERM contains '256color'",
+      "detectColorCapability() returns 'ansi16' when NO_COLOR=1",
+      "detectColorCapability() returns 'ansi16' when TERM=dumb",
+      "detectColorCapability() returns 'ansi256' as default fallback",
+      "isUnicodeSupported() returns false when TERM=dumb or NO_COLOR=1",
+      "ColorTier type is exported"
+    ],
+    "dependencies": [
+      "tui-foundation-scaffold"
+    ],
+    "files": [
+      "apps/tui/src/theme/detect.ts"
+    ],
+    "estimateHours": 1
+  },
+  {
+    "id": "tui-theme-tokens",
+    "title": "Define semantic color token values for all three color tiers",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the theme token definitions at `apps/tui/src/theme/tokens.ts`. This module defines the concrete color values for every semantic token at each color tier (truecolor, ansi256, ansi16).\n\nImplementation:\n1. `ThemeTokens` interface with 12 semantic tokens:\n   - Core: `primary`, `success`, `warning`, `error`, `muted`, `surface`, `border`\n   - Diff: `diffAddedBg`, `diffRemovedBg`, `diffAddedText`, `diffRemovedText`, `diffHunkHeader`\n2. Three frozen token objects (one per color tier) with values from the spec:\n   - Truecolor: hex values (#2563EB, #16A34A, #CA8A04, #DC2626, #A3A3A3, #262626, #525252, etc.)\n   - ANSI 256: indices (33, 34, 178, 196, 245, 236, 240, 22, 52, 34, 196, 37)\n   - ANSI 16: basic names (Blue, Green, Yellow, Red, White dim, Black bright, White dim)\n3. `createTheme(tier: ColorTier): Readonly<ThemeTokens>` factory function.\n4. All returned theme objects are `Object.freeze()`-d — no runtime mutation.\n5. Color values expressed as `RGBA` objects from `@opentui/core` (Float32Array-backed), created once and reused by identity.\n6. `TextAttributeTokens` for bold, dim, underline, reverse.\n7. `statusToToken(status: string): keyof ThemeTokens` utility mapping entity states to semantic colors.",
+    "acceptanceCriteria": [
+      "ThemeTokens interface defines all 12 color tokens",
+      "createTheme('truecolor') returns correct hex-based RGBA values",
+      "createTheme('ansi256') returns correct ANSI 256 index-based colors",
+      "createTheme('ansi16') returns correct basic ANSI colors",
+      "All returned theme objects are frozen (Object.isFrozen returns true)",
+      "RGBA values are created once, not per-render (referential identity stable)",
+      "statusToToken maps 'open' to success, 'closed' to error, 'pending' to warning correctly",
+      "TextAttributeTokens defines bold, dim, underline, reverse"
+    ],
+    "dependencies": [
+      "tui-color-detection"
+    ],
+    "files": [
+      "apps/tui/src/theme/tokens.ts"
+    ],
+    "estimateHours": 2
+  },
+  {
+    "id": "tui-theme-provider",
+    "title": "Implement ThemeProvider React context and useTheme hook",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the ThemeProvider at `apps/tui/src/providers/ThemeProvider.tsx` and the `useTheme()` hook at `apps/tui/src/hooks/useTheme.ts`.\n\nImplementation:\n1. `ThemeProvider` React context provider component:\n   - On mount: calls `detectColorCapability()` and `createTheme(tier)` once.\n   - Stores the frozen `ThemeTokens` object in context.\n   - Provides `colorTier` alongside tokens for components that need tier-aware behavior.\n   - Does NOT accept user-supplied themes — single dark theme only.\n2. `useTheme(): Readonly<ThemeTokens>` hook:\n   - Reads from ThemeProvider context.\n   - Throws if used outside ThemeProvider.\n3. `useColorTier(): ColorTier` hook:\n   - Returns the detected color tier.\n4. The provider wraps children and adds no DOM/layout nodes.\n\nUsage pattern:\n```tsx\nconst theme = useTheme();\n<text fg={theme.primary}>Focused item</text>\n<text fg={theme.muted}>Secondary text</text>\n```",
+    "acceptanceCriteria": [
+      "ThemeProvider creates theme once on mount, not on every render",
+      "useTheme() returns the frozen ThemeTokens object",
+      "useTheme() throws with a clear message when used outside ThemeProvider",
+      "useColorTier() returns the detected ColorTier value",
+      "ThemeProvider does not add layout nodes to the component tree",
+      "Re-renders of ThemeProvider children do not recreate the theme object"
+    ],
+    "dependencies": [
+      "tui-theme-tokens",
+      "tui-foundation-scaffold"
+    ],
+    "files": [
+      "apps/tui/src/providers/ThemeProvider.tsx",
+      "apps/tui/src/hooks/useTheme.ts"
+    ],
+    "estimateHours": 2
+  },
+  {
+    "id": "tui-spinner-hook",
+    "title": "Implement shared useSpinner hook with braille/ASCII animation",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create a shared spinner animation hook at `apps/tui/src/hooks/useSpinner.ts` that drives all loading spinners in the TUI. Multiple components showing spinners will be synchronized through this hook.\n\nImplementation:\n1. `useSpinner(active: boolean): string` hook:\n   - Returns the current spinner frame character.\n   - Uses `useTimeline()` from `@opentui/react` for animation frame cycling.\n   - Braille frames: `['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']` at 80ms intervals.\n   - ASCII fallback: `['|', '/', '-', '\\\\']` at 120ms intervals when `isUnicodeSupported()` returns false.\n   - When `active` is false, pauses animation and returns empty string.\n2. `SpinnerContext` provider (optional) for frame synchronization across multiple concurrent spinners.\n3. Pure hook — no DOM output. Components use the returned character in their own `<text>` elements.",
+    "acceptanceCriteria": [
+      "useSpinner(true) returns braille characters cycling at 80ms on Unicode-capable terminals",
+      "useSpinner(true) returns ASCII characters cycling at 120ms on non-Unicode terminals",
+      "useSpinner(false) returns empty string and pauses animation",
+      "Multiple concurrent spinners display the same frame (synchronized)",
+      "Spinner does not consume CPU when active is false",
+      "Animation uses useTimeline() from @opentui/react"
+    ],
+    "dependencies": [
+      "tui-foundation-scaffold",
+      "tui-color-detection"
+    ],
+    "files": [
+      "apps/tui/src/hooks/useSpinner.ts"
+    ],
+    "estimateHours": 2
+  },
+  {
+    "id": "tui-util-text",
+    "title": "Implement text utility functions for wrapping, truncation, and formatting",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create utility modules used by multiple foundation features:\n\n1. `apps/tui/src/util/truncate.ts`:\n   - `truncateText(text: string, maxWidth: number): string` — truncates with `…` suffix.\n   - `truncateLeft(text: string, maxWidth: number): string` — truncates from left with `…` prefix (for breadcrumbs).\n   - `wrapText(text: string, maxWidth: number): string[]` — wraps text into lines at word boundaries.\n\n2. `apps/tui/src/util/constants.ts`:\n   - `MIN_COLS = 80`, `MIN_ROWS = 24`\n   - `STANDARD_COLS = 120`, `STANDARD_ROWS = 40`\n   - `LARGE_COLS = 200`, `LARGE_ROWS = 60`\n   - `AUTH_VALIDATION_TIMEOUT_MS = 5000`\n   - `MAX_STACK_DEPTH = 32`\n   - `LOADING_TIMEOUT_MS = 30000`\n   - `RETRY_DEBOUNCE_MS = 1000`\n   - `STATUS_BAR_CONFIRMATION_MS = 3000`\n   - `CRASH_LOOP_WINDOW_MS = 5000`, `CRASH_LOOP_MAX_RESTARTS = 3`\n\n3. `apps/tui/src/util/format.ts`:\n   - `formatAuthConfirmation(username: string, source: string, maxWidth: number): string`\n   - `formatErrorSummary(error: unknown, maxChars: number): string`",
+    "acceptanceCriteria": [
+      "truncateText('hello world', 8) returns 'hello w…'",
+      "truncateLeft('a > b > c > d', 10) returns '… > c > d'",
+      "wrapText() breaks at word boundaries without splitting words",
+      "All constants are exported and match spec values",
+      "formatAuthConfirmation truncates username to 20 chars with ellipsis",
+      "formatErrorSummary normalizes non-Error values to string messages"
+    ],
+    "dependencies": [
+      "tui-foundation-scaffold"
+    ],
+    "files": [
+      "apps/tui/src/util/truncate.ts",
+      "apps/tui/src/util/constants.ts",
+      "apps/tui/src/util/format.ts"
+    ],
+    "estimateHours": 2
+  },
+  {
+    "id": "tui-layout-hook",
+    "title": "Implement useLayout hook with breakpoint detection and responsive values",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the responsive layout hook at `apps/tui/src/hooks/useLayout.ts` that provides breakpoint-aware layout values to all components.\n\nImplementation:\n1. `Breakpoint` type: `'unsupported' | 'minimum' | 'standard' | 'large'`\n2. `getBreakpoint(cols: number, rows: number): Breakpoint` pure function:\n   - `< 80 || < 24` → `'unsupported'`\n   - `< 120 || < 40` → `'minimum'`\n   - `< 200 || < 60` → `'standard'`\n   - Otherwise → `'large'`\n3. `useLayout(): LayoutContext` hook using `useTerminalDimensions()` from `@opentui/react`:\n   - `width`, `height` — raw terminal dimensions\n   - `breakpoint` — current breakpoint\n   - `contentHeight` — `height - 2` (minus header and status bar)\n   - `sidebarVisible` — `breakpoint !== 'minimum'`\n   - `sidebarWidth` — `breakpoint === 'large' ? '30%' : '25%'`\n   - `modalWidth` — `'90%'` / `'60%'` / `'50%'` per breakpoint\n   - `modalHeight` — `'90%'` / `'60%'` / `'50%'` per breakpoint\n4. Values recalculate synchronously on resize via `useTerminalDimensions()`.",
+    "acceptanceCriteria": [
+      "getBreakpoint(79, 24) returns 'unsupported'",
+      "getBreakpoint(80, 24) returns 'minimum'",
+      "getBreakpoint(120, 40) returns 'standard'",
+      "getBreakpoint(200, 60) returns 'large'",
+      "useLayout() returns contentHeight = height - 2",
+      "useLayout() returns sidebarVisible=false for minimum breakpoint",
+      "useLayout() recalculates on terminal resize without delay",
+      "Breakpoint type is exported"
+    ],
+    "dependencies": [
+      "tui-foundation-scaffold",
+      "tui-util-text"
+    ],
+    "files": [
+      "apps/tui/src/hooks/useLayout.ts"
+    ],
+    "estimateHours": 2
+  },
+  {
+    "id": "tui-bootstrap-and-renderer",
+    "title": "TUI_BOOTSTRAP_AND_RENDERER: Process lifecycle, renderer init, provider stack, terminal setup/teardown",
+    "type": "feature",
+    "featureName": "TUI_BOOTSTRAP_AND_RENDERER",
+    "description": "Implement the complete TUI bootstrap sequence and renderer initialization as specified in TUI_BOOTSTRAP_AND_RENDERER.md.\n\nThis is the root entry point (`apps/tui/src/index.tsx`) that:\n\n1. **Terminal setup** (<100ms):\n   - Create `CliRenderer` via `createCliRenderer()` from `@opentui/core` with alternate screen buffer, raw mode, hidden cursor, mouse reporting, Kitty keyboard detection.\n   - Detect terminal dimensions. If non-TTY stdin/stdout, exit with clear error.\n\n2. **React 19 initialization**:\n   - Create React root via `createRoot(renderer)` from `@opentui/react`.\n   - Mount the complete provider stack hierarchy: `AppContext.Provider` → `ErrorBoundary` → `ThemeProvider` → `AuthProvider` → `NavigationProvider` → `AppShell`.\n\n3. **Dimension enforcement**:\n   - If terminal < 80×24, render 'Terminal too small' message with current and minimum dimensions.\n   - On resize from below-minimum to at-or-above-minimum, render full app without restart.\n   - On resize from above-minimum to below-minimum, replace app with 'too small' message.\n\n4. **Signal handling**:\n   - SIGINT, SIGTERM, SIGHUP → graceful teardown (exit alternate screen, disable raw mode, restore cursor, clear timers).\n   - SIGWINCH → resize detection and re-render.\n   - Multiple rapid signals don't cause double-teardown.\n\n5. **AppShell component** (`apps/tui/src/components/AppShell.tsx`):\n   - Three-zone layout: HeaderBar (1 row), Content Area (flex grow), StatusBar (1 row).\n   - HeaderBar shows breadcrumb trail (placeholder), repo context, connection status.\n   - StatusBar shows keybinding hints, sync status placeholder, notification count placeholder.\n   - OverlayLayer for modals (empty for now).\n\n6. **Teardown**: On exit, restore all terminal state. After teardown, shell prompt returns cleanly.\n\n7. **Performance**: First meaningful paint (header + content + status bar) within 200ms. Screen transitions < 50ms. Steady-state RSS < 150MB.\n\nTest file: `e2e/tui/app-shell.test.ts` with tests for:\n- Process launches and renders three-zone layout\n- Terminal too small message at < 80×24\n- Resize from too-small to valid renders full layout\n- Ctrl+C exits cleanly\n- SIGTERM exits cleanly\n- Non-TTY stdin exits with error\n- Terminal state restored after exit (alternate screen, cursor, raw mode)",
+    "acceptanceCriteria": [
+      "Running the TUI entry point spawns a Bun process that renders header + content + status bar within 200ms",
+      "Alternate screen buffer is entered on startup and exited on teardown",
+      "Raw mode is enabled on startup and disabled on teardown",
+      "Cursor is hidden on startup and restored on teardown",
+      "Terminal < 80×24 shows 'Terminal too small' message with dimensions",
+      "Resize from below-minimum to at-or-above-minimum renders full layout without restart",
+      "SIGINT/SIGTERM/SIGHUP trigger graceful teardown with exit code 0",
+      "SIGWINCH triggers resize detection and re-render within 50ms",
+      "Non-TTY stdin exits with 'stdin is not a TTY' error message",
+      "Non-TTY stdout exits with 'stdout is not a TTY' error message",
+      "Provider stack is mounted in correct hierarchy",
+      "AppShell renders header bar, content area, and status bar",
+      "No visual artifacts in terminal after exit"
+    ],
+    "dependencies": [
+      "tui-foundation-scaffold",
+      "tui-theme-provider",
+      "tui-layout-hook",
+      "tui-util-text",
+      "tui-e2e-test-infra"
+    ],
+    "files": [
+      "apps/tui/src/index.tsx",
+      "apps/tui/src/components/AppShell.tsx",
+      "apps/tui/src/components/HeaderBar.tsx",
+      "apps/tui/src/components/StatusBar.tsx",
+      "apps/tui/src/components/TerminalTooSmall.tsx",
+      "e2e/tui/app-shell.test.ts"
+    ],
+    "estimateHours": 8
+  },
+  {
+    "id": "tui-theme-and-color-tokens",
+    "title": "TUI_THEME_AND_COLOR_TOKENS: Complete theme system with color depth detection and semantic tokens",
+    "type": "feature",
+    "featureName": "TUI_THEME_AND_COLOR_TOKENS",
+    "description": "Complete the theme and color token system as specified in TUI_THEME_AND_COLOR_TOKENS.md. This feature integrates the engineering prerequisites (color detection, token definitions, ThemeProvider) into a fully tested, production-ready theme system.\n\nBuilds on: tui-color-detection, tui-theme-tokens, tui-theme-provider.\n\nRemaining work beyond engineering tickets:\n1. **Integration verification**: Ensure ThemeProvider is correctly positioned in the provider stack (wraps content below ErrorBoundary).\n2. **Component-level token application**: Verify all AppShell components (HeaderBar, StatusBar) consume tokens via `useTheme()` — no hardcoded colors.\n3. **All three tiers render correctly**: Truecolor, ANSI 256, and ANSI 16 produce readable, visually correct output.\n4. **Edge cases**:\n   - `TERM=dumb` renders layout with plain text, no color escapes.\n   - `NO_COLOR=1` disables all color output.\n   - Missing `COLORTERM` and `TERM` defaults to ansi256.\n   - Color tokens don't allocate new Float32Array on every render.\n5. **statusToToken utility**: Maps entity states to semantic colors, exported for use by all screen components.\n\nTest file: `e2e/tui/app-shell.test.ts` with tests for:\n- Color detection returns correct tier for various COLORTERM/TERM values\n- Theme tokens are applied to header bar, status bar, and content area\n- ANSI 256 fallback renders readable output\n- ANSI 16 fallback renders readable output\n- NO_COLOR=1 disables all color escapes\n- TERM=dumb renders plain text layout\n- Colors persist after terminal resize",
+    "acceptanceCriteria": [
+      "ThemeProvider wraps the TUI app tree and provides tokens to all descendants",
+      "Seven core semantic tokens render correctly at truecolor tier",
+      "Seven core semantic tokens render correctly at ANSI 256 tier",
+      "Seven core semantic tokens render correctly at ANSI 16 tier",
+      "Five diff tokens are defined and accessible via useTheme()",
+      "No component uses hardcoded color values — all go through useTheme()",
+      "NO_COLOR=1 disables all color output",
+      "TERM=dumb disables color and uses plain text indicators",
+      "Color tokens are referentially stable across re-renders",
+      "Theme object is frozen and immutable",
+      "statusToToken maps entity states correctly",
+      "Colors persist after terminal resize"
+    ],
+    "dependencies": [
+      "tui-theme-provider",
+      "tui-bootstrap-and-renderer",
+      "tui-e2e-test-infra"
+    ],
+    "files": [
+      "apps/tui/src/theme/detect.ts",
+      "apps/tui/src/theme/tokens.ts",
+      "apps/tui/src/providers/ThemeProvider.tsx",
+      "apps/tui/src/hooks/useTheme.ts",
+      "e2e/tui/app-shell.test.ts"
+    ],
+    "estimateHours": 4
+  },
+  {
+    "id": "tui-error-boundary",
+    "title": "TUI_ERROR_BOUNDARY: React error boundary with recovery UI, stack trace, and crash loop detection",
+    "type": "feature",
+    "featureName": "TUI_ERROR_BOUNDARY",
+    "description": "Implement the React error boundary as specified in TUI_ERROR_BOUNDARY.md.\n\n1. **ErrorBoundary class component** (`apps/tui/src/components/ErrorBoundary.tsx`):\n   - React class component using `componentDidCatch` and `getDerivedStateFromError`.\n   - Catches all uncaught exceptions from descendant render/lifecycle/constructors.\n   - Positioned in provider stack below AuthProvider, above NavigationProvider.\n   - On catch: sets error state, renders error screen, reports to telemetry.\n\n2. **Error screen** (`apps/tui/src/components/ErrorScreen.tsx`):\n   - Red heading using `error` token. Error message wrapped to `terminal_width - 4` chars, capped at 500 chars.\n   - Collapsible stack trace: first line visible by default, `s` toggles full trace.\n   - Expanded trace in scrollable region with `j`/`k`/`G`/`gg`/`Ctrl+D`/`Ctrl+U` navigation.\n   - Stack trace capped at 200 lines. Action hints: `r restart`, `q quit`, `s toggle trace`.\n\n3. **Keybindings**: `r` restart, `q` quit, `Ctrl+C` immediate exit, `s` toggle trace, `j`/`k`/`G`/`gg`/`Ctrl+D`/`Ctrl+U` scroll trace, `?` help. All others suppressed.\n\n4. **Crash loop detection**: Ring buffer of last 5 restart timestamps. 3+ restarts in 5 seconds: exit with code 1.\n\n5. **Double fault handling**: Error during error screen render exits to stderr.\n\n6. **Responsive sizing**: Breakpoint-specific message limits, trace heights, and padding.",
+    "acceptanceCriteria": [
+      "Uncaught exceptions in descendant components are caught and error screen renders",
+      "Error screen shows red heading, error message, and action hints",
+      "s key toggles stack trace between collapsed and expanded",
+      "j/k/G/gg/Ctrl+D/Ctrl+U scroll within expanded stack trace",
+      "r key resets error state and remounts content tree at Dashboard",
+      "q key exits TUI cleanly with code 0",
+      "Ctrl+C exits immediately regardless of error state",
+      "Crash loop detection: 3+ restarts in 5s writes diagnostic to stderr and exits with code 1",
+      "Double fault: error during error screen render exits gracefully to stderr",
+      "Error message is wrapped to terminal_width - 4 and capped at 500 chars",
+      "Stack trace is capped at 200 lines with truncation indicator",
+      "Header bar and status bar remain visible during error display",
+      "Non-Error thrown values are normalized to Error objects",
+      "Rapid r presses trigger only one restart cycle",
+      "Error screen renders correctly at all three breakpoints"
+    ],
+    "dependencies": [
+      "tui-bootstrap-and-renderer",
+      "tui-theme-provider",
+      "tui-layout-hook",
+      "tui-util-text",
+      "tui-e2e-test-infra"
+    ],
+    "files": [
+      "apps/tui/src/components/ErrorBoundary.tsx",
+      "apps/tui/src/components/ErrorScreen.tsx",
+      "e2e/tui/app-shell.test.ts"
+    ],
+    "estimateHours": 6
+  },
+  {
+    "id": "tui-auth-token-loading",
+    "title": "TUI_AUTH_TOKEN_LOADING: Token resolution, validation gate, loading/error screens, AuthProvider",
+    "type": "feature",
+    "featureName": "TUI_AUTH_TOKEN_LOADING",
+    "description": "Implement the auth token loading flow as specified in TUI_AUTH_TOKEN_LOADING.md.\n\n1. **AuthProvider** (`apps/tui/src/providers/AuthProvider.tsx`): React context with status, user, tokenSource, apiUrl, host, token, retry(). Gates child rendering.\n2. **Token resolution** (synchronous): Uses `resolveAuthToken()` from CLI. Priority: env → keyring → config.\n3. **Token validation** (async, 5s timeout): `GET /api/user`. 200→authenticated, 401→expired, network error→offline (optimistic).\n4. **Loading screen**: Spinner + 'Authenticating…' + host.\n5. **Error screens**: 'Not authenticated' (no token) and 'Session expired' (401) with instructions.\n6. **Keybindings**: Loading: Ctrl+C only. Error: q, R (debounced), Ctrl+C, ?.\n7. **Status bar confirmation**: '✓ username via source' for 3 seconds.\n8. **Security**: Token never displayed.",
+    "acceptanceCriteria": [
+      "AuthProvider resolves token from CODEPLANE_TOKEN → keyring → config in priority order",
+      "Loading screen shows spinner and 'Authenticating…' with target host",
+      "Successful validation transitions to authenticated state with user populated",
+      "Status bar shows confirmation for 3 seconds after successful auth",
+      "No token found renders 'Not authenticated' error screen with codeplane auth login instruction",
+      "401 response renders 'Session expired' error screen with re-auth instructions",
+      "Network error/timeout proceeds optimistically with offline warning in status bar",
+      "5-second validation timeout proceeds optimistically",
+      "q exits from error screen with code 0",
+      "R retries from error screen with 1-second debounce",
+      "Ctrl+C exits immediately during loading or error",
+      "Navigation keys are not registered until auth completes",
+      "Token value is never displayed on screen",
+      "Empty/whitespace CODEPLANE_TOKEN is treated as absent",
+      "Auth confirmation capped at 40 characters"
+    ],
+    "dependencies": [
+      "tui-bootstrap-and-renderer",
+      "tui-spinner-hook",
+      "tui-theme-provider",
+      "tui-layout-hook",
+      "tui-util-text",
+      "tui-e2e-test-infra"
+    ],
+    "files": [
+      "apps/tui/src/providers/AuthProvider.tsx",
+      "apps/tui/src/components/AuthLoadingScreen.tsx",
+      "apps/tui/src/components/AuthErrorScreen.tsx",
+      "apps/tui/src/hooks/useAuth.ts",
+      "e2e/tui/app-shell.test.ts"
+    ],
+    "estimateHours": 8
+  },
+  {
+    "id": "tui-loading-states",
+    "title": "TUI_LOADING_STATES: Full-screen spinner, skeleton rendering, pagination indicator, action loading, optimistic UI",
+    "type": "feature",
+    "featureName": "TUI_LOADING_STATES",
+    "description": "Implement the complete loading states system as specified in TUI_LOADING_STATES.md.\n\n1. **Full-screen loading spinner**: Centered spinner + label in primary color. 30s timeout. q cancels. Sub-80ms skip.\n2. **Skeleton rendering**: List and detail skeletons with muted block characters at deterministic widths. Flicker-free transition.\n3. **Inline pagination indicator**: 'Loading more…' at scrollbox bottom. Error state with R retry.\n4. **Action loading**: Button shows spinner + 'Saving…'. List row shows inline spinner.\n5. **Optimistic UI**: Immediate local update, revert on error with 5s status bar message.\n6. **LoadingProvider context**: Registers loading states, provides spinner frame.\n7. **AbortController cancellation**: Loading canceled on screen unmount.\n8. **Retry debouncing**: R key at 1-second debounce.",
+    "acceptanceCriteria": [
+      "Full-screen loading spinner displays centered with context-specific label",
+      "Spinner uses braille animation in primary color (ASCII fallback for TERM=dumb)",
+      "Header and status bars remain stable during full-screen loading",
+      "Skeleton list rows render muted block characters at deterministic widths",
+      "Skeleton transitions to real content without visible flicker",
+      "Inline pagination indicator appears at scrollbox bottom",
+      "Pagination error shows retry prompt",
+      "R retries failed requests with 1-second debounce",
+      "Action buttons show spinner during mutations",
+      "Optimistic UI updates immediately and reverts on server error",
+      "Revert shows error message in status bar for 5 seconds",
+      "q during loading pops screen and cancels request",
+      "Global keybindings remain active during loading",
+      "30-second timeout transitions to error state",
+      "Sub-80ms response skips spinner",
+      "Loading canceled on unmount via AbortController",
+      "No duplicate pagination requests",
+      "Skeleton widths are deterministic per row index"
+    ],
+    "dependencies": [
+      "tui-bootstrap-and-renderer",
+      "tui-spinner-hook",
+      "tui-theme-provider",
+      "tui-layout-hook",
+      "tui-util-text",
+      "tui-e2e-test-infra"
+    ],
+    "files": [
+      "apps/tui/src/components/FullScreenLoading.tsx",
+      "apps/tui/src/components/SkeletonList.tsx",
+      "apps/tui/src/components/SkeletonDetail.tsx",
+      "apps/tui/src/components/PaginationIndicator.tsx",
+      "apps/tui/src/providers/LoadingProvider.tsx",
+      "apps/tui/src/hooks/useOptimisticMutation.ts",
+      "e2e/tui/app-shell.test.ts"
+    ],
+    "estimateHours": 10
+  }
+]

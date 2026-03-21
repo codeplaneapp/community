@@ -1,0 +1,11 @@
+Not LGTM.
+
+1. OpenTUI API coverage is incomplete for this ticket’s consumer context. The research only mentions `useTerminalDimensions` and color types, but misses the actual Agent rendering APIs that shape hook output requirements: `<markdown streaming={...}>` in `/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/Agents/components/MessageBlock.tsx:113`, tool-part rendering branches in `/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/Agents/components/MessageBlock.tsx:124`, and `<code>/<markdown>` usage in `/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/Agents/components/ToolBlock.tsx:105`.
+
+2. Required `@codeplane/ui-core` hook inventory is not fully identified. The ticket explicitly requires six public agent hooks (see `/Users/williamcory/codeplane/specs/tui/engineering/tui-agent-data-hooks.md:552`, `:596`, `:627`, `:676`, `:703`, `:739`), but the research only identifies internal utility hooks (`usePaginatedQuery`, `useMutation`) and infra pieces. That is insufficient for implementation readiness.
+
+3. Existing TUI pattern exploration is shallow and under-cited. It includes one type snippet but omits key local contracts and behavior points that directly affect adapter design: local `timestamp` + optional `streaming` in `/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/Agents/types.ts:18`, part unions requiring `id/name/input/output/isError` in `/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/Agents/types.ts:3`, and tool-content truncation/summaries in `/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/Agents/components/ToolBlock.tsx:30`.
+
+4. Depth gap: critical API-edge constraints from the engineering spec are not enumerated in the research (per-page cap 50, messages endpoint lacking `X-Total-Count`, required coercions of `sequence/partIndex/messageCount`, DELETE 204 empty body, dispatch-after-persist failure mode). These are called out in `/Users/williamcory/codeplane/specs/tui/engineering/tui-agent-data-hooks.md:33`, `:35`, `:39`, `:48`, and `:739`.
+
+5. The review artifact itself is not grounded with line-by-line references throughout; given the strict review bar and requested verification criteria, this is a reject until the research is expanded with explicit file/line evidence and complete hook-level mapping.

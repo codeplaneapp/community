@@ -1,0 +1,13 @@
+Not LGTM. The research is directionally useful, but it is not robust enough for `tui-nav-chrome-eng-01`.
+
+1. It does not cover OpenTUI APIs that are directly relevant to navigation chrome behavior. Missing analysis of `useKeyboard`, `useTerminalDimensions`, and chrome rendering primitives in [GlobalKeybindings.tsx](/Users/williamcory/codeplane/specs/tui/apps/tui/src/components/GlobalKeybindings.tsx#L1), [AppShell.tsx](/Users/williamcory/codeplane/specs/tui/apps/tui/src/components/AppShell.tsx#L1), [HeaderBar.tsx](/Users/williamcory/codeplane/specs/tui/apps/tui/src/components/HeaderBar.tsx#L33), and [PlaceholderScreen.tsx](/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/PlaceholderScreen.tsx#L17). It also misses current OpenTUI prop-compat issues in placeholder text usage at [PlaceholderScreen.tsx](/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/PlaceholderScreen.tsx#L25).
+
+2. It does not identify `@codeplane/ui-core` hook dependencies impacted by registry/component contracts. For example, agent screens in the registry depend on ui-core hooks in [AgentChatScreen.tsx](/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/Agents/AgentChatScreen.tsx#L5) and [AgentSessionListScreen.tsx](/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/Agents/AgentSessionListScreen.tsx#L2), but this is omitted.
+
+3. Existing TUI navigation patterns were not fully explored. The report ignores the second/competing router registry in [screens.ts](/Users/williamcory/codeplane/specs/tui/apps/tui/src/router/screens.ts#L9) and its export path in [router/index.ts](/Users/williamcory/codeplane/specs/tui/apps/tui/src/router/index.ts#L4), plus key navigation integration points in [deepLinks.ts](/Users/williamcory/codeplane/specs/tui/apps/tui/src/navigation/deepLinks.ts#L89), [goToBindings.ts](/Users/williamcory/codeplane/specs/tui/apps/tui/src/navigation/goToBindings.ts#L31), and [index.tsx](/Users/williamcory/codeplane/specs/tui/apps/tui/src/index.tsx#L40).
+
+4. The write-up lacks line-level evidence throughout; it is file-level only. For this ticket, that is not enough precision.
+
+5. It misses a critical contract mismatch directly tied to this ticket: [screenRegistry.ts](/Users/williamcory/codeplane/specs/tui/apps/tui/src/navigation/screenRegistry.ts#L152) registers `AgentSessionListScreen` with required props, while [ScreenRouter.tsx](/Users/williamcory/codeplane/specs/tui/apps/tui/src/router/ScreenRouter.tsx#L15) renders screens without props.
+
+6. Validation depth is insufficient. I ran `bun run check` in `apps/tui`; typecheck currently fails (including navigation-related typing issues), and the research does not reflect that baseline.

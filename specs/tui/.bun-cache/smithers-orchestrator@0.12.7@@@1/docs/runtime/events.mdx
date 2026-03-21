@@ -1,0 +1,530 @@
+---
+title: Events
+description: Subscribe to fine-grained lifecycle events emitted during workflow execution.
+---
+
+Smithers emits typed `SmithersEvent` objects throughout a run's lifecycle. You can subscribe via the `onProgress` callback in `runWorkflow`, or read persisted events from the NDJSON log files after the fact.
+
+Those events are also part of the observability pipeline:
+
+- they remain the durable replay and audit log for each run
+- they correlate with structured logs through shared fields like `runId`, `nodeId`, and `attempt`
+- they drive Smithers' built-in lifecycle counters and gauges
+
+For OTLP export, Prometheus/Grafana setup, and the public observability service tag, see [Observability](/guides/monitoring-logs).
+
+## Subscribing to Events
+
+### onProgress Callback
+
+Pass an `onProgress` function to `runWorkflow` to receive events in real time:
+
+```ts
+import { runWorkflow } from "smithers-orchestrator";
+import workflow from "./workflow";
+
+await runWorkflow(workflow, {
+  input: { description: "Fix bug" },
+  onProgress: (event) => {
+    console.log(`[${event.type}] at ${event.timestampMs}`);
+
+    if (event.type === "NodeStarted") {
+      console.log(`  node: ${event.nodeId}, attempt: ${event.attempt}`);
+    }
+
+    if (event.type === "NodeFailed") {
+      console.error(`  node: ${event.nodeId}, error:`, event.error);
+    }
+  },
+});
+```
+
+### NDJSON Log Files
+
+When logging is enabled (the default), every event is appended as a JSON line to:
+
+```
+.smithers/executions/<runId>/logs/stream.ndjson
+```
+
+Each line is a complete `SmithersEvent` object serialized as JSON. You can parse these files with standard tools:
+
+```bash
+# Watch events in real time
+tail -f .smithers/executions/abc123/logs/stream.ndjson | jq .
+
+# Filter for failures
+cat .smithers/executions/abc123/logs/stream.ndjson | jq 'select(.type == "NodeFailed")'
+
+# Count events by type
+cat .smithers/executions/abc123/logs/stream.ndjson | jq -r .type | sort | uniq -c | sort -rn
+```
+
+To change the log directory, pass `logDir` to `runWorkflow` or `--log-dir` to the CLI. To disable log files entirely, pass `logDir: null` or `--no-log`.
+
+## Event-Driven Metrics
+
+Smithers maps key event types onto built-in runtime metrics. For example:
+
+- `RunStarted` increments `smithers.runs.total`
+- `NodeStarted` increments `smithers.nodes.started`
+- `NodeFinished` increments `smithers.nodes.finished`
+- `NodeFailed` increments `smithers.nodes.failed`
+- approval events increment the approval counters
+
+That mapping is exposed as `trackSmithersEvent` from `smithers-orchestrator/observability` for advanced integrations, but most applications should rely on the built-in runtime wiring.
+
+## Common Fields
+
+Every `SmithersEvent` includes:
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `string` | The event type discriminator (e.g. `"NodeStarted"`, `"RunFinished"`). |
+| `runId` | `string` | The run this event belongs to. |
+| `timestampMs` | `number` | Unix timestamp in milliseconds when the event was emitted. |
+
+Node-scoped events additionally include:
+
+| Field | Type | Description |
+|---|---|---|
+| `nodeId` | `string` | The task node this event relates to. |
+| `iteration` | `number` | The loop iteration number. |
+
+Attempt-scoped events additionally include:
+
+| Field | Type | Description |
+|---|---|---|
+| `attempt` | `number` | The attempt number (starts at 1, increments on retry). |
+
+## Event Types
+
+### Run Lifecycle
+
+These events mark the overall run's state transitions.
+
+#### RunStarted
+
+Emitted once at the beginning of every run (including resumes).
+
+```ts
+{ type: "RunStarted", runId: string, timestampMs: number }
+```
+
+#### RunStatusChanged
+
+Emitted when the run's status changes (e.g. from `"running"` to `"waiting-approval"`).
+
+```ts
+{ type: "RunStatusChanged", runId: string, status: RunStatus, timestampMs: number }
+```
+
+`RunStatus` is one of: `"running"`, `"waiting-approval"`, `"finished"`, `"failed"`, `"cancelled"`.
+
+#### RunFinished
+
+Emitted when all tasks complete successfully.
+
+```ts
+{ type: "RunFinished", runId: string, timestampMs: number }
+```
+
+#### RunFailed
+
+Emitted when the run fails due to a task failure or engine error.
+
+```ts
+{ type: "RunFailed", runId: string, error: unknown, timestampMs: number }
+```
+
+#### RunCancelled
+
+Emitted when the run is cancelled via `AbortSignal`.
+
+```ts
+{ type: "RunCancelled", runId: string, timestampMs: number }
+```
+
+### Frame Events
+
+#### FrameCommitted
+
+Emitted each time the engine renders a new frame (a snapshot of the workflow tree).
+
+```ts
+{
+  type: "FrameCommitted",
+  runId: string,
+  frameNo: number,
+  xmlHash: string,
+  timestampMs: number,
+}
+```
+
+The `xmlHash` is a SHA-256 hex digest of the canonicalized XML tree. It changes whenever the tree structure changes (e.g. new tasks appear after a Branch resolves).
+
+### Node Lifecycle
+
+These events track individual task execution.
+
+#### NodePending
+
+A task has been identified in the tree and is waiting to be scheduled.
+
+```ts
+{ type: "NodePending", runId: string, nodeId: string, iteration: number, timestampMs: number }
+```
+
+#### NodeStarted
+
+A task has begun executing. The `attempt` number starts at 1 and increments on each retry.
+
+```ts
+{
+  type: "NodeStarted",
+  runId: string,
+  nodeId: string,
+  iteration: number,
+  attempt: number,
+  timestampMs: number,
+}
+```
+
+#### NodeFinished
+
+A task completed successfully and its output was persisted.
+
+```ts
+{
+  type: "NodeFinished",
+  runId: string,
+  nodeId: string,
+  iteration: number,
+  attempt: number,
+  timestampMs: number,
+}
+```
+
+#### NodeFailed
+
+A task attempt failed. Check the `error` field for details.
+
+```ts
+{
+  type: "NodeFailed",
+  runId: string,
+  nodeId: string,
+  iteration: number,
+  attempt: number,
+  error: unknown,
+  timestampMs: number,
+}
+```
+
+#### NodeCancelled
+
+A task was cancelled (e.g. because the run was aborted or the task was unmounted from the tree between frames).
+
+```ts
+{
+  type: "NodeCancelled",
+  runId: string,
+  nodeId: string,
+  iteration: number,
+  attempt?: number,
+  reason?: string,
+  timestampMs: number,
+}
+```
+
+The `reason` field may contain `"unmounted"` if the task was cancelled because it disappeared from the tree after a re-render.
+
+#### NodeSkipped
+
+A task was skipped because its `skipIf` condition evaluated to `true` or its approval was denied with `continueOnFail`.
+
+```ts
+{ type: "NodeSkipped", runId: string, nodeId: string, iteration: number, timestampMs: number }
+```
+
+#### NodeRetrying
+
+A task failed but has remaining retry attempts. This event fires before the next attempt starts.
+
+```ts
+{
+  type: "NodeRetrying",
+  runId: string,
+  nodeId: string,
+  iteration: number,
+  attempt: number,
+  timestampMs: number,
+}
+```
+
+The `attempt` field is the upcoming attempt number (e.g. `2` for the first retry).
+
+#### NodeWaitingApproval
+
+A task requires human approval and is now paused.
+
+```ts
+{
+  type: "NodeWaitingApproval",
+  runId: string,
+  nodeId: string,
+  iteration: number,
+  timestampMs: number,
+}
+```
+
+### Approval Events
+
+#### ApprovalRequested
+
+An approval request was created for a task.
+
+```ts
+{
+  type: "ApprovalRequested",
+  runId: string,
+  nodeId: string,
+  iteration: number,
+  timestampMs: number,
+}
+```
+
+#### ApprovalGranted
+
+A human approved the task. The task will execute on the next engine cycle.
+
+```ts
+{
+  type: "ApprovalGranted",
+  runId: string,
+  nodeId: string,
+  iteration: number,
+  timestampMs: number,
+}
+```
+
+#### ApprovalDenied
+
+A human denied the task. The task is marked as failed (or skipped if `continueOnFail` is set).
+
+```ts
+{
+  type: "ApprovalDenied",
+  runId: string,
+  nodeId: string,
+  iteration: number,
+  timestampMs: number,
+}
+```
+
+### Tool Events
+
+#### ToolCallStarted
+
+An agent invoked a tool (e.g. `read`, `bash`, `edit`).
+
+```ts
+{
+  type: "ToolCallStarted",
+  runId: string,
+  nodeId: string,
+  iteration: number,
+  attempt: number,
+  toolName: string,
+  seq: number,
+  timestampMs: number,
+}
+```
+
+The `seq` field is a sequential counter for tool calls within the attempt.
+
+#### ToolCallFinished
+
+A tool call completed.
+
+```ts
+{
+  type: "ToolCallFinished",
+  runId: string,
+  nodeId: string,
+  iteration: number,
+  attempt: number,
+  toolName: string,
+  seq: number,
+  status: "success" | "error",
+  timestampMs: number,
+}
+```
+
+### Output Events
+
+#### NodeOutput
+
+Streaming text output from an agent (stdout or stderr).
+
+```ts
+{
+  type: "NodeOutput",
+  runId: string,
+  nodeId: string,
+  iteration: number,
+  attempt: number,
+  text: string,
+  stream: "stdout" | "stderr",
+  timestampMs: number,
+}
+```
+
+### Revert Events
+
+#### RevertStarted
+
+A workspace revert operation has begun.
+
+```ts
+{
+  type: "RevertStarted",
+  runId: string,
+  nodeId: string,
+  iteration: number,
+  attempt: number,
+  jjPointer: string,
+  timestampMs: number,
+}
+```
+
+#### RevertFinished
+
+A workspace revert operation completed.
+
+```ts
+{
+  type: "RevertFinished",
+  runId: string,
+  nodeId: string,
+  iteration: number,
+  attempt: number,
+  jjPointer: string,
+  success: boolean,
+  error?: string,
+  timestampMs: number,
+}
+```
+
+### Hot Reload
+
+These events are emitted when [hot module replacement](/guides/hot-reload) is enabled.
+
+#### WorkflowReloadDetected
+
+Emitted when file changes are detected in the watched source tree.
+
+```ts
+{
+  type: "WorkflowReloadDetected",
+  runId: string,
+  changedFiles: string[],
+  timestampMs: number
+}
+```
+
+#### WorkflowReloaded
+
+Emitted when the workflow module has been successfully reloaded.
+
+```ts
+{
+  type: "WorkflowReloaded",
+  runId: string,
+  generation: number,
+  changedFiles: string[],
+  timestampMs: number
+}
+```
+
+`generation` is a monotonically increasing counter that tracks how many successful reloads have occurred during this run.
+
+#### WorkflowReloadFailed
+
+Emitted when a reload attempt fails (syntax error, import error, runtime error at module scope).
+
+```ts
+{
+  type: "WorkflowReloadFailed",
+  runId: string,
+  error: unknown,
+  changedFiles: string[],
+  timestampMs: number
+}
+```
+
+The engine continues running with the previous valid workflow code. Fix the error and save again to retry.
+
+#### WorkflowReloadUnsafe
+
+Emitted when a reload is blocked because it would change the database schema.
+
+```ts
+{
+  type: "WorkflowReloadUnsafe",
+  runId: string,
+  reason: string,
+  changedFiles: string[],
+  timestampMs: number
+}
+```
+
+Schema changes (adding/removing output schemas, changing Zod shapes, changing `dbPath`) require a process restart.
+
+## Event Type Reference
+
+Quick reference table of all event types and their extra fields (beyond `type`, `runId`, `timestampMs`):
+
+| Event Type | Extra Fields |
+|---|---|
+| `RunStarted` | -- |
+| `RunStatusChanged` | `status` |
+| `RunFinished` | -- |
+| `RunFailed` | `error` |
+| `RunCancelled` | -- |
+| `FrameCommitted` | `frameNo`, `xmlHash` |
+| `NodePending` | `nodeId`, `iteration` |
+| `NodeStarted` | `nodeId`, `iteration`, `attempt` |
+| `NodeFinished` | `nodeId`, `iteration`, `attempt` |
+| `NodeFailed` | `nodeId`, `iteration`, `attempt`, `error` |
+| `NodeCancelled` | `nodeId`, `iteration`, `attempt?`, `reason?` |
+| `NodeSkipped` | `nodeId`, `iteration` |
+| `NodeRetrying` | `nodeId`, `iteration`, `attempt` |
+| `NodeWaitingApproval` | `nodeId`, `iteration` |
+| `ApprovalRequested` | `nodeId`, `iteration` |
+| `ApprovalGranted` | `nodeId`, `iteration` |
+| `ApprovalDenied` | `nodeId`, `iteration` |
+| `ToolCallStarted` | `nodeId`, `iteration`, `attempt`, `toolName`, `seq` |
+| `ToolCallFinished` | `nodeId`, `iteration`, `attempt`, `toolName`, `seq`, `status` |
+| `NodeOutput` | `nodeId`, `iteration`, `attempt`, `text`, `stream` |
+| `RevertStarted` | `nodeId`, `iteration`, `attempt`, `jjPointer` |
+| `RevertFinished` | `nodeId`, `iteration`, `attempt`, `jjPointer`, `success`, `error?` |
+| `WorkflowReloadDetected` | `changedFiles` |
+| `WorkflowReloaded` | `generation`, `changedFiles` |
+| `WorkflowReloadFailed` | `error`, `changedFiles` |
+| `WorkflowReloadUnsafe` | `reason`, `changedFiles` |
+
+## Persistence
+
+Events are persisted in two places:
+
+1. **SQLite database** -- Every event is inserted into the `_smithers_events` table with a sequential `seq` number, enabling replay and querying.
+2. **NDJSON log file** -- Each event is appended to `stream.ndjson` in the run's log directory on a best-effort basis. SQLite remains the source of truth if file logging fails.
+
+Both persistence mechanisms happen asynchronously. The `onProgress` callback fires synchronously on the event bus before persistence.
+
+## Related
+
+- [runWorkflow](/runtime/run-workflow) -- Where `onProgress` is configured.
+- [Monitoring and Logs](/guides/monitoring-logs) -- Practical guide to monitoring workflows.
+- [CLI](/cli/overview) -- View run status and frames from the command line.

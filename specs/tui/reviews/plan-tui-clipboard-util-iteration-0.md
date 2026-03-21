@@ -1,0 +1,8 @@
+Not LGTM.
+1. Critical — OpenTUI interaction model is underspecified. The plan adds a `useClipboard` hook but never defines where keyboard handling is wired with OpenTUI hooks (`useKeyboard`) for the `y` action, nor how it respects focus/modal precedence from the TUI keyboard model.
+2. Critical — `@codeplane/ui-core` data-access alignment is missing. The plan does not state whether this ticket has no ui-core data-access changes, and it does not define how clipboard actions attach to screens that already consume ui-core hooks.
+3. Major — Hook API is too vague/incomplete for downstream consumers. `hasCopied` + `error` alone is not enough to support required fallback/manual-copy UX and capability checks (`supported`/provider/fallback text behavior are not specified).
+4. Major — Test strategy is not robust: it places low-level provider/OSC52 protocol assertions in E2E tests and explicitly allows environment-dependent failures. Clipboard provider detection and OSC52 encoding/size/tmux wrapping should be deterministic utility tests; E2E should focus on user-visible behavior.
+5. Major — Keyboard-spec compliance is incomplete. The plan tests pressing `y` but does not define active contexts, suppression when input is focused, modal behavior (`Esc`), or status-bar hint updates.
+6. Minor — Paths are mostly correct (`apps/tui/src/*`, `e2e/tui/*`), but integration target(s) are unspecified, so the E2E steps are not actionable.
+7. Minor — Missing implementation details for reliability: timeout cleanup/unmount behavior in the hook, provider cache reset test seam, and deterministic mocking strategy for provider stripping.

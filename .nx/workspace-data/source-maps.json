@@ -117,113 +117,113 @@
       "nx/target-defaults"
     ]
   },
-  "apps/jjhub": {
+  "apps/codeplanectl": {
     "root": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "name": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "tags": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "tags.npm:private": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "metadata.targetGroups": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "metadata.targetGroups.NPM Scripts": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "metadata.targetGroups.NPM Scripts.0": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "metadata.targetGroups.NPM Scripts.1": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "metadata.js": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "metadata.js.packageName": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "metadata.js.packageVersion": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "metadata.js.isInPackageManagerWorkspaces": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "targets": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "targets.dev": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "targets.dev.executor": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "targets.dev.options": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "targets.dev.metadata": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "targets.dev.options.script": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "targets.dev.metadata.scriptContent": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "targets.dev.metadata.runCommand": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "targets.typecheck": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "targets.typecheck.executor": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "targets.typecheck.options": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "targets.typecheck.metadata": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "targets.typecheck.options.script": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "targets.typecheck.metadata.scriptContent": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
     "targets.typecheck.metadata.runCommand": [
-      "apps/jjhub/package.json",
+      "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ]
   },

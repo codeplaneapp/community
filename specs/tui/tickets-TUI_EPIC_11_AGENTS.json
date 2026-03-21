@@ -1,0 +1,259 @@
+[
+  {
+    "id": "tui-agent-data-hooks",
+    "title": "Implement agent data hooks in @codeplane/ui-core",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the shared data hooks consumed by all agent TUI screens. These hooks wrap the agent API endpoints and provide reactive data access with pagination, loading, and error states.\n\nHooks to implement:\n- `useAgentSessions(owner, repo, options?)` — paginated session list via `GET /api/repos/:owner/:repo/agent/sessions?page=N&per_page=30`. Returns `{ sessions, totalCount, isLoading, error, hasMore, fetchMore, refetch }`. Total count derived from `X-Total-Count` header.\n- `useAgentSession(owner, repo, sessionId)` — single session metadata via `GET /api/repos/:owner/:repo/agent/sessions/:id`. Returns `{ session, isLoading, error, refetch }`.\n- `useAgentMessages(owner, repo, sessionId, options?)` — paginated message list via `GET /api/repos/:owner/:repo/agent/sessions/:id/messages?page=N&per_page=30`. Returns `{ messages, totalCount, isLoading, error, hasMore, fetchMore, refetch }`. Supports auto-pagination mode for replay (fetches all pages sequentially).\n- `useCreateAgentSession(owner, repo)` — mutation for `POST /api/repos/:owner/:repo/agent/sessions` with `{ title }`. Returns `{ mutate, isLoading, error }`.\n- `useDeleteAgentSession(owner, repo)` — mutation for `DELETE /api/repos/:owner/:repo/agent/sessions/:id`. Returns `{ mutate, isLoading, error }`. Supports optimistic removal.\n- `useSendAgentMessage(owner, repo, sessionId)` — mutation for `POST /api/repos/:owner/:repo/agent/sessions/:id/messages` with `{ role, parts }`. Returns `{ send, sending, error }`. Supports optimistic append.\n\nAll hooks use the shared API client from `APIClientProvider`. Auth headers injected automatically. Error types include typed variants for 401, 403, 429, 404, and network errors.\n\nImplementation target: `packages/ui-core/src/hooks/agents/`.\nNo TUI-specific code — these hooks are framework-agnostic and reusable by web UI.",
+    "dependencies": [],
+    "estimateHours": 10,
+    "acceptanceCriteria": [
+      "useAgentSessions returns paginated session list with totalCount from X-Total-Count header",
+      "useAgentSession returns single session with loading/error states",
+      "useAgentMessages returns paginated messages with auto-pagination mode",
+      "useCreateAgentSession posts to correct endpoint, returns created session",
+      "useDeleteAgentSession sends DELETE, supports optimistic removal pattern",
+      "useSendAgentMessage posts message with role and parts, supports optimistic append",
+      "All hooks handle 401/403/429/404/5xx error responses with typed errors",
+      "All hooks use shared API client from provider context"
+    ]
+  },
+  {
+    "id": "tui-agent-sse-stream-hook",
+    "title": "Implement agent SSE streaming hook for token-by-token response rendering",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the `useAgentStream(owner, repo, sessionId)` hook that connects to the agent session SSE stream endpoint and provides incremental token delivery for real-time response rendering.\n\nThe hook connects to `GET /api/repos/:owner/:repo/agent/sessions/:id/stream` via the SSE infrastructure (ticket-based auth). It processes three event types:\n- `token` events: `{ type: 'token', data: { content: '...' } }` — appends content to the accumulating response\n- `done` events: `{ type: 'done', data: {} }` — marks stream complete\n- `error` events: `{ type: 'error', data: { message: '...' } }` — marks stream errored\n\nReturned interface:\n```typescript\ninterface AgentStreamState {\n  streaming: boolean;\n  currentTokens: string;\n  connected: boolean;\n  reconnecting: boolean;\n  error: Error | null;\n  subscribe: (sessionId: string) => void;\n  unsubscribe: () => void;\n}\n```\n\nThe hook integrates with the existing `SSEProvider` context. It uses `useSSEChannel('agent_session_{sessionId}')` internally. On disconnect, it triggers exponential backoff reconnection (1s, 2s, 4s, 8s, max 30s). On reconnect, it replays missed tokens by re-fetching messages via the REST API and computing the diff.\n\nEvent deduplication: maintains a position counter to avoid duplicate tokens on reconnection replay.\n\nImplementation target: `packages/ui-core/src/hooks/agents/useAgentStream.ts` (shared hook) and `apps/tui/src/hooks/useAgentStream.ts` (TUI adapter if needed for timeline integration).",
+    "dependencies": [
+      "tui-agent-data-hooks"
+    ],
+    "estimateHours": 8,
+    "acceptanceCriteria": [
+      "Hook connects to SSE stream endpoint with ticket-based auth",
+      "Token events accumulate in currentTokens string incrementally",
+      "Done event sets streaming=false and finalizes response",
+      "Error event sets error state and streaming=false",
+      "Reconnection with exponential backoff (1s, 2s, 4s, 8s, max 30s)",
+      "Missed tokens replayed on reconnect via REST API diff",
+      "Event deduplication prevents duplicate tokens",
+      "Hook integrates with existing SSEProvider context",
+      "unsubscribe cleanly closes stream connection"
+    ]
+  },
+  {
+    "id": "tui-agent-message-block",
+    "title": "Build shared MessageBlock and ToolBlock components for agent message rendering",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Build the shared `MessageBlock` and `ToolBlock` React components used by both the agent chat screen and the replay screen to render conversation messages.\n\n### MessageBlock Component\n`apps/tui/src/screens/Agents/components/MessageBlock.tsx`\n\nRenders a single message in the conversation. Supports four roles with distinct styling:\n- **user**: 'You' label in primary color (ANSI 33), message body via `<markdown>`, optional timestamp in muted\n- **assistant**: 'Agent' label in success color (ANSI 34), body via `<markdown>`, optional braille spinner during streaming\n- **system**: 'System' label in muted color (ANSI 245), centered, italic\n- **tool**: delegates to ToolBlock component\n\nMessage parts are iterated and rendered by type:\n- `text` parts → `<markdown>` component\n- `tool_call` parts → ToolBlock (collapsed by default)\n- `tool_result` parts → ToolBlock result variant\n\nResponsive behavior via breakpoint prop:\n- minimum (80×24): abbreviated labels ('Y:'/'A:'), no timestamps, 0ch padding, no tool summaries\n- standard (120×40): full labels, relative timestamps, 2ch padding, 60ch tool summaries\n- large (200×60+): full labels, extended timestamps, 4ch padding, multi-line tool summaries\n\nVisual separator (horizontal line) between messages.\n\n### ToolBlock Component\n`apps/tui/src/screens/Agents/components/ToolBlock.tsx`\n\nCollapsible block for tool_call and tool_result message parts:\n- Collapsed: tool name in bold warning color + one-line summary (60ch truncated) + expand indicator (▶)\n- Expanded: tool name, full input in `<code language='json'>`, result in `<markdown>` or `<text color='error'>`\n- Toggle via `x` key or `Enter` when focused\n- Error results styled with error color\n- `X` (Shift+x) expands/collapses all tool blocks (handled by parent)\n\nBoth components accept a `breakpoint` prop and adapt layout accordingly.",
+    "dependencies": [],
+    "estimateHours": 8,
+    "acceptanceCriteria": [
+      "MessageBlock renders user messages with 'You' label in primary color and markdown body",
+      "MessageBlock renders assistant messages with 'Agent' label in success color",
+      "MessageBlock renders system messages centered in muted italic",
+      "MessageBlock renders tool parts by delegating to ToolBlock",
+      "MessageBlock adapts role labels based on breakpoint (abbreviated at minimum)",
+      "MessageBlock shows/hides timestamps based on breakpoint",
+      "ToolBlock renders collapsed state with tool name + summary + expand indicator",
+      "ToolBlock renders expanded state with full input/output code blocks",
+      "ToolBlock toggles expand/collapse on x key or Enter",
+      "ToolBlock shows error results in error color",
+      "Visual separator renders between messages",
+      "Both components accept and respond to breakpoint prop"
+    ]
+  },
+  {
+    "id": "tui-agent-screen-registry",
+    "title": "Register agent screens in TUI navigation and command palette",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Register all agent-related screens in the TUI screen registry, navigation system, and command palette so they are reachable via go-to keybindings, deep-links, and palette commands.\n\nScreen registry entries to add (in the ScreenName enum and screenRegistry map):\n- `Agents` → `AgentSessionListScreen`, requiresRepo: true\n- `AgentChat` → `AgentChatScreen`, requiresRepo: true, params: `{ sessionId }`\n- `AgentSessionCreate` → `AgentSessionCreateScreen`, requiresRepo: true\n- `AgentSessionReplay` → `AgentSessionReplayScreen`, requiresRepo: true, params: `{ sessionId }`\n\nGo-to keybinding:\n- `g a` → navigate to Agents screen (requires repo context; redirects to repo list if none)\n\nCommand palette entries:\n- ':agents' / 'Agent Sessions' → navigate to Agents screen\n- 'New Agent Session' / 'Create Agent Session' → open session create (only when repo context active and user has write access)\n\nDeep-link support:\n- `codeplane tui --screen agents --repo owner/repo` → pre-populate stack: [Dashboard, RepoOverview, Agents]\n- `codeplane tui --screen agent-chat --repo owner/repo --session-id {id}` → stack: [Dashboard, RepoOverview, Agents, AgentChat]\n- `codeplane tui --screen agent-replay --repo owner/repo --session-id {id}` → stack: [Dashboard, RepoOverview, Agents, AgentSessionReplay]\n\nImplementation targets:\n- `apps/tui/src/navigation/screenRegistry.ts` — add entries\n- `apps/tui/src/navigation/goToBindings.ts` — add `g a`\n- `apps/tui/src/commands/agentCommands.ts` — palette entries\n- `apps/tui/src/navigation/deepLinks.ts` — deep-link parsing",
+    "dependencies": [],
+    "estimateHours": 4,
+    "acceptanceCriteria": [
+      "All four agent screens registered in screenRegistry with correct requiresRepo flags",
+      "g a go-to keybinding navigates to Agents screen",
+      "g a without repo context redirects to repo list",
+      "':agents' command palette entry navigates to Agents screen",
+      "'New Agent Session' palette entry available only with repo context and write access",
+      "Deep-link --screen agents --repo opens directly to session list",
+      "Deep-link --screen agent-chat with --session-id opens chat screen",
+      "Deep-link --screen agent-replay with --session-id opens replay screen",
+      "Breadcrumbs generate correctly for all agent screen stack configurations"
+    ]
+  },
+  {
+    "id": "tui-agent-e2e-scaffolding",
+    "title": "Scaffold agent E2E test file with helpers and fixture data",
+    "type": "engineering",
+    "featureName": null,
+    "description": "Create the E2E test file `e2e/tui/agents.test.ts` with test scaffolding, shared fixtures, and helper utilities specific to agent testing.\n\nThe test file should:\n1. Import from `@microsoft/tui-test` and `e2e/tui/helpers.ts`\n2. Set up test fixtures for agent sessions and messages (various statuses: active, completed, failed, timed_out, pending)\n3. Create helper functions specific to agent tests:\n   - `navigateToAgents(terminal)` — sends `g a` and waits for 'Agent Sessions' text\n   - `createSession(terminal, title)` — sends `n`, types title, presses Enter, waits for chat\n   - `navigateToChat(terminal, sessionIndex)` — focuses row, presses Enter, waits for chat screen\n   - `navigateToReplay(terminal, sessionIndex)` — focuses row, presses `r`, waits for replay screen\n   - `sendMessage(terminal, text)` — types into input, presses Enter, waits for optimistic render\n   - `waitForStreaming(terminal)` — waits for braille spinner to appear\n   - `waitForStreamComplete(terminal)` — waits for spinner to disappear\n4. Define `describe` blocks for each feature group (session list, chat, message send, create, replay)\n5. Write test stubs for ALL tests specified in the feature specs (~517 total)\n6. All tests left as failing test bodies — not skipped, not commented out\n\nTest fixtures:\n- 5 sessions with different statuses\n- Sessions with edge case titles (empty, 255 chars, unicode)\n- Messages with all part types (text, tool_call, tool_result)\n- Messages with various content (markdown, code blocks, long content)\n\nImplementation target: `e2e/tui/agents.test.ts`",
+    "dependencies": [],
+    "estimateHours": 6,
+    "acceptanceCriteria": [
+      "e2e/tui/agents.test.ts file exists with proper imports",
+      "Test fixtures cover all agent session statuses (active, completed, failed, timed_out, pending)",
+      "Helper functions for common agent test navigation patterns are defined",
+      "All snapshot tests from all 5 feature specs are present as test cases",
+      "All keyboard interaction tests from all 5 feature specs are present",
+      "All responsive tests from all 5 feature specs are present",
+      "All integration tests from all 5 feature specs are present",
+      "All edge case tests from all 5 feature specs are present",
+      "No tests are skipped or commented out — all left failing",
+      "Describe blocks organize tests by feature group"
+    ]
+  },
+  {
+    "id": "tui-agent-session-list",
+    "title": "Implement Agent Session List screen",
+    "type": "feature",
+    "featureName": "TUI_AGENT_SESSION_LIST",
+    "description": "Implement the Agent Session List screen as the entry point for all agent interactions within a repository. This is a full-screen view rendered between the header and status bars.\n\nScreen: `apps/tui/src/screens/Agents/AgentSessionListScreen.tsx`\n\nLayout (top to bottom):\n1. Title row: 'Agent Sessions (N)' in bold primary, N from X-Total-Count header\n2. Filter toolbar: status filter cycle (All/Active/Completed/Failed/Timed Out) + search input\n3. Scrollable session list via `<scrollbox>` with ScrollableList pattern\n4. Empty/error/loading states\n\nSession row rendering:\n- Status icon: ● green (active), ✓ green (completed), ✗ red (failed), ⏱ yellow (timed_out), ○ gray (pending)\n- Title (truncated to fit), message count (muted), relative timestamp\n- Active sessions: bold text. Others: normal weight\n- Focused row: reverse video in primary accent\n\nData: `useAgentSessions(owner, repo)` hook with page-based pagination (page size 30, max 50). 500-item memory cap.\n\nStatus filter: client-side filtering on loaded dataset. `f` key cycles through statuses.\nSearch: client-side substring match on title. `/` focuses search input. Esc clears.\n\nActions:\n- Enter → push AgentChat screen\n- n → push AgentSessionCreate (write access required; suppressed for read-only with flash)\n- d → confirmation overlay → DELETE session (optimistic removal)\n- r → push AgentSessionReplay (only for completed/failed/timed_out; no-op for active/pending with flash)\n\nSSE: subscribe to agent_session_{repoId} for real-time status updates on session rows.\n\nResponsive: 3 breakpoints per spec for column visibility. Resize preserves focus index.\n\nEmpty states: zero sessions, all filtered out, search no matches (each with distinct message).\n\nDelete: confirmation overlay with warning for active sessions. 404 on delete → optimistic stands. 403 → revert with flash.\n\nAll 121 tests in e2e/tui/agents.test.ts for this feature.",
+    "dependencies": [
+      "tui-agent-data-hooks",
+      "tui-agent-screen-registry",
+      "tui-agent-e2e-scaffolding"
+    ],
+    "estimateHours": 16,
+    "acceptanceCriteria": [
+      "Screen renders as full-screen view between header and status bars",
+      "Reachable via g a, :agents, and --screen agents deep-link",
+      "Breadcrumb reads 'Dashboard > owner/repo > Agent Sessions'",
+      "Sessions fetched via useAgentSessions with page-based pagination",
+      "Each row shows status icon, title, message count (standard+), timestamp",
+      "Active sessions render bold, others normal weight",
+      "Status filter cycles via f key and filters client-side",
+      "Search via / filters by title substring case-insensitive",
+      "Enter navigates to chat, n to create, d deletes with confirmation, r to replay",
+      "SSE updates session rows inline in real-time",
+      "Responsive layout adapts columns at 3 breakpoints",
+      "Empty states for zero sessions, filtered out, search no matches",
+      "Delete confirmation overlay with active session warning",
+      "Memory cap at 500 sessions with footer message",
+      "q pops screen"
+    ]
+  },
+  {
+    "id": "tui-agent-chat-screen",
+    "title": "Implement Agent Chat Screen with streaming responses",
+    "type": "feature",
+    "featureName": "TUI_AGENT_CHAT_SCREEN",
+    "description": "Implement the Agent Chat Screen as the primary conversational interface for agent interactions. This is a full-screen dual-pane view: scrollable message history (majority of content area) and a status/mode bar at the bottom.\n\nScreen: `apps/tui/src/screens/Agents/AgentChatScreen.tsx`\n\nLayout:\n1. Session title bar: truncated title (40ch) + status badge\n2. Message history: scrollbox with stickyScroll (bottom) and viewportCulling\n3. Input area: rendered by TUI_AGENT_MESSAGE_SEND (active sessions) or read-only banner (completed/failed/timed_out)\n\nMessage rendering using shared MessageBlock component:\n- User messages: 'You' label in primary, markdown body, timestamp\n- Agent messages: 'Agent' label in success, markdown body, braille spinner during streaming\n- System messages: centered, muted italic\n- Tool call/result parts: collapsible ToolBlock components\n\nStreaming: useAgentStream provides token-by-token delivery. Tokens render progressively via markdown. Braille spinner at 100ms via useTimeline.\n\nAuto-scroll: enabled by default. Paused on user scroll up. New messages indicator. G or f re-enables.\n\nPagination: scroll-to-top loads earlier messages. 500-message memory cap.\n\nCompleted/failed/timed_out sessions: input hidden, read-only banner shown.\n\nKeyboard: j/k scroll, G/gg jump, Ctrl+D/U page, i focus input, Tab expand tools, / search, n/N search nav, f toggle auto-scroll, R retry, q pop.\n\nData: useAgentSession, useAgentMessages, useAgentStream, useSendAgentMessage.\n\nAll 124 tests in e2e/tui/agents.test.ts for this feature.",
+    "dependencies": [
+      "tui-agent-data-hooks",
+      "tui-agent-sse-stream-hook",
+      "tui-agent-message-block",
+      "tui-agent-screen-registry",
+      "tui-agent-e2e-scaffolding"
+    ],
+    "estimateHours": 20,
+    "acceptanceCriteria": [
+      "Screen renders with session title bar, scrollable message history, and input/banner area",
+      "Reachable from session list (Enter) and session create (success navigation)",
+      "Breadcrumb reads 'Dashboard > owner/repo > Agents > {session_title}'",
+      "Messages rendered using MessageBlock with correct role styling",
+      "Agent responses stream token-by-token via SSE with progressive markdown rendering",
+      "Braille spinner shows during active streaming",
+      "Auto-scroll follows new content; pauses when user scrolls up",
+      "New messages indicator appears when scrolled up during new content",
+      "Completed sessions show read-only banner instead of input",
+      "Tool call/result blocks collapsible via Tab/Shift+Tab",
+      "Pagination loads earlier messages on scroll-to-top",
+      "j/k scroll, G jump to bottom, gg jump to top",
+      "Search via / with n/N navigation",
+      "f toggles auto-scroll",
+      "Responsive layout at 3 breakpoints"
+    ]
+  },
+  {
+    "id": "tui-agent-message-send",
+    "title": "Implement message send functionality with optimistic UI and streaming",
+    "type": "feature",
+    "featureName": "TUI_AGENT_MESSAGE_SEND",
+    "description": "Implement the message input panel and send flow within the Agent Chat Screen. This feature provides the complete message composition, submission, optimistic rendering, and streaming response integration.\n\nComponent: `apps/tui/src/screens/Agents/components/MessageInput.tsx` (embedded in AgentChatScreen)\n\nInput panel:\n- Single-line input by default, anchored to bottom of content area\n- Pre-focused when chat screen opens\n- Placeholder 'Send a message…' in muted color\n- Border: primary when focused, border color when blurred\n- Expands to multi-line on Shift+Enter (up to 30% of content height, then scrollable)\n- 4000 character max\n- Disabled during streaming ('Agent is responding…' placeholder)\n- Hidden for completed/failed/timed_out sessions\n\nSend flow:\n1. Enter on non-empty input → validate (trim whitespace, reject empty)\n2. Disable input, show 'Sending…' hint\n3. Optimistic: append user message to history immediately with pending indicator\n4. POST via useSendAgentMessage\n5. Success: clear input, re-enable, show thinking spinner\n6. SSE stream begins → thinking replaced by streaming content\n7. Failure: mark message with error, input retains content\n\nRetry: r key when most recent message is failed retries the send.\n\nFocus management: Input captures printable keys when focused; Esc blurs; i re-focuses; q pops on empty.\n\nDouble-submit prevention. Client-side 2s cooldown.\n\nText editing: Backspace, Delete, cursor movement, kill commands. Tab not inserted.\n\nResponsive input sizing at 3 breakpoints.\n\nAll tests from TUI_AGENT_MESSAGE_SEND spec in e2e/tui/agents.test.ts.",
+    "dependencies": [
+      "tui-agent-chat-screen",
+      "tui-agent-sse-stream-hook"
+    ],
+    "estimateHours": 16,
+    "acceptanceCriteria": [
+      "Input panel rendered at bottom of chat screen, pre-focused on open",
+      "Placeholder shown when empty",
+      "Enter sends non-empty message; no-op on empty/whitespace-only",
+      "Optimistic message appears immediately with pending indicator",
+      "Successful send clears input and shows thinking spinner",
+      "Failed send marks message with error and retains input content",
+      "r retries failed message send",
+      "Shift+Enter inserts newline, expanding input to multi-line",
+      "Input disabled during streaming",
+      "Streaming response tokens render progressively in assistant bubble",
+      "Focus management: Esc blurs, i focuses, q pops on empty input",
+      "Double-submit prevention",
+      "Input grows up to 30% of content height, then scrollable",
+      "Responsive sizing at 3 breakpoints",
+      "Text editing keys work correctly"
+    ]
+  },
+  {
+    "id": "tui-agent-session-create",
+    "title": "Implement agent session creation (inline + modal)",
+    "type": "feature",
+    "featureName": "TUI_AGENT_SESSION_CREATE",
+    "description": "Implement the agent session creation feature with two entry modes: inline from the session list and modal from the command palette.\n\nComponents:\n- `apps/tui/src/screens/Agents/components/InlineSessionCreate.tsx` — inline mode\n- `apps/tui/src/screens/Agents/AgentSessionCreateModal.tsx` — modal mode\n\nInline Mode (n from session list):\n- Single-line bordered input between toolbar and list rows\n- List rows dim while active\n- Pre-focused with 'Session title…' placeholder\n- Validation: non-empty, non-whitespace, max 255 chars\n- Enter submits → Creating… → success: push chat → failure: inline error\n- Esc cancels, restores list focus\n\nModal Mode (command palette):\n- Centered overlay with title, input, Create/Cancel buttons\n- Tab cycles focus, Enter/Ctrl+S submits, Esc dismisses\n- Focus trapped\n\nSubmission: useCreateAgentSession → POST with { title }\n- 201: navigate to chat with new session ID\n- 403/429/5xx: inline error with appropriate message\n- 401: auth error screen\n- Double-submit prevention\n\nResponsive padding and modal sizing at 3 breakpoints.\n\nAll 78 tests from spec in e2e/tui/agents.test.ts.",
+    "dependencies": [
+      "tui-agent-data-hooks",
+      "tui-agent-session-list",
+      "tui-agent-screen-registry",
+      "tui-agent-e2e-scaffolding"
+    ],
+    "estimateHours": 12,
+    "acceptanceCriteria": [
+      "n from session list opens inline title input with placeholder",
+      "List rows dim while inline input active",
+      "Title validation: rejects empty/whitespace, enforces 255 char max",
+      "Enter on non-empty title creates session via POST",
+      "Successful creation navigates to chat screen",
+      "Esc cancels and restores previous list focus",
+      "Command palette 'New Agent Session' opens centered modal",
+      "Modal has title, input, Create, Cancel buttons with Tab cycling",
+      "Ctrl+S submits from any focused modal element",
+      "Error handling: 403, 429, 5xx, 401",
+      "Double-submit prevention",
+      "n suppressed for read-only users with status bar flash",
+      "Responsive padding and modal sizing at 3 breakpoints"
+    ]
+  },
+  {
+    "id": "tui-agent-session-replay",
+    "title": "Implement Agent Session Replay screen for completed session review",
+    "type": "feature",
+    "featureName": "TUI_AGENT_SESSION_REPLAY",
+    "description": "Implement the Agent Session Replay screen as a read-only transcript viewer for completed, failed, and timed_out agent sessions.\n\nScreen: `apps/tui/src/screens/Agents/AgentSessionReplayScreen.tsx`\n\nLayout:\n1. Header with breadcrumb and REPLAY badge in primary\n2. Full-height scrollable transcript via scrollbox\n3. Optional search overlay\n4. Status bar with position indicator 'Message N of M'\n\nMessage rendering using shared MessageBlock:\n- All messages auto-paginated on mount\n- All role types with appropriate styling\n- Tool blocks collapsed by default, expandable via x/Enter\n- X toggles all tool blocks\n\nSession summary block:\n- Status with semantic color\n- Message count, duration\n- Optional workflow run link (navigable)\n\nNavigation: j/k scroll, Ctrl+D/U page, G/gg jump, ]/[ between messages, / search with n/N.\n- y clipboard copy via OSC 52\n- Position tracking updates on scroll\n\nEdge cases: active sessions redirect to chat, 0 messages shows empty state, >100KB truncated, malformed parts as raw JSON.\n\nResponsive: 3 breakpoints, metadata sidebar at 200×60+.\n\nAll 94 tests from spec in e2e/tui/agents.test.ts.",
+    "dependencies": [
+      "tui-agent-data-hooks",
+      "tui-agent-message-block",
+      "tui-agent-screen-registry",
+      "tui-agent-e2e-scaffolding",
+      "tui-agent-session-list"
+    ],
+    "estimateHours": 14,
+    "acceptanceCriteria": [
+      "Screen renders full-height scrollable transcript",
+      "REPLAY badge visible in header",
+      "Breadcrumb reads 'Dashboard > owner/repo > Agents > Session: {title}'",
+      "All messages auto-paginated on mount",
+      "MessageBlock renders all role types correctly",
+      "Tool blocks collapsed by default, expandable via x/Enter",
+      "X toggles all tool blocks",
+      "Session summary shows status, count, duration",
+      "Workflow run link navigable via Enter",
+      "j/k scroll, ]/[ jump between messages, G/gg jump to ends",
+      "Position indicator updates on scroll",
+      "Search via / with n/N navigation",
+      "Active sessions redirect to chat screen",
+      "Empty session shows appropriate message",
+      "Responsive layout at 3 breakpoints with sidebar at large"
+    ]
+  }
+]

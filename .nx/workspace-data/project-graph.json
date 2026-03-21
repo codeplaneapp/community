@@ -1,18 +1,18 @@
 {
   "nodes": {
-    "@jjhub-ai/workflow": {
-      "name": "@jjhub-ai/workflow",
+    "@codeplane-ai/workflow": {
+      "name": "@codeplane-ai/workflow",
       "type": "lib",
       "data": {
         "root": "packages/workflow",
-        "name": "@jjhub-ai/workflow",
+        "name": "@codeplane-ai/workflow",
         "tags": [
           "npm:public"
         ],
         "metadata": {
           "targetGroups": {},
           "js": {
-            "packageName": "@jjhub-ai/workflow",
+            "packageName": "@codeplane-ai/workflow",
             "packageVersion": "0.0.1",
             "packageMain": "src/index.ts",
             "isInPackageManagerWorkspaces": true
@@ -22,120 +22,12 @@
         "implicitDependencies": []
       }
     },
-    "@jjhub/sdk": {
-      "name": "@jjhub/sdk",
+    "codeplanectl": {
+      "name": "codeplanectl",
       "type": "lib",
       "data": {
-        "root": "packages/sdk",
-        "name": "@jjhub/sdk",
-        "tags": [
-          "npm:public"
-        ],
-        "metadata": {
-          "targetGroups": {
-            "NPM Scripts": [
-              "check"
-            ]
-          },
-          "js": {
-            "packageName": "@jjhub/sdk",
-            "packageVersion": "0.0.1",
-            "packageMain": "src/index.ts",
-            "isInPackageManagerWorkspaces": true
-          }
-        },
-        "targets": {
-          "check": {
-            "executor": "nx:run-script",
-            "options": {
-              "script": "check"
-            },
-            "metadata": {
-              "scriptContent": "tsc --noEmit",
-              "runCommand": "pnpm run check"
-            },
-            "configurations": {},
-            "parallelism": true
-          }
-        },
-        "implicitDependencies": []
-      }
-    },
-    "@jjhub/server": {
-      "name": "@jjhub/server",
-      "type": "lib",
-      "data": {
-        "root": "apps/server",
-        "name": "@jjhub/server",
-        "tags": [
-          "npm:private"
-        ],
-        "metadata": {
-          "targetGroups": {
-            "NPM Scripts": [
-              "dev",
-              "build",
-              "check"
-            ]
-          },
-          "js": {
-            "packageName": "@jjhub/server",
-            "packageVersion": "0.0.1",
-            "packageMain": "src/index.ts",
-            "isInPackageManagerWorkspaces": true
-          }
-        },
-        "targets": {
-          "dev": {
-            "executor": "nx:run-script",
-            "options": {
-              "script": "dev"
-            },
-            "metadata": {
-              "scriptContent": "bun run --hot src/index.ts",
-              "runCommand": "pnpm run dev"
-            },
-            "configurations": {},
-            "parallelism": true
-          },
-          "build": {
-            "executor": "nx:run-script",
-            "options": {
-              "script": "build"
-            },
-            "metadata": {
-              "scriptContent": "bun build --compile --minify src/index.ts --outfile dist/jjhub",
-              "runCommand": "pnpm run build"
-            },
-            "configurations": {},
-            "parallelism": true,
-            "dependsOn": [
-              "^build"
-            ],
-            "cache": true
-          },
-          "check": {
-            "executor": "nx:run-script",
-            "options": {
-              "script": "check"
-            },
-            "metadata": {
-              "scriptContent": "tsc --noEmit",
-              "runCommand": "pnpm run check"
-            },
-            "configurations": {},
-            "parallelism": true
-          }
-        },
-        "implicitDependencies": []
-      }
-    },
-    "jjhubctl": {
-      "name": "jjhubctl",
-      "type": "lib",
-      "data": {
-        "root": "apps/jjhub",
-        "name": "jjhubctl",
+        "root": "apps/codeplanectl",
+        "name": "codeplanectl",
         "tags": [
           "npm:private"
         ],
@@ -147,7 +39,7 @@
             ]
           },
           "js": {
-            "packageName": "jjhubctl",
+            "packageName": "codeplanectl",
             "packageVersion": "0.1.0",
             "isInPackageManagerWorkspaces": true
           }
@@ -173,6 +65,114 @@
             "metadata": {
               "scriptContent": "tsc --noEmit",
               "runCommand": "pnpm run typecheck"
+            },
+            "configurations": {},
+            "parallelism": true
+          }
+        },
+        "implicitDependencies": []
+      }
+    },
+    "@codeplane/sdk": {
+      "name": "@codeplane/sdk",
+      "type": "lib",
+      "data": {
+        "root": "packages/sdk",
+        "name": "@codeplane/sdk",
+        "tags": [
+          "npm:public"
+        ],
+        "metadata": {
+          "targetGroups": {
+            "NPM Scripts": [
+              "check"
+            ]
+          },
+          "js": {
+            "packageName": "@codeplane/sdk",
+            "packageVersion": "0.0.1",
+            "packageMain": "src/index.ts",
+            "isInPackageManagerWorkspaces": true
+          }
+        },
+        "targets": {
+          "check": {
+            "executor": "nx:run-script",
+            "options": {
+              "script": "check"
+            },
+            "metadata": {
+              "scriptContent": "tsc --noEmit",
+              "runCommand": "pnpm run check"
+            },
+            "configurations": {},
+            "parallelism": true
+          }
+        },
+        "implicitDependencies": []
+      }
+    },
+    "@codeplane/server": {
+      "name": "@codeplane/server",
+      "type": "lib",
+      "data": {
+        "root": "apps/server",
+        "name": "@codeplane/server",
+        "tags": [
+          "npm:private"
+        ],
+        "metadata": {
+          "targetGroups": {
+            "NPM Scripts": [
+              "dev",
+              "build",
+              "check"
+            ]
+          },
+          "js": {
+            "packageName": "@codeplane/server",
+            "packageVersion": "0.0.1",
+            "packageMain": "src/index.ts",
+            "isInPackageManagerWorkspaces": true
+          }
+        },
+        "targets": {
+          "dev": {
+            "executor": "nx:run-script",
+            "options": {
+              "script": "dev"
+            },
+            "metadata": {
+              "scriptContent": "bun run --hot src/index.ts",
+              "runCommand": "pnpm run dev"
+            },
+            "configurations": {},
+            "parallelism": true
+          },
+          "build": {
+            "executor": "nx:run-script",
+            "options": {
+              "script": "build"
+            },
+            "metadata": {
+              "scriptContent": "bun build --minify src/index.ts --outfile dist/codeplane.js --target=bun --external cpu-features",
+              "runCommand": "pnpm run build"
+            },
+            "configurations": {},
+            "parallelism": true,
+            "dependsOn": [
+              "^build"
+            ],
+            "cache": true
+          },
+          "check": {
+            "executor": "nx:run-script",
+            "options": {
+              "script": "check"
+            },
+            "metadata": {
+              "scriptContent": "tsc --noEmit",
+              "runCommand": "pnpm run check"
             },
             "configurations": {},
             "parallelism": true
@@ -235,12 +235,12 @@
         "implicitDependencies": []
       }
     },
-    "@jjhub/specs": {
-      "name": "@jjhub/specs",
+    "@codeplane/specs": {
+      "name": "@codeplane/specs",
       "type": "app",
       "data": {
         "root": "specs",
-        "name": "@jjhub/specs",
+        "name": "@codeplane/specs",
         "tags": [
           "npm:private"
         ],
@@ -252,7 +252,7 @@
             ]
           },
           "js": {
-            "packageName": "@jjhub/specs",
+            "packageName": "@codeplane/specs",
             "packageVersion": "0.1.0",
             "isInPackageManagerWorkspaces": true
           }
@@ -264,7 +264,7 @@
               "script": "dev"
             },
             "metadata": {
-              "scriptContent": "bun run generate.tsx",
+              "scriptContent": "bun run generate/index.tsx",
               "runCommand": "pnpm run dev"
             },
             "configurations": {},
@@ -286,12 +286,12 @@
         "implicitDependencies": []
       }
     },
-    "@jjhub/user-docs": {
-      "name": "@jjhub/user-docs",
+    "@codeplane/user-docs": {
+      "name": "@codeplane/user-docs",
       "type": "app",
       "data": {
         "root": "docs",
-        "name": "@jjhub/user-docs",
+        "name": "@codeplane/user-docs",
         "tags": [
           "npm:private"
         ],
@@ -303,7 +303,7 @@
             ]
           },
           "js": {
-            "packageName": "@jjhub/user-docs",
+            "packageName": "@codeplane/user-docs",
             "isInPackageManagerWorkspaces": true
           }
         },
@@ -11963,127 +11963,127 @@
     }
   },
   "dependencies": {
-    "@jjhub-ai/workflow": [],
-    "@jjhub/sdk": [
+    "@codeplane-ai/workflow": [],
+    "codeplanectl": [
       {
-        "source": "@jjhub/sdk",
-        "target": "npm:@types/js-yaml",
-        "type": "static"
-      },
-      {
-        "source": "@jjhub/sdk",
-        "target": "npm:@types/ssh2",
-        "type": "static"
-      },
-      {
-        "source": "@jjhub/sdk",
-        "target": "npm:@electric-sql/client",
-        "type": "static"
-      },
-      {
-        "source": "@jjhub/sdk",
-        "target": "npm:@electric-sql/pglite",
-        "type": "static"
-      },
-      {
-        "source": "@jjhub/sdk",
-        "target": "npm:better-result",
-        "type": "static"
-      },
-      {
-        "source": "@jjhub/sdk",
-        "target": "npm:hono",
-        "type": "static"
-      },
-      {
-        "source": "@jjhub/sdk",
-        "target": "npm:js-yaml@4.1.1",
-        "type": "static"
-      },
-      {
-        "source": "@jjhub/sdk",
-        "target": "npm:postgres",
-        "type": "static"
-      },
-      {
-        "source": "@jjhub/sdk",
-        "target": "npm:ssh2",
-        "type": "static"
-      }
-    ],
-    "@jjhub/server": [
-      {
-        "source": "@jjhub/server",
-        "target": "npm:@types/ssh2",
-        "type": "static"
-      },
-      {
-        "source": "@jjhub/server",
-        "target": "@jjhub/sdk",
-        "type": "static"
-      },
-      {
-        "source": "@jjhub/server",
-        "target": "@jjhub-ai/workflow",
-        "type": "static"
-      },
-      {
-        "source": "@jjhub/server",
-        "target": "npm:hono",
-        "type": "static"
-      },
-      {
-        "source": "@jjhub/server",
-        "target": "npm:ssh2",
-        "type": "static"
-      }
-    ],
-    "jjhubctl": [
-      {
-        "source": "jjhubctl",
+        "source": "codeplanectl",
         "target": "npm:@types/diff",
         "type": "static"
       },
       {
-        "source": "jjhubctl",
+        "source": "codeplanectl",
         "target": "npm:@types/node@22.19.15",
         "type": "static"
       },
       {
-        "source": "jjhubctl",
+        "source": "codeplanectl",
         "target": "npm:bun-types",
         "type": "static"
       },
       {
-        "source": "jjhubctl",
+        "source": "codeplanectl",
         "target": "npm:typescript",
         "type": "static"
       },
       {
-        "source": "jjhubctl",
+        "source": "codeplanectl",
         "target": "npm:@clack/prompts@0.10.1",
         "type": "static"
       },
       {
-        "source": "jjhubctl",
+        "source": "codeplanectl",
         "target": "npm:diff@7.0.0",
         "type": "static"
       },
       {
-        "source": "jjhubctl",
+        "source": "codeplanectl",
         "target": "npm:incur@0.1.17",
         "type": "static"
       },
       {
-        "source": "jjhubctl",
+        "source": "codeplanectl",
         "target": "npm:smithers-orchestrator",
+        "type": "static"
+      }
+    ],
+    "@codeplane/sdk": [
+      {
+        "source": "@codeplane/sdk",
+        "target": "npm:@types/js-yaml",
+        "type": "static"
+      },
+      {
+        "source": "@codeplane/sdk",
+        "target": "npm:@types/ssh2",
+        "type": "static"
+      },
+      {
+        "source": "@codeplane/sdk",
+        "target": "npm:@electric-sql/client",
+        "type": "static"
+      },
+      {
+        "source": "@codeplane/sdk",
+        "target": "npm:@electric-sql/pglite",
+        "type": "static"
+      },
+      {
+        "source": "@codeplane/sdk",
+        "target": "npm:better-result",
+        "type": "static"
+      },
+      {
+        "source": "@codeplane/sdk",
+        "target": "npm:hono",
+        "type": "static"
+      },
+      {
+        "source": "@codeplane/sdk",
+        "target": "npm:js-yaml@4.1.1",
+        "type": "static"
+      },
+      {
+        "source": "@codeplane/sdk",
+        "target": "npm:postgres",
+        "type": "static"
+      },
+      {
+        "source": "@codeplane/sdk",
+        "target": "npm:ssh2",
+        "type": "static"
+      }
+    ],
+    "@codeplane/server": [
+      {
+        "source": "@codeplane/server",
+        "target": "npm:@types/ssh2",
+        "type": "static"
+      },
+      {
+        "source": "@codeplane/server",
+        "target": "@codeplane/sdk",
+        "type": "static"
+      },
+      {
+        "source": "@codeplane/server",
+        "target": "@codeplane-ai/workflow",
+        "type": "static"
+      },
+      {
+        "source": "@codeplane/server",
+        "target": "npm:hono",
+        "type": "static"
+      },
+      {
+        "source": "@codeplane/server",
+        "target": "npm:ssh2",
         "type": "static"
       }
     ],
     "codeplane": [
       {
         "source": "codeplane",
-        "target": "@jjhub/server",
+        "target": "@codeplane/server",
         "type": "static"
       },
       {
@@ -12112,36 +12112,36 @@
         "type": "static"
       }
     ],
-    "@jjhub/specs": [
+    "@codeplane/specs": [
       {
-        "source": "@jjhub/specs",
+        "source": "@codeplane/specs",
         "target": "npm:@types/node@22.19.15",
         "type": "static"
       },
       {
-        "source": "@jjhub/specs",
+        "source": "@codeplane/specs",
         "target": "npm:bun-types",
         "type": "static"
       },
       {
-        "source": "@jjhub/specs",
+        "source": "@codeplane/specs",
         "target": "npm:typescript",
         "type": "static"
       },
       {
-        "source": "@jjhub/specs",
+        "source": "@codeplane/specs",
         "target": "npm:smithers-orchestrator",
         "type": "static"
       },
       {
-        "source": "@jjhub/specs",
+        "source": "@codeplane/specs",
         "target": "npm:zod@3.25.76",
         "type": "static"
       }
     ],
-    "@jjhub/user-docs": [
+    "@codeplane/user-docs": [
       {
-        "source": "@jjhub/user-docs",
+        "source": "@codeplane/user-docs",
         "target": "npm:mintlify",
         "type": "static"
       }
@@ -30064,5 +30064,5 @@
   },
   "version": "6.0",
   "errors": [],
-  "computedAt": 1774118291321
+  "computedAt": 1774141318818
 }

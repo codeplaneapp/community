@@ -1,0 +1,9 @@
+Not LGTM.
+
+Findings:
+1. OpenTUI coverage is incomplete. The `useTimeline` mismatch is correctly identified (`/Users/williamcory/codeplane/context/opentui/packages/react/src/hooks/use-timeline.ts:4-20`, `/Users/williamcory/codeplane/context/opentui/packages/core/src/animation/Timeline.ts:3-9,284-304`), but the research misses the existing TUI streaming UI integration points in `/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/Agents/components/MessageBlock.tsx:17-30,76-122` (current spinner + markdown `streaming` behavior), which are directly relevant to this ticket.
+2. Required `@codeplane/ui-core` hook context is only partial. You covered client/errors/types, but omitted existing agent hooks that the stream hook must compose with: `/Users/williamcory/codeplane/specs/tui/packages/ui-core/src/hooks/agents/useAgentMessages.ts:17-63` and `/Users/williamcory/codeplane/specs/tui/packages/ui-core/src/hooks/agents/useSendAgentMessage.ts:17-102`.
+3. Existing TUI code-pattern exploration is too shallow. The document does not analyze current screen/hook conventions like `/Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/Agents/AgentChatScreen.tsx:4-13` and `/Users/williamcory/codeplane/specs/tui/apps/tui/src/hooks/useQuery.ts:13-120`, so it does not prove the proposed adapter API will align with project patterns.
+4. Evidence quality is below bar: most claims are not backed with precise file:line citations.
+
+Correct/verified parts: `APIClient.request(): Promise<Response>` (`packages/ui-core/src/client/types.ts:1-10`), `parseResponseError`/`NetworkError` (`packages/ui-core/src/types/errors.ts:38-82`), agent wire types (`packages/ui-core/src/types/agents.ts:19-54`), and `eventsource-parser` presence in lockfile (`bun.lock:363`).

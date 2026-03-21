@@ -1,0 +1,6 @@
+Not LGTM.
+- Missing OpenTUI API relevance analysis: this ticket is env-only, but the research never explicitly states that no OpenTUI components/hooks are required, and it does not trace the real coupling points where color tier is consumed (`apps/tui/src/theme/syntaxStyle.ts:1-5`, `apps/tui/src/hooks/useDiffSyntaxStyle.ts:1-3,21-29,41-49`).
+- Missing `@codeplane/ui-core` boundary check: it does not explicitly identify that no ui-core hooks are needed for this ticket, nor verify separation from existing ui-core hook usage in `apps/tui/src/hooks/*`.
+- Existing TUI code-pattern exploration is shallow: it references `e2e/tui/app-shell.test.ts` generally, but omits key harness behavior in `e2e/tui/helpers.ts:29-35` and `:50-52` (env merge and subprocess `bunEval` isolation), which is central to this feature’s test strategy.
+- Depth/precision gap: only `diff-syntax.ts` has concrete line-level anchoring; test and integration claims are mostly unanchored and should include exact insertion points/lines.
+- Important divergence risk is not called out clearly: the new cascade intentionally differs from existing `detectColorTier` for `TERM=linux|xterm|""` (`apps/tui/src/lib/diff-syntax.ts:104-110`). The research mentions compatibility tests but does not state they are partial parity checks, not full behavioral parity.

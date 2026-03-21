@@ -1,0 +1,14 @@
+Findings (strict review, current on-disk state):
+1. BLOCKER: Test suite is not runnable from the workspace root. `bun test e2e/tui/app-shell.test.ts` fails before executing tests with `Cannot find module '@microsoft/tui-test'` from [/Users/williamcory/codeplane/specs/tui/e2e/tui/helpers.ts:3]. Root package does not declare this dependency ([/Users/williamcory/codeplane/specs/tui/package.json:14]). This violates the requirement to have passing verification for the ticket.
+2. HIGH: Claimed “compatibility with legacy detection” is incorrect for important TERM values. New detector returns `ansi256` for `TERM=xterm`/`linux` ([/Users/williamcory/codeplane/specs/tui/apps/tui/src/theme/detect.ts:51], [/Users/williamcory/codeplane/specs/tui/apps/tui/src/theme/detect.ts:69]), while existing `detectColorTier()` returns `ansi16` ([/Users/williamcory/codeplane/specs/tui/apps/tui/src/lib/diff-syntax.ts:105]). This is a behavioral divergence on low-capability terminals.
+3. HIGH: `DET-FILE-004` does not test what it claims. It says it verifies `theme/index.ts` re-exports `ColorTier`, but the type reference is imported directly from `./src/theme/detect.js` ([/Users/williamcory/codeplane/specs/tui/e2e/tui/app-shell.test.ts:688]). False-positive test.
+4. MEDIUM: `DET-TSC-001` is scoped incorrectly. It claims to validate `theme/detect.ts` compilation, but runs full-project `bun run check` ([/Users/williamcory/codeplane/specs/tui/e2e/tui/app-shell.test.ts:932]). Failures are dominated by unrelated files, so this test does not isolate ticket correctness.
+5. MEDIUM: `isUnicodeSupported()` ties Unicode capability to `NO_COLOR` ([/Users/williamcory/codeplane/specs/tui/apps/tui/src/theme/detect.ts:95]). `NO_COLOR` is a color preference, not a Unicode capability signal; this can unnecessarily degrade UI glyph rendering.
+6. NIT: Stale helper docs: comment says `bun eval` while implementation uses `-e` ([/Users/williamcory/codeplane/specs/tui/e2e/tui/helpers.ts:319], [/Users/williamcory/codeplane/specs/tui/e2e/tui/helpers.ts:323]).
+7. NIT: Dead code/clarity issue in tests: unused `result` in `DET-DETECT-001` ([/Users/williamcory/codeplane/specs/tui/e2e/tui/app-shell.test.ts:710]).
+8. NIT: Multiple env literals use duplicate keys (example: [/Users/williamcory/codeplane/specs/tui/e2e/tui/app-shell.test.ts:716]), which is error-prone and obscures intent.
+
+Requested checks summary:
+- OpenTUI components/hooks usage in modified `apps/tui/src` files: no component/hook usage introduced in `theme/detect.ts` or `theme/index.ts`; no direct misuse found there.
+- Keyboard interaction conformance: no production keyboard handling was changed by this ticket, so no new keyboard regression was introduced in modified app code.
+- Data access policy (`@codeplane/ui-core` vs direct API): modified app code is pure env-based detection and introduces no direct API calls.
