@@ -693,6 +693,7 @@ Requirements:
 7. Follow the architecture rules: No mocking of implementation details (only stable boundaries if absolutely necessary).
 8. If this ticket affects user-facing behavior, specify how the `docs/` folder documentation must be updated.
 9. If this ticket affects CLI or API behavior, specify what E2E tests in `e2e/` must be created or updated.
+10. There is POC (Proof of Concept) code in `apps/`, `packages/sdk`, and `packages/workflow`. Your spec must explicitly outline how to productionize this code (adding robust error handling, tests, removing stubs, strict typing, and adhering to architecture rules) rather than blindly trusting the poc code.
 
 If an existing engineering spec is provided, update and improve it. Otherwise, build from scratch.
 
@@ -755,8 +756,10 @@ ${(() => { try { return fsSync.readFileSync(path.join(process.cwd(), "specs", "e
 
 ${ctx.iteration > 0 ? `REVIEW FEEDBACK FROM PREVIOUS ATTEMPT:\n${ctx.outputMaybe(outputs.review, { nodeId: `review-research-${ticket.id}` })?.feedback}` : ""}
 
-Your job is to find any and all useful context in the codebase that can help implement this feature. 
-Use your tools to read files, search the codebase, and understand the current state of the architecture.
+Your job is to find any and all useful context in the codebase that can help implement this feature.
+NOTE: There is a significant amount of Proof of Concept (POC) code already present in `apps/server`, `apps/cli`, `packages/sdk`, and `packages/workflow`. 
+You MUST explore this existing code to see if the feature (or parts of it) is already stubbed out, partially implemented, or has existing architectural patterns you should follow.
+Use your tools to read files, search the codebase, and understand the current state of the architecture and POC implementations.
 Document your findings comprehensively. Do NOT write the implementation plan yet. Just research.
 
 Return a JSON object with a "document" string containing your markdown research.`}
@@ -852,6 +855,7 @@ ${ctx.iteration > 0 ? `REVIEW FEEDBACK FROM PREVIOUS ATTEMPT:\n${ctx.outputMaybe
 Your job is to come up with a clear, step-by-step implementation plan based on the research.
 Specify exactly which files will be modified, what new files will be created, and the logic to be added.
 Be mindful of corner cases.
+IMPORTANT: You must explicitly include steps to refactor and productionize any POC code you touch. Don't just paste POC code into production. Make sure it has proper error handling, types, and logging.
 CRITICAL: Include explicit steps in your plan to update or create the relevant E2E tests in `e2e/` and User Documentation in `docs/` if this feature affects them. Ensure any documentation or test changes are tracked under proper `jj bookmark` scope.
 
 Return a JSON object with a "document" string containing your markdown plan.`}
