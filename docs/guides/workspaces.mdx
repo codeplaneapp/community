@@ -1,0 +1,164 @@
+---
+title: Workspaces
+description: Cloud workspaces with SSH access, suspend/resume, forking, and snapshots
+---
+
+# Workspaces
+
+JJHub workspaces run on cloud microVMs. The public workspace API is now first-class: you create a workspace, connect over SSH, suspend or resume it, fork it, and snapshot it without going through the older session-only surface.
+
+## Public API
+
+- `POST /api/repos/:owner/:repo/workspaces` creates or resumes a workspace
+- `GET /api/repos/:owner/:repo/workspaces/:id/ssh` returns SSH connection info
+- `POST /api/repos/:owner/:repo/workspaces/:id/suspend` suspends the VM
+- `POST /api/repos/:owner/:repo/workspaces/:id/resume` resumes the VM
+- `POST /api/repos/:owner/:repo/workspaces/:id/fork` forks the current workspace
+- `POST /api/repos/:owner/:repo/workspaces/:id/snapshot` creates a reusable snapshot
+- `GET /api/repos/:owner/:repo/workspace-snapshots` lists saved snapshots
+
+## Create a Workspace
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/myorg/myrepo/workspaces \
+  -H "Authorization: token jjhub_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "primary"
+  }'
+```
+
+Response:
+
+```json
+{
+  "id": "6ffb7076-08d8-438c-8f77-5d9f6c31d1e1",
+  "repository_id": 42,
+  "user_id": 7,
+  "name": "primary",
+  "status": "running",
+  "is_fork": false,
+  "vm_id": "vm_abc123",
+  "persistence": "sticky",
+  "ssh_host": "vm_abc123@vm-ssh.jjhub.tech",
+  "idle_timeout_seconds": 1800,
+  "created_at": "2026-03-08T18:10:42Z",
+  "updated_at": "2026-03-08T18:10:42Z",
+  "suspended_at": null
+}
+```
+
+You can also restore a workspace from a saved snapshot:
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/myorg/myrepo/workspaces \
+  -H "Authorization: token jjhub_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "restored",
+    "snapshot_id": "snap_def456"
+  }'
+```
+
+## SSH Access
+
+```bash
+curl https://api.jjhub.tech/api/repos/myorg/myrepo/workspaces/6ffb7076-08d8-438c-8f77-5d9f6c31d1e1/ssh \
+  -H "Authorization: token jjhub_xxx"
+```
+
+Response:
+
+```json
+{
+  "workspace_id": "6ffb7076-08d8-438c-8f77-5d9f6c31d1e1",
+  "vm_id": "vm_abc123",
+  "host": "vm-ssh.jjhub.tech",
+  "ssh_host": "vm_abc123+developer@vm-ssh.jjhub.tech",
+  "username": "developer",
+  "port": 22,
+  "access_token": "ws_xxx",
+  "command": "ssh vm_abc123+developer:ws_xxx@vm-ssh.jjhub.tech"
+}
+```
+
+That command works directly with the OpenSSH client and editor integrations like VS Code Remote SSH and Cursor.
+
+## CLI Shortcuts
+
+The first-party CLI wraps the workspace API and can auto-detect or create the workspace you need:
+
+```bash
+# SSH into an existing workspace for the repo, or create one automatically
+jjhub workspace ssh --repo myorg/myrepo
+
+# Inspect the current workspace and SSH command
+jjhub workspace view 6ffb7076-08d8-438c-8f77-5d9f6c31d1e1 --repo myorg/myrepo
+```
+
+There is also an issue-focused shortcut that bootstraps a workspace and draft landing request together:
+
+```bash
+jjhub workspace issue 42 --repo myorg/myrepo --target main
+```
+
+`jjhub workspace issue` fetches the issue, creates a workspace, opens a draft landing request that references the issue, and then connects to the workspace so you can start working immediately.
+
+## Suspend and Resume
+
+Suspend keeps the workspace disk and memory state so resume is effectively instant:
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/myorg/myrepo/workspaces/6ffb7076-08d8-438c-8f77-5d9f6c31d1e1/suspend \
+  -H "Authorization: token jjhub_xxx"
+```
+
+Resume wakes the same VM back up:
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/myorg/myrepo/workspaces/6ffb7076-08d8-438c-8f77-5d9f6c31d1e1/resume \
+  -H "Authorization: token jjhub_xxx"
+```
+
+## Forking
+
+Forking creates a parallel copy of the current workspace so you can explore a risky change without disturbing the source VM:
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/myorg/myrepo/workspaces/6ffb7076-08d8-438c-8f77-5d9f6c31d1e1/fork \
+  -H "Authorization: token jjhub_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "parallel-refactor"
+  }'
+```
+
+## Snapshots
+
+Snapshots let you save workspace state and later create a new workspace from it:
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/myorg/myrepo/workspaces/6ffb7076-08d8-438c-8f77-5d9f6c31d1e1/snapshot \
+  -H "Authorization: token jjhub_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "node22-with-deps"
+  }'
+```
+
+List them with:
+
+```bash
+curl https://api.jjhub.tech/api/repos/myorg/myrepo/workspace-snapshots \
+  -H "Authorization: token jjhub_xxx"
+```
+
+## Legacy Session API
+
+The older session-based endpoints still exist for terminal-session compatibility:
+
+- `POST /api/repos/:owner/:repo/workspace/sessions`
+- `GET /api/repos/:owner/:repo/workspace/sessions/:id/ssh`
+- `POST /api/repos/:owner/:repo/workspace/sessions/:id/destroy`
+
+Use `/workspaces` for new integrations and the `jjhub workspace ...` CLI surface.

@@ -1,0 +1,43 @@
+---
+title: Roadmap
+description: What's coming next for JJHub
+---
+
+# Roadmap
+
+JJHub is constantly evolving. Here is a look at what we are currently building and what is planned for the future.
+
+## Shipped & Feature Complete
+
+The core JJHub platform is available in our closed alpha, providing:
+- **Core jj Platform:** Stable Change IDs, first-class conflicts, and seamless stacked changes.
+- **Landing Requests:** Our AI-native replacement for pull requests, built for stacked changes.
+- **TypeScript Workflows:** Unified AI and CI definitions (`.jjhub/workflows`).
+- **Programmable Gates:** Control exactly how code is validated and merged.
+- **Agent Sandboxes:** Secure runtime environments for executing AI operations natively.
+
+## Coming Soon
+
+### Web UI
+A full-featured web interface for managing repositories, reading code, handling landing requests, and interacting with integrated agent workflows. 
+
+### Local Workflow Execution
+A first-class capability to run your TypeScript-defined `.jjhub/workflows` entirely on your local machine. Test CI steps, run agent evaluations, and debug complex pipelines locally without needing to push to the cloud.
+
+### Facade Monorepos
+Get the best of both worlds. Combine multiple distinct repositories (polyrepos) into a single "facade" monorepo. This provides the unified operational benefits of a monorepo for CI/CD and AI agents, while maintaining the clean separation of concerns and approachability of smaller, separate repositories for outside contributors.
+
+### Advanced Programmable Issue & Landing Request Workflows
+Detailed, programmatic control over how issues and landing requests can be created. Define specific rules and checks that must be proven before a submission is accepted.
+*   **Example:** Reject an issue unless the user verifiably had an AI model confirm that a proper, reproducible minimum reproduction of the bug was provided.
+*   **Example:** Require specific security checks or sign-offs based on the files touched in a landing request.
+
+### First-class Smithers Support
+Native integration with [Smithers](https://smithers.sh) for managing autonomous, 24/7 running agents directly inside your JJHub repositories.
+
+### OSS Support Payments
+Empower open-source maintainers. Optionally gate feature requests, issues, or specific agent tasks behind direct payments to support the project and cover AI inference costs.
+
+---
+
+*Note: This roadmap is subject to change based on user feedback and technical discoveries.*

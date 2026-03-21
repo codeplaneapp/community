@@ -1,0 +1,407 @@
+---
+title: SSH Keys
+description: Set up SSH keys for secure, passwordless git push and pull with JJHub
+---
+
+# SSH Keys
+
+SSH keys provide secure, passwordless authentication for git operations (push, pull, clone) over SSH. When you add an SSH public key to your JJHub account, JJHub's SSH server matches the key fingerprint on every connection, letting you interact with any repository you have access to without entering a password or token.
+
+## Why SSH Keys
+
+- **No passwords**: Once your key is registered, git operations authenticate automatically. No credentials to type, paste, or rotate.
+- **Strong cryptography**: SSH keys use public-key cryptography. Your private key never leaves your machine -- only the public key is stored on JJHub.
+- **Works everywhere**: SSH is supported by every major operating system and git client, including jj's git backend.
+- **Multiple keys**: You can register multiple SSH keys on your account -- one per machine, one per role, or however you prefer to organize access.
+
+## Supported Key Types
+
+JJHub accepts the following SSH key types:
+
+| Key Type | Algorithm | Minimum Size | Recommended |
+|----------|-----------|-------------|-------------|
+| **Ed25519** | EdDSA | Fixed (256-bit) | Yes -- fastest, most secure, smallest key size |
+| **ECDSA** | ECDSA | 256-bit | Acceptable |
+| **RSA** | RSA | 2048-bit | Acceptable (4096-bit preferred if using RSA) |
+
+**Recommendation**: Use Ed25519 unless you have a specific reason to use another algorithm. Ed25519 keys are shorter, faster to verify, and resistant to several classes of implementation vulnerabilities that affect RSA and ECDSA.
+
+## Generating an SSH Key
+
+If you already have an SSH key you want to use, skip to [Adding Your SSH Key to JJHub](#adding-your-ssh-key-to-jjhub-via-cli).
+
+### macOS and Linux
+
+Open a terminal and run:
+
+```bash
+ssh-keygen -t ed25519 -C "your_email@example.com"
+```
+
+When prompted for a file location, press Enter to accept the default (`~/.ssh/id_ed25519`). When prompted for a passphrase, enter a strong passphrase (recommended) or press Enter for no passphrase.
+
+This creates two files:
+
+- `~/.ssh/id_ed25519` -- your private key (never share this)
+- `~/.ssh/id_ed25519.pub` -- your public key (this is what you add to JJHub)
+
+Start the SSH agent and add your key:
+
+```bash
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+```
+
+On macOS, you can add the key to your Keychain so the agent loads it automatically on login:
+
+```bash
+ssh-add --apple-use-keychain ~/.ssh/id_ed25519
+```
+
+And add the following to your `~/.ssh/config` to load keys from Keychain automatically:
+
+```
+Host *
+  AddKeysToAgent yes
+  UseKeychain yes
+  IdentityFile ~/.ssh/id_ed25519
+```
+
+### Windows
+
+**Using Git Bash or WSL:**
+
+The same commands from the macOS/Linux section work in Git Bash and WSL:
+
+```bash
+ssh-keygen -t ed25519 -C "your_email@example.com"
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+```
+
+**Using PowerShell (OpenSSH):**
+
+Windows 10+ includes OpenSSH. Open PowerShell as administrator and ensure the SSH agent service is running:
+
+```powershell
+Get-Service ssh-agent | Set-Service -StartupType Automatic
+Start-Service ssh-agent
+```
+
+Then generate your key:
+
+```powershell
+ssh-keygen -t ed25519 -C "your_email@example.com"
+ssh-add $env:USERPROFILE\.ssh\id_ed25519
+```
+
+### Using RSA (if Ed25519 is unavailable)
+
+Some older systems do not support Ed25519. In that case, generate an RSA key with at least 4096 bits:
+
+```bash
+ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+```
+
+The resulting files will be `~/.ssh/id_rsa` and `~/.ssh/id_rsa.pub`.
+
+## Adding Your SSH Key to JJHub via CLI
+
+Copy your public key and add it using the `jjhub ssh-key add` command:
+
+```bash
+jjhub ssh-key add \
+  --title "MacBook Pro" \
+  --key "$(cat ~/.ssh/id_ed25519.pub)"
+```
+
+| Flag | Description |
+|------|-------------|
+| `-t, --title <text>` | Human-readable title for the key (required) |
+| `-k, --key <key>` | SSH public key string (required) |
+
+Use a descriptive title so you can identify the key later -- for example, the name of the machine it belongs to.
+
+## Adding Your SSH Key via API
+
+You can also register SSH keys through the JJHub API directly:
+
+```bash
+curl -X POST https://api.jjhub.tech/api/user/keys \
+  -H "Authorization: token jjhub_your_token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "MacBook Pro",
+    "key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5... you@example.com"
+  }'
+```
+
+**Response (201 Created):**
+
+```json
+{
+  "id": 1,
+  "title": "MacBook Pro",
+  "key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5...",
+  "fingerprint": "SHA256:abc123...",
+  "created_at": "2026-03-06T12:00:00Z"
+}
+```
+
+**Error cases:**
+
+- `400` -- Missing required fields (`title`, `key`)
+- `401` -- Not authenticated
+- `409` -- Key already exists on your account
+- `422` -- Invalid SSH public key format or unsupported key type
+
+## Listing Your SSH Keys
+
+### Via CLI
+
+```bash
+jjhub ssh-key list
+```
+
+Example output:
+
+```
+ID    TITLE              FINGERPRINT                   CREATED
+1     MacBook Pro        SHA256:abc123...              2026-02-15
+2     Work Desktop       SHA256:def456...              2026-03-01
+```
+
+### Via API
+
+```bash
+curl https://api.jjhub.tech/api/user/keys \
+  -H "Authorization: token jjhub_your_token"
+```
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "title": "MacBook Pro",
+    "key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5...",
+    "fingerprint": "SHA256:abc123...",
+    "created_at": "2026-02-15T10:00:00Z"
+  }
+]
+```
+
+## Deleting an SSH Key
+
+### Via CLI
+
+```bash
+jjhub ssh-key delete 1
+```
+
+The positional argument is the key ID, which you can find from `jjhub ssh-key list`.
+
+### Via API
+
+```bash
+curl -X DELETE https://api.jjhub.tech/api/user/keys/1 \
+  -H "Authorization: token jjhub_your_token"
+```
+
+Returns `204 No Content` on success.
+
+## Testing Your SSH Connection
+
+After adding your key, verify that JJHub recognizes it:
+
+```bash
+ssh -T ssh.jjhub.tech
+```
+
+If your key is configured correctly, you will see a message like:
+
+```
+Hi alice! You've successfully authenticated with JJHub.
+```
+
+If you get a `Permission denied` error, see [Troubleshooting](#troubleshooting) below.
+
+## Using SSH with jj
+
+Once your SSH key is registered, you can clone, push, and pull repositories over SSH.
+
+### Cloning a repository
+
+```bash
+# Using the jjhub CLI (auto-detects SSH or HTTPS based on your config)
+jjhub repo clone owner/repo
+
+# Using jj directly with an SSH URL
+jj git clone ssh://ssh.jjhub.tech/owner/repo
+```
+
+### Pushing changes
+
+```bash
+jj git push
+```
+
+jj uses the remote URL stored in the repository configuration. If you cloned over SSH, pushes automatically use SSH.
+
+### Setting SSH as your default protocol
+
+If you want the CLI to always generate SSH clone URLs:
+
+```bash
+jjhub config set git_protocol ssh
+```
+
+This is the default. To switch to HTTPS instead:
+
+```bash
+jjhub config set git_protocol https
+```
+
+## Multiple SSH Keys
+
+If you use multiple JJHub accounts (for example, a personal account and a work account), or if you want to use different keys for different hosts, configure SSH to select the right key automatically.
+
+### SSH Config for Multiple Accounts
+
+Edit `~/.ssh/config` to define host aliases:
+
+```
+# Personal JJHub account
+Host jjhub-personal
+  HostName ssh.jjhub.tech
+  User git
+  IdentityFile ~/.ssh/id_ed25519_personal
+  IdentitiesOnly yes
+
+# Work JJHub account
+Host jjhub-work
+  HostName ssh.jjhub.tech
+  User git
+  IdentityFile ~/.ssh/id_ed25519_work
+  IdentitiesOnly yes
+```
+
+Then clone using the alias:
+
+```bash
+jj git clone ssh://jjhub-personal/owner/repo
+jj git clone ssh://jjhub-work/org/repo
+```
+
+The `IdentitiesOnly yes` directive ensures SSH only offers the specified key, preventing the agent from trying other keys and hitting authentication failures.
+
+### Testing a specific key
+
+```bash
+ssh -T -i ~/.ssh/id_ed25519_work ssh.jjhub.tech
+```
+
+## Troubleshooting
+
+### Permission denied (publickey)
+
+This means JJHub's SSH server did not accept any of the keys your SSH client offered.
+
+**Check that your key is added to JJHub:**
+
+```bash
+jjhub ssh-key list
+```
+
+If your key is not listed, add it:
+
+```bash
+jjhub ssh-key add --title "My Key" --key "$(cat ~/.ssh/id_ed25519.pub)"
+```
+
+**Check that the SSH agent has your key loaded:**
+
+```bash
+ssh-add -l
+```
+
+If your key is not listed, add it:
+
+```bash
+ssh-add ~/.ssh/id_ed25519
+```
+
+**Check that you are connecting to the right host:**
+
+```bash
+ssh -vT ssh.jjhub.tech
+```
+
+The verbose output (`-v`) shows which keys SSH is offering and whether the server accepts them. Look for lines like `Offering public key` and `Server accepts key`.
+
+### Wrong key being used
+
+If you have multiple keys and SSH is offering the wrong one, use an SSH config file to specify which key to use for JJHub:
+
+```
+Host ssh.jjhub.tech
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+```
+
+The `IdentitiesOnly yes` directive prevents the SSH agent from offering other keys.
+
+### SSH agent not running
+
+If `ssh-add -l` returns `Could not open a connection to your authentication agent`, the SSH agent is not running.
+
+**macOS/Linux:**
+
+```bash
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+```
+
+**Windows (PowerShell):**
+
+```powershell
+Start-Service ssh-agent
+ssh-add $env:USERPROFILE\.ssh\id_ed25519
+```
+
+### Key format not supported
+
+JJHub accepts Ed25519, ECDSA, and RSA (2048+ bits) keys. If you receive a `422` error when adding a key, check:
+
+- The key is a **public** key (not the private key). Public key files end in `.pub`.
+- The key format is supported. DSA keys and RSA keys smaller than 2048 bits are rejected.
+- The key string is complete and has not been truncated. Public keys are a single line -- make sure no line breaks were introduced when copying.
+
+### Connection timeout
+
+If `ssh -T ssh.jjhub.tech` hangs without responding:
+
+- Check that your firewall or corporate network allows outbound SSH connections (port 22).
+- Try connecting on an alternate network to rule out network-level blocking.
+- Verify DNS resolution: `nslookup ssh.jjhub.tech` should return an IP address.
+
+## SSH Keys vs Other Authentication Methods
+
+| Method | Scope | Protocol | Best For |
+|--------|-------|----------|----------|
+| **Personal SSH keys** | All repos the user can access | SSH (git push/pull) | Developer workstations |
+| **Deploy keys** | Single repository | SSH (git push/pull) | CI/CD, deployment scripts |
+| **API tokens** | Scoped by token permissions | HTTPS (API calls) | Programmatic API access, scripts |
+| **JJHUB_TOKEN** | Scoped by token permissions | HTTPS (CLI API calls) | CI environments without SSH |
+
+Personal SSH keys are the right choice for day-to-day development on your own machine. For automated systems that need access to a single repository, use [deploy keys](/guides/deploy-keys) instead.
+
+## API Reference
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/user/keys` | List SSH keys on your account |
+| `POST` | `/api/user/keys` | Add an SSH key |
+| `GET` | `/api/user/keys/:id` | Get an SSH key |
+| `DELETE` | `/api/user/keys/:id` | Delete an SSH key |

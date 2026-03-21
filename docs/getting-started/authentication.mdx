@@ -1,0 +1,626 @@
+---
+title: Authentication
+description: Sign in to JJHub with GitHub OAuth, Sign in with Key, or API tokens
+---
+
+# Authentication
+
+JJHub supports two login methods and API token authentication for programmatic access.
+
+## GitHub OAuth (Default)
+
+The default and most common way to authenticate:
+
+```bash
+jjhub auth login
+```
+
+This opens your browser to authorize the JJHub GitHub OAuth app. Your GitHub profile (username, email, avatar) is automatically imported.
+
+## Sign in with Key
+
+Sign in with Key is a passwordless authentication method that uses cryptographic key signing. You sign a structured message with your private key to prove ownership of your account -- no passwords, no third-party OAuth provider required.
+
+Under the hood, Sign in with Key uses the [EIP-4361](https://eips.ethereum.org/EIPS/eip-4361) message format as its wire protocol. You do not need a blockchain wallet or any blockchain interaction -- any compatible cryptographic keypair works. The EIP-4361 format is used solely because it provides a well-specified, widely-supported structure for signed authentication messages.
+
+Because it relies on standard cryptographic keypairs, **Sign in with Key is a highly recommended way to authenticate AI agents**, allowing them to securely interact with the JJHub platform without managing traditional passwords.
+
+### CLI Usage
+
+```bash
+jjhub auth login --key
+```
+
+This opens an interactive flow that:
+1. Requests a nonce from the JJHub API
+2. Constructs a structured sign-in message with the nonce
+3. Signs the message with your key
+4. Sends the signed message to JJHub for verification
+5. Stores the resulting session token in your credential store
+
+### How the Flow Works
+
+The Sign in with Key flow has three steps:
+
+**Step 1: Request a nonce**
+
+Your client requests a single-use nonce from the server. Nonces expire after approximately 10 minutes.
+
+```bash
+curl https://api.jjhub.tech/api/auth/key/nonce
+```
+
+```json
+{
+  "nonce": "abc123"
+}
+```
+
+**Step 2: Sign the message**
+
+Construct a structured sign-in message that includes the nonce, then sign it with your private key. The message follows this format:
+
+```text
+jjhub.tech wants you to sign in with your key:
+0xYOUR_ADDRESS_HERE
+
+Sign in to JJHub
+
+URI: https://jjhub.tech
+Version: 1
+Chain ID: 1
+Nonce: abc123
+Issued At: 2026-03-06T12:00:00Z
+```
+
+The domain on the first line must match JJHub's configured auth domain (`jjhub.tech` for the hosted platform, even though the API host is `api.jjhub.tech`).
+
+**Step 3: Verify the signature**
+
+Submit the signed message and signature to the verify endpoint:
+
+```bash
+curl -X POST https://api.jjhub.tech/api/auth/key/verify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "jjhub.tech wants you to sign in with your key:\n0xYOUR_ADDRESS_HERE\n\nSign in to JJHub\n\nURI: https://jjhub.tech\nVersion: 1\nChain ID: 1\nNonce: abc123\nIssued At: 2026-03-06T12:00:00Z",
+    "signature": "0x..."
+  }'
+```
+
+On success, the server responds with your user information and sets session cookies:
+
+```json
+{
+  "user": {
+    "id": 42,
+    "username": "alice"
+  }
+}
+```
+
+The response also includes `Set-Cookie` headers for `jjhub_session` and `__csrf`.
+
+### When to Use Sign in with Key
+
+- **AI agents**: Agents can hold a keypair and authenticate programmatically without browser-based OAuth flows.
+- **Automation**: Any system that can sign messages can authenticate without human interaction.
+- **Security-conscious users**: No third-party OAuth dependency. Your key never leaves your machine -- only the signature is sent to JJHub.
+
+## Account Linking
+
+JJHub lets you connect both authentication methods to a single account. If you signed up with GitHub OAuth, you can later link a cryptographic key. If you signed up with Sign in with Key, you can later link your GitHub account. This gives you the flexibility of multiple login methods while keeping one unified identity, and it means you never have to choose upfront -- start with whichever method is convenient and add the other later.
+
+### Why Link Accounts
+
+- **Redundancy**: If one auth method becomes unavailable (e.g., you lose access to your GitHub account), you can still sign in with the other.
+- **Flexibility**: Use GitHub OAuth from a browser and Sign in with Key from an AI agent or automated system -- same account, same repos, same permissions.
+- **No duplicates**: Without linking, signing in with a different method creates a separate account. Linking prevents this by attaching both identities to your existing account.
+
+### Link a Cryptographic Key to a GitHub Account
+
+If you originally signed up with GitHub OAuth and want to add Sign in with Key as a second authentication method:
+
+**CLI:**
+
+```bash
+jjhub auth link key
+```
+
+This starts an interactive flow that:
+1. Generates a nonce from the JJHub API
+2. Constructs a structured sign-in message with the nonce
+3. Signs the message with your key
+4. Submits the signed message to link the key to your current account
+
+**API:**
+
+```bash
+curl -X POST https://api.jjhub.tech/api/user/link/key \
+  -H "Authorization: token jjhub_your_token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "jjhub.tech wants you to sign in with your key:\n0xYOUR_ADDRESS_HERE\n\nSign in to JJHub\n\nURI: https://jjhub.tech\nVersion: 1\nChain ID: 1\nNonce: <nonce>\nIssued At: 2026-03-06T12:00:00Z",
+    "signature": "0x..."
+  }'
+```
+
+The request must be authenticated (you must already be logged in). The server verifies the signature and attaches the key's address to your existing user record. Once linked, you can sign in with either GitHub OAuth or Sign in with Key.
+
+### Link a GitHub Account to a Sign in with Key Account
+
+If you originally signed up with Sign in with Key and want to add GitHub as a second authentication method:
+
+**CLI:**
+
+```bash
+jjhub auth link github
+```
+
+This opens your browser to authorize the JJHub GitHub OAuth app. After you authorize, JJHub links your GitHub identity to your current account.
+
+**API:**
+
+```bash
+# Step 1: Initiate the linking flow (must be authenticated)
+curl -X POST https://api.jjhub.tech/api/user/link/github \
+  -H "Authorization: token jjhub_your_token"
+```
+
+The server redirects you to GitHub for authorization. After you authorize, GitHub redirects back to `GET /api/user/link/github/callback`, which completes the link. Once linked, you can sign in with either method. Your GitHub profile information (email, avatar) is imported automatically.
+
+### Linking Rules
+
+- **One key per account**: Each cryptographic key address can only be linked to one JJHub account. If the key is already associated with a different account, the linking request is rejected.
+- **One GitHub identity per account**: Each GitHub user ID can only be linked to one JJHub account. If your GitHub account is already linked to a different JJHub account, the request is rejected.
+- **Authentication required**: You must be signed in to link a new auth method. Linking attaches the new identity to your current session's account.
+- **Unlinking is not supported in MVP**: Once linked, auth methods cannot be removed. This will be added in a future release.
+
+## Credential Storage
+
+After login, your credentials are stored in your OS keychain (macOS Keychain, Windows Credential Manager, or Linux Secret Service).
+
+For CI environments or other headless workflows, use the `JJHUB_TOKEN` environment variable instead of persisting a token to disk:
+
+```bash
+export JJHUB_TOKEN=jjhub_your_token_here
+```
+
+## Check Authentication Status
+
+```bash
+jjhub auth status
+```
+
+## Print Current Token
+
+```bash
+jjhub auth token
+```
+
+Useful for piping into other tools or debugging.
+
+## Log Out
+
+```bash
+jjhub auth logout
+```
+
+## Session Management
+
+Every time you sign in (via GitHub OAuth, Sign in with Key, or token), JJHub creates a session. You can view all active sessions across your devices and revoke any session you no longer need.
+
+### View Active Sessions
+
+List all sessions associated with your account:
+
+```bash
+jjhub auth sessions
+```
+
+This displays a table with the following information for each session:
+
+| Field | Description |
+|-------|-------------|
+| `id` | Unique session identifier (UUID) |
+| `device` | Device or client name (e.g., "CLI", "Browser - macOS") |
+| `ip_address` | IP address where the session was created |
+| `last_active` | Timestamp of the most recent activity on this session |
+| `created_at` | Timestamp when the session was created |
+
+Use `--json` for machine-readable output:
+
+```bash
+jjhub auth sessions --json id,device,ip_address,last_active,created_at
+```
+
+**API equivalent:**
+
+```bash
+curl https://api.jjhub.tech/api/user/sessions \
+  -H "Authorization: token jjhub_your_token"
+```
+
+```json
+[
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "device": "CLI",
+    "ip_address": "203.0.113.42",
+    "last_active": "2026-03-06T14:30:00Z",
+    "created_at": "2026-03-01T09:15:00Z"
+  }
+]
+```
+
+### Revoke a Session
+
+To sign out a specific session (for example, a session on a lost device or a session you no longer recognize):
+
+```bash
+jjhub auth sessions revoke <session-id>
+```
+
+This immediately invalidates the session. Any requests using that session's credentials will receive a `401 Unauthorized` response.
+
+**API equivalent:**
+
+```bash
+curl -X DELETE https://api.jjhub.tech/api/user/sessions/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
+  -H "Authorization: token jjhub_your_token"
+```
+
+A successful revocation returns `204 No Content`.
+
+You cannot revoke your current session through this endpoint -- use `jjhub auth logout` instead.
+
+### When to Use Session Revocation
+
+- **Lost or stolen device**: Immediately revoke sessions associated with the compromised device.
+- **Shared computer**: After using JJHub on a shared machine, revoke that session from your own device.
+- **Security audit**: Periodically review your active sessions and revoke any you do not recognize.
+- **Rotating credentials**: After rotating tokens or keys, revoke old sessions to ensure clean credential state.
+
+## Two-Factor Authentication (2FA)
+
+JJHub supports two-factor authentication (2FA) via TOTP (Time-based One-Time Passwords) for GitHub OAuth users. 2FA adds a second layer of security to your account by requiring a short-lived code from an authenticator app in addition to your primary login method.
+
+Sign in with Key users do not need 2FA -- their authentication is already based on cryptographic key signing, which provides equivalent or stronger security guarantees. 2FA is designed for GitHub OAuth users who want additional protection beyond what OAuth alone provides.
+
+### How TOTP Works
+
+TOTP generates a new six-digit code every 30 seconds using a shared secret between your authenticator app and the JJHub server. When you log in, JJHub prompts you for the current code. Because the code changes frequently and requires possession of your authenticator device, it protects your account even if your GitHub OAuth session is compromised.
+
+Compatible authenticator apps include Google Authenticator, Authy, 1Password, Bitwarden, and any app that supports the TOTP standard (RFC 6238).
+
+### Enable 2FA
+
+```bash
+jjhub auth 2fa enable
+```
+
+This starts an interactive enrollment flow:
+
+1. JJHub generates a TOTP secret and returns it as both a QR code URI and a plain-text secret.
+2. Scan the QR code with your authenticator app (or manually enter the secret).
+3. Enter the current six-digit TOTP code from your authenticator app to confirm setup.
+
+Once confirmed, 2FA is active on your account. All future logins via GitHub OAuth will require a TOTP code after the OAuth redirect completes.
+
+**API flow:**
+
+**Step 1: Start enrollment**
+
+```bash
+curl -X POST https://api.jjhub.tech/api/user/2fa/enroll \
+  -H "Authorization: token jjhub_your_token"
+```
+
+```json
+{
+  "secret": "JBSWY3DPEHPK3PXP",
+  "qr_uri": "otpauth://totp/JJHub:alice?secret=JBSWY3DPEHPK3PXP&issuer=JJHub",
+  "recovery_codes": [
+    "a1b2c3d4e5",
+    "f6g7h8i9j0",
+    "k1l2m3n4o5",
+    "p6q7r8s9t0",
+    "u1v2w3x4y5",
+    "z6a7b8c9d0",
+    "e1f2g3h4i5",
+    "j6k7l8m9n0"
+  ]
+}
+```
+
+The `secret` is the TOTP shared secret. The `qr_uri` is an `otpauth://` URI suitable for rendering as a QR code. The `recovery_codes` are single-use backup codes (see Recovery Codes below). At this stage, 2FA is not yet active -- you must confirm enrollment.
+
+**Step 2: Confirm enrollment**
+
+```bash
+curl -X POST https://api.jjhub.tech/api/user/2fa/confirm \
+  -H "Authorization: token jjhub_your_token" \
+  -H "Content-Type: application/json" \
+  -d '{"code": "123456"}'
+```
+
+Submit the current TOTP code from your authenticator app. On success, 2FA is activated and all future GitHub OAuth logins will require a TOTP code. The response returns `204 No Content`.
+
+### Disable 2FA
+
+```bash
+jjhub auth 2fa disable
+```
+
+You will be prompted to enter your current TOTP code to confirm. Disabling 2FA removes the second factor requirement from your account.
+
+**API equivalent:**
+
+```bash
+curl -X DELETE https://api.jjhub.tech/api/user/2fa \
+  -H "Authorization: token jjhub_your_token" \
+  -H "Content-Type: application/json" \
+  -d '{"code": "123456"}'
+```
+
+A successful request returns `204 No Content`.
+
+### Check 2FA Status
+
+```bash
+jjhub auth 2fa status
+```
+
+Displays whether 2FA is currently enabled on your account.
+
+### Recovery Codes
+
+When you enable 2FA, JJHub generates a set of eight single-use recovery codes. These codes can be used in place of a TOTP code if you lose access to your authenticator device (for example, if your phone is lost or reset).
+
+**Important:**
+
+- Each recovery code can only be used once. After use, it is permanently invalidated.
+- Store your recovery codes in a safe, offline location (e.g., a password manager, a printed copy in a secure place).
+- If you run out of recovery codes, regenerate a new set before you lose access to your authenticator app.
+
+**Regenerate recovery codes:**
+
+```bash
+jjhub auth 2fa recovery
+```
+
+This invalidates all existing recovery codes and generates a new set. You must have a valid TOTP code or be currently authenticated to regenerate.
+
+**API equivalent:**
+
+```bash
+curl -X POST https://api.jjhub.tech/api/user/2fa/recovery \
+  -H "Authorization: token jjhub_your_token" \
+  -H "Content-Type: application/json" \
+  -d '{"code": "123456"}'
+```
+
+```json
+{
+  "recovery_codes": [
+    "a1b2c3d4e5",
+    "f6g7h8i9j0",
+    "k1l2m3n4o5",
+    "p6q7r8s9t0",
+    "u1v2w3x4y5",
+    "z6a7b8c9d0",
+    "e1f2g3h4i5",
+    "j6k7l8m9n0"
+  ]
+}
+```
+
+### 2FA API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/user/2fa/enroll` | Start 2FA enrollment (returns secret, QR URI, and recovery codes) |
+| `POST` | `/api/user/2fa/confirm` | Confirm enrollment with a TOTP code (body: `{"code": "..."}`) |
+| `DELETE` | `/api/user/2fa` | Disable 2FA (body: `{"code": "..."}`) |
+| `POST` | `/api/user/2fa/recovery` | Regenerate recovery codes (body: `{"code": "..."}`) |
+
+### Who Needs 2FA
+
+| Auth method | 2FA available | Why |
+|-------------|---------------|-----|
+| GitHub OAuth | Yes | OAuth delegates authentication to GitHub. 2FA adds a JJHub-level second factor so that a compromised GitHub session alone is not sufficient to access your JJHub account. |
+| Sign in with Key | No (not needed) | Authentication is already based on cryptographic key signing. The private key never leaves your device, providing equivalent security to hardware-backed 2FA. |
+
+---
+
+## Email Management
+
+Email addresses on JJHub are **optional**. You are never required to provide an email to create an account or use the platform. Sign in with Key users may not have an email address at all, and GitHub OAuth users have their verified email imported automatically.
+
+However, a **verified email is required** for certain features:
+
+- **Email notifications**: Mentions, review requests, CI status updates, and other notifications can only be delivered to a verified email address.
+- **Commit attribution**: JJHub matches commit author emails to user accounts. Adding and verifying the email addresses you use in commits ensures your contributions are correctly attributed to your profile.
+
+### JJHub's Email Policy
+
+| Scenario | Email behavior |
+|----------|---------------|
+| GitHub OAuth signup | Verified email auto-imported from GitHub. Email notifications enabled by default. |
+| Sign in with Key signup | No email on account. Prompted to add one in settings. Email notifications disabled until a verified email is added. |
+| Multiple emails | You can add multiple email addresses. One is marked as primary (used for notifications). |
+
+### Add an Email
+
+```bash
+jjhub email add alice@example.com
+```
+
+This sends a verification email to the address with a verification code. The email is added to your account in an **unverified** state until you complete verification.
+
+**API equivalent:**
+
+```bash
+curl -X POST https://api.jjhub.tech/api/user/emails \
+  -H "Authorization: token jjhub_your_token" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "alice@example.com"}'
+```
+
+```json
+{
+  "id": 1,
+  "email": "alice@example.com",
+  "verified": false,
+  "primary": false,
+  "created_at": "2026-03-06T12:00:00Z"
+}
+```
+
+### Verify an Email
+
+After adding an email, you receive a verification email with a code. Complete verification with the CLI or by clicking the link in the email:
+
+```bash
+jjhub email verify <id> --code <code>
+```
+
+**API equivalent:**
+
+```bash
+curl -X POST https://api.jjhub.tech/api/user/emails/1/verify \
+  -H "Authorization: token jjhub_your_token" \
+  -H "Content-Type: application/json" \
+  -d '{"code": "abc123"}'
+```
+
+Once verified, the email can receive notifications and is used for commit attribution matching.
+
+### List Emails
+
+```bash
+jjhub email list
+```
+
+This displays all email addresses on your account with their verification and primary status.
+
+**API equivalent:**
+
+```bash
+curl https://api.jjhub.tech/api/user/emails \
+  -H "Authorization: token jjhub_your_token"
+```
+
+```json
+[
+  {
+    "id": 1,
+    "email": "alice@example.com",
+    "verified": true,
+    "primary": true,
+    "created_at": "2026-03-06T12:00:00Z"
+  },
+  {
+    "id": 2,
+    "email": "alice@work.com",
+    "verified": false,
+    "primary": false,
+    "created_at": "2026-03-06T14:00:00Z"
+  }
+]
+```
+
+### Set Primary Email
+
+Your primary email is the address used for email notifications. Only verified emails can be set as primary:
+
+```bash
+jjhub email set-primary <id>
+```
+
+### Remove an Email
+
+```bash
+jjhub email remove <id>
+```
+
+You cannot remove your only verified email if you have email notifications enabled. Either add and verify a replacement email first, or disable email notifications.
+
+**API equivalent:**
+
+```bash
+curl -X DELETE https://api.jjhub.tech/api/user/emails/2 \
+  -H "Authorization: token jjhub_your_token"
+```
+
+A successful deletion returns `204 No Content`.
+
+### Email API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/user/emails` | List all email addresses on your account |
+| `POST` | `/api/user/emails` | Add a new email address (body: `{"email": "..."}`) |
+| `DELETE` | `/api/user/emails/:id` | Remove an email address |
+| `POST` | `/api/user/emails/:id/verify` | Verify an email address (body: `{"code": "..."}`) |
+
+### How Emails Relate to Notifications
+
+JJHub delivers notifications through two channels:
+
+- **In-app notifications**: Always available, regardless of email status. Delivered via SSE in real-time.
+- **Email notifications**: Require at least one verified email address marked as primary. If you have no verified email, email notifications are silently skipped -- you still receive in-app notifications.
+
+Notification triggers that can generate email include:
+- @mentions in issues or landing requests
+- Review requests on landing requests
+- CI/workflow status changes on your changes
+- Assignment to an issue
+
+You can configure per-repository notification preferences to control which events generate email.
+
+### How Emails Relate to Commit Attribution
+
+JJHub matches the author email in commits to user accounts. When you push commits with an email that matches a verified email on your JJHub account, those commits are attributed to your profile. This affects:
+
+- Your contribution graph
+- Author links in the commit history
+- Landing request authorship
+
+If you use multiple email addresses across different machines or configurations (e.g., a personal email and a work email), add and verify all of them on your JJHub account to ensure all your commits are properly attributed.
+
+---
+
+## API Tokens
+
+For CI/CD pipelines and programmatic access, use personal access tokens. Create tokens via the CLI with `jjhub auth token create`, or via the API.
+
+Tokens are prefixed with `jjhub_` and stored as SHA-256 hashes on the server - the full token is shown only at creation time.
+
+### Token Scopes
+
+| Scope | Description |
+|-------|-------------|
+| `repo` | Full repository access (read + write) |
+| `repo:read` | Read repository contents |
+| `repo:write` | Push to repositories |
+| `user` | Full user access (read + write) |
+| `user:read` | Read user profile |
+| `user:write` | Update user profile |
+| `admin` | Full administrative access |
+
+Write scopes imply read access (e.g., `repo:write` includes `repo:read`).
+
+### Environment Variables
+
+```bash
+export JJHUB_TOKEN=jjhub_your_token_here
+```
+
+The CLI reads `JJHUB_TOKEN` automatically. No config file needed for CI.
+
+Alternatively, pipe a token directly:
+
+```bash
+echo "jjhub_your_token_here" | jjhub auth login --with-token
+```

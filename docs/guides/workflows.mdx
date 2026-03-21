@@ -1,0 +1,906 @@
+---
+title: Workflows
+description: TypeScript workflows for CI, AI agents, and automation
+icon: gears
+---
+
+# Workflows
+
+JJHub workflows are TSX files that define automated tasks for your repository. They use [Smithers](https://smithers.sh) JSX components wrapped by the `@jjhub-ai/workflow` package. There is no distinction between CI workflows and AI workflows -- a workflow task can run tests, deploy code, or invoke an AI agent. They are all just code running in the same sandboxed environment.
+
+Workflows live in your repository under `.jjhub/workflows/` and are triggered by events like pushes, landing request activity, schedules, or manual dispatch.
+
+## Workflow Basics
+
+A workflow is a TSX file that default-exports a function returning a `<Workflow>` component with a name, triggers, and child tasks.
+
+### Minimal Example
+
+```tsx
+// .jjhub/workflows/ci.tsx
+import { Workflow, Task, on } from "@jjhub-ai/workflow";
+import { $ } from "bun";
+
+export default (ctx) => (
+  <Workflow
+    name="CI"
+    triggers={[on.push({ bookmarks: ["main"] })]}
+  >
+    <Task id="test">
+      {async () => {
+        await $`bun test`;
+      }}
+    </Task>
+  </Workflow>
+);
+```
+
+This workflow runs `bun test` every time code is pushed to the `main` bookmark.
+
+### Workflow Structure
+
+Every workflow has three parts:
+
+| Part | Description |
+|------|-------------|
+| `name` | Human-readable name displayed in run lists and status checks |
+| `triggers` | Events that cause the workflow to run |
+| Children | `<Task>`, `<Parallel>`, `<Sequence>`, `<Branch>`, or `<Ralph>` components |
+
+### Component Reference
+
+| Component | Description |
+|-----------|-------------|
+| `<Workflow>` | Root container with `name` and `triggers` props |
+| `<Task>` | Unit of work — compute (async fn child), agent (string child + `agent` prop), or static (object child) |
+| `<Parallel>` | Run children concurrently |
+| `<Sequence>` | Run children sequentially (implicit at workflow root) |
+| `<Branch>` | Conditional execution based on runtime values |
+| `<Ralph>` | Retry/iteration loop with configurable attempts |
+
+### Directory Layout
+
+Workflows must be placed in the `.jjhub/workflows/` directory at the repository root:
+
+```
+your-repo/
+├── .jjhub/
+│   ├── package.json          # Depends on @jjhub-ai/workflow
+│   ├── tsconfig.json         # JSX + Smithers config
+│   └── workflows/
+│       ├── ci.tsx
+│       ├── deploy.tsx
+│       ├── triage.tsx
+│       └── nightly.tsx
+├── packages/
+│   └── workflow/             # @jjhub-ai/workflow package
+│       ├── package.json
+│       ├── tsconfig.json
+│       └── src/
+│           ├── index.ts      # Re-exports Smithers components + triggers
+│           ├── components.tsx # Workflow, Task (JJHub extensions)
+│           └── triggers.ts   # on.push(), on.landingRequest.*, etc.
+├── package.json              # workspaces: ["packages/*", ".jjhub"]
+├── src/
+└── ...
+```
+
+Each `.tsx` file in the `workflows/` directory is discovered automatically. The filename (without extension) becomes the workflow ID used in CLI commands like `jjhub workflow run ci`.
+
+The `.jjhub/` directory is a Bun workspace member with its own `package.json` and `tsconfig.json`, giving full LSP support (autocomplete, type checking, go-to-definition) when editing workflows. See [Your First Workflow](/getting-started/first-workflow#project-setup) for the complete setup.
+
+## Triggers & Events
+
+Triggers define when a workflow runs. A workflow can have multiple triggers, and will run when any of them fire.
+
+### Push
+
+Run when code is pushed to matching bookmarks:
+
+```tsx
+triggers={[
+  on.push({ bookmarks: ["main"] }),
+]}
+```
+
+You can match multiple bookmarks or use glob patterns:
+
+```tsx
+triggers={[
+  on.push({ bookmarks: ["main", "release/*"] }),
+]}
+```
+
+Ignore paths to skip runs for certain changes:
+
+```tsx
+triggers={[
+  on.push({ bookmarks: ["main"], ignore: ["docs/**", "*.md"] }),
+]}
+```
+
+### Landing Request
+
+Run when landing request activity occurs:
+
+```tsx
+triggers={[
+  on.landingRequest.opened(),      // LR opened or draft published
+  on.landingRequest.closed(),      // LR closed without landing
+  on.landingRequest.readyToLand(), // All checks pass, reviews approved
+  on.landingRequest.landed(),      // LR successfully landed
+]}
+```
+
+You can combine multiple landing request events:
+
+```tsx
+triggers={[
+  on.landingRequest.opened(),
+  on.landingRequest.readyToLand(),
+]}
+```
+
+### Issue
+
+Run when issue activity occurs:
+
+```tsx
+triggers={[
+  on.issue.opened(),     // New issue created
+  on.issue.closed(),     // Issue closed
+  on.issue.labeled(),    // Label added to issue
+  on.issue.commented(),  // Comment added to issue
+]}
+```
+
+### Schedule
+
+Run on a CRON schedule (all times UTC):
+
+```tsx
+triggers={[
+  on.schedule("0 0 * * *"),       // Nightly at midnight UTC
+  on.schedule("0 */6 * * *"),     // Every 6 hours
+  on.schedule("0 9 * * 1-5"),     // Weekdays at 9am UTC
+]}
+```
+
+CRON syntax uses five fields:
+
+```
+┌───────────── minute (0-59)
+│ ┌───────────── hour (0-23)
+│ │ ┌───────────── day of month (1-31)
+│ │ │ ┌───────────── month (1-12)
+│ │ │ │ ┌───────────── day of week (0-6, Sunday=0)
+│ │ │ │ │
+* * * * *
+```
+
+Common patterns:
+
+| Pattern | CRON | Description |
+|---------|------|-------------|
+| Nightly | `0 0 * * *` | Once per day at 00:00 UTC |
+| Every 6 hours | `0 */6 * * *` | 00:00, 06:00, 12:00, 18:00 UTC |
+| Hourly | `0 * * * *` | Start of every hour |
+| Weekly Monday 9am | `0 9 * * 1` | Every Monday at 09:00 UTC |
+| Weekdays 8am | `0 8 * * 1-5` | Monday--Friday at 08:00 UTC |
+
+### Manual Dispatch
+
+Run when triggered manually via CLI or API, with optional typed inputs:
+
+```tsx
+triggers={[
+  on.manualDispatch({
+    inputs: {
+      environment: {
+        type: "choice",
+        required: true,
+        options: ["staging", "production"],
+        description: "Target environment",
+      },
+      version: {
+        type: "string",
+        required: true,
+        description: "Version to deploy",
+      },
+      dry_run: {
+        type: "boolean",
+        default: false,
+        description: "Preview without applying",
+      },
+    },
+  }),
+]}
+```
+
+Input types:
+
+| Type | Description |
+|------|-------------|
+| `string` | Free-form text |
+| `boolean` | True or false |
+| `number` | Numeric value |
+| `choice` | One of a set of allowed values (requires `options`) |
+
+Trigger manually from the CLI:
+
+```bash
+jjhub workflow run deploy --input environment=production --input version=1.2.3
+```
+
+Or via the API:
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/owner/repo/workflows/deploy/dispatches \
+  -H "Authorization: token jjhub_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ref": "main",
+    "inputs": {
+      "environment": "production",
+      "version": "1.2.3"
+    }
+  }'
+```
+
+### Combining Triggers
+
+A workflow can have any combination of triggers. It runs whenever any trigger fires:
+
+```tsx
+triggers={[
+  on.push({ bookmarks: ["main"] }),
+  on.landingRequest.opened(),
+  on.schedule("0 0 * * *"),
+]}
+```
+
+### Workflow Run
+
+Run when another workflow completes (for chaining workflows like CI -> Build -> Deploy):
+
+```tsx
+triggers={[
+  on.workflowRun({ workflows: ["ci"], types: ["completed"] }),
+]}
+```
+
+The `workflows` array lists workflow names to watch. The `types` array filters by outcome: `"completed"`, `"success"`, or `"failure"`.
+
+### Webhook Trigger
+
+Run when an external webhook event is received:
+
+```tsx
+triggers={[
+  on.webhook("deployment_status"),
+]}
+```
+
+## Tasks
+
+Tasks are the units of work a workflow executes. Children of `<Workflow>` run sequentially by default. Use `<Parallel>` to run tasks concurrently.
+
+### Compute Tasks
+
+A compute task runs an async function. Use Bun's `$` template literal for shell commands:
+
+```tsx
+import { Workflow, Task, on } from "@jjhub-ai/workflow";
+import { $ } from "bun";
+
+export default (ctx) => (
+  <Workflow
+    name="CI"
+    triggers={[on.push({ bookmarks: ["main"] })]}
+  >
+    <Task id="install">
+      {async () => {
+        await $`bun install`;
+      }}
+    </Task>
+    <Task id="lint">
+      {async () => {
+        await $`bun run lint`;
+      }}
+    </Task>
+    <Task id="test">
+      {async () => {
+        await $`bun test`;
+      }}
+    </Task>
+    <Task id="build">
+      {async () => {
+        await $`bun run build`;
+      }}
+    </Task>
+  </Workflow>
+);
+```
+
+Each task has an `id` (used in logs and status checks) and an async function child.
+
+### Agent Tasks
+
+An agent task invokes an AI agent by passing a string prompt as the child and an `agent` prop. The agent runs in the same sandboxed environment and can read/write files, execute commands, and interact with the JJHub API:
+
+```tsx
+import { Workflow, Task, on } from "@jjhub-ai/workflow";
+import { ToolLoopAgent } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { $ } from "bun";
+
+const reviewer = new ToolLoopAgent({
+  model: anthropic("claude-sonnet-4-5-20250929"),
+  instructions: "You are a code reviewer. Check for bugs, suggest improvements, and verify test coverage.",
+});
+
+export default (ctx) => (
+  <Workflow
+    name="AI Review"
+    triggers={[on.landingRequest.opened()]}
+  >
+    <Task id="test">
+      {async () => {
+        await $`bun test`;
+      }}
+    </Task>
+    <Task id="review" agent={reviewer}>
+      Review this landing request. Check for bugs, suggest improvements, and verify test coverage.
+    </Task>
+  </Workflow>
+);
+```
+
+To use agent tasks, configure your AI API key as a repository secret:
+
+```bash
+printf %s "sk-ant-..." | jjhub secret set ANTHROPIC_API_KEY --body-stdin
+```
+
+### Schema-Driven Tasks
+
+For AI workflows where tasks pass structured data to each other, use `createSmithers` to define Zod output schemas. This gives you type-safe `ctx.output()` and automatic persistence:
+
+```tsx
+import { createSmithers, Task, on } from "@jjhub-ai/workflow";
+import { ToolLoopAgent as Agent } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { z } from "zod";
+
+const { Workflow, smithers } = createSmithers({
+  analysis: z.object({
+    summary: z.string(),
+    severity: z.enum(["low", "medium", "high"]),
+  }),
+  fix: z.object({
+    patch: z.string(),
+    explanation: z.string(),
+  }),
+});
+
+const analyst = new Agent({
+  model: anthropic("claude-sonnet-4-5-20250929"),
+  instructions: "You are a code analyst. Return structured JSON.",
+});
+
+const fixer = new Agent({
+  model: anthropic("claude-sonnet-4-5-20250929"),
+  instructions: "You are a senior engineer who writes minimal, correct fixes.",
+});
+
+export default smithers((ctx) => (
+  <Workflow
+    name="Bugfix"
+    triggers={[on.manualDispatch({ inputs: { description: { type: "string", required: true } } })]}
+  >
+    <Task id="analyze" output="analysis" agent={analyst}>
+      {`Analyze this bug: ${ctx.input.description}`}
+    </Task>
+    <Task id="fix" output="fix" agent={fixer}>
+      {`Fix this issue: ${ctx.output("analysis", { nodeId: "analyze" }).summary}`}
+    </Task>
+  </Workflow>
+));
+```
+
+Key differences from compute tasks:
+
+| Aspect | Compute Task | Schema-Driven Task |
+|--------|-------------|-------------------|
+| Export | `export default (ctx) => ...` | `export default smithers((ctx) => ...)` |
+| Workflow/Task | Imported directly from `@jjhub-ai/workflow` | Destructured from `createSmithers()` |
+| Output | None (side effects only) | Typed Zod schema via `output="name"` |
+| Data passing | Not supported | `ctx.output("name", { nodeId: "id" })` |
+
+Use the simple compute pattern for CI tasks (lint, test, build, deploy). Use `createSmithers` when AI agents need to pass structured results between tasks.
+
+### Parallel Tasks
+
+Use `<Parallel>` to run tasks concurrently:
+
+```tsx
+import { Workflow, Task, Parallel, on } from "@jjhub-ai/workflow";
+import { $ } from "bun";
+
+export default (ctx) => (
+  <Workflow
+    name="CI"
+    triggers={[on.push({ bookmarks: ["main"] })]}
+  >
+    <Task id="install">
+      {async () => {
+        await $`bun install`;
+      }}
+    </Task>
+    <Parallel>
+      <Task id="lint">
+        {async () => {
+          await $`bun run lint`;
+        }}
+      </Task>
+      <Task id="typecheck">
+        {async () => {
+          await $`bun run typecheck`;
+        }}
+      </Task>
+      <Task id="test">
+        {async () => {
+          await $`bun test`;
+        }}
+      </Task>
+    </Parallel>
+    <Task id="build">
+      {async () => {
+        await $`bun run build`;
+      }}
+    </Task>
+  </Workflow>
+);
+```
+
+Tasks inside `<Parallel>` start at the same time. The workflow continues to the next sibling only after all parallel tasks complete.
+
+### Context Object
+
+Every workflow receives a `ctx` object via the function export:
+
+| Property | Description |
+|----------|-------------|
+| `ctx.input` | Manual dispatch inputs (empty object for other triggers) |
+| `ctx.repo` | Repository information (owner, name) |
+| `ctx.event` | The trigger event data |
+| `ctx.output(table, key)` | Access a previous task's output |
+| `ctx.latest(table, nodeId)` | Latest iteration output (for Ralph loops) |
+
+### Task Failure
+
+If any task fails (non-zero exit code or thrown error), the workflow run is marked as failed and subsequent tasks are skipped. The commit status on the associated change is set to `failure`.
+
+## Secrets & Variables
+
+Workflows often need credentials (API keys, deploy tokens) and configuration values. JJHub provides two mechanisms:
+
+### Secrets
+
+Secrets are encrypted values injected as environment variables into workflow runs. They are never exposed in logs or API responses.
+
+```bash
+# Set a secret
+printf %s "sk-ant-..." | jjhub secret set ANTHROPIC_API_KEY --body-stdin
+
+# Set a deploy token
+printf %s "your-deploy-token" | jjhub secret set DEPLOY_TOKEN --body-stdin
+
+# List secrets (names only, values are hidden)
+jjhub secret list
+
+# Delete a secret
+jjhub secret delete DEPLOY_TOKEN
+```
+
+Access secrets in workflow tasks via environment variables:
+
+```tsx
+<Task id="deploy">
+  {async () => {
+    // Secrets are available as environment variables
+    await $`./scripts/deploy.ts`;
+    // deploy.ts can read process.env.DEPLOY_TOKEN
+  }}
+</Task>
+```
+
+<Warning>
+  Secrets are encrypted at rest and only injected into workflow runs. They are never visible in API responses, CLI output, or logs. If a workflow task prints a secret value to stdout, JJHub automatically redacts it in the log output.
+</Warning>
+
+### Variables
+
+Variables are non-secret configuration values. Unlike secrets, variable values are visible in API responses and CLI output.
+
+```bash
+# Set a variable
+jjhub variable set NODE_VERSION -b "20"
+
+# Get a variable value
+jjhub variable get NODE_VERSION
+
+# List variables
+jjhub variable list
+
+# Delete a variable
+jjhub variable delete NODE_VERSION
+```
+
+Variables are also injected as environment variables into workflow runs.
+
+### Secrets vs Variables
+
+| Aspect | Secrets | Variables |
+|--------|---------|-----------|
+| Values visible in API/CLI | No (names only) | Yes |
+| Encrypted at rest | Yes | No |
+| Redacted in logs | Yes | No |
+| Use case | API keys, tokens, passwords | Build config, feature flags |
+
+## Workflow Examples
+
+### CI Pipeline
+
+A standard CI workflow that runs on pushes and landing requests:
+
+```tsx
+// .jjhub/workflows/ci.tsx
+import { Workflow, Task, Parallel, on } from "@jjhub-ai/workflow";
+import { $ } from "bun";
+
+export default (ctx) => (
+  <Workflow
+    name="CI"
+    triggers={[
+      on.push({ bookmarks: ["main"] }),
+      on.landingRequest.opened(),
+    ]}
+  >
+    <Task id="install">
+      {async () => {
+        await $`bun install`;
+      }}
+    </Task>
+    <Parallel>
+      <Task id="lint">
+        {async () => {
+          await $`bun run lint`;
+        }}
+      </Task>
+      <Task id="typecheck">
+        {async () => {
+          await $`bun run typecheck`;
+        }}
+      </Task>
+      <Task id="test">
+        {async () => {
+          await $`bun test`;
+        }}
+      </Task>
+    </Parallel>
+    <Task id="build">
+      {async () => {
+        await $`bun run build`;
+      }}
+    </Task>
+  </Workflow>
+);
+```
+
+### Deploy Workflow with Inputs
+
+A deploy workflow triggered manually with environment selection:
+
+```tsx
+// .jjhub/workflows/deploy.tsx
+import { Workflow, Task, on } from "@jjhub-ai/workflow";
+import { $ } from "bun";
+
+export default (ctx) => (
+  <Workflow
+    name="Deploy"
+    triggers={[
+      on.manualDispatch({
+        inputs: {
+          environment: {
+            type: "choice",
+            required: true,
+            default: "staging",
+            options: ["staging", "production"],
+            description: "Target environment",
+          },
+          version: {
+            type: "string",
+            required: true,
+            description: "Version to deploy (e.g., 1.2.3)",
+          },
+        },
+      }),
+    ]}
+  >
+    <Task id="deploy">
+      {async () => {
+        const env = ctx.input.environment;
+        const version = ctx.input.version;
+        await $`./scripts/deploy.ts --env ${env} --version ${version}`;
+      }}
+    </Task>
+  </Workflow>
+);
+```
+
+```bash
+jjhub workflow run deploy -i environment=production -i version=1.2.3
+```
+
+### AI Issue Triage
+
+Automatically label and assign new issues using an AI agent:
+
+```tsx
+// .jjhub/workflows/triage.tsx
+import { Workflow, Task, on } from "@jjhub-ai/workflow";
+import { ToolLoopAgent } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+
+const triager = new ToolLoopAgent({
+  model: anthropic("claude-sonnet-4-5-20250929"),
+  instructions:
+    "You are an issue triager. Read issues, add labels, and assign to team members.",
+});
+
+export default (ctx) => (
+  <Workflow
+    name="Issue Triage"
+    triggers={[on.issue.opened()]}
+  >
+    <Task id="triage" agent={triager}>
+      Read this issue. Add appropriate labels (bug, enhancement, documentation, question).
+      If it's a bug, assign to the on-call engineer.
+      If it's a feature request, add the 'needs-discussion' label.
+    </Task>
+  </Workflow>
+);
+```
+
+### AI Code Review
+
+Review landing requests with an AI agent after CI passes:
+
+```tsx
+// .jjhub/workflows/ai-review.tsx
+import { Workflow, Task, on } from "@jjhub-ai/workflow";
+import { ToolLoopAgent } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { $ } from "bun";
+
+const reviewer = new ToolLoopAgent({
+  model: anthropic("claude-sonnet-4-5-20250929"),
+  instructions:
+    "You are a thorough code reviewer. Check for bugs, security issues, and suggest improvements.",
+});
+
+export default (ctx) => (
+  <Workflow
+    name="AI Code Review"
+    triggers={[on.landingRequest.opened()]}
+  >
+    <Task id="test">
+      {async () => {
+        await $`bun test`;
+      }}
+    </Task>
+    <Task id="review" agent={reviewer}>
+      Review this landing request thoroughly. Check for:
+      - Bugs and edge cases
+      - Missing error handling
+      - Test coverage gaps
+      - Security concerns
+      Suggest specific code improvements using suggestion blocks.
+    </Task>
+  </Workflow>
+);
+```
+
+### Programmable Landing Queue
+
+Customize the landing queue behavior with a workflow:
+
+```tsx
+// .jjhub/workflows/landing-queue.tsx
+import { Workflow, Task, on } from "@jjhub-ai/workflow";
+import { $ } from "bun";
+
+export default (ctx) => (
+  <Workflow
+    name="Landing Queue"
+    triggers={[on.landingRequest.readyToLand()]}
+  >
+    <Task id="validate">
+      {async () => {
+        await $`bun test`;
+        await $`bun run build`;
+      }}
+    </Task>
+  </Workflow>
+);
+```
+
+### Nightly Dependency Check
+
+Scan for outdated or vulnerable dependencies on a schedule:
+
+```tsx
+// .jjhub/workflows/deps.tsx
+import { Workflow, Task, on } from "@jjhub-ai/workflow";
+import { ToolLoopAgent } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { $ } from "bun";
+
+const scanner = new ToolLoopAgent({
+  model: anthropic("claude-sonnet-4-5-20250929"),
+  instructions:
+    "You are a security scanner. Report vulnerabilities found in dependencies.",
+});
+
+export default (ctx) => (
+  <Workflow
+    name="Dependency Check"
+    triggers={[on.schedule("0 0 * * *")]}
+  >
+    <Task id="outdated">
+      {async () => {
+        await $`bun outdated`;
+      }}
+    </Task>
+    <Task id="security" agent={scanner}>
+      Scan dependencies for known security vulnerabilities.
+      If critical vulnerabilities are found, create an issue with details and remediation steps.
+    </Task>
+  </Workflow>
+);
+```
+
+### Chained Build & Deploy
+
+Chain workflows using `on.workflowRun()` -- build after CI passes, deploy after build succeeds:
+
+```tsx
+// .jjhub/workflows/build.tsx
+import { Workflow, Task, Parallel, on } from "@jjhub-ai/workflow";
+import { $ } from "bun";
+
+export default (ctx) => (
+  <Workflow
+    name="Build"
+    triggers={[on.workflowRun({ workflows: ["ci"], types: ["completed"] })]}
+  >
+    <Parallel>
+      <Task id="build-api">
+        {async () => {
+          await $`docker build -f cmd/server/Dockerfile -t my-registry/api:latest .`;
+        }}
+      </Task>
+      <Task id="build-cli">
+        {async () => {
+          await $`cargo build --release -p my-cli`;
+        }}
+      </Task>
+    </Parallel>
+  </Workflow>
+);
+```
+
+### Combined CI + AI Workflow
+
+A single workflow that runs tests and invokes an AI agent to analyze failures:
+
+```tsx
+// .jjhub/workflows/smart-ci.tsx
+import { Workflow, Task, Branch, on } from "@jjhub-ai/workflow";
+import { ToolLoopAgent } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { $ } from "bun";
+
+const debugger_ = new ToolLoopAgent({
+  model: anthropic("claude-sonnet-4-5-20250929"),
+  instructions:
+    "You are a CI failure analyst. Read test output, identify root causes, and suggest fixes.",
+});
+
+export default (ctx) => (
+  <Workflow
+    name="Smart CI"
+    triggers={[
+      on.push({ bookmarks: ["main"] }),
+      on.landingRequest.opened(),
+    ]}
+  >
+    <Task id="test">
+      {async () => {
+        await $`bun test`;
+      }}
+    </Task>
+    <Task id="analyze-failure" agent={debugger_}>
+      The CI tests just failed. Read the test output, identify the root cause,
+      and either fix the issue by creating a new change or explain what went wrong.
+    </Task>
+  </Workflow>
+);
+```
+
+## Managing Workflows
+
+### List Workflows
+
+```bash
+jjhub workflow list
+```
+
+### Trigger a Workflow
+
+```bash
+# Trigger manually
+jjhub workflow run ci --ref main
+
+# Trigger with inputs
+jjhub workflow run deploy -i environment=staging -i version=1.0.0
+```
+
+### View Runs
+
+```bash
+# List runs for a workflow
+jjhub run list ci
+
+# View a specific run
+jjhub run view 42
+
+# Watch a run in real-time (SSE streaming)
+jjhub run watch 42
+
+# Re-run a failed workflow
+jjhub run rerun 42
+```
+
+### Commit Statuses
+
+Workflow runs automatically create commit statuses on the associated changes. You can also manage statuses directly:
+
+```bash
+# List statuses for a change
+jjhub status list <change-id>
+
+# Set a status manually
+jjhub status set <sha> --state success --context ci/test
+```
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/repos/:owner/:repo/workflows` | List workflows |
+| `POST` | `/api/repos/:owner/:repo/workflows/:id/dispatches` | Trigger manual dispatch |
+| `GET` | `/api/repos/:owner/:repo/runs` | List workflow runs |
+| `GET` | `/api/repos/:owner/:repo/runs/:id` | Get run details |
+| `GET` | `/api/repos/:owner/:repo/runs/:id/logs` | Stream run logs (SSE) |
+| `POST` | `/api/repos/:owner/:repo/runs/:id/cancel` | Cancel a run |
+| `POST` | `/api/repos/:owner/:repo/runs/:id/rerun` | Re-run a workflow |
+
+## Next Steps
+
+- [AI Agents Guide](/guides/ai-agents) -- agent capabilities and sandboxed execution
+- [Your First Workflow](/getting-started/first-workflow) -- step-by-step tutorial
+- [CLI Reference](/cli-reference/commands) -- all workflow and run commands
+- [SSE Reference](/api-reference/sse) -- real-time streaming for workflow logs

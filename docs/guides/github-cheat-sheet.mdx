@@ -1,0 +1,57 @@
+---
+title: GitHub CLI to JJHub CLI
+description: Transitioning from the GitHub CLI (gh) to the JJHub CLI (jjhub)
+---
+
+# GitHub CLI to JJHub CLI Cheat Sheet
+
+If you are transitioning from GitHub to JJHub, the `jjhub` CLI provides a familiarly designed interface tailored specifically for Jujutsu (`jj`) workflows and agentic teams.
+
+Here is a quick translation guide from the GitHub CLI (`gh`) to the JJHub CLI (`jjhub`).
+
+## Authentication & Setup
+
+| Action | GitHub CLI (`gh`) | JJHub CLI (`jjhub`) |
+| ------ | ----------------- | ------------------- |
+| Login | `gh auth login` | `jjhub auth login` |
+| Logout | `gh auth logout` | `jjhub auth logout` |
+| Check auth status | `gh auth status` | `jjhub auth status` |
+
+## Repository Management
+
+| Action | GitHub CLI (`gh`) | JJHub CLI (`jjhub`) |
+| ------ | ----------------- | ------------------- |
+| Create a repo | `gh repo create` | `jjhub repo create <name>` |
+| Clone a repo | `gh repo clone <repo>` | `jjhub repo clone <repo>` |
+| List repos | `gh repo list` | `jjhub repo list` |
+| View repo details | `gh repo view` | `jjhub repo view` |
+
+## Pull Requests / Landing Requests
+
+JJHub uses **Landing Requests (LRs)** instead of Pull Requests, built native for `jj` stacked changes.
+
+| Action | GitHub CLI (`gh`) | JJHub CLI (`jjhub`) |
+| ------ | ----------------- | ------------------- |
+| Create a PR / LR | `gh pr create` | `jjhub land create` |
+| List open PRs / LRs | `gh pr list` | `jjhub land list` |
+| View PR / LR | `gh pr view <num>` | `jjhub land view <num>` |
+| Review PR / LR | `gh pr review <num>` | `jjhub land review <num>` |
+| Land PR / LR | `gh pr merge <num>` | `jjhub land land <num>` |
+| View CI checks | `gh pr checks` | `jjhub land checks <num>` |
+
+## Issue Tracking
+
+| Action | GitHub CLI (`gh`) | JJHub CLI (`jjhub`) |
+| ------ | ----------------- | ------------------- |
+| Create an issue | `gh issue create` | `jjhub issue create` |
+| List issues | `gh issue list` | `jjhub issue list` |
+| View an issue | `gh issue view <num>` | `jjhub issue view <num>` |
+| Close an issue | `gh issue close <num>` | `jjhub issue close <num>` |
+
+## Unique JJHub Commands
+
+Because JJHub is built for agentic workflows and `jj` version control, the CLI includes features that do not have a direct GitHub equivalent:
+
+- **AI Agents**: Use `agent()` steps in TypeScript workflows to automate tasks with Claude-powered AI agents.
+- **Workflows**: Trigger CI/CD pipelines natively with `jjhub workflow run <id>` and `jjhub run watch <run-id>`.
+- **Local Changes**: Operate on local `jj` history with `jjhub change list` and `jjhub bookmark list`.

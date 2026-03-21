@@ -1,0 +1,1527 @@
+---
+title: Command Reference
+description: Complete reference for all jjhub CLI commands
+---
+
+# jjhub
+
+## jjhub agent
+
+Talk to the local JJHub usage helper.
+
+By default, both `jjhub` and `jjhub agent` run locally, auto-detect the current jj repo, gather JJ/JJHub startup context, and use JJHub docs retrieval instead of stuffing the full docs corpus into every turn. Run them with a one-shot prompt or with no prompt for interactive use.
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `prompt` | `string` | no | Optional one-shot prompt for the local JJHub helper |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--sandbox` | `boolean` | `false` | Use the workspace-backed sandbox backend instead of direct local execution |
+| `--repo` | `string` |  | Override the detected repository slug (`OWNER/REPO`) |
+
+### jjhub agent session
+
+Manage remote JJHub agent sessions.
+
+Legacy compatibility aliases remain available: `jjhub agent list`, `jjhub agent view`, `jjhub agent run`, and `jjhub agent chat`.
+
+### jjhub agent session chat
+
+Send a message to an existing remote agent session
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `id` | `string` | yes | Session ID |
+| `message` | `string` | yes | Message to send |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub agent session list
+
+List remote agent sessions
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--page` | `number` | `1` | Page number |
+| `--per-page` | `number` | `30` | Results per page |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub agent session run
+
+Start a new remote agent session and run a prompt
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `prompt` | `string` | yes | Prompt to send to the remote agent |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--title` | `string` |  | Optional title for the session |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub agent session view
+
+View a remote agent session
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `id` | `string` | yes | Session ID |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+## jjhub api
+
+### jjhub api
+
+Make raw API calls to the JJHub server
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `endpoint` | `string` | yes | API endpoint path (e.g. /repos/owner/name) |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--method` | `string` | `GET` | HTTP method |
+| `--field` | `array` |  | Request body field (key=value) |
+| `--header` | `array` |  | Request header (key:value) |
+
+## jjhub artifact
+
+Manage workflow artifacts
+
+### jjhub artifact download
+
+Download an artifact from a workflow run
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `runId` | `number` | yes | Workflow run ID |
+| `name` | `string` | yes | Artifact name |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--output` | `string` |  | Output file path |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub artifact list
+
+List artifacts for a workflow run
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `runId` | `number` | yes | Workflow run ID |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+## jjhub auth
+
+Manage authentication (login, logout, token)
+
+### jjhub auth login
+
+Log in to JJHub
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--with-token` | `boolean` | `false` | Read token from stdin instead of browser flow |
+| `--hostname` | `string` |  | API hostname to authenticate with |
+
+### jjhub auth logout
+
+Log out of JJHub
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--hostname` | `string` |  | Hostname to log out from |
+
+### jjhub auth status
+
+Show authentication status
+
+### jjhub auth token
+
+Print the authentication token
+
+## jjhub beta
+
+Manage closed alpha whitelist and waitlist
+
+### jjhub beta waitlist approve
+
+Approve a waitlist entry by email (admin)
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--email` | `string` |  | Email to approve |
+
+### jjhub beta waitlist join
+
+Join the closed alpha waitlist
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--email` | `string` |  | Email to submit |
+| `--note` | `string` |  | Optional note for admins |
+| `--source` | `string` | `cli` | Source tag |
+
+### jjhub beta waitlist list
+
+List waitlist entries (admin)
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--status` | `string` |  | Filter by status (pending, approved, rejected) |
+| `--limit` | `number` | `30` | Maximum number of results (max 100) |
+
+### jjhub beta whitelist add
+
+Add or update a whitelist entry (admin)
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--type` | `string` |  | Identity type: email, wallet, username |
+| `--value` | `string` |  | Identity value |
+
+### jjhub beta whitelist list
+
+List whitelist entries (admin)
+
+### jjhub beta whitelist remove
+
+Remove a whitelist entry (admin)
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--type` | `string` |  | Identity type: email, wallet, username |
+| `--value` | `string` |  | Identity value |
+
+## jjhub bookmark
+
+Manage bookmarks (branches)
+
+### jjhub bookmark create
+
+Create a bookmark
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `name` | `string` | yes | Bookmark name |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--change` | `string` |  | Target change ID |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub bookmark delete
+
+Delete a bookmark
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `name` | `string` | yes | Bookmark name |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub bookmark list
+
+List bookmarks
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+## jjhub cache
+
+Manage workflow caches
+
+### jjhub cache clear
+
+Clear all caches for a repository
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--bookmark` | `string` |  | Filter by bookmark name |
+| `--key` | `string` |  | Filter by cache key |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub cache list
+
+List all caches for a repository
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--bookmark` | `string` |  | Filter by bookmark name |
+| `--key` | `string` |  | Filter by cache key |
+| `--limit` | `number` | `30` | Results per page |
+| `--page` | `number` | `1` | Page number |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub cache stats
+
+Show cache statistics for a repository
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+## jjhub change
+
+View changes
+
+### jjhub change diff
+
+Show diff for a change
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `id` | `string` | no | Change ID (defaults to working copy) |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub change list
+
+List changes
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--limit` | `number` | `10` | Number of changes to show |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub change show
+
+Show a specific change
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `id` | `string` | yes | Change ID |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+## jjhub completion
+
+### jjhub completion
+
+Generate shell completions
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `shell` | `string` | yes | Shell type |
+
+## jjhub config
+
+Get and set configuration
+
+### jjhub config get
+
+Get a config value by key
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `key` | `string` | yes | Config key (api_url, git_protocol) |
+
+### jjhub config list
+
+List all config values
+
+### jjhub config set
+
+Set a config value by key
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `key` | `string` | yes | Config key (api_url, git_protocol) |
+| `value` | `string` | yes | Value to set |
+
+## jjhub extension
+
+Configure built-in integrations from the CLI
+
+### jjhub extension linear
+
+Configure and manage the Linear integration
+
+Use the UI at `/integrations/linear` when you want JJHub to drive the OAuth flow, or use these CLI commands when you already have the Linear team metadata and tokens.
+
+### jjhub extension linear install
+
+Configure a Linear team for a JJHub repository
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--team-id` | `string` |  | Linear team ID |
+| `--team-name` | `string` |  | Linear team display name |
+| `--team-key` | `string` |  | Linear team key (for example `PLT`) |
+| `--repo-owner` | `string` |  | JJHub repo owner |
+| `--repo-name` | `string` |  | JJHub repo name |
+| `--repo-id` | `number` |  | JJHub repo ID |
+| `--credentials-stdin` | `boolean` | `false` | Read Linear OAuth credentials from stdin as JSON |
+| `--expires-at` | `string` |  | Token expiry timestamp (ISO-8601) |
+| `--actor-id` | `string` |  | Linear actor ID for loop-guard filtering |
+
+### jjhub extension linear list
+
+List configured Linear integrations
+
+### jjhub extension linear remove
+
+Remove a Linear integration
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `id` | `number` | yes | Integration ID |
+
+### jjhub extension linear sync
+
+Trigger the initial sync for a Linear integration
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `id` | `number` | yes | Integration ID |
+
+## jjhub issue
+
+Manage issues
+
+### jjhub issue close
+
+Close an issue
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `number` | `number` | yes | Issue number |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--comment` | `string` |  | Add a comment when closing |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub issue create
+
+Create an issue
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `title` | `string` | yes | Issue title |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--body` | `string` |  | Issue body |
+| `--assignee` | `string` |  | Assignee username |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub issue list
+
+List issues
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--state` | `string` | `open` | Filter by state |
+| `--limit` | `number` | `30` | Maximum number of results (max 100) |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub issue reopen
+
+Reopen an issue
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `number` | `number` | yes | Issue number |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub issue view
+
+View an issue
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `number` | `number` | yes | Issue number |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+## jjhub label
+
+Manage labels
+
+### jjhub label create
+
+Create a label
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `name` | `string` | yes | Label name |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--color` | `string` |  | Label color (hex) |
+| `--description` | `string` |  | Label description |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub label delete
+
+Delete a label
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `id` | `number` | yes | Label ID |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub label list
+
+List labels
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+## jjhub land
+
+Manage landing requests
+
+### jjhub land checks
+
+View landing request checks
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `number` | `number` | yes | Landing request number |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub land conflicts
+
+View landing request conflicts
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `number` | `number` | yes | Landing request number |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub land create
+
+Create a landing request
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--title` | `string` |  | Landing request title |
+| `--body` | `string` |  | Landing request body |
+| `--target` | `string` | `main` | Target bookmark |
+| `--change` | `string` |  | Change ID(s) to land |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub land land
+
+Land (merge) a landing request
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `number` | `number` | yes | Landing request number |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub land list
+
+List landing requests
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--state` | `string` | `open` | Filter by state |
+| `--limit` | `number` | `30` | Maximum number of results (max 100) |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub land review
+
+Submit a review on a landing request
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `number` | `number` | yes | Landing request number |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--approve` | `boolean` | `false` | Approve the landing request |
+| `--body` | `string` |  | Review comment |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub land view
+
+View a landing request
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `number` | `number` | yes | Landing request number |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+## jjhub notification
+
+Manage notifications
+
+### jjhub notification list
+
+List recent notifications
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--all` | `boolean` | `false` | Include read notifications |
+| `--limit` | `number` | `30` | Results per page |
+
+### jjhub notification mark-read
+
+Mark a notification as read
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `id` | `string` | yes | Notification ID |
+
+## jjhub org
+
+Manage organizations and teams
+
+### jjhub org create
+
+Create a new organization
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `name` | `string` | yes | Organization name |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--description` | `string` |  | Organization description |
+| `--visibility` | `string` | `public` | Visibility (public, private) |
+
+### jjhub org delete
+
+Delete an organization
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `name` | `string` | yes | Organization name |
+
+### jjhub org list
+
+List organizations you belong to
+
+### jjhub org member add
+
+Add a user to an organization
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `org` | `string` | yes | Organization name |
+| `username` | `string` | yes | Username to add |
+
+### jjhub org member list
+
+List organization members
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `org` | `string` | yes | Organization name |
+
+### jjhub org member remove
+
+Remove a user from an organization
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `org` | `string` | yes | Organization name |
+| `username` | `string` | yes | Username to remove |
+
+### jjhub org team create
+
+Create a team in an organization
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `org` | `string` | yes | Organization name |
+| `name` | `string` | yes | Team name |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--description` | `string` |  | Team description |
+| `--permission` | `string` | `read` | Default permission (read, write, admin) |
+
+### jjhub org team delete
+
+Delete a team
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `org` | `string` | yes | Organization name |
+| `team` | `string` | yes | Team slug |
+
+### jjhub org team list
+
+List teams in an organization
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `org` | `string` | yes | Organization name |
+
+### jjhub org team member add
+
+Add a user to a team
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `org` | `string` | yes | Organization name |
+| `team` | `string` | yes | Team slug |
+| `username` | `string` | yes | Username to add |
+
+### jjhub org team member list
+
+List team members
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `org` | `string` | yes | Organization name |
+| `team` | `string` | yes | Team slug |
+
+### jjhub org team member remove
+
+Remove a user from a team
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `org` | `string` | yes | Organization name |
+| `team` | `string` | yes | Team slug |
+| `username` | `string` | yes | Username to remove |
+
+### jjhub org team repo add
+
+Grant a team access to a repository
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `org` | `string` | yes | Organization name |
+| `team` | `string` | yes | Team slug |
+| `repo` | `string` | yes | Repository (OWNER/REPO) |
+
+### jjhub org team repo list
+
+List repositories a team has access to
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `org` | `string` | yes | Organization name |
+| `team` | `string` | yes | Team slug |
+
+### jjhub org team repo remove
+
+Remove repository access from a team
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `org` | `string` | yes | Organization name |
+| `team` | `string` | yes | Team slug |
+| `repo` | `string` | yes | Repository (OWNER/REPO) |
+
+### jjhub org view
+
+View organization details
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `name` | `string` | yes | Organization name |
+
+## jjhub repo
+
+Manage repositories
+
+### jjhub repo clone
+
+Clone a repository
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `repo` | `string` | yes | Repository in OWNER/REPO format or URL |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--directory` | `string` |  | Target directory |
+| `--protocol` | `string` |  | Git protocol to use |
+
+### jjhub repo create
+
+Create a new repository
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `name` | `string` | yes | Repository name |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--description` | `string` |  | Repository description |
+| `--private` | `boolean` | `false` | Make repository private |
+
+### jjhub repo list
+
+List your repositories
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--limit` | `number` | `30` | Maximum number of results (max 100) |
+
+### jjhub repo view
+
+View repository details
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `repo` | `string` | yes | Repository in OWNER/REPO format |
+
+## jjhub run
+
+View and manage workflow runs
+
+### jjhub run list
+
+List workflow runs
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub run rerun
+
+Rerun a workflow
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `id` | `number` | yes | Run ID |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub run view
+
+View a workflow run
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `id` | `number` | yes | Run ID |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+## jjhub search
+
+Search repos, issues, and code
+
+### jjhub search code
+
+Search code
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `query` | `string` | yes | Search query |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--limit` | `number` | `30` | Maximum number of results (max 100) |
+
+### jjhub search issues
+
+Search issues
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `query` | `string` | yes | Search query |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--limit` | `number` | `30` | Maximum number of results (max 100) |
+
+### jjhub search repos
+
+Search repositories
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `query` | `string` | yes | Search query |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--limit` | `number` | `30` | Maximum number of results (max 100) |
+
+## jjhub secret
+
+Manage secrets
+
+### jjhub secret delete
+
+Delete a secret
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `name` | `string` | yes | Secret name |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub secret list
+
+List secrets
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub secret set
+
+Set a secret
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `name` | `string` | yes | Secret name |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--body-stdin` | `boolean` | `false` | Read the secret value from stdin |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+## jjhub ssh-key
+
+Manage SSH keys
+
+### jjhub ssh-key add
+
+Add an SSH key
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--title` | `string` |  | Key title |
+| `--key` | `string` |  | Public key content |
+
+### jjhub ssh-key delete
+
+Delete an SSH key
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `id` | `number` | yes | Key ID |
+
+### jjhub ssh-key list
+
+List SSH keys
+
+## jjhub status
+
+### jjhub status
+
+Show working copy status
+
+## jjhub variable
+
+Manage variables
+
+### jjhub variable delete
+
+Delete a variable
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `name` | `string` | yes | Variable name |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub variable get
+
+Get a variable value
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `name` | `string` | yes | Variable name |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub variable list
+
+List variables
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub variable set
+
+Set a variable
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `name` | `string` | yes | Variable name |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--body` | `string` |  | Variable value |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+## jjhub webhook
+
+Manage repository webhooks
+
+### jjhub webhook create
+
+Create a new webhook
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--url` | `string` | yes | Payload URL |
+| `--secret-stdin` | `boolean` | `false` | Read the HMAC secret from stdin |
+| `--events` | `string` | `*` | Comma-separated event types |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub webhook delete
+
+Delete a webhook
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `id` | `number` | yes | Webhook ID |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub webhook list
+
+List webhooks for a repository
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--limit` | `number` | `30` | Results per page |
+| `--page` | `number` | `1` | Page number |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+## jjhub wiki
+
+Manage repository wiki pages
+
+### jjhub wiki list
+
+List all wiki pages
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub wiki view
+
+View a wiki page content
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `name` | `string` | yes | Page name (e.g. Home) |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+## jjhub workflow
+
+Manage workflows
+
+### jjhub workflow dispatch
+
+Trigger a workflow
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `id` | `number` | yes | Workflow ID |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--ref` | `string` | `main` | Git ref to run against |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub workflow list
+
+List workflows
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+## jjhub workspace
+
+Manage cloud workspaces
+
+### jjhub workspace create
+
+Create a workspace
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--name` | `string` |  | Workspace name |
+| `--snapshot` | `string` |  | Snapshot ID to restore from |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub workspace delete
+
+Delete a workspace
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `id` | `string` | yes | Workspace ID |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub workspace fork
+
+Fork a workspace
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `id` | `string` | yes | Workspace ID to fork |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--name` | `string` |  | Name for the forked workspace |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub workspace issue
+
+Spin up a workspace for an issue, open a draft landing request, and connect to the workspace
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `number` | `string` | yes | Issue number to work on |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--target` | `string` | `main` | Target bookmark for the draft landing request |
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub workspace list
+
+List workspaces
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub workspace snapshots
+
+List workspace snapshots
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `id` | `string` | yes | Workspace ID |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub workspace ssh
+
+SSH into a workspace, auto-detecting or creating one for the repository when needed
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `id` | `string` | no | Workspace ID (auto-detected if omitted) |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+### jjhub workspace view
+
+View workspace details (status, SSH info, persistence)
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `id` | `string` | yes | Workspace ID |
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--repo` | `string` |  | Repository (OWNER/REPO) |
+
+## jjhub admin
+
+Manage JJHub instance settings and resources (admin only).
+
+### jjhub admin health
+
+Show system health status
+
+### jjhub admin runner list
+
+List all registered runners and their current status
+
+### jjhub admin user list
+
+List all users in the system
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--page` | `number` | `1` | Page number |
+| `--limit` | `number` | `30` | Results per page |
+
+### jjhub admin user create
+
+Create a new user
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--username` | `string` | yes | Username |
+| `--email` | `string` | yes | Email address |
+| `--password` | `string` |  | Initial password |
+| `--must-change-password` | `boolean` | `true` | Require password change on first login |
+
+### jjhub admin user disable
+
+Disable a user account
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `username` | `string` | yes | Username to disable |
+
+### jjhub admin user delete
+
+Permanently delete a user account
+
+#### Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `username` | `string` | yes | Username to delete |
+
+### jjhub admin workflow list
+
+List all workflow runs across all repositories
+
+#### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--page` | `number` | `1` | Page number |
+| `--limit` | `number` | `30` | Results per page |
+| `--status` | `string` |  | Filter by status (running, success, failure, queued) |

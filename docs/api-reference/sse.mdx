@@ -1,0 +1,251 @@
+---
+title: Server-Sent Events (SSE)
+description: Consume real-time event streams from the JJHub API
+---
+
+# Server-Sent Events (SSE)
+
+JJHub uses **Server-Sent Events** (SSE) for all real-time features. SSE provides a lightweight, HTTP-based protocol for streaming events from the server to connected clients. JJHub chose SSE over WebSockets or polling because it works naturally with HTTP infrastructure, supports automatic reconnection, and is well-suited for streaming use cases like workflow logs and agent output.
+
+## Endpoint
+
+```
+GET /api/events/stream
+```
+
+Connect to the unified event stream. The server responds with `Content-Type: text/event-stream` and holds the connection open, pushing events as they occur.
+
+```bash
+curl -N \
+  -H "Authorization: Bearer jjhub_your_token_here" \
+  -H "Accept: text/event-stream" \
+  https://api.jjhub.tech/api/events/stream
+```
+
+## Authentication
+
+SSE endpoints require a valid bearer token. Pass it in the `Authorization` header:
+
+```
+Authorization: Bearer jjhub_your_token_here
+```
+
+If the token is missing or invalid, the server responds with `401 Unauthorized` and closes the connection.
+
+If the token lacks the required scope for the requested channels, the server responds with `403 Forbidden`.
+
+## Resource-Specific SSE Endpoints
+
+In addition to the unified stream, JJHub provides resource-specific SSE endpoints for targeted use cases:
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/notifications` | User notification stream |
+| `GET /api/repos/{owner}/{repo}/runs/{id}/logs` | Workflow run log stream |
+| `GET /api/repos/{owner}/{repo}/agent/sessions/{id}/stream` | Agent session output stream |
+
+These endpoints follow the same SSE protocol, authentication, and reconnection behavior described below.
+
+## Event Channels
+
+Subscribe to specific channels using the `channels` query parameter. Multiple channels can be specified as a comma-separated list.
+
+```bash
+curl -N \
+  -H "Authorization: Bearer jjhub_your_token_here" \
+  "https://api.jjhub.tech/api/events/stream?channels=notification,repo.push"
+```
+
+If no `channels` parameter is provided, the server streams all events the authenticated user has access to.
+
+### Available Channels
+
+| Channel | Description | Scope Required |
+|---------|-------------|----------------|
+| `notification` | User notifications (mentions, review requests, landing request updates) | `read:notification` |
+| `agent.session` | AI agent session updates (status changes, output messages) | `read:repository` |
+| `workflow.log` | Workflow run log streaming (step output, status changes) | `read:repository` |
+| `landing_request.update` | Landing request status changes (opened, reviewed, landed, conflicts) | `read:repository` |
+| `repo.push` | Repository push events (new commits pushed to bookmarks) | `read:repository` |
+
+### Filtering by Repository
+
+For repository-scoped channels (`agent.session`, `workflow.log`, `landing_request.update`, `repo.push`), filter events to a specific repository with the `repo` query parameter:
+
+```bash
+curl -N \
+  -H "Authorization: Bearer jjhub_your_token_here" \
+  "https://api.jjhub.tech/api/events/stream?channels=landing_request.update&repo=alice/my-repo"
+```
+
+## Event Format
+
+Events follow the [SSE specification](https://html.spec.whatwg.org/multipage/server-sent-events.html). Each event consists of `id`, `event`, and `data` fields:
+
+```
+id: 1001
+event: notification
+data: {"id": 789, "type": "mention", "repo": "alice/my-repo", "title": "mentioned you in #42", "created_at": "2024-01-15T10:30:00Z"}
+
+id: 1002
+event: landing_request.update
+data: {"action": "opened", "number": 42, "repo": "alice/my-repo", "title": "Add authentication", "change_ids": ["kxyz..."], "target_bookmark": "main"}
+
+id: 1003
+event: workflow.log
+data: {"run_id": 5, "step": "test", "line": 42, "content": "PASS: TestAuth (0.03s)"}
+
+id: 1004
+event: workflow.log
+data: {"run_id": 5, "step": "test", "status": "completed", "exit_code": 0}
+
+id: 1005
+event: agent.session
+data: {"session_id": "abc-123", "action": "message", "content": "I found a potential bug in auth.go line 42...", "role": "assistant"}
+
+id: 1006
+event: repo.push
+data: {"repo": "alice/my-repo", "ref": "main", "before": "abc123", "after": "def456", "commits": 3, "pusher": "alice"}
+```
+
+The `data` field is always a JSON object. The `id` field is a monotonically increasing integer that uniquely identifies each event in the stream.
+
+## Reconnection
+
+SSE supports automatic reconnection through the `Last-Event-ID` header. If the connection drops, the client can resume where it left off by sending the ID of the last received event:
+
+```bash
+curl -N \
+  -H "Authorization: Bearer jjhub_your_token_here" \
+  -H "Last-Event-ID: 1003" \
+  "https://api.jjhub.tech/api/events/stream?channels=workflow.log"
+```
+
+The server replays any events that occurred after the specified ID, then continues streaming new events. If the requested ID is too old (events are retained for a limited window), the server begins streaming from the current position and includes a `missed_events` warning:
+
+```
+event: warning
+data: {"type": "missed_events", "message": "Some events were not retained. Streaming from current position."}
+```
+
+## Keep-Alive
+
+The server sends a keep-alive comment every **15 seconds** to prevent proxies, load balancers, and clients from closing idle connections:
+
+```
+: ping
+```
+
+SSE comments (lines starting with `:`) are ignored by conforming clients and do not trigger event handlers.
+
+## Timeout Handling
+
+SSE endpoints are **exempt from the 30-second HTTP timeout middleware** that applies to regular API requests. SSE connections are long-lived by design and remain open until the client disconnects, the server restarts, or an error occurs.
+
+## Code Examples
+
+### curl
+
+Stream all events the authenticated user has access to:
+
+```bash
+curl -N \
+  -H "Authorization: Bearer jjhub_your_token_here" \
+  -H "Accept: text/event-stream" \
+  https://api.jjhub.tech/api/events/stream
+```
+
+Stream workflow logs for a specific run:
+
+```bash
+curl -N \
+  -H "Authorization: Bearer jjhub_your_token_here" \
+  https://api.jjhub.tech/api/repos/alice/my-repo/runs/5/logs
+```
+
+### JavaScript
+
+The browser-native `EventSource` API does not support custom headers. Use a polyfill like `eventsource` (Node.js) or `@microsoft/fetch-event-source` for environments that need token authentication:
+
+```javascript
+import { fetchEventSource } from "@microsoft/fetch-event-source";
+
+await fetchEventSource("https://api.jjhub.tech/api/events/stream?channels=notification", {
+  headers: {
+    "Authorization": "Bearer jjhub_your_token_here",
+  },
+  onmessage(event) {
+    const data = JSON.parse(event.data);
+    console.log(`[${event.event}]`, data);
+  },
+  onclose() {
+    console.log("Connection closed by server");
+  },
+  onerror(err) {
+    console.error("SSE error:", err);
+    // Return undefined to let the library handle reconnection
+  },
+});
+```
+
+For Node.js with the `eventsource` package:
+
+```javascript
+import EventSource from "eventsource";
+
+const es = new EventSource(
+  "https://api.jjhub.tech/api/events/stream?channels=landing_request.update&repo=alice/my-repo",
+  {
+    headers: {
+      "Authorization": "Bearer jjhub_your_token_here",
+    },
+  }
+);
+
+es.addEventListener("landing_request.update", (event) => {
+  const data = JSON.parse(event.data);
+  console.log(`Landing request #${data.number}: ${data.action}`);
+});
+
+es.addEventListener("warning", (event) => {
+  const data = JSON.parse(event.data);
+  console.warn(data.message);
+});
+
+es.onerror = (err) => {
+  console.error("Connection error:", err);
+};
+```
+
+### CLI
+
+The `jjhub` CLI uses SSE internally. The `jjhub run logs` command (formerly `watch`) streams workflow logs in real time:
+
+```bash
+# Watch a workflow run
+jjhub run logs 5
+```
+
+## Error Handling
+
+| Scenario | Behavior |
+|----------|----------|
+| Invalid or missing token | `401 Unauthorized` JSON response, connection closed |
+| Insufficient scope | `403 Forbidden` JSON response, connection closed |
+| Repository not found | `404 Not Found` JSON response, connection closed |
+| Server restart | Connection drops. Clients should reconnect with `Last-Event-ID`. |
+| Client disconnect | Server detects the closed connection and cleans up resources |
+| Internal error during stream | Server sends an `error` event, then closes the connection |
+
+An error event during an active stream looks like:
+
+```
+event: error
+data: {"message": "Internal server error", "code": 500}
+```
+
+## Backend: PostgreSQL LISTEN/NOTIFY
+
+SSE endpoints are backed by PostgreSQL's `LISTEN/NOTIFY` mechanism for efficient event delivery. When a write occurs (a new workflow log line, a landing request status change, a notification), the service issues a `NOTIFY` on the relevant channel. SSE handlers `LISTEN` on those channels and push events to connected clients immediately, with no database polling.
+
+This architecture means events are delivered with minimal latency -- typically within milliseconds of the underlying write.

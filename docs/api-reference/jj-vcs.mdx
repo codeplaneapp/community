@@ -1,0 +1,482 @@
+---
+title: jj VCS API
+description: jj-native version control operations - bookmarks, changes, diffs, and operation log via the JJHub API
+---
+
+<Tip>
+  These endpoints expose jj-native VCS operations that have no direct GitHub equivalent. They are proxied through the JJHub API to the Rust repo-host which uses jj-lib natively.
+</Tip>
+
+# jj VCS API
+
+JJHub is a **jj-native** platform. All version control operations use jj concepts: Change IDs, Bookmarks, Operation Logs, and stacked changes. These endpoints provide direct access to jj VCS operations on repositories.
+
+## Bookmarks
+
+Bookmarks are jj's equivalent of Git branches. Unlike Git branches, bookmarks are explicit pointers that don't automatically advance - you must explicitly move them.
+
+### List Bookmarks
+
+```
+GET /api/repos/{owner}/{repo}/bookmarks
+```
+
+**Response:**
+```json
+[
+  {
+    "name": "main",
+    "target": "abc123def456...",
+    "remote": "origin",
+    "synced": true
+  }
+]
+```
+
+### Create Bookmark
+
+```
+POST /api/repos/{owner}/{repo}/bookmarks
+```
+
+**Request:**
+```json
+{
+  "name": "feature-xyz",
+  "target": "abc123def456..."
+}
+```
+
+**Response:**
+```json
+{
+  "name": "feature-xyz",
+  "target": "abc123def456...",
+  "synced": false
+}
+```
+
+### Get Bookmark
+
+```
+GET /api/repos/{owner}/{repo}/bookmarks/{name}
+```
+
+### Update Bookmark
+
+```
+PATCH /api/repos/{owner}/{repo}/bookmarks/{name}
+```
+
+**Request:**
+```json
+{
+  "target": "newchangeid789..."
+}
+```
+
+### Delete Bookmark
+
+```
+DELETE /api/repos/{owner}/{repo}/bookmarks/{name}
+```
+
+---
+
+## Changes
+
+A **Change** is jj's equivalent of a commit, but with a stable Change ID that persists even when the commit is amended or rebased. Every change has:
+
+- A **Change ID**: a stable identifier (e.g. `wqnwkozp`) that never changes
+- A **Commit ID**: the underlying Git commit hash (changes on amend)
+- A **description**: the commit message
+- One or more **parents**: the change's ancestors
+
+### List Changes
+
+Returns the change tree (commit graph) for a repository.
+
+```
+GET /api/repos/{owner}/{repo}/changes
+```
+
+**Query parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `cursor` | string | Opaque cursor for the next page |
+| `limit` | integer | Results per page (default: 30, max: 100) |
+| `bookmark` | string | Filter to changes reachable from a bookmark |
+
+**Response:**
+```json
+[
+  {
+    "change_id": "wqnwkozpqjlrsurt",
+    "commit_id": "abc123def456...",
+    "description": "feat: add webhook retry backoff",
+    "author_name": "Alice",
+    "author_email": "alice@example.com",
+    "timestamp": "2025-01-15T10:30:00Z",
+    "has_conflict": false,
+    "is_empty": false,
+    "parent_change_ids": ["prevchangeid..."]
+  }
+]
+```
+
+Pagination metadata is returned in the standard `Link` and `X-Total-Count` headers described in the [Pagination guide](/api-reference/pagination).
+
+### Get Change
+
+```
+GET /api/repos/{owner}/{repo}/changes/{change_id}
+```
+
+---
+
+## Diffs
+
+### Get Change Diff
+
+Returns the diff for a specific change.
+
+```
+GET /api/repos/{owner}/{repo}/changes/{change_id}/diff
+```
+
+**Query parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `format` | string | Diff format: `unified` (default), `stat` |
+| `context` | integer | Lines of context (default: 3) |
+
+**Response:**
+```json
+{
+  "change_id": "wqnwkozpqjlrsurt",
+  "files": [
+    {
+      "path": "internal/routes/webhooks.go",
+      "status": "modified",
+      "additions": 42,
+      "deletions": 7,
+      "diff": "@@ -1,7 +1,42 @@\n ..."
+    }
+  ],
+  "stats": {
+    "files_changed": 1,
+    "additions": 42,
+    "deletions": 7
+  }
+}
+```
+
+---
+
+## Operation Log
+
+The **Operation Log** is one of jj's most powerful features. Every jj operation (commit, rebase, undo, etc.) is recorded in the operation log, making any operation undoable. This is analogous to Git's reflog but for all operations, not just branch moves.
+
+### List Operations
+
+```
+GET /api/repos/{owner}/{repo}/operations
+```
+
+**Query parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `cursor` | string | Opaque cursor for the next page |
+| `limit` | integer | Results per page (default: 30, max: 100) |
+
+**Response:**
+```json
+[
+  {
+    "operation_id": "op123abc...",
+    "description": "new empty commit",
+    "timestamp": "2025-01-15T10:30:00Z"
+  }
+]
+```
+
+Pagination metadata is returned in the standard `Link` and `X-Total-Count` headers described in the [Pagination guide](/api-reference/pagination).
+
+---
+
+## Stacked Changes
+
+JJHub's premiere feature is first-class support for **stacked changes** - a series of changes where each builds on the previous. This enables incremental review and is particularly powerful for AI-assisted development.
+
+A stack looks like:
+```
+◉  change-c  feat: validate webhook signature
+│
+◉  change-b  feat: add webhook delivery queue
+│
+◉  change-a  feat: add webhook model
+│
+◉  main
+```
+
+Landing requests can target any change in the stack. The landing queue ensures correct ordering when multiple changes in a stack are landed.
+
+---
+
+## Commit Statuses
+
+Commit statuses let external systems (CI/CD pipelines, code quality tools, security scanners) report the outcome of checks against a specific commit. Statuses are the mechanism by which JJHub knows whether a change has passed CI, failed a linter, or is still being validated.
+
+Statuses are the foundation for two key features:
+- **`jjhub land checks`** -- shows the CI status of all changes in a landing request
+- **Bookmark protection** -- the `--require-status-checks` rule gates landing until all statuses report `success`
+
+### Status States
+
+Each status has a `state` field with one of four values:
+
+| State | Meaning |
+|-------|---------|
+| `pending` | The check is in progress or queued. This is the initial state when a workflow starts. |
+| `success` | The check completed and the commit passed. |
+| `failure` | The check completed and the commit did not pass (e.g., tests failed, linting errors). |
+| `error` | The check could not complete due to an infrastructure or configuration problem (e.g., runner crashed, invalid workflow definition). |
+
+Both `failure` and `error` block landing when `--require-status-checks` is enabled on the target bookmark. The distinction exists so operators can differentiate between "the code has a problem" (failure) and "the CI system has a problem" (error).
+
+### Context
+
+Each status is identified by a `context` string that names the check. Multiple statuses can exist on the same commit as long as they have different contexts. Examples:
+
+| Context | Description |
+|---------|-------------|
+| `ci/test` | Unit and integration tests |
+| `ci/build` | Build step |
+| `ci/lint` | Linting and formatting |
+| `security/snyk` | Dependency vulnerability scan |
+| `review/ai-agent` | AI agent code review result |
+
+If a new status is posted with the same `context` as an existing status on the same SHA, the existing status is replaced. This is how a workflow updates a status from `pending` to `success` or `failure`.
+
+### Create a Commit Status
+
+Report the result of a check against a specific commit SHA.
+
+```
+POST /api/repos/{owner}/{repo}/statuses/{sha}
+```
+
+**Request body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `state` | string | Yes | One of: `pending`, `success`, `failure`, `error` |
+| `context` | string | No | Identifier for this check (default: `default`). Must be unique per SHA. |
+| `description` | string | No | Human-readable summary of the status (max 255 characters). |
+| `target_url` | string | No | URL to the full details of the check (e.g., workflow run logs page). |
+
+**Example:**
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/alice/my-project/statuses/abc123def456 \
+  -H "Authorization: token jjhub_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "state": "success",
+    "context": "ci/test",
+    "description": "All 142 tests passed",
+    "target_url": "https://api.jjhub.tech/alice/my-project/runs/87"
+  }'
+```
+
+**Response (201 Created):**
+
+```json
+{
+  "id": 1,
+  "state": "success",
+  "context": "ci/test",
+  "description": "All 142 tests passed",
+  "target_url": "https://api.jjhub.tech/alice/my-project/runs/87",
+  "creator": {
+    "login": "alice",
+    "id": 1
+  },
+  "created_at": "2025-01-15T10:35:00Z",
+  "updated_at": "2025-01-15T10:35:00Z"
+}
+```
+
+### Get Commit Statuses
+
+Retrieve all statuses reported against a commit ref (SHA, bookmark name, or change ID).
+
+```
+GET /api/repos/{owner}/{repo}/commits/{ref}/statuses
+```
+
+**Path parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `owner` | string | Repository owner |
+| `repo` | string | Repository name |
+| `ref` | string | Commit SHA, bookmark name, or change ID |
+
+**Query parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `cursor` | string | Opaque cursor for the next page |
+| `limit` | integer | Results per page (default: 30, max: 100) |
+
+**Example:**
+
+```bash
+curl -H "Authorization: token jjhub_xxxxx" \
+  https://api.jjhub.tech/api/repos/alice/my-project/commits/abc123def456/statuses
+```
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "state": "success",
+    "context": "ci/test",
+    "description": "All 142 tests passed",
+    "target_url": "https://api.jjhub.tech/alice/my-project/runs/87",
+    "creator": { "login": "alice", "id": 1 },
+    "created_at": "2025-01-15T10:35:00Z",
+    "updated_at": "2025-01-15T10:35:00Z"
+  },
+  {
+    "id": 2,
+    "state": "pending",
+    "context": "ci/build",
+    "description": "Build in progress...",
+    "target_url": "https://api.jjhub.tech/alice/my-project/runs/88",
+    "creator": { "login": "alice", "id": 1 },
+    "created_at": "2025-01-15T10:34:00Z",
+    "updated_at": "2025-01-15T10:34:00Z"
+  }
+]
+```
+
+### Combined Status
+
+When multiple statuses exist on a commit, JJHub computes a **combined status** using these rules:
+
+| Condition | Combined Status |
+|-----------|----------------|
+| Any status is `error` or `failure` | `failure` |
+| Any status is `pending` | `pending` |
+| All statuses are `success` | `success` |
+| No statuses exist | `pending` (no news is not good news) |
+
+The combined status is what bookmark protection evaluates. If `--require-status-checks` is enabled, the combined status of every commit in the landing request must be `success` for the merge to proceed.
+
+The `jjhub land checks` command displays both individual statuses and the combined status:
+
+```bash
+$ jjhub land checks 42
+CHANGE     CONTEXT     STATE     DESCRIPTION
+wqnwkozp   ci/test     success   All 142 tests passed
+wqnwkozp   ci/build    success   Build completed
+wqnwkozp   ci/lint     failure   3 linting errors found
+
+Combined: failure
+```
+
+### How Workflows Set Statuses Automatically
+
+When a JJHub workflow runs against a commit, the platform automatically manages commit statuses on behalf of the workflow:
+
+1. **Workflow starts** -- JJHub creates a `pending` status with `context` set to the workflow name (e.g., `ci/test`). The `target_url` points to the workflow run's log page.
+2. **Workflow completes successfully** -- JJHub updates the status to `success` with a description summarizing the result.
+3. **Workflow fails** -- JJHub updates the status to `failure` (if the workflow's steps failed) or `error` (if the runner itself had a problem).
+
+This means most users never need to call the status API directly -- their workflows create and update statuses automatically. The API is available for external CI/CD systems, third-party integrations, and custom tooling that runs outside of JJHub's workflow system.
+
+**Example workflow that implicitly sets a status:**
+
+```tsx
+// .jjhub/workflows/ci.tsx
+import { Workflow, Task, on } from "@jjhub-ai/workflow";
+import { $ } from "bun";
+
+export default (ctx) => (
+  <Workflow
+    name="ci/test"
+    triggers={[on.push(), on.landingRequest.opened()]}
+  >
+    <Task id="test">
+      {async () => {
+        await $`bun test`;
+      }}
+    </Task>
+  </Workflow>
+);
+```
+
+When this workflow triggers, JJHub creates a `pending` status with context `ci/test` on the triggering commit. When `bun test` succeeds, the status updates to `success`. If it fails, the status updates to `failure`.
+
+### How Statuses Gate Landing Requests
+
+Statuses integrate with bookmark protection to enforce quality gates:
+
+1. **Enable status checks on a bookmark:**
+   ```bash
+   jjhub bookmark protect main --require-status-checks
+   ```
+
+2. **Attempt to land a change:** When `jjhub land land` is called, JJHub checks the combined status of every commit in the landing request's change stack.
+
+3. **If any commit has a non-success combined status,** the landing is blocked:
+   ```bash
+   $ jjhub land land 42
+   Error: Landing request #42 cannot be landed into protected bookmark "main":
+     - Required status checks: ci/test (pending), ci/lint (failure)
+   ```
+
+4. **Once all statuses are success,** the landing proceeds (assuming other protection rules like required reviews are also satisfied).
+
+For stacked changes, every change in the stack must have a `success` combined status. This ensures that each logical change in the stack is independently validated.
+
+### CLI: Commit Status Commands
+
+List and set commit statuses from the command line:
+
+```bash
+# List statuses for a ref (SHA, bookmark, or change ID)
+jjhub status list abc123def456
+jjhub status list main
+jjhub status list wqnwkozp
+
+# Set a status on a specific commit SHA
+jjhub status set abc123def456 --state success --context ci/test
+jjhub status set abc123def456 --state failure --context ci/lint --description "3 errors"
+jjhub status set abc123def456 --state pending --context ci/build --target-url "https://..."
+
+# View checks for a landing request (shorthand)
+jjhub land checks 42
+```
+
+### Webhook Events
+
+When a commit status changes, JJHub fires a `status` webhook event. This lets external systems react to CI outcomes -- for example, sending a notification when a previously-failing check turns green.
+
+The webhook payload includes the status details, the commit SHA, and the repository context. See the [Webhooks API](/api-reference/webhooks) for delivery and signature details.
+
+---
+
+## Key Differences from Git
+
+| Concept | Git | jj |
+|---------|-----|----|
+| Pointer | Branch | Bookmark |
+| Commit identity | SHA hash (changes on amend) | Change ID (stable forever) |
+| History rewrite | `git rebase` (creates new commits) | `jj rebase` (same Change IDs) |
+| Undo | Partial (reflog) | Full operation log |
+| Staging area | Index | Working copy is always a commit |

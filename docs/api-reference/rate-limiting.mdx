@@ -1,0 +1,133 @@
+---
+title: Rate Limiting
+description: Understand API rate limits and how to handle them
+---
+
+# Rate Limiting
+
+The JJHub API enforces per-user rate limits to ensure fair usage and platform stability. Every API response includes rate limit headers so you can monitor your consumption in real time.
+
+## Rate Limit Tiers
+
+| Tier | Limit | Window | Applies to |
+|------|-------|--------|------------|
+| Authenticated | 5,000 requests | Per hour | All API endpoints (with valid token or session) |
+| Unauthenticated | 60 requests | Per hour | All API endpoints (no credentials) |
+| Search | 30 requests | Per minute | `/api/search/*` endpoints |
+
+Rate limiting is enforced at the API server using a per-user token-bucket algorithm. Authenticated requests are tracked by user identity. Unauthenticated requests are tracked by client IP address.
+
+Search endpoints have their own separate, stricter limit that applies in addition to the general authenticated or unauthenticated limit.
+
+## Response Headers
+
+Every API response includes three rate limit headers:
+
+```
+X-RateLimit-Limit: 5000
+X-RateLimit-Remaining: 4999
+X-RateLimit-Reset: 1372700873
+```
+
+| Header | Description |
+|--------|-------------|
+| `X-RateLimit-Limit` | Maximum number of requests allowed in the current window |
+| `X-RateLimit-Remaining` | Number of requests remaining in the current window |
+| `X-RateLimit-Reset` | UTC epoch timestamp (in seconds) when the current window resets |
+
+These headers follow the same format used by Gitea and GitHub, so existing tooling that reads rate limit headers will work with JJHub.
+
+## Example: Normal Response Headers
+
+```bash
+curl -i https://api.jjhub.tech/api/user \
+  -H "Authorization: Bearer jjhub_your_token"
+```
+
+```http
+HTTP/2 200 OK
+Content-Type: application/json
+X-RateLimit-Limit: 5000
+X-RateLimit-Remaining: 4987
+X-RateLimit-Reset: 1709741200
+```
+
+## Exceeding the Rate Limit
+
+When you exceed the rate limit, the API returns a `429 Too Many Requests` response with a `Retry-After` header indicating how many seconds to wait before making another request.
+
+```http
+HTTP/2 429 Too Many Requests
+Content-Type: application/json
+X-RateLimit-Limit: 5000
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1709741200
+Retry-After: 3600
+```
+
+```json
+{
+  "message": "API rate limit exceeded. Please wait before making more requests.",
+  "errors": []
+}
+```
+
+Do not retry immediately after receiving a 429 response. Use the `Retry-After` header or `X-RateLimit-Reset` timestamp to determine when to resume requests.
+
+## Checking Your Rate Limit Status
+
+You can check your current rate limit status without consuming a rate limit slot by inspecting the headers on any successful API response:
+
+```bash
+curl -s -I https://api.jjhub.tech/api/user \
+  -H "Authorization: Bearer jjhub_your_token" \
+  | grep X-RateLimit
+```
+
+```
+X-RateLimit-Limit: 5000
+X-RateLimit-Remaining: 4987
+X-RateLimit-Reset: 1709741200
+```
+
+To convert the `X-RateLimit-Reset` epoch timestamp to a human-readable time:
+
+```bash
+date -d @1709741200    # Linux
+date -r 1709741200     # macOS
+```
+
+## Best Practices
+
+### Use Conditional Requests
+
+Use `If-None-Match` and `If-Modified-Since` headers for resources you have already fetched. A `304 Not Modified` response does not count against your rate limit.
+
+```bash
+curl https://api.jjhub.tech/api/repos/owner/repo \
+  -H "Authorization: Bearer jjhub_your_token" \
+  -H "If-None-Match: \"abc123\""
+```
+
+### Cache Responses Locally
+
+Cache API responses on the client side using the `ETag` and `Last-Modified` response headers. This reduces unnecessary requests and keeps you well within your rate limit.
+
+### Implement Exponential Backoff
+
+If you receive a `429` response, wait for the duration specified by the `Retry-After` header. For general error retries, use exponential backoff with jitter:
+
+1. Wait 1 second, then retry
+2. Wait 2 seconds, then retry
+3. Wait 4 seconds, then retry
+4. Continue doubling the wait time up to a maximum of 60 seconds
+
+Adding random jitter (for example, 0 to 1 second) to each wait interval prevents synchronized retry storms from multiple clients.
+
+### Spread Requests Over Time
+
+If your application needs to make many API calls, spread them evenly over the rate limit window rather than sending them in bursts. For 5,000 requests per hour, that is roughly 1 request per 720 milliseconds.
+
+### Authenticate Your Requests
+
+Unauthenticated requests are limited to 60 per hour. Always include your API token to get the full 5,000 requests per hour.

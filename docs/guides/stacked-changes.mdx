@@ -1,0 +1,113 @@
+---
+title: Stacked Changes
+description: Working with stacked changes in JJHub
+---
+
+# Stacked Changes
+
+Stacked changes are JJHub's premiere feature and a core reason to use jj over git. They're essential for AI workflows, where agents naturally produce incremental, dependent changes at machine speed.
+
+## Why Stacked Changes?
+
+In git, managing dependent branches requires constant rebasing, conflict resolution, and force-pushing. Each rebase produces new commit hashes, breaking downstream references.
+
+In jj:
+- **Rebase is automatic** - edit any change in the stack and descendants rebase seamlessly
+- **Change IDs are stable** - no matter how many times you rewrite, the Change ID persists
+- **Conflicts are tracked** - if a rebase creates a conflict, jj records it rather than blocking
+
+This means agents can produce a chain of 10 incremental changes, and the platform tracks, reviews, and lands them without the friction git imposes.
+
+## Creating a Stack
+
+```bash
+# Start from main
+jj new main -m "Add user model"
+# ... make changes to define the User struct ...
+
+jj new -m "Add auth middleware"
+# ... make changes to implement auth ...
+
+jj new -m "Add login endpoint"
+# ... make changes to wire up the route ...
+
+jj new -m "Add tests"
+# ... add test files ...
+```
+
+Each `jj new` creates a child change. The result is a linear stack:
+
+```
+main
+  └── Add user model (qzknlmop)
+        └── Add auth middleware (rvwxyz)
+              └── Add login endpoint (abcdef)
+                    └── Add tests (ghijkl)
+```
+
+## Viewing the Stack
+
+Use `jj log` to see your stack:
+
+```bash
+jj log
+```
+
+Or use the JJHub CLI to see changes:
+
+```bash
+jjhub change list
+jjhub change show qzknlmop
+jjhub change diff qzknlmop
+```
+
+## Pushing a Stack
+
+Push all bookmarks (and the stack) to JJHub:
+
+```bash
+jj git push --all
+```
+
+## Landing a Stack
+
+Create a landing request for the entire stack:
+
+```bash
+jjhub land create --title "User authentication" --target main --stack
+```
+
+The `--stack` flag automatically detects all changes in the stack and includes their Change IDs. The landing request will display:
+- `stack_size` - number of changes in the stack
+- `change_ids` - the stable IDs for every change
+
+Reviewers can see each change individually and review the incremental diffs.
+
+## Editing a Change Mid-Stack
+
+One of jj's strengths is editing any change in the stack without disrupting the rest:
+
+```bash
+# Edit a specific change by its Change ID
+jj edit qzknlmop
+
+# Make your modifications...
+
+# Return to the latest change
+jj edit ghijkl
+```
+
+All descendant changes automatically rebase on top of your edit. If the edit creates a conflict, jj records it in the graph rather than blocking - you can resolve it later.
+
+## Stacked Changes and AI Agents
+
+Stacked changes are essential for AI workflows:
+
+1. An agent produces a plan as a sequence of incremental changes
+2. Each change is a discrete, reviewable unit
+3. The human reviews the plan (the stack structure) rather than line-by-line diffs
+4. The agent executes, producing the full stack
+5. CI validates each change independently
+6. The stack lands as a unit via `jjhub land land`
+
+This is the workflow JJHub is built for - agents working at speed, humans reviewing at the plan level, and the platform handling the mechanics.

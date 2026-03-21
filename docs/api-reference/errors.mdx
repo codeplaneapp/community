@@ -1,0 +1,232 @@
+---
+title: Error Handling
+description: Understand API error responses and how to handle them
+---
+
+# Error Handling
+
+The JJHub API uses a consistent, Gitea-compatible error format across all endpoints. Every error response is a JSON object with a human-readable `message` and an optional `errors` array containing field-level details.
+
+## Error Response Structure
+
+All API errors follow this shape:
+
+```json
+{
+  "message": "string",
+  "errors": [
+    {
+      "resource": "string",
+      "field": "string",
+      "code": "string"
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `message` | `string` | A human-readable summary of the error. Always present. |
+| `errors` | `array` | An optional list of field-level errors. Present when the server can pinpoint the problem to specific fields on a resource. |
+| `errors[].resource` | `string` | The API resource type (e.g., `Issue`, `Repository`, `LandingRequest`). |
+| `errors[].field` | `string` | The field on the resource that caused the error. |
+| `errors[].code` | `string` | A machine-readable error code. See [Field Error Codes](#field-error-codes) below. |
+
+When no field-level errors apply, the `errors` array is omitted from the response body.
+
+## HTTP Status Codes
+
+| Status | Meaning | When It Happens |
+|--------|---------|-----------------|
+| `400` | Bad Request | Malformed JSON, missing required query parameters, or otherwise unparseable input. |
+| `401` | Unauthorized | Missing, expired, or invalid authentication credentials. |
+| `403` | Forbidden | Valid credentials but insufficient permissions for the requested action. |
+| `404` | Not Found | The requested resource does not exist, or the authenticated user does not have access to it. |
+| `409` | Conflict | The request conflicts with current server state (e.g., duplicate repository name, email already in use). |
+| `413` | Payload Too Large | The request body exceeds the maximum allowed size (1 MB for most endpoints). |
+| `415` | Unsupported Media Type | The `Content-Type` header is not `application/json`. |
+| `422` | Unprocessable Entity | The request body is valid JSON but fails validation (e.g., missing required fields, invalid values). |
+| `429` | Too Many Requests | Rate limit exceeded. See the `X-RateLimit-*` response headers for details. |
+| `500` | Internal Server Error | An unexpected server-side error occurred. If this persists, contact support. |
+| `504` | Gateway Timeout | The request took longer than the 30-second server timeout. |
+
+## Field Error Codes
+
+When the `errors` array is present, each entry contains a `code` field with one of the following values:
+
+| Code | Meaning |
+|------|---------|
+| `missing` | The resource referenced by the request does not exist. |
+| `missing_field` | A required field was not provided in the request body. |
+| `invalid` | The field value is present but not valid (wrong type, out of range, bad format). |
+| `already_exists` | The field value must be unique and a resource with this value already exists. |
+| `unprocessable` | The field value is well-formed but cannot be processed in the current context. |
+
+## Example Error Responses
+
+### Validation Error (422)
+
+A request to create an issue without a title:
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/alice/my-repo/issues \
+  -H "Authorization: Bearer jjhub_your_token" \
+  -H "Content-Type: application/json" \
+  -d '{"body": "This issue has no title"}'
+```
+
+```json
+{
+  "message": "validation failed",
+  "errors": [
+    {
+      "resource": "Issue",
+      "field": "title",
+      "code": "missing_field"
+    }
+  ]
+}
+```
+
+### Not Found (404)
+
+A request for a repository that does not exist:
+
+```bash
+curl https://api.jjhub.tech/api/repos/alice/nonexistent \
+  -H "Authorization: Bearer jjhub_your_token"
+```
+
+```json
+{
+  "message": "repository not found"
+}
+```
+
+### Authentication Error (401)
+
+A request with an invalid or expired token:
+
+```bash
+curl https://api.jjhub.tech/api/user \
+  -H "Authorization: Bearer jjhub_invalid_token"
+```
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+### Permission Error (403)
+
+A request to delete a repository the user does not own:
+
+```bash
+curl -X DELETE https://api.jjhub.tech/api/repos/bob/private-repo \
+  -H "Authorization: Bearer jjhub_your_token"
+```
+
+```json
+{
+  "message": "Forbidden"
+}
+```
+
+### Conflict (409)
+
+A request to create a repository with a name that already exists:
+
+```bash
+curl -X POST https://api.jjhub.tech/api/user/repos \
+  -H "Authorization: Bearer jjhub_your_token" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "existing-repo"}'
+```
+
+```json
+{
+  "message": "repository already exists",
+  "errors": [
+    {
+      "resource": "Repository",
+      "field": "name",
+      "code": "already_exists"
+    }
+  ]
+}
+```
+
+### Multiple Field Errors (422)
+
+A request with several invalid fields:
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/alice/my-repo/landings \
+  -H "Authorization: Bearer jjhub_your_token" \
+  -H "Content-Type: application/json" \
+  -d '{"target_bookmark": ""}'
+```
+
+```json
+{
+  "message": "validation failed",
+  "errors": [
+    {
+      "resource": "LandingRequest",
+      "field": "title",
+      "code": "missing_field"
+    },
+    {
+      "resource": "LandingRequest",
+      "field": "change_ids",
+      "code": "missing_field"
+    },
+    {
+      "resource": "LandingRequest",
+      "field": "target_bookmark",
+      "code": "invalid"
+    }
+  ]
+}
+```
+
+### Rate Limiting (429)
+
+When you exceed the rate limit, the response includes headers indicating when you can retry:
+
+```json
+{
+  "message": "rate limit exceeded"
+}
+```
+
+```
+X-RateLimit-Limit: 5000
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1372700873
+```
+
+The `X-RateLimit-Reset` value is a Unix timestamp indicating when the rate limit window resets. Authenticated requests are limited to 5,000 per hour. Unauthenticated requests are limited to 60 per hour. Search endpoints have a separate limit of 30 requests per minute.
+
+## Best Practices
+
+### Check the status code first
+
+Use the HTTP status code to determine the category of error before parsing the body. This lets you handle broad error classes (auth failures, not found, server errors) without parsing JSON.
+
+### Use the `errors` array for user-facing messages
+
+When the `errors` array is present, use it to display specific field-level feedback. The `resource`, `field`, and `code` triple gives you enough information to map errors to form fields or CLI flags.
+
+### Handle rate limits gracefully
+
+Read the `X-RateLimit-Remaining` header on every response. When it reaches zero, wait until the `X-RateLimit-Reset` timestamp before sending more requests. For automated clients, implement exponential backoff on 429 responses.
+
+### Do not rely on error message text
+
+The `message` field is intended for human readers and may change without notice. Build your error-handling logic around status codes and `errors[].code` values, which are part of the stable API contract.
+
+### Retry only on appropriate errors
+
+Only retry on `429` (after respecting the rate limit reset time) and `500`/`504` (with exponential backoff). Do not retry `400`, `401`, `403`, `404`, `409`, or `422` responses, as these indicate client-side problems that will not resolve by retrying.

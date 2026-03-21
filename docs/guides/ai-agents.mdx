@@ -1,0 +1,96 @@
+---
+title: AI Agents
+description: Claude-powered AI agents in sandboxed cloud VMs
+---
+
+# AI Agents
+
+JJHub integrates Claude-powered AI agents as first-class citizens. Agents run in sandboxed cloud VMs with full VM-level isolation, can read and modify your repository, triage issues, review landing requests, and ship code - all orchestrated through the same Smithers-powered TSX workflow system that powers CI.
+
+## AI Keys via Workflow Secrets
+
+You provide your own API keys via repository secrets. There's no platform-level AI metering or markup.
+
+Configure your key via repository secrets:
+
+```bash
+printf %s "sk-ant-..." | jjhub secret set ANTHROPIC_API_KEY --body-stdin
+```
+
+Secrets are encrypted at rest and injected as environment variables into workflow runs. Only workflow steps that need AI access will receive the key.
+
+## Agents in Workflows
+
+Agents are a `<Task>` with an `agent` prop in TSX workflows:
+
+```tsx
+// .jjhub/workflows/triage.tsx
+import { Workflow, Task, on } from "@jjhub-ai/workflow";
+import { ToolLoopAgent } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+
+const triager = new ToolLoopAgent({
+  model: anthropic("claude-sonnet-4-5-20250929"),
+  instructions: "You are an issue triager. Read issues, add labels, and assign to team members.",
+});
+
+export default (ctx) => (
+  <Workflow
+    name="Auto-triage"
+    triggers={[on.issue.opened()]}
+  >
+    <Task id="triage" agent={triager}>
+      Read this issue, add labels, assign to the right team member.
+    </Task>
+  </Workflow>
+);
+```
+
+There's no distinction between CI tasks and AI tasks - they're all `<Task>` components running in the same workflow system. A compute task runs shell commands via Bun's `$`, an agent task sends a prompt to an AI model.
+
+## Workspaces (Interactive)
+
+For interactive agent work, use [workspaces](/guides/workspaces) - cloud development environments where you can run AI agents interactively with full terminal access, SSH, and instant suspend/resume.
+
+## Sandboxed Execution
+
+Agent workflow steps run in isolated **sandboxed VMs** - full microVM-level isolation:
+
+- **VM-level isolation** - each agent runs in its own microVM with a separate kernel, stronger than container-based sandboxing
+- **Snapshot-cached boot** - agent base environments (Bun + Smithers + dependencies) are pre-cached as snapshots for near-instant startup
+- **Ephemeral by default** - each agent run gets a fresh VM that's deleted when the task completes
+- **Repo clone** - the VM clones the repo from `git.jjhub.tech` using a short-lived read token, giving the agent full git history
+
+## VM Forking
+
+A running agent VM can be **forked** to explore parallel approaches. The fork creates an exact copy of memory and disk without pausing the original agent.
+
+Use cases:
+- Try two different refactoring strategies simultaneously
+- Explore multiple fix approaches for a failing test
+- Branch an agent's reasoning path without losing the original
+
+## Agent Capabilities
+
+Agents can:
+- Read and write files in the repository
+- Execute shell commands (in the VM)
+- Create and manage issues
+- Review landing requests
+- Search code
+- Access external APIs (for AI provider calls)
+
+## Streaming Output
+
+Agent responses stream in real-time via SSE (Server-Sent Events) backed by PostgreSQL LISTEN/NOTIFY. Workflow logs display agent output as it arrives.
+
+## Session API
+
+The current public agent API is session-based:
+
+- `POST /api/repos/:owner/:repo/agent/sessions` creates an agent session
+- `POST /api/repos/:owner/:repo/agent/sessions/:id/messages` appends a message
+- posting a **user** message dispatches a cloud VM-backed agent run
+- `GET /api/repos/:owner/:repo/agent/sessions/:id/stream` streams assistant output and terminal `done` events over SSE
+
+The public session API is what the current UI and E2E coverage exercise. Higher-level workspace forking and snapshot-driven agent flows are part of the broader product direction, but the shipped API surface today is the session model above.

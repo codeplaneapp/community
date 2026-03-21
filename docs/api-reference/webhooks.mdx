@@ -1,0 +1,128 @@
+---
+title: Webhooks
+description: Manage and receive repository webhooks
+---
+
+# Webhooks
+
+Webhooks allow you to build or set up integrations which subscribe to certain events on JJHub. When one of those events is triggered, we'll send a HTTP POST payload to the webhook's configured URL. Webhooks can be used to update an external issue tracker, trigger CI builds, update a backup mirror, or even deploy to your production server.
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/repos/{owner}/{repo}/hooks` | List webhooks |
+| `GET` | `/api/repos/{owner}/{repo}/hooks/{id}` | Get a webhook |
+| `POST` | `/api/repos/{owner}/{repo}/hooks` | Create a webhook |
+| `PATCH` | `/api/repos/{owner}/{repo}/hooks/{id}` | Update a webhook |
+| `DELETE` | `/api/repos/{owner}/{repo}/hooks/{id}` | Delete a webhook |
+| `GET` | `/api/repos/{owner}/{repo}/hooks/{id}/deliveries` | List delivery history |
+| `POST` | `/api/repos/{owner}/{repo}/hooks/{id}/deliveries/{delivery_id}/replay` | Replay a delivery |
+
+## Create a Webhook
+
+To create a webhook, send a `POST` request to the hooks endpoint:
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/alice/my-project/hooks \
+  -H "Authorization: token jjhub_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "config": {
+      "url": "https://example.com/webhook",
+      "content_type": "json",
+      "secret": "your-secret-key"
+    },
+    "events": ["push", "landing_request"],
+    "active": true
+  }'
+```
+
+### Configuration Options
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `config.url` | string | Yes | The URL to which the payloads will be delivered. |
+| `config.content_type` | string | No | The media type used to serialize the payloads. Supported: `json`. |
+| `config.secret` | string | No | If provided, payloads will be signed with an HMAC-SHA256 signature. |
+| `events` | array | No | A list of events which should trigger the webhook. Default: `["push"]`. Use `["*"]` for all events. |
+| `active` | boolean | No | Determines if the webhook is active. Default: `true`. |
+
+## Event Types
+
+JJHub currently supports the following event types:
+
+| Event | Description |
+|-------|-------------|
+| `push` | Code is pushed to a bookmark. |
+| `create` | A bookmark or tag is created. |
+| `delete` | A bookmark or tag is deleted. |
+| `landing_request` | Landing request activity (opened, closed, updated). |
+| `issue` | Issue activity (opened, closed, labeled). |
+| `issue_comment` | Comment activity on an issue. |
+| `status` | Commit status update. |
+| `workflow_run` | Workflow run completion. |
+| `release` | A new release is created or updated. |
+
+## Payload Format
+
+All webhook payloads are sent as JSON in the request body. Every payload includes information about the repository and the user who triggered the event.
+
+### Example: `push` event
+
+```json
+{
+  "action": "pushed",
+  "ref": "main",
+  "before": "abc123def...",
+  "after": "def456abc...",
+  "repository": {
+    "id": 123,
+    "name": "my-project",
+    "full_name": "alice/my-project",
+    "owner": {
+      "login": "alice",
+      "id": 1
+    }
+  },
+  "sender": {
+    "login": "alice",
+    "id": 1
+  }
+}
+```
+
+## Security
+
+If a `secret` is configured, JJHub signs every delivery with an HMAC-SHA256 signature. The signature is sent in the `X-JJHub-Signature-256` header.
+
+### Verifying Signatures
+
+To verify a signature, compute the HMAC-SHA256 of the request body using your webhook secret as the key. The result should match the value in the header (prefixed with `sha256=`).
+
+```javascript
+const crypto = require('crypto');
+
+function verifySignature(payload, secret, signature) {
+  const hmac = crypto.createHmac('sha256', secret);
+  const digest = 'sha256=' + hmac.update(payload).digest('hex');
+  return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(signature));
+}
+```
+
+## Delivery Headers
+
+JJHub includes several headers in every delivery to help you identify and process the event:
+
+| Header | Description |
+|--------|-------------|
+| `X-JJHub-Event` | The name of the event type (e.g., `push`). |
+| `X-JJHub-Delivery` | A unique ID for the delivery. |
+| `X-JJHub-Signature-256` | The HMAC-SHA256 signature (if secret is set). |
+| `User-Agent` | Always starts with `JJHub-Hookshot/`. |
+
+## Retries
+
+If your server responds with a non-2xx status code, JJHub will attempt to redeliver the payload up to **5 times** with exponential backoff.
+
+If a webhook fails consistently for several days, it may be automatically disabled. You will receive an email notification if this happens.

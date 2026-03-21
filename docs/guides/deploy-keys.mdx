@@ -1,0 +1,242 @@
+---
+title: Deploy Keys
+description: Grant automated systems access to a single repository with per-repo SSH keys
+---
+
+# Deploy Keys
+
+Deploy keys are SSH keys scoped to a single repository. They grant either read-only or read-write access without requiring a personal user account or API token. This makes them ideal for CI/CD pipelines, deployment scripts, and automated systems that need to interact with exactly one repository.
+
+## Why Use Deploy Keys
+
+Personal SSH keys and API tokens are tied to a user account and grant access to every repository that user can see. Deploy keys solve several problems with that model:
+
+- **Least privilege**: A deploy key grants access to a single repository. If the key is compromised, the blast radius is limited to that one repository.
+- **No user account required**: Automated systems do not need their own JJHub user account. A deploy key is registered directly on the repository.
+- **Auditable**: Deploy key usage is logged alongside other repository access events, making it clear which automated system performed an action.
+- **Independent lifecycle**: Deploy keys can be rotated or revoked without affecting any user's access to the platform.
+
+## Use Cases
+
+### CI/CD Pipelines
+
+A CI runner needs to clone a repository, run tests, and report results. A read-only deploy key lets it clone without exposing write access:
+
+```bash
+# Generate a dedicated key pair for CI
+ssh-keygen -t ed25519 -f ~/.ssh/jjhub_ci -N "" -C "ci@my-project"
+
+# Register the public key as a read-only deploy key
+jjhub repo deploy-key add -R owner/repo \
+  --title "CI Runner" \
+  --key "$(cat ~/.ssh/jjhub_ci.pub)" \
+  --read-only
+```
+
+### Deployment Scripts
+
+A deployment script needs to pull the latest code onto a production server. A read-only deploy key keeps the server from being able to push changes back:
+
+```bash
+# On the deployment server
+ssh-keygen -t ed25519 -f ~/.ssh/jjhub_deploy -N "" -C "deploy@prod"
+
+# Register the key
+jjhub repo deploy-key add -R owner/repo \
+  --title "Production Deploy" \
+  --key "$(cat ~/.ssh/jjhub_deploy.pub)" \
+  --read-only
+```
+
+### Automated Pushes
+
+Some automation needs to push changes -- for example, a bot that updates dependency versions. A read-write deploy key grants the necessary access:
+
+```bash
+jjhub repo deploy-key add -R owner/repo \
+  --title "Dependency Bot" \
+  --key "$(cat ~/.ssh/jjhub_bot.pub)"
+```
+
+Without `--read-only`, the key has read-write access by default.
+
+### Read-Only Mirrors
+
+If you maintain a mirror of a repository on another server, a read-only deploy key lets the mirror pull updates without being able to modify the source:
+
+```bash
+jjhub repo deploy-key add -R owner/repo \
+  --title "Mirror Sync" \
+  --key "$(cat ~/.ssh/jjhub_mirror.pub)" \
+  --read-only
+```
+
+## Managing Deploy Keys via CLI
+
+### Add a Deploy Key
+
+```bash
+jjhub repo deploy-key add -R owner/repo \
+  --title "My Deploy Key" \
+  --key "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5... deploy@server"
+```
+
+| Flag | Description |
+|------|-------------|
+| `-R, --repo <owner/repo>` | Repository (required) |
+| `-t, --title <text>` | Human-readable title for the key (required) |
+| `-k, --key <key>` | SSH public key string (required) |
+| `--read-only` | Restrict the key to read-only access (default: read-write) |
+
+### List Deploy Keys
+
+```bash
+jjhub repo deploy-key list -R owner/repo
+```
+
+| Flag | Description |
+|------|-------------|
+| `-R, --repo <owner/repo>` | Repository (required) |
+
+Example output:
+
+```
+ID    TITLE              READ-ONLY   CREATED
+1     CI Runner          yes         2026-02-15
+2     Production Deploy  yes         2026-02-20
+3     Dependency Bot     no          2026-03-01
+```
+
+### Delete a Deploy Key
+
+```bash
+jjhub repo deploy-key delete -R owner/repo 1
+```
+
+| Flag | Description |
+|------|-------------|
+| `-R, --repo <owner/repo>` | Repository (required) |
+
+The positional argument is the deploy key ID, which you can find from `jjhub repo deploy-key list`.
+
+## Managing Deploy Keys via API
+
+### List Deploy Keys
+
+```bash
+curl https://api.jjhub.tech/api/repos/owner/repo/keys \
+  -H "Authorization: token jjhub_your_token"
+```
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "title": "CI Runner",
+    "key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5...",
+    "fingerprint": "SHA256:abc123...",
+    "read_only": true,
+    "created_at": "2026-02-15T10:00:00Z"
+  }
+]
+```
+
+### Get a Deploy Key
+
+```bash
+curl https://api.jjhub.tech/api/repos/owner/repo/keys/1 \
+  -H "Authorization: token jjhub_your_token"
+```
+
+Returns a single deploy key object.
+
+### Add a Deploy Key
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/owner/repo/keys \
+  -H "Authorization: token jjhub_your_token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "CI Runner",
+    "key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5... deploy@ci",
+    "read_only": true
+  }'
+```
+
+**Response (201 Created):**
+
+```json
+{
+  "id": 1,
+  "title": "CI Runner",
+  "key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5...",
+  "fingerprint": "SHA256:abc123...",
+  "read_only": true,
+  "created_at": "2026-02-15T10:00:00Z"
+}
+```
+
+**Error cases:**
+
+- `400` -- Missing required fields (`title`, `key`)
+- `401` -- Not authenticated
+- `403` -- Insufficient permissions (requires admin or owner access to the repository)
+- `409` -- Key already exists on this repository
+- `422` -- Invalid SSH public key format
+
+### Delete a Deploy Key
+
+```bash
+curl -X DELETE https://api.jjhub.tech/api/repos/owner/repo/keys/1 \
+  -H "Authorization: token jjhub_your_token"
+```
+
+Returns `204 No Content` on success.
+
+## Read-Only vs Read-Write
+
+| Access Level | Clone/Pull | Push |
+|-------------|-----------|------|
+| **Read-only** (`--read-only`) | Yes | No |
+| **Read-write** (default) | Yes | Yes |
+
+Read-only deploy keys can clone and pull from the repository but cannot push changes. Read-write deploy keys can do both.
+
+**Recommendation**: Always use read-only keys unless the automated system genuinely needs to push changes. This follows the principle of least privilege and limits the impact of a compromised key.
+
+## Security Best Practices
+
+1. **Use read-only keys by default.** Only grant write access when the automation truly needs to push changes.
+
+2. **Generate dedicated key pairs.** Do not reuse your personal SSH key as a deploy key. Generate a new key pair for each automated system.
+
+3. **Rotate keys regularly.** Delete and recreate deploy keys periodically, especially for long-running infrastructure.
+
+4. **Use meaningful titles.** Give each deploy key a descriptive title (e.g., "CI Runner - GitHub Actions", "Prod Deploy Server") so you can identify what each key is used for when auditing access.
+
+5. **Revoke unused keys immediately.** When a CI pipeline is decommissioned or a deployment server is retired, delete the corresponding deploy key right away.
+
+6. **Protect the private key.** Store the private key securely on the system that needs it. Use file permissions (`chmod 600`) and avoid committing private keys to any repository.
+
+7. **One key per system.** Do not share a single deploy key across multiple CI runners or servers. If one system is compromised, you want to revoke only that system's key without disrupting others.
+
+## Deploy Keys vs Other Authentication Methods
+
+| Method | Scope | Best For |
+|--------|-------|----------|
+| **Deploy keys** | Single repository | CI/CD, deployment scripts, mirrors |
+| **Personal SSH keys** | All repos the user can access | Developer workstations |
+| **API tokens** | Scoped by token permissions | Programmatic API access, scripts |
+
+Deploy keys are the right choice when an automated system needs access to exactly one repository and you want to avoid creating a dedicated user account or sharing a personal token.
+
+## API Reference
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/repos/:owner/:repo/keys` | List deploy keys |
+| `POST` | `/api/repos/:owner/:repo/keys` | Add a deploy key |
+| `GET` | `/api/repos/:owner/:repo/keys/:id` | Get a deploy key |
+| `DELETE` | `/api/repos/:owner/:repo/keys/:id` | Delete a deploy key |

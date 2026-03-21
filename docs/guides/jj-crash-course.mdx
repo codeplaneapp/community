@@ -1,0 +1,89 @@
+---
+title: Jujutsu (jj) Crash Course
+description: A quick introduction to Jujutsu (jj) for Git users
+---
+
+# Jujutsu (jj) Crash Course
+
+Jujutsu (`jj`) is a next-generation version control system that modernizes the way we interact with code history. JJHub is built natively to support `jj`'s unique features, such as first-class conflicts, stable change IDs, and automatic committing.
+
+This crash course covers the essential commands you'll need to use `jj` effectively.
+
+## 1. Initializing and Cloning
+
+To create a new repository:
+```bash
+jj git init my-project
+cd my-project
+```
+
+To clone an existing JJHub repository:
+```bash
+jjhub repo clone owner/repo
+# or
+jj git clone https://jjhub.tech/owner/repo
+```
+
+## 2. No More `git add` or `git commit`
+
+In `jj`, the working directory is automatically tracked as a **change**. As soon as you modify files, `jj` updates the current change automatically. There is no staging area (`git add`) and no need to constantly `git commit`.
+
+To view your current changes:
+```bash
+jj status
+```
+
+When you are ready to "commit", you simply provide a description for the current change:
+```bash
+jj describe -m "Add new feature"
+```
+
+## 3. Creating a New Change
+
+To start working on something else, you create a new change. This leaves your previous change behind and starts a fresh one on top of it:
+```bash
+jj new
+```
+
+If you want to start a new change off of `main`, instead of your current change:
+```bash
+jj new main
+```
+
+## 4. Bookmarks (Branches)
+
+In `jj`, what Git calls branches are called **bookmarks**. They are essentially pointers to specific changes.
+
+To create a bookmark at your current change:
+```bash
+jj bookmark create my-feature
+```
+
+To move the `main` bookmark to your current change:
+```bash
+jj bookmark set main -r @
+```
+
+*(Note: `@` is a special symbol in `jj` that refers to the working copy's change.)*
+
+## 5. Reviewing Log History
+
+`jj` has a beautiful and intuitive log view:
+```bash
+jj log
+```
+
+This displays a graph of your changes, along with their stable Change IDs (like `qzknlmop`) and commit hashes. 
+
+## 6. Pushing Changes
+
+To push your changes to JJHub, you use the `git push` command bridged by `jj`:
+```bash
+jj git push --all
+# or push a specific bookmark
+jj git push --bookmark main
+```
+
+## Next Steps
+
+Now that you know the basics, learn how `jj` commands translate from Git in our [Git to jj Cheat Sheet](/guides/jj-cheat-sheet).

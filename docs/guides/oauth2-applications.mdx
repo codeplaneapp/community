@@ -1,0 +1,452 @@
+---
+title: OAuth2 Applications
+description: Build third-party integrations with JJHub using OAuth2
+---
+
+# OAuth2 Applications
+
+OAuth2 applications let third-party developers build integrations that access JJHub on behalf of users. When a user authorizes your application, JJHub issues scoped access tokens that your application uses to call the API. Users retain full control over what your application can do and can revoke access at any time.
+
+OAuth2 applications are distinct from personal access tokens. Personal access tokens represent first-party access tied to a single user account. OAuth2 applications represent third-party access where a separate application acts on behalf of many users, each of whom must explicitly consent to the requested scopes.
+
+## When to Use OAuth2 Applications
+
+Use an OAuth2 application when you are building:
+
+- **A web application** that needs to read or write JJHub data on behalf of its users
+- **A desktop or mobile application** that integrates with JJHub repositories, issues, or landings
+- **A CI/CD integration** that needs user-delegated access rather than a single shared token
+- **A bot or service** that operates across multiple users or organizations
+
+If you only need to automate tasks for your own account, a [personal access token](/api-reference/authentication) is simpler. If you need repository-scoped access for a deploy script, a [deploy key](/guides/deploy-keys) is more appropriate.
+
+## Confidential vs Public Clients
+
+JJHub supports two types of OAuth2 clients:
+
+| Client Type | Can Store Secrets | PKCE Required | Example |
+|-------------|-------------------|---------------|---------|
+| **Confidential** | Yes | No (recommended) | Server-side web applications |
+| **Public** | No | Yes | Single-page apps, mobile apps, CLI tools, desktop apps |
+
+Confidential clients authenticate with a `client_secret` during the token exchange. Public clients cannot safely store a secret, so they must use PKCE (Proof Key for Code Exchange) to prevent authorization code interception.
+
+## Registering an Application
+
+### Via API
+
+Create an OAuth2 application by sending a POST request:
+
+```bash
+curl -X POST https://api.jjhub.tech/api/user/oauth2/applications \
+  -H "Authorization: Bearer jjhub_your_token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Integration",
+    "redirect_uris": ["https://myapp.example.com/callback"],
+    "scopes": ["read:repository", "read:user"],
+    "confidential": true
+  }'
+```
+
+**Response (201 Created):**
+
+```json
+{
+  "id": 1,
+  "client_id": "a1b2c3d4e5f6...",
+  "client_secret": "s3cr3t...",
+  "name": "My Integration",
+  "redirect_uris": ["https://myapp.example.com/callback"],
+  "scopes": ["read:repository", "read:user"],
+  "confidential": true,
+  "created_at": "2026-03-14T10:00:00Z",
+  "updated_at": "2026-03-14T10:00:00Z"
+}
+```
+
+The `client_secret` is shown once at creation time. Store it securely. If you lose it, you must regenerate the secret.
+
+For a public client (such as a mobile app or SPA), set `confidential` to `false`:
+
+```bash
+curl -X POST https://api.jjhub.tech/api/user/oauth2/applications \
+  -H "Authorization: Bearer jjhub_your_token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Mobile App",
+    "redirect_uris": ["myapp://callback"],
+    "scopes": ["read:repository", "read:user"],
+    "confidential": false
+  }'
+```
+
+Public clients do not receive a `client_secret` and must use PKCE for all authorization requests.
+
+### Via CLI
+
+```bash
+jjhub auth oauth2 create \
+  --name "My Integration" \
+  --redirect-uri "https://myapp.example.com/callback" \
+  --scopes "read:repository,read:user" \
+  --confidential
+```
+
+### Registration Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Human-readable name shown on the consent screen |
+| `redirect_uris` | Yes | Allowed callback URLs (must match exactly during authorization) |
+| `scopes` | Yes | Maximum scopes your application can request |
+| `confidential` | No | Whether the client can store a secret (default: `true`) |
+
+## Authorization Flow
+
+JJHub implements the OAuth2 Authorization Code flow. Public clients must use PKCE. Confidential clients should also use PKCE as a best practice.
+
+### Step 1: Generate a PKCE Code Verifier (Public and Confidential Clients)
+
+Generate a cryptographically random code verifier and derive the code challenge:
+
+```javascript
+// Generate a random code verifier (43-128 characters)
+const codeVerifier = crypto.randomUUID() + crypto.randomUUID();
+
+// Derive the code challenge using SHA-256
+const encoder = new TextEncoder();
+const digest = await crypto.subtle.digest("SHA-256", encoder.encode(codeVerifier));
+const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+  .replace(/\+/g, "-")
+  .replace(/\//g, "_")
+  .replace(/=+$/, "");
+```
+
+```python
+import hashlib
+import base64
+import secrets
+
+# Generate a random code verifier
+code_verifier = secrets.token_urlsafe(64)
+
+# Derive the code challenge
+code_challenge = base64.urlsafe_b64encode(
+    hashlib.sha256(code_verifier.encode()).digest()
+).decode().rstrip("=")
+```
+
+### Step 2: Redirect the User to JJHub for Authorization
+
+Direct the user's browser to the JJHub authorization endpoint:
+
+```
+https://api.jjhub.tech/oauth2/authorize?
+  client_id=a1b2c3d4e5f6...&
+  redirect_uri=https://myapp.example.com/callback&
+  response_type=code&
+  scope=read:repository read:user&
+  state=random_csrf_token&
+  code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&
+  code_challenge_method=S256
+```
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `client_id` | Yes | Your application's client ID |
+| `redirect_uri` | Yes | Must exactly match one of your registered redirect URIs |
+| `response_type` | Yes | Must be `code` |
+| `scope` | Yes | Space-separated list of requested scopes (must be a subset of registered scopes) |
+| `state` | Yes | Random string to prevent CSRF attacks (your app verifies this on callback) |
+| `code_challenge` | Required for public clients | Base64url-encoded SHA-256 hash of the code verifier |
+| `code_challenge_method` | Required for public clients | Must be `S256` |
+
+JJHub displays a consent screen showing your application name and the requested scopes. The user can approve or deny access.
+
+### Step 3: Receive the Authorization Code
+
+After the user approves, JJHub redirects the browser back to your `redirect_uri` with an authorization code:
+
+```
+https://myapp.example.com/callback?code=auth_code_here&state=random_csrf_token
+```
+
+Your application must:
+1. Verify that the `state` parameter matches the value you sent in step 2
+2. Exchange the authorization code for tokens in step 4
+
+If the user denies access, JJHub redirects with an error:
+
+```
+https://myapp.example.com/callback?error=access_denied&state=random_csrf_token
+```
+
+### Step 4: Exchange the Authorization Code for Tokens
+
+Exchange the authorization code for an access token and refresh token:
+
+**Confidential client (with client secret):**
+
+```bash
+curl -X POST https://api.jjhub.tech/oauth2/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=authorization_code" \
+  -d "client_id=a1b2c3d4e5f6..." \
+  -d "client_secret=s3cr3t..." \
+  -d "code=auth_code_here" \
+  -d "redirect_uri=https://myapp.example.com/callback" \
+  -d "code_verifier=original_code_verifier"
+```
+
+**Public client (with PKCE, no client secret):**
+
+```bash
+curl -X POST https://api.jjhub.tech/oauth2/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=authorization_code" \
+  -d "client_id=a1b2c3d4e5f6..." \
+  -d "code=auth_code_here" \
+  -d "redirect_uri=https://myapp.example.com/callback" \
+  -d "code_verifier=original_code_verifier"
+```
+
+**Response:**
+
+```json
+{
+  "access_token": "jjhub_oauth2_abc123...",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "refresh_token": "jjhub_refresh_def456...",
+  "scope": "read:repository read:user"
+}
+```
+
+## Scopes and Permissions
+
+Scopes control what your application can do on behalf of the user. Requested scopes must be a subset of the scopes you registered with your application. Users see the full list of requested scopes on the consent screen.
+
+### Available Scopes
+
+| Scope | Description |
+|-------|-------------|
+| `read:repository` | Read repository data, including source, bookmarks, changes, issues, and landings |
+| `write:repository` | Write repository data, including creating issues, landing requests, and pushing changes |
+| `read:user` | Read user profile information |
+| `write:user` | Update user profile and settings |
+| `read:organization` | Read organization and team information |
+| `write:organization` | Manage organizations, teams, and memberships |
+
+### Scope Hierarchy
+
+Write scopes implicitly include the corresponding read scope. If your application has `write:repository`, it can also read repository data without separately requesting `read:repository`.
+
+The `all` scope grants full access to every resource the user can access. Use it sparingly and only when your application genuinely needs broad access.
+
+### Registered Scope Enforcement
+
+When your application requests authorization, the requested scopes must be a subset of the scopes you registered during application creation. JJHub rejects authorization requests that exceed the registered scopes.
+
+For example, if your application registered with `["read:repository", "read:user"]`, attempting to request `write:repository` during authorization will fail. To request additional scopes, update your application's registered scopes first.
+
+### First-Party vs Third-Party Trust Levels
+
+OAuth2 tokens carry a third-party trust level that is distinct from personal access tokens. This means:
+
+- OAuth2 tokens cannot manage JJHub credentials (personal access tokens, SSH keys, OAuth2 applications)
+- OAuth2 tokens cannot access admin endpoints
+- OAuth2 tokens are restricted to their granted scopes and cannot escalate privileges
+
+## Token Lifecycle
+
+### Access Tokens
+
+- Access tokens expire after 1 hour
+- Use the access token in the `Authorization` header for API requests:
+
+```bash
+curl https://api.jjhub.tech/api/repos/owner/repo \
+  -H "Authorization: Bearer jjhub_oauth2_abc123..."
+```
+
+### Refreshing Tokens
+
+When an access token expires, use the refresh token to obtain a new one without requiring the user to re-authorize:
+
+```bash
+curl -X POST https://api.jjhub.tech/oauth2/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=refresh_token" \
+  -d "client_id=a1b2c3d4e5f6..." \
+  -d "client_secret=s3cr3t..." \
+  -d "refresh_token=jjhub_refresh_def456..."
+```
+
+**Response:**
+
+```json
+{
+  "access_token": "jjhub_oauth2_new789...",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "refresh_token": "jjhub_refresh_new012...",
+  "scope": "read:repository read:user"
+}
+```
+
+Refresh tokens are rotated on each use. After a successful refresh, the previous refresh token is invalidated. Store the new refresh token securely.
+
+For public clients, omit the `client_secret` parameter from the refresh request.
+
+### Token Revocation
+
+Users can revoke access to your application at any time through their JJHub settings. When access is revoked, all access tokens and refresh tokens issued to your application for that user are invalidated.
+
+Your application should handle `401 Unauthorized` responses gracefully by directing the user through the authorization flow again.
+
+## Managing Applications
+
+### List Your Applications
+
+```bash
+curl https://api.jjhub.tech/api/user/oauth2/applications \
+  -H "Authorization: Bearer jjhub_your_token"
+```
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "client_id": "a1b2c3d4e5f6...",
+    "name": "My Integration",
+    "redirect_uris": ["https://myapp.example.com/callback"],
+    "scopes": ["read:repository", "read:user"],
+    "confidential": true,
+    "created_at": "2026-03-14T10:00:00Z",
+    "updated_at": "2026-03-14T10:00:00Z"
+  }
+]
+```
+
+### Get a Single Application
+
+```bash
+curl https://api.jjhub.tech/api/user/oauth2/applications/1 \
+  -H "Authorization: Bearer jjhub_your_token"
+```
+
+### Update an Application
+
+```bash
+curl -X PATCH https://api.jjhub.tech/api/user/oauth2/applications/1 \
+  -H "Authorization: Bearer jjhub_your_token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Updated Integration",
+    "redirect_uris": [
+      "https://myapp.example.com/callback",
+      "https://myapp.example.com/callback/v2"
+    ],
+    "scopes": ["read:repository", "write:repository", "read:user"]
+  }'
+```
+
+Updating the registered scopes does not retroactively change existing user grants. Users who previously authorized your application keep their original scope grants until they re-authorize.
+
+### Regenerate Client Secret
+
+If your client secret is compromised, regenerate it immediately:
+
+```bash
+curl -X POST https://api.jjhub.tech/api/user/oauth2/applications/1/secret \
+  -H "Authorization: Bearer jjhub_your_token"
+```
+
+**Response:**
+
+```json
+{
+  "client_secret": "new_s3cr3t..."
+}
+```
+
+The previous client secret is invalidated immediately. Update your application's configuration with the new secret. Existing access tokens and refresh tokens remain valid.
+
+### Delete an Application
+
+```bash
+curl -X DELETE https://api.jjhub.tech/api/user/oauth2/applications/1 \
+  -H "Authorization: Bearer jjhub_your_token"
+```
+
+Returns `204 No Content` on success. Deleting an application immediately revokes all authorization codes, access tokens, and refresh tokens associated with it.
+
+## Error Handling
+
+Your application should handle these error responses:
+
+| HTTP Status | Meaning | Action |
+|-------------|---------|--------|
+| `400` | Invalid request (missing parameters, malformed data) | Fix the request and retry |
+| `401` | Invalid or expired access token | Refresh the token or re-authorize |
+| `403` | Insufficient scope for the requested resource | Request additional scopes |
+| `404` | Resource not found | Verify the resource exists and the token has access |
+| `422` | Validation error (e.g., invalid redirect URI format) | Fix the input and retry |
+| `429` | Rate limit exceeded | Wait and retry with exponential backoff |
+
+**Error response format:**
+
+```json
+{
+  "message": "insufficient token scope",
+  "errors": []
+}
+```
+
+## Security Best Practices
+
+1. **Always use PKCE.** Even if you are a confidential client, PKCE adds defense-in-depth against authorization code interception.
+
+2. **Request minimal scopes.** Only request the scopes your application actually needs. Users are more likely to authorize applications that request less access.
+
+3. **Validate the `state` parameter.** Always generate a cryptographically random `state` value and verify it matches on the callback. This prevents CSRF attacks.
+
+4. **Store secrets securely.** Never expose your `client_secret` in client-side code, version control, or logs. Use environment variables or a secrets manager.
+
+5. **Handle token expiration gracefully.** Use refresh tokens to obtain new access tokens. Do not prompt the user to re-authorize unless the refresh token is also invalid.
+
+6. **Register exact redirect URIs.** JJHub requires exact-match comparison for redirect URIs. Do not use wildcard or partial patterns.
+
+7. **Rotate compromised secrets immediately.** If you suspect your client secret has been exposed, regenerate it through the API.
+
+8. **Implement token revocation handling.** When your application receives a `401` response, check whether the user has revoked access before attempting to refresh.
+
+## API Endpoints Reference
+
+### Application Management
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/user/oauth2/applications` | List your OAuth2 applications |
+| `POST` | `/api/user/oauth2/applications` | Register a new OAuth2 application |
+| `GET` | `/api/user/oauth2/applications/:id` | Get an application |
+| `PATCH` | `/api/user/oauth2/applications/:id` | Update an application |
+| `DELETE` | `/api/user/oauth2/applications/:id` | Delete an application |
+| `POST` | `/api/user/oauth2/applications/:id/secret` | Regenerate client secret |
+
+### Authorization and Token Exchange
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/oauth2/authorize` | Start the authorization flow (browser redirect) |
+| `POST` | `/oauth2/token` | Exchange authorization code or refresh token for tokens |
+
+### User Consent Management
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/user/oauth2/grants` | List applications the user has authorized |
+| `DELETE` | `/api/user/oauth2/grants/:app_id` | Revoke access for an application |

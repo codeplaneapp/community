@@ -1,0 +1,397 @@
+---
+title: Issues
+description: Create, manage, and track issues on JJHub
+icon: circle-exclamation
+---
+
+# Issues
+
+Issues are JJHub's primary tool for tracking bugs, feature requests, tasks, and discussions. They support labels, milestones, assignees, reactions, dependencies, pinning, locking, and templates -- the full feature set you expect from a modern forge.
+
+## Creating Issues
+
+### Via CLI
+
+```bash
+jjhub issue create --title "Login page returns 500 on Safari" --body "Steps to reproduce..."
+```
+
+Key flags:
+
+| Flag | Description |
+|------|-------------|
+| `-t, --title <text>` | Issue title (required) |
+| `-b, --body <text>` | Issue body (Markdown supported) |
+| `-a, --assignee <username>` | Assign to a user (repeatable for multiple assignees) |
+| `-T, --template <name>` | Use an issue template |
+| `--blocks <number>` | Mark this issue as blocking another (repeatable) |
+| `--blocked-by <number>` | Mark this issue as blocked by another (repeatable) |
+
+Examples:
+
+```bash
+# Simple issue
+jjhub issue create -t "Add dark mode support"
+
+# Issue with body, assignee, and label
+jjhub issue create \
+  -t "Fix memory leak in worker pool" \
+  -b "The worker pool leaks ~2MB per hour under sustained load." \
+  -a alice
+
+# Issue from a template
+jjhub issue create --template bug-report
+
+# Issue with dependencies
+jjhub issue create -t "Deploy v2.0" --blocked-by 15 --blocked-by 16
+```
+
+### Via API
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/owner/repo/issues \
+  -H "Authorization: token jjhub_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Add dark mode support",
+    "body": "Users have requested a dark theme.",
+    "labels": ["enhancement"],
+    "assignees": ["alice"]
+  }'
+```
+
+### Using Templates
+
+Issue templates provide structured forms for consistent issue creation. Templates are Markdown files in `.jjhub/ISSUE_TEMPLATE/`:
+
+```bash
+# Use the bug-report template
+jjhub issue create --template bug-report
+
+# Override template defaults
+jjhub issue create --template bug-report --title "Safari crash on login"
+```
+
+See the [Issue Templates guide](/guides/issue-templates) for details on creating and configuring templates.
+
+## Listing and Viewing Issues
+
+```bash
+# List open issues (default)
+jjhub issue list
+
+# List closed issues
+jjhub issue list --state closed
+
+# List all issues
+jjhub issue list --state all
+
+# Limit results
+jjhub issue list --limit 10
+
+# List pinned issues only
+jjhub issue list --pinned
+
+# View a specific issue
+jjhub issue view 42
+
+# JSON output for scripting
+jjhub issue list --json number,title,state
+```
+
+## Editing and Closing Issues
+
+```bash
+# Edit an issue's title and body
+jjhub issue edit 42 -t "Updated title" -b "Updated description"
+
+# Add an assignee
+jjhub issue edit 42 -a bob
+
+# Close an issue
+jjhub issue close 42
+
+# Close with a comment
+jjhub issue close 42 --comment "Fixed in LR #15"
+```
+
+## Labels
+
+Labels categorize issues with color-coded tags. They make issues filterable and scannable.
+
+### Managing Labels
+
+```bash
+# List labels
+jjhub label list
+
+# Create a label
+jjhub label create bug --color e11d48 --description "Something isn't working"
+
+# Create a label with default color
+jjhub label create enhancement
+
+# Delete a label
+jjhub label delete bug
+```
+
+### Adding Labels to Issues
+
+Labels are applied when creating issues (via templates or API) or through the API:
+
+```bash
+# Add a label to an issue
+curl -X POST https://api.jjhub.tech/api/repos/owner/repo/issues/42/labels \
+  -H "Authorization: token jjhub_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{"labels": ["bug", "high-priority"]}'
+
+# Remove a label
+curl -X DELETE https://api.jjhub.tech/api/repos/owner/repo/issues/42/labels/bug \
+  -H "Authorization: token jjhub_xxxxx"
+```
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/repos/:owner/:repo/labels` | List labels |
+| `POST` | `/api/repos/:owner/:repo/labels` | Create a label |
+| `GET` | `/api/repos/:owner/:repo/issues/:number/labels` | List labels on an issue |
+| `POST` | `/api/repos/:owner/:repo/issues/:number/labels` | Add labels to an issue |
+| `DELETE` | `/api/repos/:owner/:repo/issues/:number/labels/:name` | Remove a label |
+
+## Milestones
+
+Milestones group issues into time-boxed goals. They help track progress toward releases or feature deadlines.
+
+### Managing Milestones
+
+```bash
+# List milestones
+curl -H "Authorization: token jjhub_xxxxx" \
+  https://api.jjhub.tech/api/repos/owner/repo/milestones
+
+# Create a milestone
+curl -X POST https://api.jjhub.tech/api/repos/owner/repo/milestones \
+  -H "Authorization: token jjhub_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "v1.0 Release",
+    "description": "First stable release",
+    "due_on": "2025-06-01T00:00:00Z"
+  }'
+```
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/repos/:owner/:repo/milestones` | List milestones |
+| `POST` | `/api/repos/:owner/:repo/milestones` | Create a milestone |
+
+## Dependencies
+
+Issues can have blocking/blocked-by relationships to model task dependencies. A dependency means one issue must be resolved before another can proceed.
+
+### Concepts
+
+- **Blocks**: Issue A *blocks* issue B means B cannot proceed until A is resolved
+- **Blocked by**: Issue B is *blocked by* issue A means B depends on A being resolved first
+- Circular dependencies are rejected at creation time
+
+### Creating Dependencies
+
+```bash
+# Create an issue that blocks issue #5
+jjhub issue create -t "Add auth middleware" --blocks 5
+
+# Create an issue blocked by issues #3 and #4
+jjhub issue create -t "Deploy to production" --blocked-by 3 --blocked-by 4
+
+# Add a dependency to an existing issue
+jjhub issue edit 7 --blocks 10
+jjhub issue edit 7 --blocked-by 2
+```
+
+### Viewing the Dependency Graph
+
+```bash
+# View full dependency graph for an issue
+jjhub issue deps 7
+
+# JSON output
+jjhub issue deps 7 --json
+```
+
+The output shows all issues that block the given issue and all issues it blocks, with their current state.
+
+### Behavior
+
+- Blocked issues can still receive comments and updates
+- Closing a blocked issue while its blockers are open displays a warning
+- When a blocking issue is closed, dependents are automatically updated and fully unblocked issues are surfaced in notifications
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/repos/:owner/:repo/issues/:number/dependencies` | List dependencies |
+| `POST` | `/api/repos/:owner/:repo/issues/:number/dependencies` | Create a dependency |
+| `DELETE` | `/api/repos/:owner/:repo/issues/:number/dependencies/:id` | Remove a dependency |
+
+## Pinning Issues
+
+Pin up to 3 important issues to the top of the issue list. Pinned issues appear before all other issues regardless of sort order.
+
+```bash
+# Pin an issue
+jjhub issue pin 42
+
+# Unpin an issue
+jjhub issue unpin 42
+
+# List only pinned issues
+jjhub issue list --pinned
+```
+
+Only repository admins and owners can pin or unpin issues. Both open and closed issues can be pinned.
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `PUT` | `/api/repos/:owner/:repo/issues/:number/pin` | Pin an issue (max 3 per repo) |
+| `DELETE` | `/api/repos/:owner/:repo/issues/:number/pin` | Unpin an issue |
+
+## Locking Issues
+
+Locking an issue prevents non-admin users from adding new comments. Existing comments are preserved and remain visible. Only repository admins and owners can lock or unlock issues.
+
+```bash
+# Lock an issue
+jjhub issue lock 42
+
+# Lock with a reason
+jjhub issue lock 42 --reason resolved
+
+# Unlock an issue
+jjhub issue unlock 42
+```
+
+### Lock Reasons
+
+| Reason | Description |
+|--------|-------------|
+| `off-topic` | Discussion has drifted from the original issue |
+| `too-heated` | Discussion has become unproductive or hostile |
+| `resolved` | The issue has been resolved and no further discussion is needed |
+| `spam` | The issue is attracting spam comments |
+
+### Behavior
+
+- Non-admin users cannot add new comments to a locked issue
+- Admin and owner users can still comment on locked issues
+- Locking does not affect other issue operations (editing, closing, labeling, assigning)
+- The lock reason (if provided) is displayed when viewing the issue
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `PUT` | `/api/repos/:owner/:repo/issues/:number/lock` | Lock an issue |
+| `DELETE` | `/api/repos/:owner/:repo/issues/:number/lock` | Unlock an issue |
+
+## Reactions
+
+Reactions let you add emoji responses to issues and comments.
+
+### Supported Types
+
+| Reaction | Description |
+|----------|-------------|
+| `+1` | Thumbs up |
+| `-1` | Thumbs down |
+| `laugh` | Laughing |
+| `hooray` | Celebration |
+| `confused` | Confused |
+| `heart` | Heart |
+| `rocket` | Rocket |
+| `eyes` | Eyes |
+
+### CLI Commands
+
+```bash
+# Add a reaction to an issue
+jjhub issue react 42 +1
+
+# List reactions on an issue
+jjhub issue reactions 42
+
+# Add a reaction to a comment
+jjhub issue react --comment 15 heart
+```
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/repos/:owner/:repo/issues/:number/reactions` | List reactions on an issue |
+| `POST` | `/api/repos/:owner/:repo/issues/:number/reactions` | Add a reaction |
+| `DELETE` | `/api/repos/:owner/:repo/issues/:number/reactions/:id` | Remove a reaction |
+| `GET` | `/api/repos/:owner/:repo/issues/comments/:id/reactions` | List reactions on a comment |
+| `POST` | `/api/repos/:owner/:repo/issues/comments/:id/reactions` | Add a reaction to a comment |
+| `DELETE` | `/api/repos/:owner/:repo/issues/comments/:id/reactions/:reaction_id` | Remove a comment reaction |
+
+## Comments
+
+Issues support threaded comments with Markdown formatting and @mentions.
+
+### Adding Comments
+
+```bash
+# Add a comment via API
+curl -X POST https://api.jjhub.tech/api/repos/owner/repo/issues/42/comments \
+  -H "Authorization: token jjhub_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{"body": "I can reproduce this on macOS 14. Here are the logs..."}'
+```
+
+### Editing and Deleting Comments
+
+```bash
+# Edit a comment
+curl -X PATCH https://api.jjhub.tech/api/repos/owner/repo/issues/comments/15 \
+  -H "Authorization: token jjhub_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{"body": "Updated comment text"}'
+
+# Delete a comment
+curl -X DELETE https://api.jjhub.tech/api/repos/owner/repo/issues/comments/15 \
+  -H "Authorization: token jjhub_xxxxx"
+```
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/repos/:owner/:repo/issues/:number/comments` | List comments |
+| `POST` | `/api/repos/:owner/:repo/issues/:number/comments` | Add a comment |
+| `PATCH` | `/api/repos/:owner/:repo/issues/comments/:id` | Edit a comment |
+| `DELETE` | `/api/repos/:owner/:repo/issues/comments/:id` | Delete a comment |
+
+## Full API Reference
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/repos/:owner/:repo/issues` | List issues |
+| `POST` | `/api/repos/:owner/:repo/issues` | Create an issue |
+| `GET` | `/api/repos/:owner/:repo/issues/:number` | Get an issue |
+| `PATCH` | `/api/repos/:owner/:repo/issues/:number` | Update an issue |
+
+## Next Steps
+
+- [Issue Templates](/guides/issue-templates) -- structured issue creation forms
+- [Landing Requests](/guides/landing-requests) -- link issues to code changes
+- [CLI Reference](/cli-reference/commands) -- all issue commands
+- [Organizations](/guides/organizations) -- team-based issue management

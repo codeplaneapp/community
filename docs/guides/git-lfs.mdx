@@ -1,0 +1,277 @@
+---
+title: Git LFS
+description: Store large binary files with Git Large File Storage on JJHub
+---
+
+# Git LFS
+
+Git Large File Storage (LFS) lets you store large binary files outside your repository while keeping them versioned alongside your code. Instead of bloating your repository with multi-megabyte assets, LFS replaces them with lightweight pointer files and stores the actual content in dedicated blob storage.
+
+## Why Use Git LFS
+
+Repositories that contain large binary files -- images, videos, datasets, trained models, design files, compiled binaries -- suffer from slow clones, bloated disk usage, and degraded performance. Every clone downloads the full history of every binary, even if you only need the latest version.
+
+Git LFS solves this by:
+
+- **Keeping repositories fast**: Only pointer files (a few bytes each) are stored in the repository. The actual file content is fetched on demand.
+- **Versioning large files**: LFS objects are immutable and content-addressed. Every version of a file is preserved and retrievable.
+- **Efficient transfers**: Only the LFS objects you check out are downloaded, not the entire history of every large file.
+
+## How LFS Works on JJHub
+
+JJHub stores LFS objects in dedicated blob storage. Uploads and downloads use **signed URLs** and go directly to storage -- they are not proxied through the API server. This keeps transfers fast and avoids bottlenecking the API.
+
+The flow:
+
+```
+1. You push a commit containing LFS pointer files
+2. Your Git/jj client detects the pointer files and requests upload URLs
+3. JJHub generates short-lived signed URLs
+4. Your client uploads the LFS objects directly to storage
+5. Your client confirms the upload with JJHub
+6. JJHub records the object metadata in the database
+```
+
+When someone clones or pulls, the reverse happens: JJHub provides signed download URLs and the client fetches objects directly from storage.
+
+## Setup
+
+### Prerequisites
+
+You need Git LFS installed locally. Since jj uses git as its storage backend, standard Git LFS tooling works with JJHub repositories.
+
+**Install Git LFS:**
+
+```bash
+# macOS
+brew install git-lfs
+
+# Ubuntu/Debian
+sudo apt install git-lfs
+
+# Fedora
+sudo dnf install git-lfs
+
+# Windows (via scoop)
+scoop install git-lfs
+```
+
+**Initialize Git LFS in your environment:**
+
+```bash
+git lfs install
+```
+
+This only needs to be run once per user account (not once per repository). It configures your global Git hooks to intercept LFS pointer files during push and pull operations.
+
+### Repository Setup
+
+Inside your repository, tell Git LFS which file patterns to track:
+
+```bash
+# Track PSD files
+git lfs track "*.psd"
+
+# Track all files in a directory
+git lfs track "datasets/**"
+
+# Track specific large file types
+git lfs track "*.zip"
+git lfs track "*.tar.gz"
+git lfs track "*.mp4"
+git lfs track "*.bin"
+```
+
+Each `git lfs track` command adds an entry to the `.gitattributes` file in your repository root. You can also edit `.gitattributes` directly:
+
+```
+# .gitattributes
+*.psd filter=lfs diff=lfs merge=lfs -text
+*.mp4 filter=lfs diff=lfs merge=lfs -text
+*.zip filter=lfs diff=lfs merge=lfs -text
+datasets/** filter=lfs diff=lfs merge=lfs -text
+models/*.bin filter=lfs diff=lfs merge=lfs -text
+```
+
+**Important**: The `.gitattributes` file must be committed to your repository. This is how collaborators and CI know which files are managed by LFS.
+
+```bash
+jj new -m "Track large files with Git LFS"
+# The .gitattributes file is already in your working copy
+```
+
+## Push and Pull Workflow
+
+Once LFS tracking is configured, your normal workflow does not change. Git LFS hooks handle everything transparently.
+
+### Pushing LFS Objects
+
+```bash
+# Add a large file that matches a tracked pattern
+cp ~/renders/scene.psd .
+
+# Create a change
+jj new -m "Add scene design file"
+
+# Push -- LFS objects are uploaded automatically
+jj git push
+```
+
+During the push:
+
+1. jj exports refs to the git backend
+2. Git detects that `scene.psd` matches an LFS pattern
+3. Git LFS uploads the file content to JJHub (via signed URLs)
+4. Only the pointer file is pushed to the repository
+
+### Pulling LFS Objects
+
+```bash
+# Clone a repository -- LFS objects are downloaded automatically
+jj git clone git@jjhub.tech:owner/repo.git
+
+# Or pull updates
+jj git fetch
+```
+
+Git LFS downloads the actual file content for any pointer files in your working copy. Files not in your current checkout are not downloaded.
+
+### Checking LFS Status
+
+To see which files are tracked by LFS and their status:
+
+```bash
+# List tracked patterns
+git lfs track
+
+# List LFS objects in the current checkout
+git lfs ls-files
+
+# Show LFS transfer status
+git lfs status
+```
+
+## Common File Patterns
+
+Here are recommended LFS tracking patterns for common use cases:
+
+| Use Case | Pattern | Example Files |
+|----------|---------|---------------|
+| Images | `*.png`, `*.jpg`, `*.psd`, `*.svg` | Design assets, screenshots |
+| Video | `*.mp4`, `*.mov`, `*.avi` | Demos, recordings |
+| Audio | `*.mp3`, `*.wav`, `*.flac` | Sound assets |
+| Datasets | `*.csv`, `*.parquet`, `*.arrow` | ML training data |
+| Models | `*.bin`, `*.onnx`, `*.safetensors` | Trained ML models |
+| Archives | `*.zip`, `*.tar.gz`, `*.7z` | Bundled assets |
+| Documents | `*.pdf`, `*.docx` | Large documents |
+
+**Tip**: Only track files that are genuinely large or binary. Text files, even large ones, are better served by regular git storage since they benefit from delta compression and line-level diffing.
+
+## API: Signed URL Endpoints
+
+JJHub provides LFS endpoints for programmatic access. These follow the Git LFS Batch API specification and are used automatically by the Git LFS client.
+
+### Request Upload URL
+
+```bash
+POST /api/repos/:owner/:repo/lfs/upload
+```
+
+Request a signed URL for uploading an LFS object.
+
+**Request:**
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/owner/repo/lfs/upload \
+  -H "Authorization: token jjhub_your_token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "oid": "sha256:abc123...",
+    "size": 10485760
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "upload_url": "https://storage.jjhub.tech/lfs/owner/repo/sha256-abc123...?signature=...",
+  "expires_at": "2026-03-06T13:00:00Z"
+}
+```
+
+The `upload_url` is a signed URL with a short expiry. Upload the file content directly to this URL with a `PUT` request.
+
+### Confirm Upload
+
+```bash
+POST /api/repos/:owner/:repo/lfs/confirm
+```
+
+After uploading, confirm the upload so JJHub records the object metadata.
+
+**Request:**
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/owner/repo/lfs/confirm \
+  -H "Authorization: token jjhub_your_token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "oid": "sha256:abc123...",
+    "size": 10485760
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "oid": "sha256:abc123...",
+  "size": 10485760,
+  "created_at": "2026-03-06T12:30:00Z"
+}
+```
+
+### Download URL
+
+When pulling LFS objects, the Git LFS client requests download URLs through the standard LFS Batch API. JJHub returns signed URLs for direct download.
+
+## Storage and Retention
+
+- LFS objects are **retained as long as they are referenced by a repository**. Deleting a repository removes its LFS objects.
+- LFS objects are **content-addressed** (identified by SHA-256 hash). Identical files uploaded to different repositories share storage.
+- Storage limits per repository and organization are TBD and will be documented before general availability.
+
+## Troubleshooting
+
+### "LFS objects not found" on clone
+
+This usually means LFS was not installed or initialized locally:
+
+```bash
+git lfs install
+jj git clone git@jjhub.tech:owner/repo.git
+```
+
+### Large files committed without LFS
+
+If you committed a large file before setting up LFS tracking, the file is stored directly in the repository. To migrate it to LFS:
+
+```bash
+# Add the tracking pattern
+git lfs track "*.psd"
+
+# Migrate existing files (rewrites history)
+git lfs migrate import --include="*.psd"
+```
+
+Note that history rewriting changes commit SHAs. In jj, Change IDs remain stable through rewrites.
+
+### Push rejected due to missing LFS objects
+
+If a push fails because the server cannot find referenced LFS objects, push the LFS objects first:
+
+```bash
+git lfs push --all origin
+jj git push
+```

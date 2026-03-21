@@ -1,0 +1,63 @@
+---
+title: Git to jj Cheat Sheet
+description: Translate your Git knowledge to Jujutsu (jj) commands
+---
+
+# Git to jj Cheat Sheet
+
+If you are coming from Git, adapting to Jujutsu (`jj`) is straightforward. Many concepts are similar, but `jj` removes a lot of boilerplate (like staging) and introduces powerful new workflows (like stable change IDs).
+
+## Repository Setup
+
+| Action | Git Command | jj Command |
+| ------ | ----------- | ---------- |
+| Init a repo | `git init` | `jj git init` |
+| Clone a repo | `git clone <url>` | `jj git clone <url>` |
+| View status | `git status` | `jj status` |
+
+## Committing Changes
+
+In `jj`, you do not need to stage files. Your working copy is automatically treated as an active change.
+
+| Action | Git Command | jj Command |
+| ------ | ----------- | ---------- |
+| Stage files | `git add <file>` | *(Not needed)* |
+| Commit changes | `git commit -m "msg"` | `jj describe -m "msg"` |
+| Amend commit | `git commit --amend` | `jj describe -m "new msg"` |
+| Discard working changes | `git restore .` | `jj restore` |
+
+## Branching (Bookmarks)
+
+`jj` calls branches "bookmarks". Unlike Git, establishing your working copy does not require "checking out" a branch; you simply move your working copy to a change.
+
+| Action | Git Command | jj Command |
+| ------ | ----------- | ---------- |
+| Create a branch | `git branch <name>` | `jj bookmark create <name>` |
+| Switch branches | `git checkout <name>` | `jj new <name>` |
+| Move branch pointer | `git branch -f <name>` | `jj bookmark set <name> -r @` |
+| List branches | `git branch` | `jj bookmark list` |
+| Delete a branch | `git branch -d <name>` | `jj bookmark delete <name>` |
+
+## History and Logging
+
+`jj` tracks history as a tree of changes. The `@` symbol represents your current working copy.
+
+| Action | Git Command | jj Command |
+| ------ | ----------- | ---------- |
+| View history | `git log --graph` | `jj log` |
+| View diff | `git diff` | `jj diff` |
+| View specific commit | `git show <hash>` | `jj show <change-id>` |
+
+## Remote Synchronization
+
+JJ bridges with Git remotes natively. 
+
+| Action | Git Command | jj Command |
+| ------ | ----------- | ---------- |
+| Fetch changes | `git fetch` | `jj git fetch` |
+| Push branches | `git push` | `jj git push --all` |
+| Push specific branch | `git push origin <name>` | `jj git push --bookmark <name>` |
+
+---
+
+*Tip: `jj` tracks every operation. Made a mistake? Just run `jj undo` to safely revert any `jj` command.*

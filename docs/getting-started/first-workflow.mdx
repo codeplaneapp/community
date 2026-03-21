@@ -1,0 +1,499 @@
+---
+title: Your First Workflow
+description: Write a TypeScript workflow to automate your repository
+---
+
+# Your First Workflow
+
+JJHub workflows are TSX files stored in your repository under `.jjhub/workflows/`. They use [Smithers](https://smithers.sh) JSX components wrapped by the `@jjhub-ai/workflow` package.
+
+## Project Setup
+
+The `.jjhub/` directory at your repository root is a Bun workspace member with its own `package.json` and `tsconfig.json`. This gives you full LSP support (autocomplete, type checking, go-to-definition) when editing workflows.
+
+### `.jjhub/package.json`
+
+```json
+{
+  "name": "jjhub-workflows",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@jjhub-ai/workflow": "workspace:*"
+  }
+}
+```
+
+### `.jjhub/tsconfig.json`
+
+```json
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "jsxImportSource": "smithers-orchestrator",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noUnusedLocals": false,
+    "noImplicitAny": false,
+    "types": ["bun-types"],
+    "paths": {
+      "@jjhub-ai/workflow": ["../packages/workflow/src/index.ts"]
+    }
+  },
+  "include": ["workflows/**/*.tsx"]
+}
+```
+
+### Root `package.json`
+
+Add `.jjhub` and `packages/*` to your Bun workspaces so the `@jjhub-ai/workflow` dependency resolves:
+
+```json
+{
+  "workspaces": ["packages/*", ".jjhub"]
+}
+```
+
+Then run `bun install` to link the workspace.
+
+The `@jjhub-ai/workflow` package lives at `packages/workflow/` and re-exports [Smithers](https://smithers.sh) JSX components (`Workflow`, `Task`, `Parallel`, `Sequence`, `Branch`, `Ralph`) plus the `on` trigger builders.
+
+## Create a Workflow File
+
+<Info>
+  **Coming Soon:** We are actively working on a first-class feature to allow you to run these exact same workflows entirely on your local machine for rapid testing and debugging! Check our [Roadmap](/roadmap) for more details.
+</Info>
+
+```tsx
+// .jjhub/workflows/ci.tsx
+import { Workflow, Task, on } from "@jjhub-ai/workflow";
+import { $ } from "bun";
+
+export default (ctx) => (
+  <Workflow
+    name="CI"
+    triggers={[on.push({ bookmarks: ["main"] }), on.landingRequest.opened()]}
+  >
+    <Task id="test">
+      {async () => {
+        await $`bun test`;
+      }}
+    </Task>
+    <Task id="build">
+      {async () => {
+        await $`bun run build`;
+      }}
+    </Task>
+  </Workflow>
+);
+```
+
+## Trigger a Run
+
+Workflows run automatically on configured events (push, landing request opened, schedule, etc.).
+
+To manually trigger a workflow:
+
+```bash
+jjhub workflow run <workflow-id> --ref main
+```
+
+## Manual Dispatch with Inputs
+
+Workflows can declare inputs that users provide when triggering a run manually. This is useful for deploy workflows, release workflows, or any workflow that needs runtime parameters.
+
+### Defining Inputs
+
+Use the `on.manualDispatch` trigger to declare the inputs your workflow accepts:
+
+```tsx
+// .jjhub/workflows/deploy.tsx
+import { Workflow, Task, on } from "@jjhub-ai/workflow";
+import { $ } from "bun";
+
+export default (ctx) => (
+  <Workflow
+    name="Deploy"
+    triggers={[
+      on.manualDispatch({
+        inputs: {
+          environment: {
+            type: "choice",
+            required: true,
+            default: "staging",
+            options: ["staging", "production"],
+            description: "Target environment",
+          },
+          version: {
+            type: "string",
+            required: true,
+            description: "Version to deploy (e.g., 1.2.3)",
+          },
+          dry_run: {
+            type: "boolean",
+            default: false,
+            description: "Preview changes without applying them",
+          },
+          replicas: {
+            type: "number",
+            default: 3,
+            description: "Number of replicas to deploy",
+          },
+        },
+      }),
+    ]}
+  >
+    <Task id="deploy">
+      {async () => {
+        const env = ctx.input.environment;    // "staging" | "production"
+        const version = ctx.input.version;    // string
+        const dryRun = ctx.input.dry_run;     // boolean
+        const replicas = ctx.input.replicas;  // number
+
+        if (dryRun) {
+          console.log(`[DRY RUN] Would deploy ${version} to ${env} with ${replicas} replicas`);
+          return;
+        }
+
+        await $`./scripts/deploy.ts --env ${env} --version ${version} --replicas ${replicas}`;
+      }}
+    </Task>
+  </Workflow>
+);
+```
+
+### Input Types
+
+| Type | Description | Example |
+|------|-------------|---------|
+| `string` | Free-form text | `version: { type: "string" }` |
+| `boolean` | True or false | `dry_run: { type: "boolean", default: false }` |
+| `number` | Numeric value | `replicas: { type: "number", default: 3 }` |
+| `choice` | One of a set of allowed values | `environment: { type: "choice", options: ["staging", "production"] }` |
+
+Each input supports the following properties:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `type` | `string` | Required. One of `string`, `boolean`, `number`, `choice`. |
+| `required` | `boolean` | Whether the input must be provided. Default: `false`. |
+| `default` | varies | Default value when the input is not provided. |
+| `description` | `string` | Human-readable description shown in error messages and documentation. |
+| `options` | `string[]` | Required for `choice` type. The allowed values. |
+
+### Triggering via CLI
+
+Pass inputs using the `--input` (or `-i`) flag, one per key-value pair:
+
+```bash
+# Deploy to staging (uses default dry_run=false, replicas=3)
+jjhub workflow run deploy --input environment=staging --input version=1.2.3
+
+# Deploy to production with a dry run
+jjhub workflow run deploy \
+  --input environment=production \
+  --input version=2.0.0 \
+  --input dry_run=true
+
+# Short form
+jjhub workflow run deploy -i environment=staging -i version=1.2.3
+```
+
+If a required input is missing, the CLI returns an error:
+
+```
+Error: missing required input "version" for workflow "deploy"
+```
+
+If an invalid value is provided for a `choice` input:
+
+```
+Error: input "environment" must be one of: staging, production (got "dev")
+```
+
+### Triggering via API
+
+Send a `POST` request to the workflow dispatches endpoint with inputs in the request body:
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/alice/my-project/workflows/deploy/dispatches \
+  -H "Authorization: token jjhub_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ref": "main",
+    "inputs": {
+      "environment": "production",
+      "version": "2.0.0",
+      "dry_run": true,
+      "replicas": 5
+    }
+  }'
+```
+
+**API endpoint:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/repos/:owner/:repo/workflows/:workflow_id/dispatches` | Trigger a manual workflow dispatch with inputs |
+
+**Request body:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ref` | `string` | Git ref to run on (default: `main`) |
+| `inputs` | `object` | Key-value map of input names to values |
+
+The response returns the created workflow run object.
+
+### Accessing Inputs in Workflow Code
+
+Inside any task, access inputs via `ctx.input`:
+
+```tsx
+<Task id="notify">
+  {async () => {
+    const env = ctx.input.environment;
+    const version = ctx.input.version;
+
+    // Boolean inputs are actual booleans (not strings)
+    if (ctx.input.dry_run) {
+      console.log("Dry run mode - skipping notification");
+      return;
+    }
+
+    // Number inputs are actual numbers
+    console.log(`Deploying ${ctx.input.replicas} replicas`);
+  }}
+</Task>
+```
+
+For workflows triggered by other events (push, landing request, schedule), `ctx.input` is an empty object.
+
+## View Runs
+
+```bash
+# List runs for a workflow
+jjhub run list <workflow-id>
+
+# View a specific run
+jjhub run view <run-id>
+
+# Watch a run in real-time
+jjhub run watch <run-id>
+
+# Re-run a workflow
+jjhub run rerun <run-id>
+```
+
+## Scheduled Triggers
+
+Workflows can run on a schedule using CRON expressions. This is useful for nightly builds, periodic reports, dependency checks, and any recurring automation.
+
+### Defining a Schedule
+
+Use `on.schedule()` in your triggers array with a standard CRON expression:
+
+```tsx
+// .jjhub/workflows/nightly-build.tsx
+import { Workflow, Task, on } from "@jjhub-ai/workflow";
+import { $ } from "bun";
+
+export default (ctx) => (
+  <Workflow
+    name="Nightly Build"
+    triggers={[on.schedule("0 0 * * *")]}
+  >
+    <Task id="build">
+      {async () => {
+        await $`bun run build`;
+      }}
+    </Task>
+    <Task id="test">
+      {async () => {
+        await $`bun test`;
+      }}
+    </Task>
+  </Workflow>
+);
+```
+
+### CRON Syntax
+
+Schedules use standard five-field CRON syntax:
+
+```
+┌───────────── minute (0-59)
+│ ┌───────────── hour (0-23)
+│ │ ┌───────────── day of month (1-31)
+│ │ │ ┌───────────── month (1-12)
+│ │ │ │ ┌───────────── day of week (0-6, Sunday=0)
+│ │ │ │ │
+* * * * *
+```
+
+### Common Patterns
+
+| Pattern | CRON Expression | Description |
+|---------|----------------|-------------|
+| Nightly at midnight | `0 0 * * *` | Runs once per day at 00:00 UTC |
+| Every 6 hours | `0 */6 * * *` | Runs at 00:00, 06:00, 12:00, 18:00 UTC |
+| Hourly | `0 * * * *` | Runs at the start of every hour |
+| Weekly on Monday 9am | `0 9 * * 1` | Runs every Monday at 09:00 UTC |
+| Weekdays at 8am | `0 8 * * 1-5` | Runs Monday through Friday at 08:00 UTC |
+
+### Timezone
+
+All schedules run in **UTC**. Adjust your CRON expressions accordingly. For example, if you want a nightly build at midnight US Eastern (UTC-5), use `0 5 * * *`.
+
+### Multiple Schedules
+
+A workflow can have multiple schedule triggers, and can combine schedules with other trigger types:
+
+```tsx
+// .jjhub/workflows/maintenance.tsx
+import { Workflow, Task, on } from "@jjhub-ai/workflow";
+import { ToolLoopAgent } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { $ } from "bun";
+
+const scanner = new ToolLoopAgent({
+  model: anthropic("claude-sonnet-4-5-20250929"),
+  instructions: "You are a security scanner. Report vulnerabilities found in dependencies.",
+});
+
+export default (ctx) => (
+  <Workflow
+    name="Maintenance"
+    triggers={[
+      on.schedule("0 0 * * *"),             // Nightly
+      on.schedule("0 12 * * 1"),            // Monday noon
+      on.push({ bookmarks: ["main"] }),     // Also on push to main
+    ]}
+  >
+    <Task id="deps-check">
+      {async () => {
+        await $`bun outdated`;
+      }}
+    </Task>
+    <Task id="security-scan" agent={scanner}>
+      Scan dependencies for known vulnerabilities and report findings.
+    </Task>
+  </Workflow>
+);
+```
+
+### How Scheduled Workflows Run
+
+Scheduled workflows are managed by the JJHub scheduler on the server side, not triggered by push events or user actions. When a schedule fires:
+
+1. The scheduler matches the CRON expression against the current UTC time
+2. A workflow run is created targeting the default bookmark (typically `main`)
+3. The run is queued and assigned to a runner pod from the warm pool
+4. Execution proceeds identically to any other workflow run (same logs, SSE streaming, commit statuses)
+
+You can view scheduled runs the same way as any other run:
+
+```bash
+jjhub run list <workflow-id>
+```
+
+## AI Agent Steps
+
+Workflows can invoke AI agents as tasks using the `agent` prop:
+
+```tsx
+// .jjhub/workflows/triage.tsx
+import { Workflow, Task, on } from "@jjhub-ai/workflow";
+import { ToolLoopAgent } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+
+const triager = new ToolLoopAgent({
+  model: anthropic("claude-sonnet-4-5-20250929"),
+  instructions: "You are an issue triager. Add labels and assign issues.",
+});
+
+export default (ctx) => (
+  <Workflow
+    name="Triage"
+    triggers={[on.issue.opened()]}
+  >
+    <Task id="triage" agent={triager}>
+      Triage this issue and add appropriate labels.
+    </Task>
+  </Workflow>
+);
+```
+
+To use AI agents in workflows, configure your API key as a repository secret:
+
+```bash
+printf %s "sk-ant-..." | jjhub secret set ANTHROPIC_API_KEY --body-stdin
+```
+
+## Schema-Driven Workflows
+
+For AI agent workflows that pass structured data between tasks, use `createSmithers` to define output schemas with Zod. This gives you type-safe `ctx.output()` for reading previous task results and automatic SQLite-backed persistence.
+
+```tsx
+// .jjhub/workflows/bugfix.tsx
+import { createSmithers, Task, on } from "@jjhub-ai/workflow";
+import { ToolLoopAgent as Agent } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { z } from "zod";
+
+const { Workflow, smithers } = createSmithers({
+  analysis: z.object({
+    summary: z.string(),
+    severity: z.enum(["low", "medium", "high"]),
+  }),
+  fix: z.object({
+    patch: z.string(),
+    explanation: z.string(),
+  }),
+});
+
+const analyst = new Agent({
+  model: anthropic("claude-sonnet-4-5-20250929"),
+  instructions: "You are a code analyst. Return structured JSON.",
+});
+
+const fixer = new Agent({
+  model: anthropic("claude-sonnet-4-5-20250929"),
+  instructions: "You are a senior engineer who writes minimal, correct fixes.",
+});
+
+export default smithers((ctx) => (
+  <Workflow
+    name="Bugfix"
+    triggers={[on.manualDispatch({ inputs: { description: { type: "string", required: true } } })]}
+  >
+    <Task id="analyze" output="analysis" agent={analyst}>
+      {`Analyze this bug: ${ctx.input.description}`}
+    </Task>
+    <Task id="fix" output="fix" agent={fixer}>
+      {`Fix this issue: ${ctx.output("analysis", { nodeId: "analyze" }).summary}`}
+    </Task>
+  </Workflow>
+));
+```
+
+### How It Works
+
+| Concept | Description |
+|---------|-------------|
+| `createSmithers({ ... })` | Defines Zod schemas for task outputs. Returns `Workflow`, `Task`, and `smithers` bound to those schemas. |
+| `smithers((ctx) => ...)` | Wraps your workflow factory with schema-aware context. Use instead of a plain `export default (ctx) => ...`. |
+| `output="analysis"` | Tells the task to validate and persist its output against the `analysis` Zod schema. |
+| `ctx.output("analysis", { nodeId: "analyze" })` | Reads the typed output from a previous task. Fully type-safe — returns `{ summary: string, severity: "low" \| "medium" \| "high" }`. |
+
+The simple `export default (ctx) => <Workflow>` pattern (shown earlier) works for compute tasks that just run shell commands. Use `createSmithers` when tasks need to pass structured data to each other.
+
+## Next Steps
+
+- [AI Agents Guide](/guides/ai-agents) - Workflow agents, sandboxed runners, and workspaces
+- [Landing Requests Guide](/guides/landing-requests) - full LR lifecycle
+- [CLI Reference](/cli-reference/commands) - all available commands

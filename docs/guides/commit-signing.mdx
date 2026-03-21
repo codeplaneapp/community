@@ -1,0 +1,310 @@
+---
+title: Commit Signing
+description: Verify commit authorship with GPG or SSH key signatures
+---
+
+# Commit Signing
+
+Commit signing provides cryptographic proof that a commit was authored by a specific person. When you sign a commit, you attach a digital signature that JJHub can verify against your uploaded public key. Verified commits display a **Verified** badge, giving reviewers and collaborators confidence that the code was not tampered with and genuinely came from you.
+
+## Why Sign Commits
+
+- **Authorship verification**: Prove that a commit was created by the person who claims to have created it, not someone who happened to have push access.
+- **Tamper detection**: If a signed commit is modified after signing, the signature becomes invalid.
+- **Supply chain security**: In CI/CD pipelines and automated workflows, signed commits provide an audit trail of who (or what agent) produced each change.
+- **Protected bookmark enforcement**: Repository owners can require signed commits on protected bookmarks, rejecting unsigned pushes.
+
+## Supported Key Types
+
+JJHub supports two signing backends:
+
+| Backend | Key Type | Best For |
+|---------|----------|----------|
+| **GPG** | RSA, Ed25519, ECDSA | Traditional PGP key infrastructure, multiple identities per key |
+| **SSH** | Ed25519, RSA, ECDSA | Simpler setup, reuse existing SSH keys |
+
+Both backends produce signatures that JJHub can verify when the corresponding public key is uploaded to your account.
+
+## Configuring jj for Commit Signing
+
+### GPG Signing
+
+To configure jj to sign commits with GPG:
+
+```bash
+# Set the signing backend to GPG
+jj config set --user signing.backend gpg
+
+# Set your GPG key ID (use your key's fingerprint or email)
+jj config set --user signing.key "YOUR_GPG_KEY_ID"
+
+# Optionally, sign all commits by default
+jj config set --user signing.sign-all true
+```
+
+If you do not set `signing.sign-all`, you can sign individual commits by passing the `--sign` flag to jj commands that create commits.
+
+### SSH Signing
+
+To configure jj to sign commits with an SSH key:
+
+```bash
+# Set the signing backend to SSH
+jj config set --user signing.backend ssh
+
+# Point to your SSH private key
+jj config set --user signing.key "~/.ssh/id_ed25519"
+
+# Optionally, sign all commits by default
+jj config set --user signing.sign-all true
+```
+
+SSH signing uses the same key format as your authentication SSH keys. If you already have an SSH key uploaded to JJHub for push/pull access, you can use that same key for signing.
+
+## Uploading Your Signing Key to JJHub
+
+For JJHub to verify your signed commits, you must upload the corresponding public key to your account.
+
+### GPG Keys
+
+Upload your GPG public key via the CLI or API.
+
+**Export your GPG public key:**
+
+```bash
+# Export your GPG public key in ASCII-armored format
+gpg --armor --export YOUR_GPG_KEY_ID
+```
+
+**Upload via CLI:**
+
+```bash
+# Add a GPG key from a file
+jjhub gpg-key add --key-file ~/.gnupg/pubkey.asc
+
+# Or pipe the key directly
+gpg --armor --export YOUR_GPG_KEY_ID | jjhub gpg-key add
+```
+
+**Upload via API:**
+
+```bash
+curl -X POST https://api.jjhub.tech/api/user/gpg-keys \
+  -H "Authorization: token jjhub_your_token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "armored_public_key": "-----BEGIN PGP PUBLIC KEY BLOCK-----\n...\n-----END PGP PUBLIC KEY BLOCK-----"
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "id": 1,
+  "primary_key_id": "3DE1A1B4D3A8C5F2",
+  "key_id": "3DE1A1B4D3A8C5F2",
+  "public_key": "-----BEGIN PGP PUBLIC KEY BLOCK-----\n...\n-----END PGP PUBLIC KEY BLOCK-----",
+  "emails": [
+    {
+      "email": "alice@example.com",
+      "verified": true
+    }
+  ],
+  "subkeys": [],
+  "can_sign": true,
+  "can_encrypt_comms": false,
+  "can_encrypt_storage": false,
+  "can_certify": true,
+  "verified": true,
+  "created_at": "2026-03-06T12:00:00Z"
+}
+```
+
+**List your GPG keys:**
+
+```bash
+jjhub gpg-key list
+```
+
+**Delete a GPG key:**
+
+```bash
+jjhub gpg-key delete <key-id>
+```
+
+### SSH Keys
+
+SSH signing keys use the same keys you upload for SSH authentication. If you have already added an SSH key via `jjhub ssh-key add`, that key is automatically available for commit signature verification -- no additional upload is needed.
+
+If you use a separate key for signing (different from your authentication key), add it as an SSH key:
+
+```bash
+jjhub ssh-key add -t "Signing Key" -k "$(cat ~/.ssh/id_ed25519_signing.pub)"
+```
+
+## Verified Commits
+
+When JJHub receives a push containing signed commits, it automatically verifies each commit's signature against the public keys on the author's account.
+
+### Verification Statuses
+
+| Status | Meaning |
+|--------|---------|
+| **Verified** | The signature is valid and matches a key on the committer's JJHub account. |
+| **Unverified** | The commit has a signature, but it does not match any key on the committer's account, or the key has expired. |
+| **Unsigned** | The commit has no signature. |
+
+### Viewing Verification Status
+
+**Via CLI:**
+
+When viewing changes or landing requests, the verification status is shown alongside each commit:
+
+```bash
+# View a change with its signature status
+jjhub change show <change-id>
+```
+
+The output includes a `signature` field showing the verification status:
+
+```
+Change: kxyz1234
+Author: alice <alice@example.com>
+Date:   2026-03-06 12:00:00 UTC
+Signature: Verified (GPG key 3DE1A1B4D3A8C5F2)
+
+    Add authentication middleware
+```
+
+**Via API:**
+
+The change and commit API endpoints include a `verification` field:
+
+```bash
+curl https://api.jjhub.tech/api/repos/owner/repo/changes/kxyz1234 \
+  -H "Authorization: token jjhub_your_token"
+```
+
+```json
+{
+  "change_id": "kxyz1234",
+  "commit_sha": "abc123def456",
+  "author": {
+    "login": "alice",
+    "email": "alice@example.com"
+  },
+  "message": "Add authentication middleware",
+  "verification": {
+    "verified": true,
+    "reason": "valid",
+    "signature": "-----BEGIN PGP SIGNATURE-----\n...\n-----END PGP SIGNATURE-----",
+    "signing_key": {
+      "id": 1,
+      "key_id": "3DE1A1B4D3A8C5F2",
+      "type": "gpg"
+    }
+  }
+}
+```
+
+The `verification.reason` field can be one of:
+
+| Reason | Description |
+|--------|-------------|
+| `valid` | Signature is valid and matches a trusted key |
+| `unsigned` | No signature present |
+| `unverified_key` | Signature is valid but the key is not associated with any JJHub account |
+| `expired_key` | Signature was made with a key that has since expired |
+| `bad_signature` | Signature is malformed or does not match the commit data |
+
+## Protected Bookmark Signing Requirements
+
+Repository owners can require that all commits pushed to a protected bookmark are signed. This is configured through bookmark protection rules:
+
+```bash
+# View bookmark protection rules (via API)
+curl https://api.jjhub.tech/api/repos/owner/repo/bookmarks/main/protection \
+  -H "Authorization: token jjhub_your_token"
+```
+
+When `require_signed_commits` is enabled on a protected bookmark, any push containing unsigned or unverified commits is rejected.
+
+## GPG Key API Reference
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/user/gpg-keys` | List your GPG keys |
+| `GET` | `/api/user/gpg-keys/:id` | Get a specific GPG key |
+| `POST` | `/api/user/gpg-keys` | Upload a new GPG key |
+| `DELETE` | `/api/user/gpg-keys/:id` | Delete a GPG key |
+
+### List GPG Keys
+
+```bash
+curl https://api.jjhub.tech/api/user/gpg-keys \
+  -H "Authorization: token jjhub_your_token"
+```
+
+Returns an array of GPG key objects.
+
+### Get a GPG Key
+
+```bash
+curl https://api.jjhub.tech/api/user/gpg-keys/1 \
+  -H "Authorization: token jjhub_your_token"
+```
+
+Returns a single GPG key object.
+
+### Upload a GPG Key
+
+```bash
+curl -X POST https://api.jjhub.tech/api/user/gpg-keys \
+  -H "Authorization: token jjhub_your_token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "armored_public_key": "-----BEGIN PGP PUBLIC KEY BLOCK-----\n...\n-----END PGP PUBLIC KEY BLOCK-----"
+  }'
+```
+
+Returns `201 Created` with the GPG key object. Returns `422 Unprocessable Entity` if the key is malformed or already associated with another account.
+
+### Delete a GPG Key
+
+```bash
+curl -X DELETE https://api.jjhub.tech/api/user/gpg-keys/1 \
+  -H "Authorization: token jjhub_your_token"
+```
+
+Returns `204 No Content` on success.
+
+## Troubleshooting
+
+### "Unverified" status on signed commits
+
+1. Confirm the signing key is uploaded to your JJHub account:
+   ```bash
+   jjhub gpg-key list
+   ```
+2. For GPG: ensure the email on your GPG key matches a verified email on your JJHub account.
+3. For SSH: ensure the signing key is added via `jjhub ssh-key add`.
+4. Check that the key has not expired:
+   ```bash
+   gpg --list-keys --keyid-format long YOUR_GPG_KEY_ID
+   ```
+
+### "No secret key" error when signing
+
+This means jj cannot find the private key for the configured `signing.key`. Verify:
+```bash
+# For GPG
+gpg --list-secret-keys
+
+# For SSH
+ls -la ~/.ssh/id_ed25519
+```
+
+### Commits signed locally but show as unsigned on JJHub
+
+This happens when the public key corresponding to your signing key has not been uploaded to JJHub. Upload it with `jjhub gpg-key add` (for GPG) or `jjhub ssh-key add` (for SSH).

@@ -1,0 +1,143 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "aspen",
+  "name": "JJHub",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#6366f1",
+    "light": "#818cf8",
+    "dark": "#4f46e5"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "API Status",
+        "href": "https://status.jjhub.tech"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Join Waitlist",
+      "href": "https://jjhub.tech/waitlist"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "introduction",
+              "philosophy",
+              "roadmap"
+            ]
+          },
+          {
+            "group": "Getting Started",
+            "pages": [
+              "getting-started/quick-start",
+              "getting-started/authentication",
+              "getting-started/first-repo",
+              "getting-started/first-workflow"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/repositories",
+              "guides/forking",
+              "guides/issues",
+              "guides/linear-integration",
+              "guides/notion-sync",
+              "guides/github-mirror",
+              "guides/landing-requests",
+              "guides/stacked-changes",
+              "guides/workflows",
+              "guides/ai-agents",
+              "guides/workspaces",
+              "guides/organizations",
+              "guides/ssh-keys",
+              "guides/commit-signing",
+              "guides/deploy-keys",
+              "guides/git-lfs",
+              "guides/search",
+              "guides/jj-crash-course",
+              "guides/jj-cheat-sheet",
+              "guides/github-cheat-sheet"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "API Reference",
+            "pages": [
+              "api-reference/authentication",
+              "api-reference/errors",
+              "api-reference/pagination",
+              "api-reference/rate-limiting",
+              "api-reference/webhooks",
+              "api-reference/sse",
+              "api-reference/jj-vcs"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI Reference",
+        "groups": [
+          {
+            "group": "CLI Reference",
+            "pages": [
+              "cli-reference/installation",
+              "cli-reference/commands",
+              "cli-reference/jj-concepts"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "UI",
+        "groups": [
+          {
+            "group": "Preview",
+            "pages": [
+              "guides/ui"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "API Reference",
+          "icon": "code",
+          "href": "/api-reference"
+        },
+        {
+          "anchor": "CLI Reference",
+          "icon": "terminal",
+          "href": "/cli-reference"
+        },
+        {
+          "anchor": "UI Preview",
+          "icon": "desktop",
+          "href": "/guides/ui"
+        }
+      ]
+    }
+  },
+  "api": {
+    "openapi": "openapi.yaml"
+  },
+  "footer": {}
+}

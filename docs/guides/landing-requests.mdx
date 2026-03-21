@@ -1,0 +1,836 @@
+---
+title: Landing Requests
+description: JJHub's jj-native replacement for Pull Requests
+---
+
+# Landing Requests
+
+Landing Requests (LRs) are JJHub's native replacement for Pull Requests. They're built from the ground up for jj's stacked changes model - stable Change IDs, first-class conflict tracking, and automatic rebasing.
+
+## Landing Requests vs Pull Requests
+
+| Aspect | Pull Requests (GitHub) | Landing Requests (JJHub) |
+|--------|----------------------|------------------------|
+| Identity | Tied to branch name | Tied to stable Change IDs |
+| Stacked changes | Painful (rebase chains) | First-class (`--stack` flag) |
+| Conflicts | Block merge | Tracked, work continues |
+| Rebase | Changes commit hashes | Change IDs survive |
+| Landing queue | Basic merge queue | Programmable (TypeScript) |
+
+## Create a Landing Request
+
+```bash
+jjhub land create --title "Add user authentication" --target main
+```
+
+Key flags:
+
+| Flag | Description |
+|------|-------------|
+| `-t, --title <text>` | LR title |
+| `-b, --body <text>` | LR description |
+| `--target <bookmark>` | Target bookmark (default: `main`) |
+| `--change-id <id>` | Explicit change ID(s), repeatable |
+| `--stack` | Include the full stack of changes |
+| `--draft` | Create the LR as a draft (not ready for review) |
+
+### Landing a Stack
+
+When you're working with stacked changes, use `--stack` to include the entire chain:
+
+```bash
+# Create a stack of changes
+jj new main -m "Add user model"
+# ... make changes ...
+jj new -m "Add auth middleware"
+# ... make changes ...
+jj new -m "Add login endpoint"
+# ... make changes ...
+
+# Push all changes
+jj git push --all
+
+# Create an LR for the whole stack
+jjhub land create --title "User authentication" --target main --stack
+```
+
+The LR will show the `stack_size` and all `change_ids` in the stack.
+
+## Draft Landing Requests
+
+A draft landing request is a work-in-progress LR that is not yet ready for review. Drafts let you push changes early, share context with teammates, and iterate on a stack without triggering review notifications or enforcing protection rules.
+
+### What makes a draft different from an open LR
+
+| Behavior | Draft | Open |
+|----------|-------|------|
+| Review notifications sent | No | Yes |
+| Status checks required | No | Yes |
+| Bookmark protection rules enforced | No | Yes |
+| Visible in default `jjhub land list` | No (use `--state draft` or `--state all`) | Yes |
+| Can receive reviews | Yes (but no notifications are sent) | Yes |
+| Can be merged | No (must be published first) | Yes |
+
+Draft LRs appear with a `draft` state badge when viewed with `jjhub land view`.
+
+### Creating a draft landing request
+
+Use the `--draft` flag when creating:
+
+```bash
+jjhub land create --title "Add user authentication" --target main --draft
+```
+
+This creates the LR in `draft` state. No review notifications are sent and no CI status checks are required while it remains a draft.
+
+### Creating a draft via the API
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/owner/repo/landings \
+  -H "Authorization: token jjhub_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Add user authentication",
+    "target": "main",
+    "draft": true
+  }'
+```
+
+The response includes `"state": "draft"` to confirm the LR was created as a draft.
+
+### Publishing a draft (moving from draft to open)
+
+When the changes are ready for review, publish the draft to move it to `open` state. There are two ways to do this:
+
+**Using `jjhub land ready`:**
+
+```bash
+jjhub land ready 42
+```
+
+This is the recommended shorthand. It moves the LR from `draft` to `open`, triggering review notifications and enabling protection rule enforcement.
+
+**Using `jjhub land edit`:**
+
+```bash
+jjhub land edit 42 --state open
+```
+
+**Via the API:**
+
+```bash
+curl -X PATCH https://api.jjhub.tech/api/repos/owner/repo/landings/42 \
+  -H "Authorization: token jjhub_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{"state": "open"}'
+```
+
+### When to use drafts
+
+- **Early feedback** -- Push changes and share the LR URL with a teammate for informal feedback before the code is complete.
+- **Work-in-progress changes** -- Start an LR to track your progress without cluttering the review queue.
+- **Stacked changes still in progress** -- When building a stack, create a draft LR for the full stack so you can push intermediate states without triggering CI on incomplete code.
+- **AI agent collaboration** -- Create a draft LR, let an AI agent iterate on the code via suggestions, then publish once the changes are ready for human review.
+
+### Converting an open LR back to draft
+
+If you need to pull a published LR back to draft state (for example, if you discover the changes need more work), use:
+
+```bash
+jjhub land edit 42 --state draft
+```
+
+This stops review notifications and suspends protection rule enforcement until the LR is published again. Existing reviews are preserved but stale review dismissal (if configured via bookmark protection) does not apply to draft LRs.
+
+---
+
+## List Landing Requests
+
+```bash
+# Open LRs (default)
+jjhub land list
+
+# All states
+jjhub land list --state all
+
+# Filter by state: open, closed, merged, draft
+jjhub land list --state merged --limit 10
+```
+
+## View a Landing Request
+
+```bash
+jjhub land view 42
+```
+
+Shows the title, body, state, change IDs, stack size, CI check status, and reviews.
+
+## Review
+
+```bash
+# Approve
+jjhub land review 42 --approve --body "Looks good"
+
+# Request changes
+jjhub land review 42 --request-changes --body "Please add tests"
+
+# Comment only
+jjhub land review 42 --comment --body "Question about the approach"
+```
+
+## Suggested Changes
+
+Suggested changes let reviewers propose specific code edits inline within a review comment. Instead of describing what to change in plain text, a reviewer can include the exact replacement code. The landing request author can then accept the suggestion with a single command, and JJHub automatically creates a new change with the edit applied.
+
+This is JJHub's equivalent of GitHub's suggested changes feature, adapted for jj's change model.
+
+### How suggested changes differ from regular review comments
+
+Regular review comments are plain text -- they describe what should change but leave the author to interpret and implement the fix. Suggested changes contain an actual code diff: the reviewer specifies the exact lines to replace and what they should become. This eliminates ambiguity, speeds up the review cycle, and is particularly powerful for AI agent reviews where the agent can propose precise fixes.
+
+Because JJHub is jj-native, accepting a suggestion creates a new jj change (with a stable Change ID) rather than amending an existing commit. This preserves the full history of how the code evolved during review.
+
+### Creating a suggestion via CLI
+
+Use the `suggestion` code fence syntax inside a review comment body. The fenced block specifies the replacement code for the lines being commented on:
+
+```bash
+# Leave a review comment with a suggested change on a specific file and line range
+jjhub land review 42 --comment --body 'The error message should be more descriptive.
+
+```suggestion
+return fmt.Errorf("authentication failed: invalid token format for user %s", username)
+```'
+```
+
+The ` ```suggestion ` block works the same way as on GitHub: the contents replace the lines the comment is attached to. You can include multiple suggestion blocks in a single review if commenting on different parts of the diff.
+
+When creating a review comment via the API, attach the suggestion to a specific file path and line range so JJHub knows which lines the replacement targets.
+
+### Viewing suggestions
+
+When viewing a landing request, suggestions are shown alongside regular review comments. Each suggestion has a unique ID and a status (pending, accepted, or rejected):
+
+```bash
+# View the landing request -- suggestions appear in the review section
+jjhub land view 42
+
+# List only suggestions for a landing request
+jjhub land suggestion list 42
+```
+
+### Accepting and rejecting suggestions
+
+The landing request author (or anyone with write access) can accept or reject individual suggestions:
+
+```bash
+# Accept a single suggestion by ID -- creates a new change with the edit applied
+jjhub land suggestion accept 42 --id 7
+
+# Reject a suggestion by ID
+jjhub land suggestion reject 42 --id 7
+
+# Accept all pending suggestions on a landing request at once
+jjhub land suggestion accept-all 42
+```
+
+When a suggestion is accepted:
+
+1. JJHub applies the code replacement to the target file at the specified lines.
+2. A new jj change is created with the edit. The change description is auto-generated (e.g., "Apply suggestion from @reviewer on src/auth.go").
+3. The new change is added to the landing request's change stack.
+4. The suggestion status updates to `accepted`.
+5. CI checks re-run against the updated code.
+
+When a suggestion is rejected, its status updates to `rejected` and no code changes are made.
+
+### Batch accepting suggestions
+
+For landing requests with many suggestions, use `accept-all` to apply every pending suggestion in a single operation:
+
+```bash
+jjhub land suggestion accept-all 42
+```
+
+This creates one new change per accepted suggestion (preserving granular history) or, if the `--squash` flag is used, combines all accepted suggestions into a single change:
+
+```bash
+# Combine all accepted suggestions into one change
+jjhub land suggestion accept-all 42 --squash
+```
+
+### Suggestion syntax in comments
+
+The suggestion syntax uses a fenced code block with the `suggestion` language identifier:
+
+````markdown
+This function should handle the nil case:
+
+```suggestion
+if user == nil {
+    return ErrUserNotFound
+}
+return validateUser(user)
+```
+````
+
+The code inside the `suggestion` block replaces the lines that the review comment is anchored to. A single comment can contain at most one suggestion block. To suggest changes to multiple locations, create separate review comments for each.
+
+### API endpoints for suggestions
+
+Suggestions are managed through dedicated endpoints on the landing request:
+
+```
+GET    /api/repos/:owner/:repo/landings/:number/suggestions              # List suggestions
+POST   /api/repos/:owner/:repo/landings/:number/suggestions              # Create a suggestion
+GET    /api/repos/:owner/:repo/landings/:number/suggestions/:id          # Get a suggestion
+PUT    /api/repos/:owner/:repo/landings/:number/suggestions/:id/accept   # Accept a suggestion
+PUT    /api/repos/:owner/:repo/landings/:number/suggestions/:id/reject   # Reject a suggestion
+PUT    /api/repos/:owner/:repo/landings/:number/suggestions/accept-all   # Accept all pending
+```
+
+**Create a suggestion:**
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/owner/repo/landings/42/suggestions \
+  -H "Authorization: token jjhub_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "body": "The error message should be more descriptive.",
+    "path": "internal/routes/auth.go",
+    "start_line": 45,
+    "end_line": 45,
+    "suggestion": "return fmt.Errorf(\"authentication failed: invalid token format for user %s\", username)"
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "id": 7,
+  "landing_number": 42,
+  "author": { "login": "reviewer", "id": 2 },
+  "body": "The error message should be more descriptive.",
+  "path": "internal/routes/auth.go",
+  "start_line": 45,
+  "end_line": 45,
+  "suggestion": "return fmt.Errorf(\"authentication failed: invalid token format for user %s\", username)",
+  "status": "pending",
+  "change_id": null,
+  "created_at": "2024-01-15T11:00:00Z",
+  "updated_at": "2024-01-15T11:00:00Z"
+}
+```
+
+**Accept a suggestion:**
+
+```bash
+curl -X PUT https://api.jjhub.tech/api/repos/owner/repo/landings/42/suggestions/7/accept \
+  -H "Authorization: token jjhub_xxxxx"
+```
+
+After acceptance, the response includes the `change_id` of the newly created change:
+
+```json
+{
+  "id": 7,
+  "status": "accepted",
+  "change_id": "kxyz1234abcd",
+  "applied_at": "2024-01-15T11:05:00Z"
+}
+```
+
+### How accepted suggestions create new changes
+
+When a suggestion is accepted, JJHub performs the following operations on the repo-host:
+
+1. The repo-host reads the target file at the specified lines from the change that the suggestion is attached to.
+2. It replaces the specified line range with the suggestion content.
+3. A new jj change is created as a descendant of the current tip of the landing request's change stack.
+4. The change description is set to: `Apply suggestion from @<reviewer> on <path>`.
+5. The new change's stable Change ID is recorded on the suggestion record.
+6. The landing request's `change_ids` list and `stack_size` are updated to include the new change.
+
+This approach preserves full auditability -- every accepted suggestion is a distinct change in the jj operation log, traceable back to the reviewer who proposed it and the exact lines that were modified.
+
+### Suggestions and AI agents
+
+Suggested changes are particularly powerful when combined with JJHub's AI agent system. An AI agent reviewing a landing request can propose precise code fixes as suggestions rather than just describing issues in prose. The author can review the agent's suggestions and accept them with a single command, creating a tight human-in-the-loop workflow:
+
+```bash
+# AI agent submits a review with suggestions via the API
+# Author reviews what the agent proposed
+jjhub land suggestion list 42
+
+# Accept the good ones, reject the rest
+jjhub land suggestion accept 42 --id 12
+jjhub land suggestion accept 42 --id 13
+jjhub land suggestion reject 42 --id 14
+```
+
+---
+
+## Check CI Status
+
+```bash
+jjhub land checks 42
+```
+
+Shows the status of all CI checks associated with the landing request.
+
+## Conflict Resolution
+
+jj treats conflicts as first-class objects, not file markers. When two changes modify the same file, jj records a **conflict object** that preserves all three sides: the **base** (common ancestor), the **left** (your version), and the **right** (the other version). This means conflicts are data, not corruption -- you can continue working, push, and even review code that contains conflicts.
+
+Landing Requests surface jj's conflict tracking automatically. When a conflict is detected, the LR's `conflict_status` field changes from `"clean"` to `"conflicted"`, and a `landing.conflict` webhook event fires if webhooks are configured.
+
+### How jj conflicts differ from git merge conflicts
+
+In git, a conflict produces inline markers (`<<<<<<<`, `=======`, `>>>>>>>`) that corrupt the file until manually resolved. The file is in a broken state and cannot be compiled or tested.
+
+In jj, a conflict is a structured object stored alongside the file. The file itself is not corrupted -- jj records what the base, left, and right versions are as separate trees. This means:
+
+- You can view each side independently
+- Other changes in the stack can continue to land even if one change has conflicts
+- Conflict state is tracked per-change, not per-file globally
+- The programmable landing queue can be configured to allow landing with conflicts (for workflows that resolve them later)
+
+### Viewing conflicts
+
+Use `jjhub land conflicts` to see the conflict details for a landing request:
+
+```bash
+# View conflicts for LR #42
+jjhub land conflicts 42
+```
+
+This shows each conflicted file with the paths, conflict type, and the change IDs involved. For deeper inspection of a specific change's conflicts, use:
+
+```bash
+# Show conflict details for a specific change (base, left, right versions)
+jjhub change show <change-id>
+```
+
+The `jjhub change show` command displays the full conflict object, including the base, left, and right file contents so you can understand exactly what diverged.
+
+### Viewing conflicts via the API
+
+```bash
+# Get conflict status for a landing request
+curl -H "Authorization: token jjhub_xxxxx" \
+  https://api.jjhub.tech/api/repos/:owner/:repo/landings/42/conflicts
+```
+
+The `GET /repos/{owner}/{repo}/landings/{number}/conflicts` endpoint returns the list of conflicts for the landing request, including the file paths, conflict type, and the change IDs where conflicts were detected.
+
+You can also check conflicts at the individual change level:
+
+```bash
+# Get conflicts for a specific change
+curl -H "Authorization: token jjhub_xxxxx" \
+  https://api.jjhub.tech/api/repos/:owner/:repo/changes/:change_id/conflicts
+```
+
+### The conflict resolution workflow
+
+1. **Detect** -- The LR shows `conflict_status: "conflicted"` automatically. You can also see it when running `jjhub land view 42`.
+
+2. **Inspect** -- Run `jjhub land conflicts 42` to see which files are conflicted and which changes are involved. Then use `jjhub change show <change-id>` to see the base, left, and right versions.
+
+3. **Resolve locally** -- In your local jj repository, resolve the conflicts using jj's built-in resolution tools:
+
+    ```bash
+    # Rebase your change on top of the latest target bookmark
+    jj rebase -d main
+
+    # jj will create conflict objects if there are conflicts
+    # Resolve them using your preferred method:
+    jj resolve          # Opens a merge tool for each conflicted file
+    jj resolve <file>   # Resolve a specific file
+    ```
+
+4. **Push** -- After resolving, push your changes. The LR updates automatically because it tracks stable Change IDs, not commit hashes:
+
+    ```bash
+    jj git push
+    ```
+
+5. **Verify** -- The LR's `conflict_status` updates to `"clean"` once all conflicts are resolved. CI checks re-run automatically against the updated changes.
+
+### Conflicts in stacked changes
+
+When working with stacked changes, a conflict in one change can cascade to descendant changes in the stack. jj handles this naturally -- resolving the conflict in the parent change and rebasing descendants will clear the cascading conflicts:
+
+```bash
+# If change B (child of A) has conflicts after A was rebased:
+jj edit <change-id-of-A>
+jj resolve
+jj rebase -s <change-id-of-B> -d <change-id-of-A>
+jj git push --all
+```
+
+The LR will reflect the updated conflict status for the entire stack.
+
+## Review Conversations
+
+When reviewing a landing request, reviewers leave comments -- either general comments about the overall LR or inline comments on specific lines of code. These comments form **review conversations** (also called threads). A conversation starts with a top-level review comment and may include replies from the author or other reviewers.
+
+Review conversations can be **resolved** to indicate that the feedback has been addressed. Resolving a conversation collapses it visually and signals to the team that the discussion point is handled. Resolved conversations are not deleted -- they remain accessible and can be re-opened (unresolved) at any time if the issue resurfaces.
+
+### Resolving and unresolving conversations
+
+Use `jjhub land thread resolve` to mark a review comment thread as resolved, and `jjhub land thread unresolve` to re-open it:
+
+```bash
+# Resolve a review comment thread
+jjhub land thread resolve <comment-id>
+
+# Re-open a previously resolved thread
+jjhub land thread unresolve <comment-id>
+```
+
+The `<comment-id>` is the ID of the review comment that anchors the thread. You can find comment IDs by listing the threads on a landing request (see below).
+
+### Listing threads
+
+To see review threads on a landing request, use `jjhub land threads`. By default this shows all threads; use `--unresolved` to filter to only unresolved ones:
+
+```bash
+# List only unresolved threads on LR #42
+jjhub land threads 42 --unresolved
+
+# List all threads (both resolved and unresolved)
+jjhub land threads 42
+```
+
+The output includes each thread's comment ID, file path and line number (for inline comments), the author, the resolution status, and a body preview.
+
+### Who can resolve conversations
+
+The following users can resolve or unresolve a review conversation:
+
+- **The LR author** -- can resolve conversations on their own landing request to indicate feedback has been addressed
+- **The comment author** -- the reviewer who started the conversation can resolve it to confirm the fix is satisfactory
+- **Repository admins and owners** -- can resolve or unresolve any conversation
+- **Users with write access** -- any collaborator with write access to the repository can resolve conversations, matching Gitea's behavior
+
+### API endpoints
+
+Review conversation resolution is managed through the landing request comments API:
+
+```
+POST   /api/repos/:owner/:repo/landings/:number/comments/:id/resolve      # Resolve a thread
+POST   /api/repos/:owner/:repo/landings/:number/comments/:id/unresolve    # Unresolve a thread
+```
+
+**Resolve a review thread:**
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/owner/repo/landings/42/comments/15/resolve \
+  -H "Authorization: token jjhub_xxxxx"
+```
+
+**Response:**
+
+```json
+{
+  "id": 15,
+  "landing_request_id": 100,
+  "user_id": 1,
+  "path": "src/auth.rs",
+  "line": 42,
+  "side": "right",
+  "body": "This should handle the error case",
+  "resolved": true,
+  "resolved_by": 2,
+  "resolved_at": "2024-01-15T12:00:00Z",
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T12:00:00Z"
+}
+```
+
+**Unresolve a review thread:**
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/owner/repo/landings/42/comments/15/unresolve \
+  -H "Authorization: token jjhub_xxxxx"
+```
+
+The unresolve response returns the same comment object with `resolved` set to `false` and `resolved_by` and `resolved_at` cleared to `null`.
+
+### Integration with bookmark protection
+
+Bookmark protection rules can require that all review conversations are resolved before a landing request can be merged. This ensures that every piece of review feedback has been explicitly addressed before code lands.
+
+To enable this rule on a protected bookmark:
+
+```bash
+jjhub bookmark protect main --require-resolved-conversations
+```
+
+When this rule is active and unresolved conversations remain, `jjhub land land` will fail with a clear error:
+
+```bash
+$ jjhub land land 42
+Error: Landing request #42 cannot be landed into protected bookmark "main":
+  - Unresolved conversations: 3 threads must be resolved before landing
+```
+
+The `jjhub land view` command also shows the count of unresolved conversations, so authors can track their progress toward satisfying this protection rule.
+
+---
+
+## Land
+
+```bash
+jjhub land land 42
+```
+
+Lands the landing request into the target bookmark. The landing queue handles conflict detection and serialization.
+
+## Programmable Landing Queue
+
+The landing queue is programmable via TypeScript workflows. By default, it serializes merges (one at a time), but you can configure custom merge strategies:
+
+```tsx
+// .jjhub/workflows/landing-queue.tsx
+import { Workflow, Task, on } from "@jjhub-ai/workflow";
+import { $ } from "bun";
+
+export default (ctx) => (
+  <Workflow
+    name="Landing Queue"
+    triggers={[on.landingRequest.readyToLand()]}
+  >
+    <Task id="validate">
+      {async () => {
+        await $`bun test`;
+        await $`bun run build`;
+      }}
+    </Task>
+  </Workflow>
+);
+```
+
+## Bookmark Protection
+
+Bookmark protection lets you define rules that gate landing into important bookmarks. When a landing request targets a protected bookmark, it must satisfy all configured rules before it can be merged. This is the jj-native equivalent of Gitea's branch protection.
+
+### Why Bookmark Protection?
+
+Without protection rules, any collaborator with write access can land changes directly into `main` or other critical bookmarks. Protection rules enforce code quality gates:
+
+- Require peer review before landing
+- Require CI status checks to pass
+- Prevent force pushes that rewrite history
+- Automatically dismiss stale reviews when new changes are pushed
+
+### Setting Up Protection Rules
+
+Use `jjhub bookmark protect` to configure protection on a bookmark pattern:
+
+```bash
+# Protect the main bookmark - require 1 approval before landing
+jjhub bookmark protect main --require-review --approvals 1
+
+# Protect all release bookmarks with 2 required approvals
+jjhub bookmark protect "release/*" --require-review --approvals 2
+
+# Require status checks to pass before landing
+jjhub bookmark protect main --require-status-checks
+
+# Combine multiple rules
+jjhub bookmark protect main \
+  --require-review \
+  --approvals 2 \
+  --require-status-checks \
+  --dismiss-stale-reviews \
+  --no-force-push
+```
+
+To remove protection from a bookmark pattern:
+
+```bash
+jjhub bookmark unprotect main
+```
+
+To list all protection rules for a repository:
+
+```bash
+jjhub bookmark protections
+```
+
+### Configurable Rules
+
+| Rule | Flag | Description |
+|------|------|-------------|
+| Required reviews | `--require-review` | Landing requests must be reviewed before landing |
+| Required approvals | `--approvals <n>` | Minimum number of approving reviews required (default: 1) |
+| Required status checks | `--require-status-checks` | All CI status checks must pass before landing |
+| Resolved conversations | `--require-resolved-conversations` | All review conversations must be resolved before landing |
+| Dismiss stale reviews | `--dismiss-stale-reviews` | Approvals are dismissed when new changes are pushed to the LR |
+| No force push | `--no-force-push` | Prevent force-pushing to the protected bookmark |
+
+### Pattern Matching
+
+Bookmark protection rules use glob-style pattern matching:
+
+| Pattern | Matches |
+|---------|---------|
+| `main` | Exactly the `main` bookmark |
+| `release/*` | Any bookmark starting with `release/` (e.g., `release/v1.0`, `release/v2.0`) |
+| `staging-*` | Any bookmark starting with `staging-` |
+
+When a landing request targets a bookmark, all matching protection rules are evaluated. If multiple patterns match, the most restrictive combined rules apply. For example, if `main` requires 1 approval and `*` requires status checks, a landing request targeting `main` requires both 1 approval and passing status checks.
+
+### API Endpoints
+
+Bookmark protection rules are managed through the repository API:
+
+```
+GET    /api/repos/:owner/:repo/bookmark-protections              # List protection rules
+POST   /api/repos/:owner/:repo/bookmark-protections              # Create protection rule
+GET    /api/repos/:owner/:repo/bookmark-protections/:pattern     # Get protection rule
+PATCH  /api/repos/:owner/:repo/bookmark-protections/:pattern     # Update protection rule
+DELETE /api/repos/:owner/:repo/bookmark-protections/:pattern     # Delete protection rule
+```
+
+**Create a protection rule:**
+
+```bash
+curl -X POST https://api.jjhub.tech/api/repos/owner/repo/bookmark-protections \
+  -H "Authorization: token jjhub_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pattern": "main",
+    "require_review": true,
+    "required_approvals": 2,
+    "require_status_checks": true,
+    "dismiss_stale_reviews": true,
+    "no_force_push": true
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "id": 1,
+  "pattern": "main",
+  "require_review": true,
+  "required_approvals": 2,
+  "require_status_checks": true,
+  "dismiss_stale_reviews": true,
+  "no_force_push": true,
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T10:30:00Z"
+}
+```
+
+### How Protection Interacts with Landing Requests
+
+When you run `jjhub land land` on a landing request that targets a protected bookmark, JJHub enforces all matching protection rules:
+
+1. **Review check** - If `require_review` is enabled, the LR must have at least `required_approvals` approving reviews. Reviews with "request changes" block landing regardless of approval count.
+2. **Status check** - If `require_status_checks` is enabled, all CI status checks associated with the LR's changes must report a `success` status.
+3. **Resolved conversations** - If `require_resolved_conversations` is enabled, all review comment threads on the LR must be resolved before landing. Use `jjhub land threads 42 --unresolved` to see remaining threads.
+4. **Stale review dismissal** - If `dismiss_stale_reviews` is enabled, pushing new changes to the LR automatically dismisses previous approvals, requiring fresh reviews.
+5. **Force push prevention** - If `no_force_push` is enabled, any attempt to force-push to the protected bookmark is rejected at the git protocol level.
+
+If any rule is not satisfied, the landing is rejected with a clear error message explaining which rules failed:
+
+```bash
+$ jjhub land land 42
+Error: Landing request #42 cannot be landed into protected bookmark "main":
+  - Required approvals: 2 (got 1)
+  - Required status checks: ci/test (pending)
+```
+
+The `jjhub land view` and `jjhub land checks` commands also display protection rule status, so authors know exactly what is needed before attempting to land.
+
+---
+
+## Lifecycle
+
+1. **Create** - Author opens an LR with `jjhub land create` (optionally as a `--draft`)
+1. **Draft (optional)** - If created as a draft, iterate on changes without triggering notifications. Publish with `jjhub land ready` when ready.
+2. **Review** - Team reviews with `jjhub land review`. Reviewers can leave comments, approve, request changes, or propose [suggested changes](#suggested-changes) with inline code replacements.
+3. **Apply Suggestions** - Author reviews any suggested changes and accepts or rejects them with `jjhub land suggestion accept` / `reject`. Accepted suggestions automatically create new changes in the stack.
+4. **CI Checks** - Automated workflows validate the changes
+5. **Resolve Conflicts** - If conflicts arise, view them with `jjhub land conflicts`, resolve locally with `jj resolve`, and push. The LR updates automatically.
+6. **Resolve Conversations** - Address review feedback and mark threads as resolved with `jjhub land thread resolve`. If bookmark protection requires resolved conversations, all threads must be resolved before landing.
+7. **Protection Rules** - All bookmark protection rules for the target bookmark must be satisfied
+8. **Land** - Author or maintainer lands with `jjhub land land`
+
+LRs track conflicts automatically via jj's first-class conflict objects. Unlike git, conflicts do not block work -- the LR surfaces them, other changes in the stack can proceed, and you resolve at your own pace. See [Conflict Resolution](#conflict-resolution) for the full workflow.
+
+## Reactions
+
+Reactions let you add emoji responses to issues and comments. JJHub supports the same reaction types as Gitea: `+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, and `eyes`.
+
+### Supported Reaction Types
+
+| Reaction | Emoji | Description |
+|----------|-------|-------------|
+| `+1` | :+1: | Thumbs up |
+| `-1` | :-1: | Thumbs down |
+| `laugh` | :laughing: | Laughing |
+| `hooray` | :tada: | Hooray / celebration |
+| `confused` | :confused: | Confused |
+| `heart` | :heart: | Heart |
+| `rocket` | :rocket: | Rocket |
+| `eyes` | :eyes: | Eyes |
+
+### CLI Commands
+
+```bash
+# Add a reaction to an issue
+jjhub issue react 42 +1
+
+# List reactions on an issue
+jjhub issue reactions 42
+
+# Add a reaction to an issue comment (by comment ID)
+jjhub issue react --comment 15 heart
+```
+
+### API Endpoints
+
+#### Issue Reactions
+
+```bash
+# List reactions on an issue
+curl -H "Authorization: token $JJHUB_TOKEN" \
+  https://api.jjhub.tech/repos/{owner}/{repo}/issues/{number}/reactions
+
+# Add a reaction to an issue
+curl -X POST -H "Authorization: token $JJHUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "+1"}' \
+  https://api.jjhub.tech/repos/{owner}/{repo}/issues/{number}/reactions
+
+# Remove a reaction from an issue
+curl -X DELETE -H "Authorization: token $JJHUB_TOKEN" \
+  https://api.jjhub.tech/repos/{owner}/{repo}/issues/{number}/reactions/{id}
+```
+
+#### Comment Reactions
+
+```bash
+# Add a reaction to an issue comment
+curl -X POST -H "Authorization: token $JJHUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "rocket"}' \
+  https://api.jjhub.tech/repos/{owner}/{repo}/issues/comments/{id}/reactions
+
+# List reactions on an issue comment
+curl -H "Authorization: token $JJHUB_TOKEN" \
+  https://api.jjhub.tech/repos/{owner}/{repo}/issues/comments/{id}/reactions
+
+# Remove a reaction from an issue comment
+curl -X DELETE -H "Authorization: token $JJHUB_TOKEN" \
+  https://api.jjhub.tech/repos/{owner}/{repo}/issues/comments/{id}/reactions/{reaction_id}
+```
+
+Each reaction response includes the reaction `id`, `content` (the reaction type), and the `user` who reacted.

@@ -1,0 +1,64 @@
+---
+title: UI Prototype Showcase
+description: A preview of the upcoming JJHub internal application UI
+---
+
+# JJHub Internal Application UI
+
+While the JJHub UI (hosted at [jjhub.tech](https://jjhub.tech)) is currently under active development and not broadly released, we have a functional prototype demonstrating the core product vision! 
+
+Once authenticated, developers gain access to a powerful interface crafted specifically to bridge the gap between traditional workflows and our modern "Agent-Powered Engineering" paradigm. Here is a sneak peek at the internal application.
+
+## 1. Repositories Dashboard
+
+Your control center. The Dashboard consolidates all your projects and offers quick navigation to Readouts, Integrations, and specialized Workspace tools. 
+
+![Repositories Dashboard](/ui/ui_internal_dashboard_1772749776419.png)
+
+## 2. Global Inbox
+
+The Inbox serves as a unified notification center. Whether an AI agent requests review on a Landing Request, or a teammate mentions you in an issue, everything flows through here to ensure nothing is missed.
+
+![Global Inbox](/ui/ui_internal_inbox_1772749786783.png)
+
+## 3. Integrations & Skills Store
+
+JJHub is built to extend your existing workflow seamlessly. The built-in Integrations view functions like an App Store, allowing you to connect external services such as GitHub Mirror, Linear Sync, Notion Sync, and PostgreSQL, then install custom Agent Skills to augment your workspace.
+
+Linear can be configured from either the browser UI or the CLI. Open **Linear Sync** in the Integrations view to run the OAuth flow in the browser, or use `jjhub extension linear install` when you want a scriptable setup path. See the [Linear Integration guide](/guides/linear-integration) for both flows.
+
+GitHub Mirror follows the Gitea push-mirror model. Open **GitHub Mirror** in the Integrations view to review the required environment variables, webhook events, and provisioning requirements. You must create the destination GitHub repository before enabling sync. See the [GitHub Mirror guide](/guides/github-mirror) for the full setup flow.
+
+![Integrations App Store](/ui/ui_internal_integrations_1772749798201.png)
+
+## 4. Jujutsu-Native Repository View
+
+Unlike traditional platforms, JJHub's repository view natively understands the power of Jujutsu (`jj`). The contextual sidebar provides immediate access to core `jj` concepts: 
+
+- **Changes & Bookmarks**: Native tracking of continuous work.
+- **Conflicts**: First-class conflict resolution.
+- **Graph**: Visual stack representations.
+- **Landing Requests**: The evolution of Pull Requests designed for stacked diffs.
+
+*(yes we know screenshot is broken this feature is not implemented yet apologies for the temporary jankiness)*
+![Jujutsu-Native Repo View](/ui/ui_internal_repo_1772748583368.png)
+
+## 5. Integrated Workspace Terminal
+
+The cloud workspace environment includes a fully integrated terminal powered by [libghostty](https://github.com/ghostty-org/ghostty). You have direct SSH access to your project containers, allowing you to run `jj` commands, interact with your repository, or test code live in the browser without dropping into your local shell.
+
+![Workspace Terminal](/ui/ui_terminal.png)
+
+## 6. Session Replay
+
+JJHub also includes a repo-scoped **Session Replay** view for persisted agent conversations. From the Sessions screen you can open a timeline that replays user messages, agent responses, and tool calls with relative timestamps and token counts.
+
+This is useful when you need to debug a failed agent run, audit how a change was produced, or review what an interactive agent session actually did over time.
+
+## A Note on Customizability
+
+While we are dedicated to providing a great, highly polished default experience, we recognize that every team and project is unique. Our core philosophy is to build **composable primitives** directly on top of the JJHub API and agent skills.
+
+This means you are never locked into our specific UX choices. The platform is designed from the ground up to be completely extensible, empowering you to build the exact UI/UX workflow that works best for your project.
+
+*Stay tuned as we continue to flesh out the dashboard and repository management interfaces!*

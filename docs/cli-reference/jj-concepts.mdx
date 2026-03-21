@@ -1,0 +1,84 @@
+---
+title: jj Concepts Guide
+description: Understanding Jujutsu (jj) concepts as used by JJHub
+---
+
+# jj Concepts Guide
+
+JJHub is built natively on [Jujutsu (jj)](https://github.com/jj-vcs/jj), a next-generation VCS. This guide explains key jj concepts.
+
+## Changes vs. Commits
+
+In jj, a **change** is the fundamental unit of work. Unlike git commits:
+- Changes have a **stable Change ID** (e.g., `qzknlmop`) that doesn't change when you amend
+- The commit hash changes on amend, but the Change ID persists
+- JJHub tracks and displays Change IDs everywhere
+
+```bash
+jj log --no-graph
+# Shows: change_id | commit_id | description
+```
+
+## Bookmarks (not Branches)
+
+jj calls branches "bookmarks". They work similarly to git branches:
+
+```bash
+jj bookmark create feature/my-feature
+jj bookmark set main -r @
+```
+
+## The Working Copy
+
+jj treats the working directory as an uncommitted change. You don't need `git add` - changes are automatically included in the current change:
+
+```bash
+# Edit a file, then describe what you did:
+jj describe -m "Add feature X"
+```
+
+## Stacked Changes
+
+JJHub's premiere feature is first-class support for stacked changes:
+
+```
+main
+  └── feature-base
+        └── feature-detail (current)
+```
+
+```bash
+# Create a stack
+jj new main -m "Feature base"
+jj new -m "Feature detail"
+
+# Push the whole stack
+jj git push --all
+```
+
+## Landing Requests (not Pull Requests)
+
+JJHub uses "Landing Requests" (LRs) instead of "Pull Requests". LRs natively understand stacked changes and Change IDs.
+
+```bash
+jjhub land create --title "Add feature X"
+```
+
+## Operation Log
+
+jj tracks all operations (not just commits):
+
+```bash
+jj op log  # View operation history
+jj undo    # Undo the last operation
+```
+
+## Key Differences from Git
+
+| Concept | git | jj |
+|---------|-----|-----|
+| Working state | Staging area | Working copy change |
+| Stable ID | Branch name | Change ID |
+| Branch | Branch | Bookmark |
+| Amend | `git commit --amend` | `jj describe` + auto-amend |
+| History rewrite | Rebasing required | First-class, safe |

@@ -1,0 +1,6039 @@
+openapi: 3.1.0
+info:
+  title: JJHub API
+  version: 1.0.0
+  description: API for JJHub - a jj-native development platform
+servers:
+  - url: https://api.jjhub.tech
+paths:
+  /auth/key/nonce:
+    get:
+      summary: GET /auth/key/nonce
+      description: Generate a single-use nonce for the Sign in with Key flow.
+      operationId: get_auth_key_nonce
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: Sign in with Key nonce generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - nonce
+                properties:
+                  nonce:
+                    type: string
+                    description: Single-use nonce to embed in the Sign in with Key message.
+                    example: abc123
+              example:
+                nonce: abc123
+        '500':
+          description: Failed to create auth nonce
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: failed to create auth nonce
+                errors: []
+  /auth/key/verify:
+    post:
+      summary: POST /auth/key/verify
+      description: Verify a signed message and create a JJHub browser session.
+      operationId: post_auth_key_verify
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+                - signature
+              properties:
+                message:
+                  type: string
+                  description: Full Sign in with Key message that includes the server-issued nonce.
+                  example: |-
+                    jjhub.tech wants you to sign in with your key:
+                    0x71C7656EC7ab88b098defB751B7401B5f6d8976F
+
+                    Sign in to JJHub
+
+                    URI: https://jjhub.tech
+                    Version: 1
+                    Chain ID: 1
+                    Nonce: abc123
+                    Issued At: 2026-03-07T12:00:00Z
+                signature:
+                  type: string
+                  description: Hex-encoded signature for the Sign in with Key message.
+                  example: 0x5f2c9ab1
+            example:
+              message: |-
+                jjhub.tech wants you to sign in with your key:
+                0x71C7656EC7ab88b098defB751B7401B5f6d8976F
+
+                Sign in to JJHub
+
+                URI: https://jjhub.tech
+                Version: 1
+                Chain ID: 1
+                Nonce: abc123
+                Issued At: 2026-03-07T12:00:00Z
+              signature: 0x5f2c9ab1
+      responses:
+        '200':
+          description: Signature verified and session created
+          headers:
+            Set-Cookie:
+              description: Includes `jjhub_session` and `__csrf` cookies.
+              schema:
+                type: string
+                example: jjhub_session=3f1f2f3f-8e4c-4e6d-9d3a-123456789abc; Path=/; HttpOnly; Secure; SameSite=Strict
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - user
+                properties:
+                  user:
+                    type: object
+                    required:
+                      - id
+                      - username
+                    properties:
+                      id:
+                        type: integer
+                        format: int64
+                        example: 42
+                      username:
+                        type: string
+                        example: alice
+              example:
+                user:
+                  id: 42
+                  username: alice
+        '400':
+          description: Invalid request body or missing required fields
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: message and signature are required
+                errors: []
+        '401':
+          description: Invalid signature or invalid / expired nonce
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: invalid or expired nonce
+                errors: []
+        '403':
+          description: Account is suspended or access is not permitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: account is suspended
+                errors: []
+        '409':
+          description: Wallet address conflicts with an existing account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: wallet address is already in use
+                errors: []
+        '415':
+          description: Request content type must be application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: unsupported content type
+                errors: []
+        '429':
+          description: Auth rate limit exceeded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: rate limit exceeded
+                errors: []
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: internal server error
+                errors: []
+  /auth/github:
+    get:
+      summary: GET /auth/github
+      description: Start GitHub OAuth login. Sets an OAuth state cookie and redirects the browser to GitHub.
+      operationId: get_auth_github
+      tags:
+        - Authentication
+      responses:
+        '302':
+          description: Redirect to the GitHub OAuth authorization page
+          headers:
+            Location:
+              description: GitHub OAuth authorization URL.
+              schema:
+                type: string
+                format: uri
+                example: https://github.com/login/oauth/authorize?client_id=abc123&state=state123&scope=read%3Auser+user%3Aemail
+            Set-Cookie:
+              description: OAuth state verifier cookie used to validate the callback.
+              schema:
+                type: string
+                example: jjhub_oauth_state=8d3f4c2b; Path=/; HttpOnly; Secure; SameSite=Lax
+        '429':
+          description: Auth rate limit exceeded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: rate limit exceeded
+                errors: []
+        '500':
+          description: GitHub OAuth is not configured or state generation failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: github oauth is not configured
+                errors: []
+  /auth/github/callback:
+    get:
+      summary: GET /auth/github/callback
+      description: Complete GitHub OAuth login using the `code` and `state` query parameters returned by GitHub.
+      operationId: get_auth_github_callback
+      tags:
+        - Authentication
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: GitHub OAuth completed and JJHub session created
+          headers:
+            Location:
+              description: Post-login redirect target.
+              schema:
+                type: string
+                example: /
+            Set-Cookie:
+              description: Includes `jjhub_session`, `__csrf`, and a clearing `jjhub_oauth_state` cookie.
+              schema:
+                type: string
+                example: jjhub_session=3f1f2f3f-8e4c-4e6d-9d3a-123456789abc; Path=/; HttpOnly; Secure; SameSite=Strict
+        '400':
+          description: Missing query parameters or GitHub code exchange failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              examples:
+                missingParams:
+                  value:
+                    message: code and state are required
+                    errors: []
+                exchangeFailed:
+                  value:
+                    message: failed to exchange github oauth code
+                    errors: []
+        '401':
+          description: Invalid or replayed OAuth state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: invalid oauth state
+                errors: []
+        '403':
+          description: Account is suspended or access is not permitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: account is suspended
+                errors: []
+        '409':
+          description: GitHub account email conflicts with an existing account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: email address is already in use
+                errors: []
+        '429':
+          description: Auth rate limit exceeded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: rate limit exceeded
+                errors: []
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: internal server error
+                errors: []
+  /repos/{owner}/{repo}:
+    get:
+      summary: GET /repos/{owner}/{repo}
+      operationId: get_repos__owner___repo_
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    patch:
+      summary: PATCH /repos/{owner}/{repo}
+      operationId: patch_repos__owner___repo_
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    delete:
+      summary: DELETE /repos/{owner}/{repo}
+      operationId: delete_repos__owner___repo_
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /user/repos:
+    post:
+      summary: POST /user/repos
+      operationId: post_user_repos
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    get:
+      summary: GET /user/repos
+      operationId: get_user_repos
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /orgs/{org}/repos:
+    post:
+      summary: POST /orgs/{org}/repos
+      operationId: post_orgs__org__repos
+      tags:
+        - Orgs
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    get:
+      summary: GET /orgs/{org}/repos
+      operationId: get_orgs__org__repos
+      tags:
+        - Orgs
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/contents/{path}:
+    get:
+      summary: GET /repos/{owner}/{repo}/contents/{path}
+      operationId: get_repos__owner___repo__contents__path_
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/git/trees/{sha}:
+    get:
+      summary: GET /repos/{owner}/{repo}/git/trees/{sha}
+      operationId: get_repos__owner___repo__git_trees__sha_
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: sha
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/git/commits/{sha}:
+    get:
+      summary: GET /repos/{owner}/{repo}/git/commits/{sha}
+      operationId: get_repos__owner___repo__git_commits__sha_
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: sha
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/git/refs:
+    get:
+      summary: GET /repos/{owner}/{repo}/git/refs
+      operationId: get_repos__owner___repo__git_refs
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/topics:
+    get:
+      summary: GET /repos/{owner}/{repo}/topics
+      operationId: get_repos__owner___repo__topics
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    put:
+      summary: PUT /repos/{owner}/{repo}/topics
+      operationId: put_repos__owner___repo__topics
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/stargazers:
+    get:
+      summary: GET /repos/{owner}/{repo}/stargazers
+      operationId: get_repos__owner___repo__stargazers
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /user/starred/{owner}/{repo}:
+    put:
+      summary: PUT /user/starred/{owner}/{repo}
+      operationId: put_user_starred__owner___repo_
+      tags:
+        - User
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    delete:
+      summary: DELETE /user/starred/{owner}/{repo}
+      operationId: delete_user_starred__owner___repo_
+      tags:
+        - User
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /user/starred:
+    get:
+      summary: GET /user/starred
+      operationId: get_user_starred
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/changes:
+    get:
+      summary: GET /repos/{owner}/{repo}/changes
+      operationId: get_repos__owner___repo__changes
+      tags:
+        - VCS
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque cursor from a previous response's next_cursor field
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: Number of results to return (default 30, max 100)
+          schema:
+            type: integer
+            default: 30
+            maximum: 100
+      responses:
+        '200':
+          description: Successful response
+          headers:
+            Link:
+              description: RFC 8288 pagination links with cursor-based URLs.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - next_cursor
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        change_id:
+                          type: string
+                        commit_id:
+                          type: string
+                        description:
+                          type: string
+                        author_name:
+                          type: string
+                        author_email:
+                          type: string
+                        timestamp:
+                          type: string
+                        has_conflict:
+                          type: boolean
+                        is_empty:
+                          type: boolean
+                        parent_change_ids:
+                          type: array
+                          items:
+                            type: string
+                  next_cursor:
+                    type: string
+                    nullable: true
+                    description: Opaque cursor for fetching the next page. Null when there are no more results.
+  /repos/{owner}/{repo}/changes/{change_id}:
+    get:
+      summary: GET /repos/{owner}/{repo}/changes/{change_id}
+      operationId: get_repos__owner___repo__changes__change_id_
+      tags:
+        - VCS
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: change_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/changes/{change_id}/diff:
+    get:
+      summary: GET /repos/{owner}/{repo}/changes/{change_id}/diff
+      operationId: get_repos__owner___repo__changes__change_id__diff
+      tags:
+        - VCS
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: change_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/changes/{change_id}/files:
+    get:
+      summary: GET /repos/{owner}/{repo}/changes/{change_id}/files
+      operationId: get_repos__owner___repo__changes__change_id__files
+      tags:
+        - VCS
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: change_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/changes/{change_id}/conflicts:
+    get:
+      summary: GET /repos/{owner}/{repo}/changes/{change_id}/conflicts
+      operationId: get_repos__owner___repo__changes__change_id__conflicts
+      tags:
+        - VCS
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: change_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/bookmarks:
+    get:
+      summary: GET /repos/{owner}/{repo}/bookmarks
+      operationId: get_repos__owner___repo__bookmarks
+      tags:
+        - VCS
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: POST /repos/{owner}/{repo}/bookmarks
+      operationId: post_repos__owner___repo__bookmarks
+      tags:
+        - VCS
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/bookmarks/{name}:
+    delete:
+      summary: DELETE /repos/{owner}/{repo}/bookmarks/{name}
+      operationId: delete_repos__owner___repo__bookmarks__name_
+      tags:
+        - VCS
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/operations:
+    get:
+      summary: GET /repos/{owner}/{repo}/operations
+      operationId: get_repos__owner___repo__operations
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque cursor from a previous response's next_cursor field
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: Number of results to return (default 30, max 100)
+          schema:
+            type: integer
+            default: 30
+            maximum: 100
+      responses:
+        '200':
+          description: Successful response
+          headers:
+            Link:
+              description: RFC 8288 pagination links with cursor-based URLs.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - next_cursor
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - operation_id
+                        - description
+                        - timestamp
+                      properties:
+                        operation_id:
+                          type: string
+                        description:
+                          type: string
+                        timestamp:
+                          type: string
+                          format: date-time
+                  next_cursor:
+                    type: string
+                    nullable: true
+                    description: Opaque cursor for fetching the next page. Null when there are no more results.
+  /repos/{owner}/{repo}/issues:
+    get:
+      summary: GET /repos/{owner}/{repo}/issues
+      operationId: get_repos__owner___repo__issues
+      tags:
+        - Issues
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: POST /repos/{owner}/{repo}/issues
+      operationId: post_repos__owner___repo__issues
+      tags:
+        - Issues
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/issues/{number}:
+    get:
+      summary: GET /repos/{owner}/{repo}/issues/{number}
+      operationId: get_repos__owner___repo__issues__number_
+      tags:
+        - Issues
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    patch:
+      summary: PATCH /repos/{owner}/{repo}/issues/{number}
+      operationId: patch_repos__owner___repo__issues__number_
+      tags:
+        - Issues
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/issues/{number}/comments:
+    get:
+      summary: GET /repos/{owner}/{repo}/issues/{number}/comments
+      operationId: get_repos__owner___repo__issues__number__comments
+      tags:
+        - Issues
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: POST /repos/{owner}/{repo}/issues/{number}/comments
+      operationId: post_repos__owner___repo__issues__number__comments
+      tags:
+        - Issues
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/issues/comments/{id}:
+    patch:
+      summary: PATCH /repos/{owner}/{repo}/issues/comments/{id}
+      operationId: patch_repos__owner___repo__issues_comments__id_
+      tags:
+        - Issues
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    delete:
+      summary: DELETE /repos/{owner}/{repo}/issues/comments/{id}
+      operationId: delete_repos__owner___repo__issues_comments__id_
+      tags:
+        - Issues
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/issues/{number}/reactions:
+    get:
+      summary: GET /repos/{owner}/{repo}/issues/{number}/reactions
+      description: List reactions on an issue.
+      operationId: get_repos__owner___repo__issues__number__reactions
+      tags:
+        - Issues
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of reactions on the issue
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      format: int64
+                    user:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          format: int64
+                        username:
+                          type: string
+                    content:
+                      type: string
+                      enum:
+                        - '+1'
+                        - '-1'
+                        - laugh
+                        - hooray
+                        - confused
+                        - heart
+                        - rocket
+                        - eyes
+                    created_at:
+                      type: string
+                      format: date-time
+    post:
+      summary: POST /repos/{owner}/{repo}/issues/{number}/reactions
+      description: Add a reaction to an issue.
+      operationId: post_repos__owner___repo__issues__number__reactions
+      tags:
+        - Issues
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  enum:
+                    - '+1'
+                    - '-1'
+                    - laugh
+                    - hooray
+                    - confused
+                    - heart
+                    - rocket
+                    - eyes
+                  description: The reaction type to add.
+            example:
+              content: '+1'
+      responses:
+        '201':
+          description: Reaction created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    format: int64
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int64
+                      username:
+                        type: string
+                  content:
+                    type: string
+                  created_at:
+                    type: string
+                    format: date-time
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+  /repos/{owner}/{repo}/issues/{number}/reactions/{id}:
+    delete:
+      summary: DELETE /repos/{owner}/{repo}/issues/{number}/reactions/{id}
+      description: Remove a reaction from an issue.
+      operationId: delete_repos__owner___repo__issues__number__reactions__id_
+      tags:
+        - Issues
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Reaction deleted
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+  /repos/{owner}/{repo}/issues/comments/{id}/reactions:
+    get:
+      summary: GET /repos/{owner}/{repo}/issues/comments/{id}/reactions
+      description: List reactions on an issue comment.
+      operationId: get_repos__owner___repo__issues_comments__id__reactions
+      tags:
+        - Issues
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: List of reactions on the comment
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      format: int64
+                    user:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          format: int64
+                        username:
+                          type: string
+                    content:
+                      type: string
+                      enum:
+                        - '+1'
+                        - '-1'
+                        - laugh
+                        - hooray
+                        - confused
+                        - heart
+                        - rocket
+                        - eyes
+                    created_at:
+                      type: string
+                      format: date-time
+    post:
+      summary: POST /repos/{owner}/{repo}/issues/comments/{id}/reactions
+      description: Add a reaction to an issue comment.
+      operationId: post_repos__owner___repo__issues_comments__id__reactions
+      tags:
+        - Issues
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  enum:
+                    - '+1'
+                    - '-1'
+                    - laugh
+                    - hooray
+                    - confused
+                    - heart
+                    - rocket
+                    - eyes
+                  description: The reaction type to add.
+            example:
+              content: rocket
+      responses:
+        '201':
+          description: Reaction created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    format: int64
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int64
+                      username:
+                        type: string
+                  content:
+                    type: string
+                  created_at:
+                    type: string
+                    format: date-time
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+  /repos/{owner}/{repo}/issues/comments/{id}/reactions/{reaction_id}:
+    delete:
+      summary: DELETE /repos/{owner}/{repo}/issues/comments/{id}/reactions/{reaction_id}
+      description: Remove a reaction from an issue comment.
+      operationId: delete_repos__owner___repo__issues_comments__id__reactions__reaction_id_
+      tags:
+        - Issues
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: reaction_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Reaction deleted
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+  /repos/{owner}/{repo}/issues/{number}/labels:
+    get:
+      summary: GET /repos/{owner}/{repo}/issues/{number}/labels
+      operationId: get_repos__owner___repo__issues__number__labels
+      tags:
+        - Issues
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: POST /repos/{owner}/{repo}/issues/{number}/labels
+      operationId: post_repos__owner___repo__issues__number__labels
+      tags:
+        - Issues
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/issues/{number}/labels/{name}:
+    delete:
+      summary: DELETE /repos/{owner}/{repo}/issues/{number}/labels/{name}
+      operationId: delete_repos__owner___repo__issues__number__labels__name_
+      tags:
+        - Issues
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/hooks:
+    get:
+      summary: List webhooks for a repository
+      operationId: list_repo_hooks
+      tags:
+        - Webhooks
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          description: Opaque cursor from a previous response's next_cursor field
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 30
+            maximum: 100
+      responses:
+        '200':
+          description: List of webhooks
+          headers:
+            Link:
+              description: RFC 8288 pagination links with cursor-based URLs.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - next_cursor
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Webhook'
+                  next_cursor:
+                    type: string
+                    nullable: true
+                    description: Opaque cursor for fetching the next page. Null when there are no more results.
+    post:
+      summary: Create a webhook for a repository
+      operationId: create_repo_hook
+      tags:
+        - Webhooks
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHookOption'
+      responses:
+        '201':
+          description: Webhook created successfully. A ping event is sent to verify the endpoint.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+        '422':
+          description: Validation error (invalid URL, missing events, etc.)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+  /repos/{owner}/{repo}/hooks/{id}:
+    get:
+      summary: Get a webhook by ID
+      operationId: get_repo_hook
+      tags:
+        - Webhooks
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Webhook details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+        '404':
+          description: Webhook not found
+    patch:
+      summary: Update a webhook
+      operationId: update_repo_hook
+      tags:
+        - Webhooks
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditHookOption'
+      responses:
+        '200':
+          description: Webhook updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+        '404':
+          description: Webhook not found
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+    delete:
+      summary: Delete a webhook
+      operationId: delete_repo_hook
+      tags:
+        - Webhooks
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Webhook deleted successfully
+        '404':
+          description: Webhook not found
+  /repos/{owner}/{repo}/hooks/{id}/deliveries:
+    get:
+      summary: List deliveries for a webhook
+      operationId: list_hook_deliveries
+      tags:
+        - Webhooks
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: cursor
+          in: query
+          description: Opaque cursor from a previous response's next_cursor field
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 30
+            maximum: 100
+      responses:
+        '200':
+          description: List of recent deliveries (last 30)
+          headers:
+            Link:
+              description: RFC 8288 pagination links with cursor-based URLs.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - next_cursor
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/HookDelivery'
+                  next_cursor:
+                    type: string
+                    nullable: true
+                    description: Opaque cursor for fetching the next page. Null when there are no more results.
+        '404':
+          description: Webhook not found
+  /repos/{owner}/{repo}/hooks/{id}/deliveries/{delivery_id}/replay:
+    post:
+      summary: Replay a webhook delivery
+      operationId: replay_hook_delivery
+      tags:
+        - Webhooks
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: delivery_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Delivery replayed successfully
+        '404':
+          description: Webhook or delivery not found
+  /repos/{owner}/{repo}/labels:
+    get:
+      summary: GET /repos/{owner}/{repo}/labels
+      operationId: get_repos__owner___repo__labels
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: POST /repos/{owner}/{repo}/labels
+      operationId: post_repos__owner___repo__labels
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/milestones:
+    get:
+      summary: GET /repos/{owner}/{repo}/milestones
+      operationId: get_repos__owner___repo__milestones
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: POST /repos/{owner}/{repo}/milestones
+      operationId: post_repos__owner___repo__milestones
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/landings:
+    get:
+      summary: GET /repos/{owner}/{repo}/landings
+      operationId: get_repos__owner___repo__landings
+      tags:
+        - Landings
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: POST /repos/{owner}/{repo}/landings
+      operationId: post_repos__owner___repo__landings
+      tags:
+        - Landings
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/landings/{number}:
+    get:
+      summary: GET /repos/{owner}/{repo}/landings/{number}
+      operationId: get_repos__owner___repo__landings__number_
+      tags:
+        - Landings
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    patch:
+      summary: PATCH /repos/{owner}/{repo}/landings/{number}
+      operationId: patch_repos__owner___repo__landings__number_
+      tags:
+        - Landings
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/landings/{number}/land:
+    put:
+      summary: PUT /repos/{owner}/{repo}/landings/{number}/land
+      operationId: put_repos__owner___repo__landings__number__land
+      tags:
+        - Landings
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/landings/{number}/reviews:
+    get:
+      summary: GET /repos/{owner}/{repo}/landings/{number}/reviews
+      operationId: get_repos__owner___repo__landings__number__reviews
+      tags:
+        - Landings
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: POST /repos/{owner}/{repo}/landings/{number}/reviews
+      operationId: post_repos__owner___repo__landings__number__reviews
+      tags:
+        - Landings
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/landings/{number}/comments:
+    get:
+      summary: GET /repos/{owner}/{repo}/landings/{number}/comments
+      operationId: get_repos__owner___repo__landings__number__comments
+      tags:
+        - Landings
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: POST /repos/{owner}/{repo}/landings/{number}/comments
+      operationId: post_repos__owner___repo__landings__number__comments
+      tags:
+        - Landings
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/landings/{number}/changes:
+    get:
+      summary: GET /repos/{owner}/{repo}/landings/{number}/changes
+      operationId: get_repos__owner___repo__landings__number__changes
+      tags:
+        - Landings
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/landings/{number}/conflicts:
+    get:
+      summary: GET /repos/{owner}/{repo}/landings/{number}/conflicts
+      operationId: get_repos__owner___repo__landings__number__conflicts
+      tags:
+        - Landings
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/landings/{number}/suggestions:
+    get:
+      summary: GET /repos/{owner}/{repo}/landings/{number}/suggestions
+      description: List suggested changes on a landing request. Suggestions are inline code proposals created by reviewers that the author can accept or reject.
+      operationId: get_repos__owner___repo__landings__number__suggestions
+      tags:
+        - Landings
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, accepted, rejected]
+          description: Filter by suggestion status
+      responses:
+        '200':
+          description: List of suggestions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    landing_number:
+                      type: integer
+                    author:
+                      type: object
+                      properties:
+                        login:
+                          type: string
+                        id:
+                          type: integer
+                    body:
+                      type: string
+                      description: Review comment text accompanying the suggestion
+                    path:
+                      type: string
+                      description: File path the suggestion applies to
+                    start_line:
+                      type: integer
+                      description: First line number being replaced
+                    end_line:
+                      type: integer
+                      description: Last line number being replaced
+                    suggestion:
+                      type: string
+                      description: Replacement code content
+                    status:
+                      type: string
+                      enum: [pending, accepted, rejected]
+                    change_id:
+                      type: string
+                      nullable: true
+                      description: Change ID of the change created when the suggestion was accepted
+                    created_at:
+                      type: string
+                      format: date-time
+                    updated_at:
+                      type: string
+                      format: date-time
+              example:
+                - id: 7
+                  landing_number: 42
+                  author:
+                    login: reviewer
+                    id: 2
+                  body: The error message should be more descriptive.
+                  path: internal/routes/auth.go
+                  start_line: 45
+                  end_line: 45
+                  suggestion: "return fmt.Errorf(\"authentication failed: invalid token format for user %s\", username)"
+                  status: pending
+                  change_id: null
+                  created_at: "2024-01-15T11:00:00Z"
+                  updated_at: "2024-01-15T11:00:00Z"
+    post:
+      summary: POST /repos/{owner}/{repo}/landings/{number}/suggestions
+      description: Create a suggested change on a landing request. The suggestion proposes replacement code for specific lines in a file.
+      operationId: post_repos__owner___repo__landings__number__suggestions
+      tags:
+        - Landings
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - path
+                - start_line
+                - end_line
+                - suggestion
+              properties:
+                body:
+                  type: string
+                  description: Review comment text accompanying the suggestion
+                path:
+                  type: string
+                  description: File path the suggestion applies to
+                start_line:
+                  type: integer
+                  description: First line number being replaced
+                end_line:
+                  type: integer
+                  description: Last line number being replaced
+                suggestion:
+                  type: string
+                  description: Replacement code content
+            example:
+              body: The error message should be more descriptive.
+              path: internal/routes/auth.go
+              start_line: 45
+              end_line: 45
+              suggestion: "return fmt.Errorf(\"authentication failed: invalid token format for user %s\", username)"
+      responses:
+        '201':
+          description: Suggestion created
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                id: 7
+                landing_number: 42
+                author:
+                  login: reviewer
+                  id: 2
+                body: The error message should be more descriptive.
+                path: internal/routes/auth.go
+                start_line: 45
+                end_line: 45
+                suggestion: "return fmt.Errorf(\"authentication failed: invalid token format for user %s\", username)"
+                status: pending
+                change_id: null
+                created_at: "2024-01-15T11:00:00Z"
+                updated_at: "2024-01-15T11:00:00Z"
+        '404':
+          description: Landing request not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: landing request not found
+        '422':
+          description: Invalid suggestion (e.g., line range out of bounds)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: Validation Failed
+                errors:
+                  - resource: Suggestion
+                    field: end_line
+                    code: invalid
+  /repos/{owner}/{repo}/landings/{number}/suggestions/{id}:
+    get:
+      summary: GET /repos/{owner}/{repo}/landings/{number}/suggestions/{id}
+      description: Get a specific suggested change by ID.
+      operationId: get_repos__owner___repo__landings__number__suggestions__id
+      tags:
+        - Landings
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Suggestion details
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Suggestion not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: suggestion not found
+  /repos/{owner}/{repo}/landings/{number}/suggestions/{id}/accept:
+    put:
+      summary: PUT /repos/{owner}/{repo}/landings/{number}/suggestions/{id}/accept
+      description: Accept a suggested change. This creates a new jj change with the suggested code replacement applied to the target file. The new change is added to the landing request's change stack.
+      operationId: put_repos__owner___repo__landings__number__suggestions__id__accept
+      tags:
+        - Landings
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Suggestion accepted, new change created
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                id: 7
+                status: accepted
+                change_id: kxyz1234abcd
+                applied_at: "2024-01-15T11:05:00Z"
+        '404':
+          description: Suggestion not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: suggestion not found
+        '409':
+          description: Suggestion already accepted or rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: suggestion has already been accepted
+  /repos/{owner}/{repo}/landings/{number}/suggestions/{id}/reject:
+    put:
+      summary: PUT /repos/{owner}/{repo}/landings/{number}/suggestions/{id}/reject
+      description: Reject a suggested change. No code modifications are made.
+      operationId: put_repos__owner___repo__landings__number__suggestions__id__reject
+      tags:
+        - Landings
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Suggestion rejected
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                id: 7
+                status: rejected
+                updated_at: "2024-01-15T11:05:00Z"
+        '404':
+          description: Suggestion not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: suggestion not found
+        '409':
+          description: Suggestion already accepted or rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: suggestion has already been rejected
+  /repos/{owner}/{repo}/landings/{number}/suggestions/accept-all:
+    put:
+      summary: PUT /repos/{owner}/{repo}/landings/{number}/suggestions/accept-all
+      description: Accept all pending suggestions on a landing request at once. Creates one new jj change per suggestion, or a single combined change if the squash query parameter is set.
+      operationId: put_repos__owner___repo__landings__number__suggestions__accept_all
+      tags:
+        - Landings
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: squash
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: If true, combine all accepted suggestions into a single change
+      responses:
+        '200':
+          description: All pending suggestions accepted
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                accepted_count: 3
+                change_ids:
+                  - kxyz1234abcd
+                  - kabc5678efgh
+                  - kdef9012ijkl
+        '404':
+          description: Landing request not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: landing request not found
+  /repos/{owner}/{repo}/wiki:
+    get:
+      summary: GET /repos/{owner}/{repo}/wiki
+      description: List wiki pages for a repository. Pass `q` to search titles, slugs, and markdown bodies.
+      operationId: get_repos__owner___repo__wiki
+      tags:
+        - Wiki
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - name: per_page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Wiki page summaries ordered by most recent update
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - id
+                    - slug
+                    - title
+                    - author
+                    - created_at
+                    - updated_at
+                  properties:
+                    id:
+                      type: integer
+                      format: int64
+                    slug:
+                      type: string
+                    title:
+                      type: string
+                    author:
+                      type: object
+                      required:
+                        - id
+                        - login
+                      properties:
+                        id:
+                          type: integer
+                          format: int64
+                        login:
+                          type: string
+                    created_at:
+                      type: string
+                      format: date-time
+                    updated_at:
+                      type: string
+                      format: date-time
+    post:
+      summary: POST /repos/{owner}/{repo}/wiki
+      description: Create a repository wiki page.
+      operationId: post_repos__owner___repo__wiki
+      tags:
+        - Wiki
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+              properties:
+                title:
+                  type: string
+                slug:
+                  type: string
+                body:
+                  type: string
+            example:
+              title: Runbook
+              slug: runbook
+              body: "# Runbook"
+      responses:
+        '201':
+          description: Wiki page created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - slug
+                  - title
+                  - body
+                  - author
+                  - created_at
+                  - updated_at
+                properties:
+                  id:
+                    type: integer
+                    format: int64
+                  slug:
+                    type: string
+                  title:
+                    type: string
+                  body:
+                    type: string
+                  author:
+                    type: object
+                    required:
+                      - id
+                      - login
+                    properties:
+                      id:
+                        type: integer
+                        format: int64
+                      login:
+                        type: string
+                  created_at:
+                    type: string
+                    format: date-time
+                  updated_at:
+                    type: string
+                    format: date-time
+  /repos/{owner}/{repo}/wiki/{slug}:
+    get:
+      summary: GET /repos/{owner}/{repo}/wiki/{slug}
+      description: Return a single repository wiki page.
+      operationId: get_repos__owner___repo__wiki__slug_
+      tags:
+        - Wiki
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Full wiki page
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - slug
+                  - title
+                  - body
+                  - author
+                  - created_at
+                  - updated_at
+                properties:
+                  id:
+                    type: integer
+                    format: int64
+                  slug:
+                    type: string
+                  title:
+                    type: string
+                  body:
+                    type: string
+                  author:
+                    type: object
+                    required:
+                      - id
+                      - login
+                    properties:
+                      id:
+                        type: integer
+                        format: int64
+                      login:
+                        type: string
+                  created_at:
+                    type: string
+                    format: date-time
+                  updated_at:
+                    type: string
+                    format: date-time
+    patch:
+      summary: PATCH /repos/{owner}/{repo}/wiki/{slug}
+      description: Update a repository wiki page.
+      operationId: patch_repos__owner___repo__wiki__slug_
+      tags:
+        - Wiki
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                title:
+                  type: string
+                slug:
+                  type: string
+                body:
+                  type: string
+            example:
+              title: Updated Runbook
+              body: "# Updated Runbook"
+      responses:
+        '200':
+          description: Updated wiki page
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - slug
+                  - title
+                  - body
+                  - author
+                  - created_at
+                  - updated_at
+                properties:
+                  id:
+                    type: integer
+                    format: int64
+                  slug:
+                    type: string
+                  title:
+                    type: string
+                  body:
+                    type: string
+                  author:
+                    type: object
+                    required:
+                      - id
+                      - login
+                    properties:
+                      id:
+                        type: integer
+                        format: int64
+                      login:
+                        type: string
+                  created_at:
+                    type: string
+                    format: date-time
+                  updated_at:
+                    type: string
+                    format: date-time
+    delete:
+      summary: DELETE /repos/{owner}/{repo}/wiki/{slug}
+      description: Delete a repository wiki page.
+      operationId: delete_repos__owner___repo__wiki__slug_
+      tags:
+        - Wiki
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Wiki page deleted
+  /repos/{owner}/{repo}/agent/sessions:
+    get:
+      summary: GET /repos/{owner}/{repo}/agent/sessions
+      description: List agent sessions for a repository.
+      operationId: get_repos__owner___repo__agent_sessions
+      tags:
+        - Agent
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          description: Opaque cursor from a previous response's next_cursor field
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 30
+            maximum: 100
+      responses:
+        '200':
+          description: List of agent sessions
+          headers:
+            Link:
+              description: RFC 8288 pagination links with cursor-based URLs.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - next_cursor
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AgentSession'
+                  next_cursor:
+                    type: string
+                    nullable: true
+                    description: Opaque cursor for fetching the next page. Null when there are no more results.
+    post:
+      summary: POST /repos/{owner}/{repo}/agent/sessions
+      description: Create a new agent session for the repository.
+      operationId: post_repos__owner___repo__agent_sessions
+      tags:
+        - Agent
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: Optional session title.
+      responses:
+        '201':
+          description: Agent session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentSession'
+  /repos/{owner}/{repo}/agent/sessions/{id}:
+    get:
+      summary: GET /repos/{owner}/{repo}/agent/sessions/{id}
+      description: Get a single agent session.
+      operationId: get_repos__owner___repo__agent_sessions__id_
+      tags:
+        - Agent
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentSession'
+  /repos/{owner}/{repo}/agent/sessions/{id}/messages:
+    get:
+      summary: GET /repos/{owner}/{repo}/agent/sessions/{id}/messages
+      description: List messages for an agent session in sequence order.
+      operationId: get_repos__owner___repo__agent_sessions__id__messages
+      tags:
+        - Agent
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          description: Opaque cursor from a previous response's next_cursor field
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 30
+            maximum: 100
+      responses:
+        '200':
+          description: List of agent messages
+          headers:
+            Link:
+              description: RFC 8288 pagination links with cursor-based URLs.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - next_cursor
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AgentMessage'
+                  next_cursor:
+                    type: string
+                    nullable: true
+                    description: Opaque cursor for fetching the next page. Null when there are no more results.
+    post:
+      summary: POST /repos/{owner}/{repo}/agent/sessions/{id}/messages
+      description: Append a message to an agent session. Posting a `user` message dispatches a cloud VM-backed agent run.
+      operationId: post_repos__owner___repo__agent_sessions__id__messages
+      tags:
+        - Agent
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role
+                - parts
+              properties:
+                role:
+                  type: string
+                  enum: [user, assistant, system, tool]
+                parts:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - type
+                      - content
+                    properties:
+                      type:
+                        type: string
+                        enum: [text, tool_call, tool_result]
+                      content:
+                        description: Message part payload. Text parts accept either a string or an object.
+      responses:
+        '201':
+          description: Agent message created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentMessage'
+  /repos/{owner}/{repo}/agent/sessions/{id}/stream:
+    get:
+      summary: GET /repos/{owner}/{repo}/agent/sessions/{id}/stream
+      description: SSE endpoint for agent session output and terminal done events.
+      operationId: get_repos__owner___repo__agent_sessions__id__stream
+      tags:
+        - Agent
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SSE event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+  /repos/{owner}/{repo}/workspaces:
+    get:
+      summary: GET /repos/{owner}/{repo}/workspaces
+      description: List first-class workspaces for the repository.
+      operationId: get_repos__owner___repo__workspaces
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          description: Opaque cursor from a previous response's next_cursor field
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 30
+            maximum: 100
+      responses:
+        '200':
+          description: List of workspaces
+          headers:
+            Link:
+              description: RFC 8288 pagination links with cursor-based URLs.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - next_cursor
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Workspace'
+                  next_cursor:
+                    type: string
+                    nullable: true
+                    description: Opaque cursor for fetching the next page. Null when there are no more results.
+    post:
+      summary: POST /repos/{owner}/{repo}/workspaces
+      description: Create or resume a cloud workspace.
+      operationId: post_repos__owner___repo__workspaces
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Optional workspace name.
+                snapshot_id:
+                  type: string
+                  description: Restore the workspace from a saved snapshot.
+      responses:
+        '201':
+          description: Workspace created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workspace'
+  /repos/{owner}/{repo}/workspaces/{id}:
+    get:
+      summary: GET /repos/{owner}/{repo}/workspaces/{id}
+      description: Get a workspace.
+      operationId: get_repos__owner___repo__workspaces__id_
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Workspace details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workspace'
+    delete:
+      summary: DELETE /repos/{owner}/{repo}/workspaces/{id}
+      description: Delete a workspace and its backing cloud VM.
+      operationId: delete_repos__owner___repo__workspaces__id_
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Workspace deleted
+  /repos/{owner}/{repo}/workspaces/{id}/ssh:
+    get:
+      summary: GET /repos/{owner}/{repo}/workspaces/{id}/ssh
+      description: Get SSH connection info for a workspace.
+      operationId: get_repos__owner___repo__workspaces__id__ssh
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SSH connection info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceSSHConnectionInfo'
+  /repos/{owner}/{repo}/workspaces/{id}/suspend:
+    post:
+      summary: POST /repos/{owner}/{repo}/workspaces/{id}/suspend
+      description: Suspend a running workspace.
+      operationId: post_repos__owner___repo__workspaces__id__suspend
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Suspended workspace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workspace'
+  /repos/{owner}/{repo}/workspaces/{id}/resume:
+    post:
+      summary: POST /repos/{owner}/{repo}/workspaces/{id}/resume
+      description: Resume a suspended workspace.
+      operationId: post_repos__owner___repo__workspaces__id__resume
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Resumed workspace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workspace'
+  /repos/{owner}/{repo}/workspaces/{id}/fork:
+    post:
+      summary: POST /repos/{owner}/{repo}/workspaces/{id}/fork
+      description: Fork a running workspace into a new derived workspace.
+      operationId: post_repos__owner___repo__workspaces__id__fork
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Optional name for the forked workspace.
+      responses:
+        '201':
+          description: Forked workspace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workspace'
+  /repos/{owner}/{repo}/workspaces/{id}/snapshot:
+    post:
+      summary: POST /repos/{owner}/{repo}/workspaces/{id}/snapshot
+      description: Create a reusable snapshot from a workspace.
+      operationId: post_repos__owner___repo__workspaces__id__snapshot
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Snapshot name.
+      responses:
+        '201':
+          description: Snapshot created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceSnapshot'
+  /repos/{owner}/{repo}/workspaces/{id}/stream:
+    get:
+      summary: GET /repos/{owner}/{repo}/workspaces/{id}/stream
+      description: SSE endpoint for workspace lifecycle events.
+      operationId: get_repos__owner___repo__workspaces__id__stream
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SSE event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+  /repos/{owner}/{repo}/workspace-snapshots:
+    get:
+      summary: GET /repos/{owner}/{repo}/workspace-snapshots
+      description: List reusable workspace snapshots for the repository.
+      operationId: get_repos__owner___repo__workspace_snapshots
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          description: Opaque cursor from a previous response's next_cursor field
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 30
+            maximum: 100
+      responses:
+        '200':
+          description: List of workspace snapshots
+          headers:
+            Link:
+              description: RFC 8288 pagination links with cursor-based URLs.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - next_cursor
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkspaceSnapshot'
+                  next_cursor:
+                    type: string
+                    nullable: true
+                    description: Opaque cursor for fetching the next page. Null when there are no more results.
+    post:
+      summary: POST /repos/{owner}/{repo}/workspace-snapshots
+      description: Create a snapshot template from an existing workspace.
+      operationId: post_repos__owner___repo__workspace_snapshots
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - workspace_id
+              properties:
+                workspace_id:
+                  type: string
+                  description: Source workspace for the snapshot.
+                name:
+                  type: string
+                  description: Snapshot name.
+      responses:
+        '201':
+          description: Snapshot created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceSnapshot'
+  /repos/{owner}/{repo}/workspace-snapshots/{id}:
+    get:
+      summary: GET /repos/{owner}/{repo}/workspace-snapshots/{id}
+      description: Get a workspace snapshot.
+      operationId: get_repos__owner___repo__workspace_snapshots__id_
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Workspace snapshot details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceSnapshot'
+    delete:
+      summary: DELETE /repos/{owner}/{repo}/workspace-snapshots/{id}
+      description: Delete a workspace snapshot.
+      operationId: delete_repos__owner___repo__workspace_snapshots__id_
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Workspace snapshot deleted
+  /repos/{owner}/{repo}/workspace/sessions:
+    get:
+      summary: GET /repos/{owner}/{repo}/workspace/sessions
+      description: List workspace sessions for the repository.
+      operationId: get_repos__owner___repo__workspace_sessions
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          description: Opaque cursor from a previous response's next_cursor field
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 30
+            maximum: 100
+      responses:
+        '200':
+          description: List of workspace sessions
+          headers:
+            Link:
+              description: RFC 8288 pagination links with cursor-based URLs.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - next_cursor
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkspaceSession'
+                  next_cursor:
+                    type: string
+                    nullable: true
+                    description: Opaque cursor for fetching the next page. Null when there are no more results.
+    post:
+      summary: POST /repos/{owner}/{repo}/workspace/sessions
+      description: Create or resume a cloud workspace session for the repository.
+      operationId: post_repos__owner___repo__workspace_sessions
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cols:
+                  type: integer
+                  description: Initial terminal width.
+                  default: 80
+                rows:
+                  type: integer
+                  description: Initial terminal height.
+                  default: 24
+      responses:
+        '201':
+          description: Workspace session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceSession'
+  /repos/{owner}/{repo}/workspace/sessions/{id}:
+    get:
+      summary: GET /repos/{owner}/{repo}/workspace/sessions/{id}
+      description: Get a workspace session.
+      operationId: get_repos__owner___repo__workspace_sessions__id_
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Workspace session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceSession'
+  /repos/{owner}/{repo}/workspace/sessions/{id}/ssh:
+    get:
+      summary: GET /repos/{owner}/{repo}/workspace/sessions/{id}/ssh
+      description: Get SSH connection info for a workspace session.
+      operationId: get_repos__owner___repo__workspace_sessions__id__ssh
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SSH connection info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceSSHConnectionInfo'
+  /repos/{owner}/{repo}/workspace/sessions/{id}/destroy:
+    post:
+      summary: POST /repos/{owner}/{repo}/workspace/sessions/{id}/destroy
+      description: Stop a workspace session and suspend the workspace when it is the last active session.
+      operationId: post_repos__owner___repo__workspace_sessions__id__destroy
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Workspace session stopped
+  /repos/{owner}/{repo}/workspace/sessions/{id}/stream:
+    get:
+      summary: GET /repos/{owner}/{repo}/workspace/sessions/{id}/stream
+      description: SSE endpoint for workspace session status events.
+      operationId: get_repos__owner___repo__workspace_sessions__id__stream
+      tags:
+        - Workspaces
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SSE event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+  /repos/{owner}/{repo}/workflows:
+    get:
+      summary: GET /repos/{owner}/{repo}/workflows
+      operationId: get_repos__owner___repo__workflows
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/runs:
+    get:
+      summary: GET /repos/{owner}/{repo}/runs
+      operationId: get_repos__owner___repo__runs
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: POST /repos/{owner}/{repo}/runs
+      operationId: post_repos__owner___repo__runs
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/runs/{id}:
+    get:
+      summary: GET /repos/{owner}/{repo}/runs/{id}
+      operationId: get_repos__owner___repo__runs__id_
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/runs/{id}/logs:
+    get:
+      summary: GET /repos/{owner}/{repo}/runs/{id}/logs
+      operationId: get_repos__owner___repo__runs__id__logs
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/runs/{id}/cancel:
+    post:
+      summary: POST /repos/{owner}/{repo}/runs/{id}/cancel
+      operationId: post_repos__owner___repo__runs__id__cancel
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/runs/{id}/rerun:
+    post:
+      summary: POST /repos/{owner}/{repo}/runs/{id}/rerun
+      operationId: post_repos__owner___repo__runs__id__rerun
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /repos/{owner}/{repo}/commits/{ref}/statuses:
+    get:
+      summary: GET /repos/{owner}/{repo}/commits/{ref}/statuses
+      description: List all commit statuses for a given ref (commit SHA, bookmark name, or change ID). Returns statuses sorted by creation date (newest first). Use this to check CI/CD results for a specific commit.
+      operationId: get_repos__owner___repo__commits__ref__statuses
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          description: Repository owner username or organization name
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          description: Repository name
+          schema:
+            type: string
+        - name: ref
+          in: path
+          required: true
+          description: Commit SHA, bookmark name, or jj change ID
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque cursor from a previous response's next_cursor field
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: Number of results to return (default 30, max 100)
+          schema:
+            type: integer
+            default: 30
+            maximum: 100
+      responses:
+        '200':
+          description: List of commit statuses
+          headers:
+            Link:
+              description: RFC 8288 pagination links with cursor-based URLs.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - next_cursor
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - state
+                        - context
+                        - created_at
+                        - updated_at
+                      properties:
+                        id:
+                          type: integer
+                          description: Unique status ID
+                        state:
+                          type: string
+                          enum:
+                            - pending
+                            - success
+                            - failure
+                            - error
+                          description: Status state
+                        context:
+                          type: string
+                          description: Identifier for this status check (e.g., ci/test, ci/build)
+                        description:
+                          type: string
+                          description: Human-readable summary (max 255 characters)
+                        target_url:
+                          type: string
+                          format: uri
+                          description: URL linking to the full check details
+                        creator:
+                          type: object
+                          properties:
+                            login:
+                              type: string
+                            id:
+                              type: integer
+                        created_at:
+                          type: string
+                          format: date-time
+                        updated_at:
+                          type: string
+                          format: date-time
+                  next_cursor:
+                    type: string
+                    nullable: true
+                    description: Opaque cursor for fetching the next page. Null when there are no more results.
+              example:
+                items:
+                  - id: 1
+                    state: success
+                    context: ci/test
+                    description: All 142 tests passed
+                    target_url: https://api.jjhub.tech/alice/my-project/runs/87
+                    creator:
+                      login: alice
+                      id: 1
+                    created_at: "2025-01-15T10:35:00Z"
+                    updated_at: "2025-01-15T10:35:00Z"
+                  - id: 2
+                    state: pending
+                    context: ci/build
+                    description: Build in progress...
+                    target_url: https://api.jjhub.tech/alice/my-project/runs/88
+                    creator:
+                      login: alice
+                      id: 1
+                    created_at: "2025-01-15T10:34:00Z"
+                    updated_at: "2025-01-15T10:34:00Z"
+                next_cursor: null
+        '404':
+          description: Repository or ref not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: Not Found
+                errors: []
+  /repos/{owner}/{repo}/statuses/{sha}:
+    post:
+      summary: POST /repos/{owner}/{repo}/statuses/{sha}
+      description: Create or update a commit status for a specific commit SHA. If a status with the same context already exists on this SHA, it is replaced. Used by CI/CD systems, external tools, and workflows to report check results.
+      operationId: post_repos__owner___repo__statuses__sha_
+      tags:
+        - Repos
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          description: Repository owner username or organization name
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          description: Repository name
+          schema:
+            type: string
+        - name: sha
+          in: path
+          required: true
+          description: Full commit SHA to attach the status to
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - state
+              properties:
+                state:
+                  type: string
+                  enum:
+                    - pending
+                    - success
+                    - failure
+                    - error
+                  description: "Status state: pending (in progress), success (check passed), failure (check failed), error (infrastructure problem)"
+                context:
+                  type: string
+                  description: Identifier for this check (default "default"). Must be unique per SHA.
+                  default: default
+                  example: ci/test
+                description:
+                  type: string
+                  description: Human-readable summary of the result (max 255 characters)
+                  maxLength: 255
+                  example: All 142 tests passed
+                target_url:
+                  type: string
+                  format: uri
+                  description: URL to the full details of the check (e.g., workflow run logs)
+                  example: https://api.jjhub.tech/alice/my-project/runs/87
+            example:
+              state: success
+              context: ci/test
+              description: All 142 tests passed
+              target_url: https://api.jjhub.tech/alice/my-project/runs/87
+      responses:
+        '201':
+          description: Commit status created or updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - state
+                  - context
+                  - created_at
+                  - updated_at
+                properties:
+                  id:
+                    type: integer
+                    description: Unique status ID
+                  state:
+                    type: string
+                    enum:
+                      - pending
+                      - success
+                      - failure
+                      - error
+                  context:
+                    type: string
+                    description: Check identifier
+                  description:
+                    type: string
+                    description: Human-readable summary
+                  target_url:
+                    type: string
+                    format: uri
+                    description: URL to check details
+                  creator:
+                    type: object
+                    properties:
+                      login:
+                        type: string
+                      id:
+                        type: integer
+                  created_at:
+                    type: string
+                    format: date-time
+                  updated_at:
+                    type: string
+                    format: date-time
+              example:
+                id: 1
+                state: success
+                context: ci/test
+                description: All 142 tests passed
+                target_url: https://api.jjhub.tech/alice/my-project/runs/87
+                creator:
+                  login: alice
+                  id: 1
+                created_at: "2025-01-15T10:35:00Z"
+                updated_at: "2025-01-15T10:35:00Z"
+        '400':
+          description: Invalid request (missing required fields or invalid state value)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: Validation Failed
+                errors:
+                  - resource: CommitStatus
+                    field: state
+                    code: invalid
+        '404':
+          description: Repository or commit not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: Not Found
+                errors: []
+  /user:
+    get:
+      summary: GET /user
+      operationId: get_user
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    patch:
+      summary: PATCH /user
+      operationId: patch_user
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /users/{username}:
+    get:
+      summary: GET /users/{username}
+      operationId: get_users__username_
+      tags:
+        - Users
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /user/orgs:
+    get:
+      summary: GET /user/orgs
+      operationId: get_user_orgs
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /user/keys:
+    get:
+      summary: GET /user/keys
+      operationId: get_user_keys
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: POST /user/keys
+      operationId: post_user_keys
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /user/keys/{id}:
+    get:
+      summary: GET /user/keys/{id}
+      operationId: get_user_keys__id_
+      tags:
+        - User
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    delete:
+      summary: DELETE /user/keys/{id}
+      operationId: delete_user_keys__id_
+      tags:
+        - User
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /user/gpg-keys:
+    get:
+      summary: GET /user/gpg-keys
+      description: List GPG keys for the authenticated user. These keys are used to verify commit signatures.
+      operationId: get_user_gpg_keys
+      tags:
+        - User
+      responses:
+        '200':
+          description: List of GPG keys
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    primary_key_id:
+                      type: string
+                    key_id:
+                      type: string
+                    public_key:
+                      type: string
+                    emails:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          email:
+                            type: string
+                          verified:
+                            type: boolean
+                    can_sign:
+                      type: boolean
+                    verified:
+                      type: boolean
+                    created_at:
+                      type: string
+                      format: date-time
+              example:
+                - id: 1
+                  primary_key_id: "3DE1A1B4D3A8C5F2"
+                  key_id: "3DE1A1B4D3A8C5F2"
+                  emails:
+                    - email: alice@example.com
+                      verified: true
+                  can_sign: true
+                  verified: true
+                  created_at: "2026-03-06T12:00:00Z"
+        '401':
+          description: Authentication required
+    post:
+      summary: POST /user/gpg-keys
+      description: Upload a new GPG public key for commit signature verification. The key must be in ASCII-armored format.
+      operationId: post_user_gpg_keys
+      tags:
+        - User
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - armored_public_key
+              properties:
+                armored_public_key:
+                  type: string
+                  description: ASCII-armored GPG public key
+            example:
+              armored_public_key: "-----BEGIN PGP PUBLIC KEY BLOCK-----\n...\n-----END PGP PUBLIC KEY BLOCK-----"
+      responses:
+        '201':
+          description: GPG key created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  primary_key_id:
+                    type: string
+                  key_id:
+                    type: string
+                  public_key:
+                    type: string
+                  emails:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        email:
+                          type: string
+                        verified:
+                          type: boolean
+                  can_sign:
+                    type: boolean
+                  verified:
+                    type: boolean
+                  created_at:
+                    type: string
+                    format: date-time
+        '401':
+          description: Authentication required
+        '422':
+          description: Invalid key format or key already associated with another account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: array
+                    items:
+                      type: object
+              example:
+                message: Validation Failed
+                errors:
+                  - resource: GPGKey
+                    field: armored_public_key
+                    code: invalid
+  /user/gpg-keys/{id}:
+    get:
+      summary: GET /user/gpg-keys/{id}
+      description: Get a specific GPG key by ID.
+      operationId: get_user_gpg_keys__id_
+      tags:
+        - User
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: GPG key details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  primary_key_id:
+                    type: string
+                  key_id:
+                    type: string
+                  public_key:
+                    type: string
+                  emails:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        email:
+                          type: string
+                        verified:
+                          type: boolean
+                  can_sign:
+                    type: boolean
+                  verified:
+                    type: boolean
+                  created_at:
+                    type: string
+                    format: date-time
+        '401':
+          description: Authentication required
+        '404':
+          description: GPG key not found
+    delete:
+      summary: DELETE /user/gpg-keys/{id}
+      description: Delete a GPG key from the authenticated user's account. Commits previously signed with this key will show as unverified.
+      operationId: delete_user_gpg_keys__id_
+      tags:
+        - User
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: GPG key deleted successfully
+        '401':
+          description: Authentication required
+        '404':
+          description: GPG key not found
+  /user/tokens:
+    get:
+      summary: GET /user/tokens
+      operationId: get_user_tokens
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: POST /user/tokens
+      operationId: post_user_tokens
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /user/tokens/{id}:
+    delete:
+      summary: DELETE /user/tokens/{id}
+      operationId: delete_user_tokens__id_
+      tags:
+        - User
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /user/emails:
+    get:
+      summary: GET /user/emails
+      operationId: get_user_emails
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: POST /user/emails
+      operationId: post_user_emails
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /user/emails/{id}:
+    delete:
+      summary: DELETE /user/emails/{id}
+      operationId: delete_user_emails__id_
+      tags:
+        - User
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /user/emails/{id}/verify:
+    post:
+      summary: POST /user/emails/{id}/verify
+      operationId: post_user_emails__id__verify
+      tags:
+        - User
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /orgs/{org}:
+    get:
+      summary: GET /orgs/{org}
+      operationId: get_orgs__org_
+      tags:
+        - Orgs
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    patch:
+      summary: PATCH /orgs/{org}
+      operationId: patch_orgs__org_
+      tags:
+        - Orgs
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /orgs/{org}/members:
+    get:
+      summary: GET /orgs/{org}/members
+      operationId: get_orgs__org__members
+      tags:
+        - Orgs
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /orgs/{org}/teams:
+    get:
+      summary: GET /orgs/{org}/teams
+      operationId: get_orgs__org__teams
+      tags:
+        - Orgs
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: POST /orgs/{org}/teams
+      operationId: post_orgs__org__teams
+      tags:
+        - Orgs
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /orgs/{org}/teams/{team}:
+    get:
+      summary: GET /orgs/{org}/teams/{team}
+      operationId: get_orgs__org__teams__team_
+      tags:
+        - Orgs
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: team
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    patch:
+      summary: PATCH /orgs/{org}/teams/{team}
+      operationId: patch_orgs__org__teams__team_
+      tags:
+        - Orgs
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: team
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    delete:
+      summary: DELETE /orgs/{org}/teams/{team}
+      operationId: delete_orgs__org__teams__team_
+      tags:
+        - Orgs
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: team
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /orgs/{org}/teams/{team}/members:
+    get:
+      summary: GET /orgs/{org}/teams/{team}/members
+      operationId: get_orgs__org__teams__team__members
+      tags:
+        - Orgs
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: team
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /orgs/{org}/teams/{team}/members/{username}:
+    put:
+      summary: PUT /orgs/{org}/teams/{team}/members/{username}
+      operationId: put_orgs__org__teams__team__members__username_
+      tags:
+        - Orgs
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: team
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    delete:
+      summary: DELETE /orgs/{org}/teams/{team}/members/{username}
+      operationId: delete_orgs__org__teams__team__members__username_
+      tags:
+        - Orgs
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: team
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /orgs/{org}/teams/{team}/repos:
+    get:
+      summary: GET /orgs/{org}/teams/{team}/repos
+      operationId: get_orgs__org__teams__team__repos
+      tags:
+        - Orgs
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: team
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /orgs/{org}/teams/{team}/repos/{owner}/{repo}:
+    put:
+      summary: PUT /orgs/{org}/teams/{team}/repos/{owner}/{repo}
+      operationId: put_orgs__org__teams__team__repos__owner___repo_
+      tags:
+        - Orgs
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: team
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    delete:
+      summary: DELETE /orgs/{org}/teams/{team}/repos/{owner}/{repo}
+      operationId: delete_orgs__org__teams__team__repos__owner___repo_
+      tags:
+        - Orgs
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: team
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /search/repositories:
+    get:
+      summary: GET /search/repositories
+      operationId: get_search_repositories
+      tags:
+        - Search
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /search/issues:
+    get:
+      summary: GET /search/issues
+      operationId: get_search_issues
+      tags:
+        - Search
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /search/code:
+    get:
+      summary: GET /search/code
+      operationId: get_search_code
+      tags:
+        - Search
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /search/users:
+    get:
+      summary: GET /search/users
+      operationId: get_search_users
+      tags:
+        - Search
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /notifications:
+    get:
+      summary: GET /notifications
+      operationId: get_notifications
+      tags:
+        - Notifications
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /notifications/list:
+    get:
+      summary: GET /notifications/list
+      operationId: get_notifications_list
+      tags:
+        - Notifications
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /notifications/{id}:
+    patch:
+      summary: PATCH /notifications/{id}
+      operationId: patch_notifications__id_
+      tags:
+        - Notifications
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /notifications/mark-read:
+    put:
+      summary: PUT /notifications/mark-read
+      operationId: put_notifications_mark_read
+      tags:
+        - Notifications
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /admin/users:
+    get:
+      summary: GET /admin/users
+      operationId: get_admin_users
+      tags:
+        - Admin
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: POST /admin/users
+      operationId: post_admin_users
+      tags:
+        - Admin
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /admin/users/{username}:
+    delete:
+      summary: DELETE /admin/users/{username}
+      operationId: delete_admin_users__username_
+      tags:
+        - Admin
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /admin/orgs:
+    get:
+      summary: GET /admin/orgs
+      operationId: get_admin_orgs
+      tags:
+        - Admin
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /admin/repos:
+    get:
+      summary: GET /admin/repos
+      operationId: get_admin_repos
+      tags:
+        - Admin
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /admin/runners:
+    get:
+      summary: GET /admin/runners
+      operationId: get_admin_runners
+      tags:
+        - Admin
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+  /admin/system/health:
+    get:
+      summary: GET /admin/system/health
+      operationId: get_admin_system_health
+      tags:
+        - Admin
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+components:
+  schemas:
+    AgentSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        repository_id:
+          type: integer
+          format: int64
+        user_id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        status:
+          type: string
+          enum: [active, completed, failed]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    AgentMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        session_id:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [user, assistant, system, tool]
+        sequence:
+          type: integer
+          format: int64
+        parts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentMessagePart'
+        created_at:
+          type: string
+          format: date-time
+    AgentMessagePart:
+      type: object
+      properties:
+        part_index:
+          type: integer
+          format: int64
+        type:
+          type: string
+          enum: [text, tool_call, tool_result, done]
+        content:
+          description: Message part payload.
+    WorkspaceSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        workspace_id:
+          type: string
+          format: uuid
+        repository_id:
+          type: integer
+          format: int64
+        user_id:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum: [pending, running, stopped, failed]
+        cols:
+          type: integer
+        rows:
+          type: integer
+        idle_timeout_secs:
+          type: integer
+        last_activity_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    WorkspaceSSHConnectionInfo:
+      type: object
+      properties:
+        workspace_id:
+          type: string
+          format: uuid
+        session_id:
+          type: string
+          format: uuid
+        vm_id:
+          type: string
+        host:
+          type: string
+          example: vm-ssh.jjhub.tech
+        ssh_host:
+          type: string
+          example: vm_abc123+developer@vm-ssh.jjhub.tech
+        username:
+          type: string
+          example: developer
+        port:
+          type: integer
+          example: 22
+        access_token:
+          type: string
+        command:
+          type: string
+          example: ssh vm_abc123+developer:ws_xxx@vm-ssh.jjhub.tech
+    Workspace:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique workspace identifier
+          example: ws_abc123
+        repository_id:
+          type: integer
+          format: int64
+          description: Repository this workspace belongs to
+        user_id:
+          type: integer
+          format: int64
+          description: User who owns the workspace
+        name:
+          type: string
+          description: Human-readable workspace name
+          example: primary
+        status:
+          type: string
+          enum: [pending, starting, running, suspended, stopped, failed]
+          description: Current workspace status
+          example: running
+        is_fork:
+          type: boolean
+          description: Whether this workspace was forked from another workspace
+        parent_workspace_id:
+          type: string
+          nullable: true
+          description: Source workspace ID for forked workspaces
+        freestyle_vm_id:
+          type: string
+          description: VM identifier
+          example: vm-xyz789
+        persistence:
+          type: string
+          enum: [sticky, ephemeral, persistent]
+          description: Workspace persistence level
+          example: sticky
+        ssh_host:
+          type: string
+          nullable: true
+          description: SSH connection host
+          example: vm-xyz789@vm-ssh.jjhub.tech
+        snapshot_id:
+          type: string
+          nullable: true
+          description: Snapshot template used to create this workspace
+          example: snap_def456
+        idle_timeout_seconds:
+          type: integer
+          description: Seconds of inactivity before auto-suspend
+          example: 1800
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+        suspended_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the workspace was suspended (null if running)
+    WorkspaceSnapshot:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique snapshot identifier
+          example: snap_def456
+        repository_id:
+          type: integer
+          format: int64
+          description: Repository this snapshot belongs to
+        user_id:
+          type: integer
+          format: int64
+          description: User who created the snapshot
+        name:
+          type: string
+          description: Human-readable snapshot name
+          example: node20-full-stack
+        workspace_id:
+          type: string
+          nullable: true
+          description: Workspace this snapshot was taken from (null for base templates)
+          example: ws_abc123
+        freestyle_snapshot_id:
+          type: string
+          description: Platform snapshot identifier
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+    Webhook:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique webhook identifier
+        type:
+          type: string
+          description: Webhook type (e.g., "jjhub", "slack", "discord")
+          example: jjhub
+        url:
+          type: string
+          format: uri
+          description: The delivery URL
+        config:
+          type: object
+          properties:
+            content_type:
+              type: string
+              enum: [json, form]
+              description: Payload content type
+            url:
+              type: string
+              format: uri
+              description: The delivery URL
+          description: Webhook configuration
+        events:
+          type: array
+          items:
+            type: string
+          description: List of subscribed event names
+          example: ["push", "landing_request"]
+        active:
+          type: boolean
+          description: Whether the webhook is active
+        last_status:
+          type: string
+          enum: [none, succeed, fail]
+          description: Status of the last delivery attempt
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CreateHookOption:
+      type: object
+      required:
+        - type
+        - config
+        - events
+      properties:
+        type:
+          type: string
+          description: Webhook type
+          example: jjhub
+        config:
+          type: object
+          required:
+            - url
+            - content_type
+          properties:
+            url:
+              type: string
+              format: uri
+              description: Delivery URL (must be HTTPS in production)
+            content_type:
+              type: string
+              enum: [json, form]
+              default: json
+            secret:
+              type: string
+              description: HMAC-SHA256 signing secret
+        events:
+          type: array
+          items:
+            type: string
+          description: Event names to subscribe to
+          example: ["push", "landing_request"]
+        active:
+          type: boolean
+          default: true
+          description: Whether the webhook is active upon creation
+    EditHookOption:
+      type: object
+      properties:
+        config:
+          type: object
+          properties:
+            url:
+              type: string
+              format: uri
+              description: New delivery URL
+            content_type:
+              type: string
+              enum: [json, form]
+            secret:
+              type: string
+              description: New HMAC-SHA256 signing secret
+        events:
+          type: array
+          items:
+            type: string
+          description: New event names to subscribe to
+        active:
+          type: boolean
+          description: Enable or disable the webhook
+    HookDelivery:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique delivery identifier
+        status:
+          type: string
+          enum: [succeed, fail]
+          description: Delivery outcome
+        status_code:
+          type: integer
+          description: HTTP response status code from the target
+        event:
+          type: string
+          description: Event type that triggered this delivery
+        delivered_at:
+          type: string
+          format: date-time
+          description: When the delivery was attempted
+        duration_ms:
+          type: integer
+          description: Round-trip time in milliseconds
+        request:
+          type: object
+          properties:
+            url:
+              type: string
+              format: uri
+            headers:
+              type: object
+              additionalProperties:
+                type: string
+          description: Request details (URL and headers)
+        response:
+          type: object
+          properties:
+            status_code:
+              type: integer
+            body:
+              type: string
+          description: Response details (status code and body)

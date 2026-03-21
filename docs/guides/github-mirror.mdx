@@ -1,0 +1,103 @@
+---
+title: GitHub Mirror
+description: Mirror a JJHub repository to a pre-provisioned GitHub repository
+---
+
+# Configure GitHub Mirror
+
+JJHub can mirror a repository to GitHub using a standalone worker modeled after Gitea push mirrors. The worker keeps a local bare cache, fetches refs from JJHub, and pushes them to GitHub with `git push --mirror`.
+
+This integration is intentionally mirror-only:
+
+- It mirrors git refs and tags from JJHub to GitHub.
+- It does not translate pull requests into landing requests.
+- It does not sync issues, comments, or labels.
+- It does not mirror wiki or documents sidecar repositories.
+
+## Before You Start
+
+1. Create the destination GitHub repository first.
+2. Make sure the configured GitHub token can read repository metadata and push to that repository.
+3. Generate a JJHub token that can fetch the source repository.
+4. Configure a JJHub webhook that sends `push`, `create`, and `delete` events to the mirror worker.
+
+GitHub webhooks are not required in mirror mode because GitHub is only the destination remote.
+
+## Required Configuration
+
+```bash
+JJHUB_SYNC_MODE=mirror
+JJHUB_SYNC_PORT=4300
+JJHUB_SYNC_JJHUB_API_URL=https://api.jjhub.tech
+JJHUB_SYNC_JJHUB_GIT_BASE_URL=https://jjhub.tech
+JJHUB_SYNC_JJHUB_TOKEN=jjhub_xxx
+JJHUB_SYNC_JJHUB_WEBHOOK_SECRET=jjhub-webhook-secret
+JJHUB_SYNC_GITHUB_API_URL=https://api.github.com
+JJHUB_SYNC_CREDENTIAL_ENCRYPTION_KEY=github-sync-master-key
+JJHUB_SYNC_GITHUB_GIT_BASE_URL=https://github.com
+JJHUB_SYNC_GITHUB_TOKEN=ghp_xxx
+JJHUB_SYNC_DB_PATH=./data/github-sync.db
+JJHUB_SYNC_MIRROR_CACHE_DIR=./data/github-mirrors
+JJHUB_SYNC_INTERVAL_MS=300000
+JJHUB_SYNC_MAPPINGS='[
+  {
+    "githubOwner": "acme",
+    "githubRepo": "platform",
+    "jjhubOwner": "acme",
+    "jjhubRepo": "platform"
+  }
+]'
+```
+
+`JJHUB_SYNC_GITHUB_API_URL` is used to verify that the destination repository exists before the worker starts mirroring. If you use GitHub Enterprise Server, set both `JJHUB_SYNC_GITHUB_API_URL` and `JJHUB_SYNC_GITHUB_GIT_BASE_URL` to the Enterprise host.
+
+`JJHUB_SYNC_CREDENTIAL_ENCRYPTION_KEY` must remain stable across restarts. On first boot, the worker encrypts `JJHUB_SYNC_GITHUB_TOKEN` into the SQLite database under the `github-mirror-write-token` credential purpose. Keep `JJHUB_SYNC_GITHUB_TOKEN` set when bootstrapping the worker or rotating the mirror PAT.
+
+## Start the Worker
+
+From the repository root, run an initial reconciliation when you start the service:
+
+```bash
+bun run apps/github-sync/src/main.ts --sync-existing
+```
+
+After that, leave the worker running so it can process JJHub webhook events and periodic reconciliation passes.
+
+## Configure JJHub Webhooks
+
+Send JJHub repository webhooks to the mirror worker:
+
+- URL: `https://your-worker.example/webhooks/jjhub`
+- Secret: `JJHUB_SYNC_JJHUB_WEBHOOK_SECRET`
+- Events: `push`, `create`, `delete`
+
+`push` covers new commits, `create` covers new bookmarks or tags, and `delete` removes refs from the destination on the next mirror pass.
+
+## Operational Behavior
+
+The mirror worker uses this loop for each configured mapping:
+
+1. Verify that the destination GitHub repository exists and is accessible.
+2. Load the GitHub mirror PAT from the encrypted SQLite credential store.
+3. Keep a local bare cache under `JJHUB_SYNC_MIRROR_CACHE_DIR`.
+4. Run `git fetch --prune --tags` from the JJHub remote.
+5. Run `git push --mirror` to the GitHub remote.
+6. Record the result in SQLite and retry on the next webhook or reconciliation interval if the push fails.
+
+This is the same shape as a Gitea push mirror: JJHub remains the source of truth, and GitHub receives mirrored refs.
+
+## Troubleshooting
+
+If the destination repository is missing, the worker fails with:
+
+```text
+GitHub repository owner/repo is not provisioned. Create it before enabling mirror sync.
+```
+
+If the token cannot access the repository, the worker fails with:
+
+```text
+GitHub repository owner/repo is not accessible with the configured token. Provision it first and grant the token access before enabling mirror sync.
+```
+
+Late `git push --mirror` failures are also rewritten to the same provisioning guidance so operators get a clear action instead of raw git transport noise.

@@ -1,0 +1,11 @@
+{
+  "name": "@jjhub/user-docs",
+  "private": true,
+  "scripts": {
+    "dev": "mintlify dev",
+    "build": "mintlify validate"
+  },
+  "devDependencies": {
+    "mintlify": "^4"
+  }
+}

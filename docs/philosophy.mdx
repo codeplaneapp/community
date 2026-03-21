@@ -1,0 +1,97 @@
+---
+title: "Philosophy & Tenets"
+description: "The principles and beliefs that guide every JJHub decision"
+---
+
+## Core Belief
+
+We are building the best product for the future. We refuse to compromise on product quality or developer experience based on short-term assumptions. By consistently prioritizing the product, we are building a foundation that is the obvious choice for engineering teams entering the agentic era.
+
+---
+
+## Tenets
+
+### 1. Build the Best Product, Period
+
+It's too easy to underestimate users or preemptively hurt the product based on fear. The most common fearful assumption: "users are used to git and won't use a product built on jj." The typical response would be to build around git, or hedge by supporting both git and jj.
+
+We reject this. jj creates a better product: stable change IDs, first-class conflicts, stacked changes. So we built JJHub natively on jj, confident that engineering teams will readily adopt radically better tools.
+
+### 2. Empower Developers, Don't Replace Them
+
+JJHub is not about replacing humans with AI. It is about giving humans more leverage. 
+
+JJHub does not exist to "fire your dev team." It exists to make your dev team 10x more effective.
+
+### 3. AI Agents Are First-Class Citizens
+
+The PR-based workflow that GitHub pioneered is too slow for agents. Many of the best agentic coders have already abandoned it in favor of pushing to main, because the review/rebase cycle simply cannot keep pace with the speed at which agents produce code.
+
+You cannot review every single change an agent makes. Instead, we need **review touch points**: review the plan, ensure the plan validates itself, and trust the execution. More eyeballs on the plan, fewer on the generated code. This is a fundamental shift in how engineering teams work, and JJHub makes that shift seamless.
+
+### 4. Open and Programmable Over One-Size-Fits-All
+
+Every team's workflow is different. Rather than prescribing a single workflow, JJHub provides programmable primitives: programmable landing queues, TypeScript workflow definitions, configurable intake rules, custom AI review policies. Teams compose these into the workflow that fits their needs.
+
+Defaults should be opinionated and good enough that most users never change them. But when users do need to customize, the system is fully open.
+
+### 5. Defaults That Don't Need Changing
+
+If a default requires changing, it is the wrong default. The goal is that teams can get value immediately without touching configuration. We are using our closed alpha to continuously refine these defaults based on real usage.
+
+### 6. Backpressure and Guardrails Are the Product
+
+The more you delegate to AI, the more you need automated systems that drive correctness. CI checks, type systems, test suites, linting - these aren't just nice-to-haves, they're the **backpressure** that keeps agent output high-quality. Without backpressure, agents produce garbage. With good backpressure, agents produce reliable software.
+
+JJHub treats this backpressure infrastructure as a core product feature. The platform should make it trivially easy to set up the guardrails that make agents effective: automated testing, validation chains, security scanning, and granular tool permissions.
+
+### 7. Security Scales with Delegation
+
+The more you delegate to agents, the bigger the security surface becomes. Prompt injection, supply chain attacks, unauthorized file access, exfiltration - these are hard problems that individuals cannot solve on their own and will pay to have solved.
+
+JJHub provides security infrastructure as a native platform feature:
+- **Strict policy-based egress controls** - agents can only reach approved endpoints
+- **Supply chain attack prevention** - dependency scanning, lockfile enforcement, sandboxed package installation
+- **Granular permission systems** - fine-grained control over what agents can read, write, and execute
+- **Granular tool access** - not all agents need all tools; the platform controls what's available per workflow
+- **Comprehensive audit trails** - every agent action logged and traceable
+- **Prompt injection defenses** - platform-level protections that individual users shouldn't have to think about
+
+The security problem gets harder as AI gets more capable, and JJHub is built to handle it natively at the platform layer so teams don't have to build it themselves.
+
+
+
+---
+
+## How Engineering Teams Should Work with AI
+
+The way engineering teams work is about to fundamentally change. JJHub is designed to make that transition smooth.
+
+### The Old Way (PR-Based)
+
+1. Developer writes code on a feature branch
+2. Opens a PR for review
+3. Reviewers read every line of code
+4. Back-and-forth comments, fixes, rebases
+5. Merge when approved
+
+This process was designed for humans writing code at human speed. It breaks down when agents can produce a feature in minutes.
+
+### The New Way (Plan-Based)
+
+1. Define the task and constraints (human or AI)
+2. AI generates a plan - what will change, how it will be validated
+3. **Human reviews the plan** (this is the critical review touchpoint)
+4. AI executes the plan, including writing tests that prove correctness
+5. Automated validation confirms the plan was followed
+6. Land when validation passes
+
+The key insight: **reviewing a plan is more valuable than reviewing generated code.** Code that churns (features added then removed) means security reviews on that code were wasted effort. Plans catch wasted work before it happens.
+
+### What JJHub Provides
+
+- **Landing Requests** instead of PRs - built for stacked changes and AI-speed iteration
+- **Programmable landing queues** - automated validation, AI review, configurable merge strategies
+- **Unified AI + CI workflows** - no distinction between "run tests" and "have an agent review this"
+- **Intake systems** - sophisticated rules for accepting issues and contributions (not "open by default")
+- **Review touch points** - the platform nudges toward plan review rather than line-by-line code review

@@ -1,0 +1,159 @@
+---
+title: Organizations
+description: Manage organizations, teams, and permissions
+---
+
+# Organizations
+
+Organizations let a group own repositories, manage membership, and delegate access through teams.
+
+## Organization Model
+
+- **Organizations** own repositories, just like users do
+- **Organization membership roles** are `owner` and `member`
+- **Teams** are groups of users within an org with repository permission levels of `read`, `write`, or `admin`
+- **Organization visibility** controls who can see the org: `public` (visible to everyone), `limited` (visible to authenticated users), or `private` (visible only to members)
+
+## Managing Organizations
+
+```bash
+# Create an organization
+jjhub org create my-org
+
+# Create with a description
+jjhub org create my-org -d "My engineering team"
+
+# Create a private organization
+jjhub org create my-org --visibility private
+
+# List your organizations
+jjhub org list
+
+# View organization details
+jjhub org view my-org
+
+# Update organization settings
+jjhub org edit my-org -d "Updated description"
+
+# Change visibility to limited
+jjhub org edit my-org --visibility limited
+
+# Delete an organization (all repos must be transferred or deleted first)
+jjhub org delete my-org
+```
+
+See the [CLI reference](/cli-reference/commands#jjhub-org) for the complete list of flags and options.
+
+## Members
+
+Organization members have either `owner` or `member` roles.
+
+```bash
+# List members in an org
+jjhub org member list my-org
+
+# List only owners
+jjhub org member list my-org --role owner
+
+# Add a member with the default "member" role
+jjhub org member add my-org alice
+
+# Add an owner
+jjhub org member add my-org bob --role owner
+
+# Remove a member
+jjhub org member remove my-org alice
+```
+
+## Teams
+
+Teams provide granular access control within an organization. Each team has:
+
+- A name and description
+- A team permission level (`read`, `write`, or `admin`)
+- A set of repositories it has access to
+- A set of member users
+
+### Creating and Managing Teams
+
+```bash
+# List teams in an org
+jjhub org team list my-org
+
+# Create a team with write access
+jjhub org team create my-org backend -p write -d "Backend team"
+
+# View team details
+jjhub org team view my-org backend
+
+# Update a team's permission level
+jjhub org team edit my-org backend -p admin
+
+# Delete a team
+jjhub org team delete my-org old-team
+```
+
+### Managing Team Members
+
+```bash
+# List team members
+jjhub org team member list my-org backend
+
+# Add a user to a team (user must already be an org member)
+jjhub org team member add my-org backend alice
+
+# Remove a user from a team (user remains an org member)
+jjhub org team member remove my-org backend alice
+```
+
+### Managing Team Repository Access
+
+```bash
+# List repos a team can access
+jjhub org team repo list my-org backend
+
+# Grant the team access to a repo
+jjhub org team repo add my-org backend my-org/my-repo
+
+# Revoke team access to a repo
+jjhub org team repo remove my-org backend my-org/my-repo
+```
+
+## Roles and Permissions
+
+<Warning>
+  Our permissions systems are generally not stable and are liable to have breaking changes as we find the correct abstraction for permissioning agentic workflows.
+</Warning>
+
+**Organization membership roles**
+
+| Role | Capabilities |
+|------|--------------|
+| **Owner** | Manage org settings, members, teams, and org-owned repositories |
+| **Member** | Access org resources granted directly or through teams |
+
+**Team permission levels**
+
+| Level | Capabilities |
+|-------|-------------|
+| **Read** | Clone repos, view issues and LRs |
+| **Write** | Push to repos, create issues/LRs, manage labels |
+| **Admin** | Manage repo settings, teams, webhooks, secrets |
+
+## Repository Ownership
+
+Repositories can be owned by either a user or an organization:
+
+```bash
+# Create an org-owned repo
+jjhub repo create new-project -d "Org repository" --org my-org
+
+# List repos owned by an org
+jjhub org view my-org --json
+```
+
+<Note>
+The `--org` flag for `jjhub repo create` posts to `/api/orgs/:org/repos` instead of `/api/user/repos`. If `--org` is not yet available in the shipped CLI, use the API fallback: `jjhub api -X POST /orgs/my-org/repos -f name=new-project -f description="Org repository"`.
+</Note>
+
+Org-owned repos inherit team-based access control. Direct collaborator access is also supported for individual users.

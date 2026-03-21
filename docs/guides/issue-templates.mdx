@@ -1,0 +1,224 @@
+---
+title: Issue Templates
+description: Create structured issue templates for consistent issue creation
+---
+
+# Issue Templates
+
+Issue templates let repository maintainers define structured forms for creating issues. When contributors create an issue using a template, the title, body, labels, and assignees are pre-filled based on the template definition. This ensures consistency and reduces the burden on contributors to remember what information to include.
+
+## How Issue Templates Work
+
+Issue templates are Markdown files stored in the `.jjhub/ISSUE_TEMPLATE/` directory at the root of your repository. Each file defines a single template with YAML frontmatter for metadata and Markdown content for the issue body.
+
+When a user creates an issue with `--template`, the CLI fetches the template from the repository, pre-fills the issue fields, and lets the user edit before submitting.
+
+## Template File Format
+
+Each template file is a Markdown file (`.md`) with YAML frontmatter. The frontmatter defines metadata like the title, labels, and assignees. The Markdown body becomes the issue body, typically containing a structured form with sections to fill in.
+
+### Frontmatter Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Display name of the template |
+| `description` | string | No | Short description shown when listing templates |
+| `title` | string | No | Default issue title (can contain placeholders) |
+| `labels` | string[] | No | Labels to automatically apply to the issue |
+| `assignees` | string[] | No | Usernames to automatically assign |
+
+### Example Template
+
+Create a file at `.jjhub/ISSUE_TEMPLATE/bug-report.md`:
+
+```markdown
+---
+name: Bug Report
+description: Report a bug or unexpected behavior
+title: "[Bug]: "
+labels:
+  - bug
+  - triage
+assignees:
+  - maintainer1
+---
+
+## Describe the Bug
+
+A clear and concise description of what the bug is.
+
+## Steps to Reproduce
+
+1. Go to '...'
+2. Run command '...'
+3. See error
+
+## Expected Behavior
+
+A clear and concise description of what you expected to happen.
+
+## Actual Behavior
+
+What actually happened instead.
+
+## Environment
+
+- OS: [e.g., macOS 14.0, Ubuntu 22.04]
+- JJHub CLI version: [e.g., 0.1.0]
+- jj version: [e.g., 0.22.0]
+
+## Additional Context
+
+Add any other context about the problem here.
+```
+
+### More Template Examples
+
+**Feature request** (`.jjhub/ISSUE_TEMPLATE/feature-request.md`):
+
+```markdown
+---
+name: Feature Request
+description: Suggest a new feature or improvement
+title: "[Feature]: "
+labels:
+  - enhancement
+---
+
+## Problem Statement
+
+A clear description of the problem this feature would solve.
+
+## Proposed Solution
+
+Describe the solution you'd like.
+
+## Alternatives Considered
+
+Describe any alternative solutions or features you've considered.
+
+## Additional Context
+
+Add any other context, mockups, or examples.
+```
+
+**Documentation issue** (`.jjhub/ISSUE_TEMPLATE/docs.md`):
+
+```markdown
+---
+name: Documentation Issue
+description: Report missing or incorrect documentation
+title: "[Docs]: "
+labels:
+  - documentation
+---
+
+## Page or Section
+
+Link to the page or describe the section with the issue.
+
+## What's Wrong
+
+Describe what's incorrect, missing, or unclear.
+
+## Suggested Fix
+
+If you have a suggestion for how to fix it, describe it here.
+```
+
+## CLI Usage
+
+### Creating an Issue from a Template
+
+Use the `--template` flag (short: `-T`) with `jjhub issue create` to use a template:
+
+```bash
+# Create an issue using the bug-report template
+jjhub issue create --template bug-report
+
+# The template pre-fills title, body, labels, and assignees
+# You can override any field with explicit flags
+jjhub issue create --template bug-report --title "Login page crashes on Safari"
+
+# List available templates first
+curl -H "Authorization: token jjhub_YOUR_TOKEN" \
+  https://api.jjhub.tech/api/v1/repos/owner/repo/issue-templates
+```
+
+The `--template` flag accepts the template filename without the `.md` extension. For example, a template at `.jjhub/ISSUE_TEMPLATE/bug-report.md` is referenced as `bug-report`.
+
+When you use `--template`, the template's default title, labels, and assignees are applied. Any flags you pass explicitly (like `--title` or `--assignee`) override the template defaults.
+
+### Listing Available Templates
+
+To see what templates are available for a repository:
+
+```bash
+curl -H "Authorization: token jjhub_YOUR_TOKEN" \
+  https://api.jjhub.tech/api/v1/repos/owner/repo/issue-templates
+```
+
+This returns the list of templates with their names, descriptions, and configured defaults.
+
+## API
+
+### List Issue Templates
+
+Retrieve all issue templates defined in a repository.
+
+```
+GET /api/repos/:owner/:repo/issue-templates
+```
+
+**Response** (`200 OK`):
+
+```json
+[
+  {
+    "filename": "bug-report.md",
+    "name": "Bug Report",
+    "description": "Report a bug or unexpected behavior",
+    "title": "[Bug]: ",
+    "labels": ["bug", "triage"],
+    "assignees": ["maintainer1"],
+    "body": "## Describe the Bug\n\nA clear and concise description..."
+  },
+  {
+    "filename": "feature-request.md",
+    "name": "Feature Request",
+    "description": "Suggest a new feature or improvement",
+    "title": "[Feature]: ",
+    "labels": ["enhancement"],
+    "assignees": [],
+    "body": "## Problem Statement\n\nA clear description..."
+  }
+]
+```
+
+The endpoint reads template files from the `.jjhub/ISSUE_TEMPLATE/` directory on the repository's default bookmark, parses the YAML frontmatter, and returns the structured template data.
+
+## Directory Structure
+
+Templates must be placed in the `.jjhub/ISSUE_TEMPLATE/` directory at the repository root:
+
+```
+your-repo/
+├── .jjhub/
+│   └── ISSUE_TEMPLATE/
+│       ├── bug-report.md
+│       ├── feature-request.md
+│       └── docs.md
+├── src/
+└── ...
+```
+
+The directory name `ISSUE_TEMPLATE` is case-sensitive and must be uppercase. Template files must have the `.md` extension.
+
+## Best Practices
+
+- **Keep templates focused.** Each template should serve a single purpose (bug report, feature request, documentation issue, etc.).
+- **Use descriptive filenames.** The filename (without extension) is what users pass to `--template`, so make it memorable and clear.
+- **Include placeholder text.** Use descriptive placeholder text in each section so contributors know what information to provide.
+- **Apply labels automatically.** Use the `labels` frontmatter field to categorize issues at creation time, reducing manual triage work.
+- **Set a default title prefix.** Use the `title` field with a prefix like `[Bug]:` to make issues scannable in lists.
+- **Keep the template list short.** Three to five templates covers most projects. Too many templates creates decision fatigue.
