@@ -1,22 +1,22 @@
 ---
 title: SSH Keys
-description: Set up SSH keys for secure, passwordless git push and pull with JJHub
+description: Set up SSH keys for secure, passwordless git push and pull with Codeplane
 ---
 
 # SSH Keys
 
-SSH keys provide secure, passwordless authentication for git operations (push, pull, clone) over SSH. When you add an SSH public key to your JJHub account, JJHub's SSH server matches the key fingerprint on every connection, letting you interact with any repository you have access to without entering a password or token.
+SSH keys provide secure, passwordless authentication for git operations (push, pull, clone) over SSH. When you add an SSH public key to your Codeplane account, Codeplane's SSH server matches the key fingerprint on every connection, letting you interact with any repository you have access to without entering a password or token.
 
 ## Why SSH Keys
 
 - **No passwords**: Once your key is registered, git operations authenticate automatically. No credentials to type, paste, or rotate.
-- **Strong cryptography**: SSH keys use public-key cryptography. Your private key never leaves your machine -- only the public key is stored on JJHub.
+- **Strong cryptography**: SSH keys use public-key cryptography. Your private key never leaves your machine -- only the public key is stored on Codeplane.
 - **Works everywhere**: SSH is supported by every major operating system and git client, including jj's git backend.
 - **Multiple keys**: You can register multiple SSH keys on your account -- one per machine, one per role, or however you prefer to organize access.
 
 ## Supported Key Types
 
-JJHub accepts the following SSH key types:
+Codeplane accepts the following SSH key types:
 
 | Key Type | Algorithm | Minimum Size | Recommended |
 |----------|-----------|-------------|-------------|
@@ -28,7 +28,7 @@ JJHub accepts the following SSH key types:
 
 ## Generating an SSH Key
 
-If you already have an SSH key you want to use, skip to [Adding Your SSH Key to JJHub](#adding-your-ssh-key-to-jjhub-via-cli).
+If you already have an SSH key you want to use, skip to [Adding Your SSH Key to Codeplane](#adding-your-ssh-key-to-codeplane-via-cli).
 
 ### macOS and Linux
 
@@ -43,7 +43,7 @@ When prompted for a file location, press Enter to accept the default (`~/.ssh/id
 This creates two files:
 
 - `~/.ssh/id_ed25519` -- your private key (never share this)
-- `~/.ssh/id_ed25519.pub` -- your public key (this is what you add to JJHub)
+- `~/.ssh/id_ed25519.pub` -- your public key (this is what you add to Codeplane)
 
 Start the SSH agent and add your key:
 
@@ -105,12 +105,12 @@ ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
 
 The resulting files will be `~/.ssh/id_rsa` and `~/.ssh/id_rsa.pub`.
 
-## Adding Your SSH Key to JJHub via CLI
+## Adding Your SSH Key to Codeplane via CLI
 
-Copy your public key and add it using the `jjhub ssh-key add` command:
+Copy your public key and add it using the `codeplane ssh-key add` command:
 
 ```bash
-jjhub ssh-key add \
+codeplane ssh-key add \
   --title "MacBook Pro" \
   --key "$(cat ~/.ssh/id_ed25519.pub)"
 ```
@@ -124,11 +124,11 @@ Use a descriptive title so you can identify the key later -- for example, the na
 
 ## Adding Your SSH Key via API
 
-You can also register SSH keys through the JJHub API directly:
+You can also register SSH keys through the Codeplane API directly:
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/user/keys \
-  -H "Authorization: token jjhub_your_token" \
+curl -X POST https://api.codeplane.app/api/user/keys \
+  -H "Authorization: token codeplane_your_token" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "MacBook Pro",
@@ -160,7 +160,7 @@ curl -X POST https://api.jjhub.tech/api/user/keys \
 ### Via CLI
 
 ```bash
-jjhub ssh-key list
+codeplane ssh-key list
 ```
 
 Example output:
@@ -174,8 +174,8 @@ ID    TITLE              FINGERPRINT                   CREATED
 ### Via API
 
 ```bash
-curl https://api.jjhub.tech/api/user/keys \
-  -H "Authorization: token jjhub_your_token"
+curl https://api.codeplane.app/api/user/keys \
+  -H "Authorization: token codeplane_your_token"
 ```
 
 **Response:**
@@ -197,32 +197,32 @@ curl https://api.jjhub.tech/api/user/keys \
 ### Via CLI
 
 ```bash
-jjhub ssh-key delete 1
+codeplane ssh-key delete 1
 ```
 
-The positional argument is the key ID, which you can find from `jjhub ssh-key list`.
+The positional argument is the key ID, which you can find from `codeplane ssh-key list`.
 
 ### Via API
 
 ```bash
-curl -X DELETE https://api.jjhub.tech/api/user/keys/1 \
-  -H "Authorization: token jjhub_your_token"
+curl -X DELETE https://api.codeplane.app/api/user/keys/1 \
+  -H "Authorization: token codeplane_your_token"
 ```
 
 Returns `204 No Content` on success.
 
 ## Testing Your SSH Connection
 
-After adding your key, verify that JJHub recognizes it:
+After adding your key, verify that Codeplane recognizes it:
 
 ```bash
-ssh -T ssh.jjhub.tech
+ssh -T ssh.codeplane.app
 ```
 
 If your key is configured correctly, you will see a message like:
 
 ```
-Hi alice! You've successfully authenticated with JJHub.
+Hi alice! You've successfully authenticated with Codeplane.
 ```
 
 If you get a `Permission denied` error, see [Troubleshooting](#troubleshooting) below.
@@ -234,11 +234,11 @@ Once your SSH key is registered, you can clone, push, and pull repositories over
 ### Cloning a repository
 
 ```bash
-# Using the jjhub CLI (auto-detects SSH or HTTPS based on your config)
-jjhub repo clone owner/repo
+# Using the codeplane CLI (auto-detects SSH or HTTPS based on your config)
+codeplane repo clone owner/repo
 
 # Using jj directly with an SSH URL
-jj git clone ssh://ssh.jjhub.tech/owner/repo
+jj git clone ssh://ssh.codeplane.app/owner/repo
 ```
 
 ### Pushing changes
@@ -254,34 +254,34 @@ jj uses the remote URL stored in the repository configuration. If you cloned ove
 If you want the CLI to always generate SSH clone URLs:
 
 ```bash
-jjhub config set git_protocol ssh
+codeplane config set git_protocol ssh
 ```
 
 This is the default. To switch to HTTPS instead:
 
 ```bash
-jjhub config set git_protocol https
+codeplane config set git_protocol https
 ```
 
 ## Multiple SSH Keys
 
-If you use multiple JJHub accounts (for example, a personal account and a work account), or if you want to use different keys for different hosts, configure SSH to select the right key automatically.
+If you use multiple Codeplane accounts (for example, a personal account and a work account), or if you want to use different keys for different hosts, configure SSH to select the right key automatically.
 
 ### SSH Config for Multiple Accounts
 
 Edit `~/.ssh/config` to define host aliases:
 
 ```
-# Personal JJHub account
-Host jjhub-personal
-  HostName ssh.jjhub.tech
+# Personal Codeplane account
+Host codeplane-personal
+  HostName ssh.codeplane.app
   User git
   IdentityFile ~/.ssh/id_ed25519_personal
   IdentitiesOnly yes
 
-# Work JJHub account
-Host jjhub-work
-  HostName ssh.jjhub.tech
+# Work Codeplane account
+Host codeplane-work
+  HostName ssh.codeplane.app
   User git
   IdentityFile ~/.ssh/id_ed25519_work
   IdentitiesOnly yes
@@ -290,8 +290,8 @@ Host jjhub-work
 Then clone using the alias:
 
 ```bash
-jj git clone ssh://jjhub-personal/owner/repo
-jj git clone ssh://jjhub-work/org/repo
+jj git clone ssh://codeplane-personal/owner/repo
+jj git clone ssh://codeplane-work/org/repo
 ```
 
 The `IdentitiesOnly yes` directive ensures SSH only offers the specified key, preventing the agent from trying other keys and hitting authentication failures.
@@ -299,25 +299,25 @@ The `IdentitiesOnly yes` directive ensures SSH only offers the specified key, pr
 ### Testing a specific key
 
 ```bash
-ssh -T -i ~/.ssh/id_ed25519_work ssh.jjhub.tech
+ssh -T -i ~/.ssh/id_ed25519_work ssh.codeplane.app
 ```
 
 ## Troubleshooting
 
 ### Permission denied (publickey)
 
-This means JJHub's SSH server did not accept any of the keys your SSH client offered.
+This means Codeplane's SSH server did not accept any of the keys your SSH client offered.
 
-**Check that your key is added to JJHub:**
+**Check that your key is added to Codeplane:**
 
 ```bash
-jjhub ssh-key list
+codeplane ssh-key list
 ```
 
 If your key is not listed, add it:
 
 ```bash
-jjhub ssh-key add --title "My Key" --key "$(cat ~/.ssh/id_ed25519.pub)"
+codeplane ssh-key add --title "My Key" --key "$(cat ~/.ssh/id_ed25519.pub)"
 ```
 
 **Check that the SSH agent has your key loaded:**
@@ -335,17 +335,17 @@ ssh-add ~/.ssh/id_ed25519
 **Check that you are connecting to the right host:**
 
 ```bash
-ssh -vT ssh.jjhub.tech
+ssh -vT ssh.codeplane.app
 ```
 
 The verbose output (`-v`) shows which keys SSH is offering and whether the server accepts them. Look for lines like `Offering public key` and `Server accepts key`.
 
 ### Wrong key being used
 
-If you have multiple keys and SSH is offering the wrong one, use an SSH config file to specify which key to use for JJHub:
+If you have multiple keys and SSH is offering the wrong one, use an SSH config file to specify which key to use for Codeplane:
 
 ```
-Host ssh.jjhub.tech
+Host ssh.codeplane.app
   IdentityFile ~/.ssh/id_ed25519
   IdentitiesOnly yes
 ```
@@ -372,7 +372,7 @@ ssh-add $env:USERPROFILE\.ssh\id_ed25519
 
 ### Key format not supported
 
-JJHub accepts Ed25519, ECDSA, and RSA (2048+ bits) keys. If you receive a `422` error when adding a key, check:
+Codeplane accepts Ed25519, ECDSA, and RSA (2048+ bits) keys. If you receive a `422` error when adding a key, check:
 
 - The key is a **public** key (not the private key). Public key files end in `.pub`.
 - The key format is supported. DSA keys and RSA keys smaller than 2048 bits are rejected.
@@ -380,11 +380,11 @@ JJHub accepts Ed25519, ECDSA, and RSA (2048+ bits) keys. If you receive a `422` 
 
 ### Connection timeout
 
-If `ssh -T ssh.jjhub.tech` hangs without responding:
+If `ssh -T ssh.codeplane.app` hangs without responding:
 
 - Check that your firewall or corporate network allows outbound SSH connections (port 22).
 - Try connecting on an alternate network to rule out network-level blocking.
-- Verify DNS resolution: `nslookup ssh.jjhub.tech` should return an IP address.
+- Verify DNS resolution: `nslookup ssh.codeplane.app` should return an IP address.
 
 ## SSH Keys vs Other Authentication Methods
 
@@ -393,7 +393,7 @@ If `ssh -T ssh.jjhub.tech` hangs without responding:
 | **Personal SSH keys** | All repos the user can access | SSH (git push/pull) | Developer workstations |
 | **Deploy keys** | Single repository | SSH (git push/pull) | CI/CD, deployment scripts |
 | **API tokens** | Scoped by token permissions | HTTPS (API calls) | Programmatic API access, scripts |
-| **JJHUB_TOKEN** | Scoped by token permissions | HTTPS (CLI API calls) | CI environments without SSH |
+| **CODEPLANE_TOKEN** | Scoped by token permissions | HTTPS (CLI API calls) | CI environments without SSH |
 
 Personal SSH keys are the right choice for day-to-day development on your own machine. For automated systems that need access to a single repository, use [deploy keys](/guides/deploy-keys) instead.
 

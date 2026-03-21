@@ -1,7 +1,7 @@
 /**
- * JJHub createSmithers wrapper.
+ * Codeplane createSmithers wrapper.
  *
- * Wraps Smithers' createSmithers to return JJHub-extended Workflow and Task
+ * Wraps Smithers' createSmithers to return Codeplane-extended Workflow and Task
  * components that support `triggers` and `if` props.
  */
 import React from "react";
@@ -14,21 +14,21 @@ import type { SmithersWorkflowOptions } from "smithers-orchestrator";
 import type { z } from "zod";
 import {
   createWorkflowArtifactHelpers,
-  type JJHubWorkflowCtx,
+  type CodeplaneWorkflowCtx,
 } from "./artifacts";
 import { createWorkflowCacheHelpers, type WorkflowCacheDescriptor, type WorkflowCacheHelpers } from "./cache";
 import type { TriggerDescriptor } from "./triggers";
 
-// ── JJHub-extended props ────────────────────────────────────────────────────
+// ── Codeplane-extended props ────────────────────────────────────────────────────
 
-type JJHubWorkflowProps = {
+type CodeplaneWorkflowProps = {
   name: string;
   triggers?: TriggerDescriptor[];
   cache?: boolean;
   children?: React.ReactNode;
 };
 
-type JJHubTaskProps<Row> = {
+type CodeplaneTaskProps<Row> = {
   key?: string;
   id: string;
   output: z.ZodObject<any> | string;
@@ -47,14 +47,14 @@ type JJHubTaskProps<Row> = {
 
 // ── Return type ─────────────────────────────────────────────────────────────
 
-export type CreateJJHubSmithersApi<Schema> = Omit<
+export type CreateCodeplaneSmithersApi<Schema> = Omit<
   CreateSmithersApi<Schema>,
   "Workflow" | "Task" | "smithers"
 > & {
-  Workflow: (props: JJHubWorkflowProps) => React.ReactElement;
-  Task: <Row>(props: JJHubTaskProps<Row>) => React.ReactElement;
+  Workflow: (props: CodeplaneWorkflowProps) => React.ReactElement;
+  Task: <Row>(props: CodeplaneTaskProps<Row>) => React.ReactElement;
   smithers: (
-    build: (ctx: JJHubWorkflowCtx<Schema> & { cache: WorkflowCacheHelpers }) => React.ReactElement,
+    build: (ctx: CodeplaneWorkflowCtx<Schema> & { cache: WorkflowCacheHelpers }) => React.ReactElement,
     opts?: SmithersWorkflowOptions,
   ) => SmithersWorkflow<Schema>;
 };
@@ -66,17 +66,17 @@ export function createSmithers<
 >(
   schemas: Schemas,
   opts?: { dbPath?: string; journalMode?: string },
-): CreateJJHubSmithersApi<Schemas> {
+): CreateCodeplaneSmithersApi<Schemas> {
   const base = baseCreateSmithers(schemas, opts);
 
   // Wrap Workflow to accept triggers prop
-  function Workflow(props: JJHubWorkflowProps): React.ReactElement {
+  function Workflow(props: CodeplaneWorkflowProps): React.ReactElement {
     const { triggers, ...rest } = props;
     return React.createElement(base.Workflow as any, { ...rest, triggers });
   }
 
   // Wrap Task to accept if prop and string output
-  function Task<Row>(props: JJHubTaskProps<Row>): React.ReactElement {
+  function Task<Row>(props: CodeplaneTaskProps<Row>): React.ReactElement {
     const { if: condition, ...rest } = props;
     const taskProps: any = { ...rest };
     if (condition) {
@@ -86,7 +86,7 @@ export function createSmithers<
   }
 
   function smithers(
-    build: (ctx: JJHubWorkflowCtx<Schemas> & { cache: WorkflowCacheHelpers }) => React.ReactElement,
+    build: (ctx: CodeplaneWorkflowCtx<Schemas> & { cache: WorkflowCacheHelpers }) => React.ReactElement,
     workflowOpts?: SmithersWorkflowOptions,
   ): SmithersWorkflow<Schemas> {
     return base.smithers((ctx) => build({
@@ -101,5 +101,5 @@ export function createSmithers<
     Workflow,
     Task,
     smithers,
-  } as CreateJJHubSmithersApi<Schemas>;
+  } as CreateCodeplaneSmithersApi<Schemas>;
 }

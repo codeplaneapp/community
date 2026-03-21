@@ -85,7 +85,7 @@ export function resolveAuthTarget(
 export function formatTokenSource(source: AuthTokenSource): string {
   switch (source) {
     case "env":
-      return "JJHUB_TOKEN env";
+      return "CODEPLANE_TOKEN env";
     case "keyring":
       return "keyring";
     case "config":
@@ -115,7 +115,7 @@ export function resolveAuthToken(
   options: { apiUrl?: string; hostname?: string } = {},
 ): ResolvedAuthToken | null {
   const target = resolveAuthTarget(options);
-  const envToken = process.env.JJHUB_TOKEN?.trim();
+  const envToken = process.env.CODEPLANE_TOKEN?.trim();
   if (envToken) {
     return {
       ...target,
@@ -155,7 +155,7 @@ export function requireAuthToken(
 
   const target = resolveAuthTarget(options);
   throw new Error(
-    `no token found for ${target.host}. Run \`jjhub auth login\` or set JJHUB_TOKEN.`,
+    `no token found for ${target.host}. Run \`codeplane auth login\` or set CODEPLANE_TOKEN.`,
   );
 }
 

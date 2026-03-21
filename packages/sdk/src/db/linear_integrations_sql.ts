@@ -4,11 +4,11 @@ export const createLinearIntegrationQuery = `-- name: CreateLinearIntegration :o
 INSERT INTO linear_integrations (
     user_id, org_id, linear_team_id, linear_team_name, linear_team_key,
     access_token_encrypted, refresh_token_encrypted, token_expires_at,
-    webhook_secret, jjhub_repo_id, jjhub_repo_owner, jjhub_repo_name,
+    webhook_secret, codeplane_repo_id, codeplane_repo_owner, codeplane_repo_name,
     linear_actor_id
 )
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-RETURNING id, user_id, org_id, linear_team_id, linear_team_name, linear_team_key, access_token_encrypted, refresh_token_encrypted, token_expires_at, webhook_secret, jjhub_repo_id, jjhub_repo_owner, jjhub_repo_name, linear_actor_id, is_active, last_sync_at, created_at, updated_at`;
+RETURNING id, user_id, org_id, linear_team_id, linear_team_name, linear_team_key, access_token_encrypted, refresh_token_encrypted, token_expires_at, webhook_secret, codeplane_repo_id, codeplane_repo_owner, codeplane_repo_name, linear_actor_id, is_active, last_sync_at, created_at, updated_at`;
 
 export interface CreateLinearIntegrationArgs {
     userId: string;
@@ -20,9 +20,9 @@ export interface CreateLinearIntegrationArgs {
     refreshTokenEncrypted: Buffer | null;
     tokenExpiresAt: Date | null;
     webhookSecret: string;
-    jjhubRepoId: string;
-    jjhubRepoOwner: string;
-    jjhubRepoName: string;
+    codeplaneRepoId: string;
+    codeplaneRepoOwner: string;
+    codeplaneRepoName: string;
     linearActorId: string;
 }
 
@@ -37,9 +37,9 @@ export interface CreateLinearIntegrationRow {
     refreshTokenEncrypted: Buffer | null;
     tokenExpiresAt: Date | null;
     webhookSecret: string;
-    jjhubRepoId: string;
-    jjhubRepoOwner: string;
-    jjhubRepoName: string;
+    codeplaneRepoId: string;
+    codeplaneRepoOwner: string;
+    codeplaneRepoName: string;
     linearActorId: string;
     isActive: boolean;
     lastSyncAt: Date | null;
@@ -48,7 +48,7 @@ export interface CreateLinearIntegrationRow {
 }
 
 export async function createLinearIntegration(sql: Sql, args: CreateLinearIntegrationArgs): Promise<CreateLinearIntegrationRow | null> {
-    const rows = await sql.unsafe(createLinearIntegrationQuery, [args.userId, args.orgId, args.linearTeamId, args.linearTeamName, args.linearTeamKey, args.accessTokenEncrypted, args.refreshTokenEncrypted, args.tokenExpiresAt, args.webhookSecret, args.jjhubRepoId, args.jjhubRepoOwner, args.jjhubRepoName, args.linearActorId]).values();
+    const rows = await sql.unsafe(createLinearIntegrationQuery, [args.userId, args.orgId, args.linearTeamId, args.linearTeamName, args.linearTeamKey, args.accessTokenEncrypted, args.refreshTokenEncrypted, args.tokenExpiresAt, args.webhookSecret, args.codeplaneRepoId, args.codeplaneRepoOwner, args.codeplaneRepoName, args.linearActorId]).values();
     if (rows.length !== 1) {
         return null;
     }
@@ -64,9 +64,9 @@ export async function createLinearIntegration(sql: Sql, args: CreateLinearIntegr
         refreshTokenEncrypted: row[7],
         tokenExpiresAt: row[8],
         webhookSecret: row[9],
-        jjhubRepoId: row[10],
-        jjhubRepoOwner: row[11],
-        jjhubRepoName: row[12],
+        codeplaneRepoId: row[10],
+        codeplaneRepoOwner: row[11],
+        codeplaneRepoName: row[12],
         linearActorId: row[13],
         isActive: row[14],
         lastSyncAt: row[15],
@@ -76,7 +76,7 @@ export async function createLinearIntegration(sql: Sql, args: CreateLinearIntegr
 }
 
 export const getLinearIntegrationQuery = `-- name: GetLinearIntegration :one
-SELECT id, user_id, org_id, linear_team_id, linear_team_name, linear_team_key, access_token_encrypted, refresh_token_encrypted, token_expires_at, webhook_secret, jjhub_repo_id, jjhub_repo_owner, jjhub_repo_name, linear_actor_id, is_active, last_sync_at, created_at, updated_at FROM linear_integrations WHERE id = $1`;
+SELECT id, user_id, org_id, linear_team_id, linear_team_name, linear_team_key, access_token_encrypted, refresh_token_encrypted, token_expires_at, webhook_secret, codeplane_repo_id, codeplane_repo_owner, codeplane_repo_name, linear_actor_id, is_active, last_sync_at, created_at, updated_at FROM linear_integrations WHERE id = $1`;
 
 export interface GetLinearIntegrationArgs {
     id: string;
@@ -93,9 +93,9 @@ export interface GetLinearIntegrationRow {
     refreshTokenEncrypted: Buffer | null;
     tokenExpiresAt: Date | null;
     webhookSecret: string;
-    jjhubRepoId: string;
-    jjhubRepoOwner: string;
-    jjhubRepoName: string;
+    codeplaneRepoId: string;
+    codeplaneRepoOwner: string;
+    codeplaneRepoName: string;
     linearActorId: string;
     isActive: boolean;
     lastSyncAt: Date | null;
@@ -120,9 +120,9 @@ export async function getLinearIntegration(sql: Sql, args: GetLinearIntegrationA
         refreshTokenEncrypted: row[7],
         tokenExpiresAt: row[8],
         webhookSecret: row[9],
-        jjhubRepoId: row[10],
-        jjhubRepoOwner: row[11],
-        jjhubRepoName: row[12],
+        codeplaneRepoId: row[10],
+        codeplaneRepoOwner: row[11],
+        codeplaneRepoName: row[12],
         linearActorId: row[13],
         isActive: row[14],
         lastSyncAt: row[15],
@@ -132,7 +132,7 @@ export async function getLinearIntegration(sql: Sql, args: GetLinearIntegrationA
 }
 
 export const getLinearIntegrationByUserAndIDQuery = `-- name: GetLinearIntegrationByUserAndID :one
-SELECT id, user_id, org_id, linear_team_id, linear_team_name, linear_team_key, access_token_encrypted, refresh_token_encrypted, token_expires_at, webhook_secret, jjhub_repo_id, jjhub_repo_owner, jjhub_repo_name, linear_actor_id, is_active, last_sync_at, created_at, updated_at FROM linear_integrations WHERE id = $1 AND user_id = $2`;
+SELECT id, user_id, org_id, linear_team_id, linear_team_name, linear_team_key, access_token_encrypted, refresh_token_encrypted, token_expires_at, webhook_secret, codeplane_repo_id, codeplane_repo_owner, codeplane_repo_name, linear_actor_id, is_active, last_sync_at, created_at, updated_at FROM linear_integrations WHERE id = $1 AND user_id = $2`;
 
 export interface GetLinearIntegrationByUserAndIDArgs {
     id: string;
@@ -150,9 +150,9 @@ export interface GetLinearIntegrationByUserAndIDRow {
     refreshTokenEncrypted: Buffer | null;
     tokenExpiresAt: Date | null;
     webhookSecret: string;
-    jjhubRepoId: string;
-    jjhubRepoOwner: string;
-    jjhubRepoName: string;
+    codeplaneRepoId: string;
+    codeplaneRepoOwner: string;
+    codeplaneRepoName: string;
     linearActorId: string;
     isActive: boolean;
     lastSyncAt: Date | null;
@@ -177,9 +177,9 @@ export async function getLinearIntegrationByUserAndID(sql: Sql, args: GetLinearI
         refreshTokenEncrypted: row[7],
         tokenExpiresAt: row[8],
         webhookSecret: row[9],
-        jjhubRepoId: row[10],
-        jjhubRepoOwner: row[11],
-        jjhubRepoName: row[12],
+        codeplaneRepoId: row[10],
+        codeplaneRepoOwner: row[11],
+        codeplaneRepoName: row[12],
         linearActorId: row[13],
         isActive: row[14],
         lastSyncAt: row[15],
@@ -189,7 +189,7 @@ export async function getLinearIntegrationByUserAndID(sql: Sql, args: GetLinearI
 }
 
 export const getLinearIntegrationByLinearTeamIDQuery = `-- name: GetLinearIntegrationByLinearTeamID :one
-SELECT id, user_id, org_id, linear_team_id, linear_team_name, linear_team_key, access_token_encrypted, refresh_token_encrypted, token_expires_at, webhook_secret, jjhub_repo_id, jjhub_repo_owner, jjhub_repo_name, linear_actor_id, is_active, last_sync_at, created_at, updated_at FROM linear_integrations
+SELECT id, user_id, org_id, linear_team_id, linear_team_name, linear_team_key, access_token_encrypted, refresh_token_encrypted, token_expires_at, webhook_secret, codeplane_repo_id, codeplane_repo_owner, codeplane_repo_name, linear_actor_id, is_active, last_sync_at, created_at, updated_at FROM linear_integrations
 WHERE linear_team_id = $1 AND is_active = TRUE
 LIMIT 1`;
 
@@ -208,9 +208,9 @@ export interface GetLinearIntegrationByLinearTeamIDRow {
     refreshTokenEncrypted: Buffer | null;
     tokenExpiresAt: Date | null;
     webhookSecret: string;
-    jjhubRepoId: string;
-    jjhubRepoOwner: string;
-    jjhubRepoName: string;
+    codeplaneRepoId: string;
+    codeplaneRepoOwner: string;
+    codeplaneRepoName: string;
     linearActorId: string;
     isActive: boolean;
     lastSyncAt: Date | null;
@@ -235,9 +235,9 @@ export async function getLinearIntegrationByLinearTeamID(sql: Sql, args: GetLine
         refreshTokenEncrypted: row[7],
         tokenExpiresAt: row[8],
         webhookSecret: row[9],
-        jjhubRepoId: row[10],
-        jjhubRepoOwner: row[11],
-        jjhubRepoName: row[12],
+        codeplaneRepoId: row[10],
+        codeplaneRepoOwner: row[11],
+        codeplaneRepoName: row[12],
         linearActorId: row[13],
         isActive: row[14],
         lastSyncAt: row[15],
@@ -247,7 +247,7 @@ export async function getLinearIntegrationByLinearTeamID(sql: Sql, args: GetLine
 }
 
 export const listLinearIntegrationsByUserQuery = `-- name: ListLinearIntegrationsByUser :many
-SELECT id, user_id, org_id, linear_team_id, linear_team_name, linear_team_key, access_token_encrypted, refresh_token_encrypted, token_expires_at, webhook_secret, jjhub_repo_id, jjhub_repo_owner, jjhub_repo_name, linear_actor_id, is_active, last_sync_at, created_at, updated_at FROM linear_integrations
+SELECT id, user_id, org_id, linear_team_id, linear_team_name, linear_team_key, access_token_encrypted, refresh_token_encrypted, token_expires_at, webhook_secret, codeplane_repo_id, codeplane_repo_owner, codeplane_repo_name, linear_actor_id, is_active, last_sync_at, created_at, updated_at FROM linear_integrations
 WHERE user_id = $1
 ORDER BY created_at DESC`;
 
@@ -266,9 +266,9 @@ export interface ListLinearIntegrationsByUserRow {
     refreshTokenEncrypted: Buffer | null;
     tokenExpiresAt: Date | null;
     webhookSecret: string;
-    jjhubRepoId: string;
-    jjhubRepoOwner: string;
-    jjhubRepoName: string;
+    codeplaneRepoId: string;
+    codeplaneRepoOwner: string;
+    codeplaneRepoName: string;
     linearActorId: string;
     isActive: boolean;
     lastSyncAt: Date | null;
@@ -288,9 +288,9 @@ export async function listLinearIntegrationsByUser(sql: Sql, args: ListLinearInt
         refreshTokenEncrypted: row[7],
         tokenExpiresAt: row[8],
         webhookSecret: row[9],
-        jjhubRepoId: row[10],
-        jjhubRepoOwner: row[11],
-        jjhubRepoName: row[12],
+        codeplaneRepoId: row[10],
+        codeplaneRepoOwner: row[11],
+        codeplaneRepoName: row[12],
         linearActorId: row[13],
         isActive: row[14],
         lastSyncAt: row[15],
@@ -300,12 +300,12 @@ export async function listLinearIntegrationsByUser(sql: Sql, args: ListLinearInt
 }
 
 export const listLinearIntegrationsByRepoQuery = `-- name: ListLinearIntegrationsByRepo :many
-SELECT id, user_id, org_id, linear_team_id, linear_team_name, linear_team_key, access_token_encrypted, refresh_token_encrypted, token_expires_at, webhook_secret, jjhub_repo_id, jjhub_repo_owner, jjhub_repo_name, linear_actor_id, is_active, last_sync_at, created_at, updated_at FROM linear_integrations
-WHERE jjhub_repo_id = $1 AND is_active = TRUE
+SELECT id, user_id, org_id, linear_team_id, linear_team_name, linear_team_key, access_token_encrypted, refresh_token_encrypted, token_expires_at, webhook_secret, codeplane_repo_id, codeplane_repo_owner, codeplane_repo_name, linear_actor_id, is_active, last_sync_at, created_at, updated_at FROM linear_integrations
+WHERE codeplane_repo_id = $1 AND is_active = TRUE
 ORDER BY created_at DESC`;
 
 export interface ListLinearIntegrationsByRepoArgs {
-    jjhubRepoId: string;
+    codeplaneRepoId: string;
 }
 
 export interface ListLinearIntegrationsByRepoRow {
@@ -319,9 +319,9 @@ export interface ListLinearIntegrationsByRepoRow {
     refreshTokenEncrypted: Buffer | null;
     tokenExpiresAt: Date | null;
     webhookSecret: string;
-    jjhubRepoId: string;
-    jjhubRepoOwner: string;
-    jjhubRepoName: string;
+    codeplaneRepoId: string;
+    codeplaneRepoOwner: string;
+    codeplaneRepoName: string;
     linearActorId: string;
     isActive: boolean;
     lastSyncAt: Date | null;
@@ -330,7 +330,7 @@ export interface ListLinearIntegrationsByRepoRow {
 }
 
 export async function listLinearIntegrationsByRepo(sql: Sql, args: ListLinearIntegrationsByRepoArgs): Promise<ListLinearIntegrationsByRepoRow[]> {
-    return (await sql.unsafe(listLinearIntegrationsByRepoQuery, [args.jjhubRepoId]).values()).map(row => ({
+    return (await sql.unsafe(listLinearIntegrationsByRepoQuery, [args.codeplaneRepoId]).values()).map(row => ({
         id: row[0],
         userId: row[1],
         orgId: row[2],
@@ -341,9 +341,9 @@ export async function listLinearIntegrationsByRepo(sql: Sql, args: ListLinearInt
         refreshTokenEncrypted: row[7],
         tokenExpiresAt: row[8],
         webhookSecret: row[9],
-        jjhubRepoId: row[10],
-        jjhubRepoOwner: row[11],
-        jjhubRepoName: row[12],
+        codeplaneRepoId: row[10],
+        codeplaneRepoOwner: row[11],
+        codeplaneRepoName: row[12],
         linearActorId: row[13],
         isActive: row[14],
         lastSyncAt: row[15],
@@ -353,7 +353,7 @@ export async function listLinearIntegrationsByRepo(sql: Sql, args: ListLinearInt
 }
 
 export const listActiveLinearIntegrationsQuery = `-- name: ListActiveLinearIntegrations :many
-SELECT id, user_id, org_id, linear_team_id, linear_team_name, linear_team_key, access_token_encrypted, refresh_token_encrypted, token_expires_at, webhook_secret, jjhub_repo_id, jjhub_repo_owner, jjhub_repo_name, linear_actor_id, is_active, last_sync_at, created_at, updated_at FROM linear_integrations
+SELECT id, user_id, org_id, linear_team_id, linear_team_name, linear_team_key, access_token_encrypted, refresh_token_encrypted, token_expires_at, webhook_secret, codeplane_repo_id, codeplane_repo_owner, codeplane_repo_name, linear_actor_id, is_active, last_sync_at, created_at, updated_at FROM linear_integrations
 WHERE is_active = TRUE
 ORDER BY id`;
 
@@ -368,9 +368,9 @@ export interface ListActiveLinearIntegrationsRow {
     refreshTokenEncrypted: Buffer | null;
     tokenExpiresAt: Date | null;
     webhookSecret: string;
-    jjhubRepoId: string;
-    jjhubRepoOwner: string;
-    jjhubRepoName: string;
+    codeplaneRepoId: string;
+    codeplaneRepoOwner: string;
+    codeplaneRepoName: string;
     linearActorId: string;
     isActive: boolean;
     lastSyncAt: Date | null;
@@ -390,9 +390,9 @@ export async function listActiveLinearIntegrations(sql: Sql): Promise<ListActive
         refreshTokenEncrypted: row[7],
         tokenExpiresAt: row[8],
         webhookSecret: row[9],
-        jjhubRepoId: row[10],
-        jjhubRepoOwner: row[11],
-        jjhubRepoName: row[12],
+        codeplaneRepoId: row[10],
+        codeplaneRepoOwner: row[11],
+        codeplaneRepoName: row[12],
         linearActorId: row[13],
         isActive: row[14],
         lastSyncAt: row[15],
@@ -463,16 +463,16 @@ export async function deleteLinearIntegration(sql: Sql, args: DeleteLinearIntegr
 
 export const createLinearIssueMapQuery = `-- name: CreateLinearIssueMap :one
 INSERT INTO linear_issue_map (
-    integration_id, jjhub_issue_id, jjhub_issue_number,
+    integration_id, codeplane_issue_id, codeplane_issue_number,
     linear_issue_id, linear_identifier
 )
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, integration_id, jjhub_issue_id, jjhub_issue_number, linear_issue_id, linear_identifier, created_at, updated_at`;
+RETURNING id, integration_id, codeplane_issue_id, codeplane_issue_number, linear_issue_id, linear_identifier, created_at, updated_at`;
 
 export interface CreateLinearIssueMapArgs {
     integrationId: string;
-    jjhubIssueId: string;
-    jjhubIssueNumber: string;
+    codeplaneIssueId: string;
+    codeplaneIssueNumber: string;
     linearIssueId: string;
     linearIdentifier: string;
 }
@@ -480,8 +480,8 @@ export interface CreateLinearIssueMapArgs {
 export interface CreateLinearIssueMapRow {
     id: string;
     integrationId: string;
-    jjhubIssueId: string;
-    jjhubIssueNumber: string;
+    codeplaneIssueId: string;
+    codeplaneIssueNumber: string;
     linearIssueId: string;
     linearIdentifier: string;
     createdAt: Date;
@@ -489,7 +489,7 @@ export interface CreateLinearIssueMapRow {
 }
 
 export async function createLinearIssueMap(sql: Sql, args: CreateLinearIssueMapArgs): Promise<CreateLinearIssueMapRow | null> {
-    const rows = await sql.unsafe(createLinearIssueMapQuery, [args.integrationId, args.jjhubIssueId, args.jjhubIssueNumber, args.linearIssueId, args.linearIdentifier]).values();
+    const rows = await sql.unsafe(createLinearIssueMapQuery, [args.integrationId, args.codeplaneIssueId, args.codeplaneIssueNumber, args.linearIssueId, args.linearIdentifier]).values();
     if (rows.length !== 1) {
         return null;
     }
@@ -497,8 +497,8 @@ export async function createLinearIssueMap(sql: Sql, args: CreateLinearIssueMapA
     return {
         id: row[0],
         integrationId: row[1],
-        jjhubIssueId: row[2],
-        jjhubIssueNumber: row[3],
+        codeplaneIssueId: row[2],
+        codeplaneIssueNumber: row[3],
         linearIssueId: row[4],
         linearIdentifier: row[5],
         createdAt: row[6],
@@ -506,28 +506,28 @@ export async function createLinearIssueMap(sql: Sql, args: CreateLinearIssueMapA
     };
 }
 
-export const getLinearIssueMapByJJHubIssueQuery = `-- name: GetLinearIssueMapByJJHubIssue :one
-SELECT id, integration_id, jjhub_issue_id, jjhub_issue_number, linear_issue_id, linear_identifier, created_at, updated_at FROM linear_issue_map
-WHERE integration_id = $1 AND jjhub_issue_id = $2`;
+export const getLinearIssueMapByCodeplaneIssueQuery = `-- name: GetLinearIssueMapByCodeplaneIssue :one
+SELECT id, integration_id, codeplane_issue_id, codeplane_issue_number, linear_issue_id, linear_identifier, created_at, updated_at FROM linear_issue_map
+WHERE integration_id = $1 AND codeplane_issue_id = $2`;
 
-export interface GetLinearIssueMapByJJHubIssueArgs {
+export interface GetLinearIssueMapByCodeplaneIssueArgs {
     integrationId: string;
-    jjhubIssueId: string;
+    codeplaneIssueId: string;
 }
 
-export interface GetLinearIssueMapByJJHubIssueRow {
+export interface GetLinearIssueMapByCodeplaneIssueRow {
     id: string;
     integrationId: string;
-    jjhubIssueId: string;
-    jjhubIssueNumber: string;
+    codeplaneIssueId: string;
+    codeplaneIssueNumber: string;
     linearIssueId: string;
     linearIdentifier: string;
     createdAt: Date;
     updatedAt: Date;
 }
 
-export async function getLinearIssueMapByJJHubIssue(sql: Sql, args: GetLinearIssueMapByJJHubIssueArgs): Promise<GetLinearIssueMapByJJHubIssueRow | null> {
-    const rows = await sql.unsafe(getLinearIssueMapByJJHubIssueQuery, [args.integrationId, args.jjhubIssueId]).values();
+export async function getLinearIssueMapByCodeplaneIssue(sql: Sql, args: GetLinearIssueMapByCodeplaneIssueArgs): Promise<GetLinearIssueMapByCodeplaneIssueRow | null> {
+    const rows = await sql.unsafe(getLinearIssueMapByCodeplaneIssueQuery, [args.integrationId, args.codeplaneIssueId]).values();
     if (rows.length !== 1) {
         return null;
     }
@@ -535,8 +535,8 @@ export async function getLinearIssueMapByJJHubIssue(sql: Sql, args: GetLinearIss
     return {
         id: row[0],
         integrationId: row[1],
-        jjhubIssueId: row[2],
-        jjhubIssueNumber: row[3],
+        codeplaneIssueId: row[2],
+        codeplaneIssueNumber: row[3],
         linearIssueId: row[4],
         linearIdentifier: row[5],
         createdAt: row[6],
@@ -545,7 +545,7 @@ export async function getLinearIssueMapByJJHubIssue(sql: Sql, args: GetLinearIss
 }
 
 export const getLinearIssueMapByLinearIssueQuery = `-- name: GetLinearIssueMapByLinearIssue :one
-SELECT id, integration_id, jjhub_issue_id, jjhub_issue_number, linear_issue_id, linear_identifier, created_at, updated_at FROM linear_issue_map
+SELECT id, integration_id, codeplane_issue_id, codeplane_issue_number, linear_issue_id, linear_identifier, created_at, updated_at FROM linear_issue_map
 WHERE integration_id = $1 AND linear_issue_id = $2`;
 
 export interface GetLinearIssueMapByLinearIssueArgs {
@@ -556,8 +556,8 @@ export interface GetLinearIssueMapByLinearIssueArgs {
 export interface GetLinearIssueMapByLinearIssueRow {
     id: string;
     integrationId: string;
-    jjhubIssueId: string;
-    jjhubIssueNumber: string;
+    codeplaneIssueId: string;
+    codeplaneIssueNumber: string;
     linearIssueId: string;
     linearIdentifier: string;
     createdAt: Date;
@@ -573,8 +573,8 @@ export async function getLinearIssueMapByLinearIssue(sql: Sql, args: GetLinearIs
     return {
         id: row[0],
         integrationId: row[1],
-        jjhubIssueId: row[2],
-        jjhubIssueNumber: row[3],
+        codeplaneIssueId: row[2],
+        codeplaneIssueNumber: row[3],
         linearIssueId: row[4],
         linearIdentifier: row[5],
         createdAt: row[6],
@@ -583,7 +583,7 @@ export async function getLinearIssueMapByLinearIssue(sql: Sql, args: GetLinearIs
 }
 
 export const listLinearIssueMapsQuery = `-- name: ListLinearIssueMaps :many
-SELECT id, integration_id, jjhub_issue_id, jjhub_issue_number, linear_issue_id, linear_identifier, created_at, updated_at FROM linear_issue_map
+SELECT id, integration_id, codeplane_issue_id, codeplane_issue_number, linear_issue_id, linear_identifier, created_at, updated_at FROM linear_issue_map
 WHERE integration_id = $1
 ORDER BY created_at DESC`;
 
@@ -594,8 +594,8 @@ export interface ListLinearIssueMapsArgs {
 export interface ListLinearIssueMapsRow {
     id: string;
     integrationId: string;
-    jjhubIssueId: string;
-    jjhubIssueNumber: string;
+    codeplaneIssueId: string;
+    codeplaneIssueNumber: string;
     linearIssueId: string;
     linearIdentifier: string;
     createdAt: Date;
@@ -606,8 +606,8 @@ export async function listLinearIssueMaps(sql: Sql, args: ListLinearIssueMapsArg
     return (await sql.unsafe(listLinearIssueMapsQuery, [args.integrationId]).values()).map(row => ({
         id: row[0],
         integrationId: row[1],
-        jjhubIssueId: row[2],
-        jjhubIssueNumber: row[3],
+        codeplaneIssueId: row[2],
+        codeplaneIssueNumber: row[3],
         linearIssueId: row[4],
         linearIdentifier: row[5],
         createdAt: row[6],
@@ -616,26 +616,26 @@ export async function listLinearIssueMaps(sql: Sql, args: ListLinearIssueMapsArg
 }
 
 export const createLinearCommentMapQuery = `-- name: CreateLinearCommentMap :one
-INSERT INTO linear_comment_map (issue_map_id, jjhub_comment_id, linear_comment_id)
+INSERT INTO linear_comment_map (issue_map_id, codeplane_comment_id, linear_comment_id)
 VALUES ($1, $2, $3)
-RETURNING id, issue_map_id, jjhub_comment_id, linear_comment_id, created_at`;
+RETURNING id, issue_map_id, codeplane_comment_id, linear_comment_id, created_at`;
 
 export interface CreateLinearCommentMapArgs {
     issueMapId: string;
-    jjhubCommentId: string;
+    codeplaneCommentId: string;
     linearCommentId: string;
 }
 
 export interface CreateLinearCommentMapRow {
     id: string;
     issueMapId: string;
-    jjhubCommentId: string;
+    codeplaneCommentId: string;
     linearCommentId: string;
     createdAt: Date;
 }
 
 export async function createLinearCommentMap(sql: Sql, args: CreateLinearCommentMapArgs): Promise<CreateLinearCommentMapRow | null> {
-    const rows = await sql.unsafe(createLinearCommentMapQuery, [args.issueMapId, args.jjhubCommentId, args.linearCommentId]).values();
+    const rows = await sql.unsafe(createLinearCommentMapQuery, [args.issueMapId, args.codeplaneCommentId, args.linearCommentId]).values();
     if (rows.length !== 1) {
         return null;
     }
@@ -643,31 +643,31 @@ export async function createLinearCommentMap(sql: Sql, args: CreateLinearComment
     return {
         id: row[0],
         issueMapId: row[1],
-        jjhubCommentId: row[2],
+        codeplaneCommentId: row[2],
         linearCommentId: row[3],
         createdAt: row[4]
     };
 }
 
-export const getLinearCommentMapByJJHubCommentQuery = `-- name: GetLinearCommentMapByJJHubComment :one
-SELECT id, issue_map_id, jjhub_comment_id, linear_comment_id, created_at FROM linear_comment_map
-WHERE issue_map_id = $1 AND jjhub_comment_id = $2`;
+export const getLinearCommentMapByCodeplaneCommentQuery = `-- name: GetLinearCommentMapByCodeplaneComment :one
+SELECT id, issue_map_id, codeplane_comment_id, linear_comment_id, created_at FROM linear_comment_map
+WHERE issue_map_id = $1 AND codeplane_comment_id = $2`;
 
-export interface GetLinearCommentMapByJJHubCommentArgs {
+export interface GetLinearCommentMapByCodeplaneCommentArgs {
     issueMapId: string;
-    jjhubCommentId: string;
+    codeplaneCommentId: string;
 }
 
-export interface GetLinearCommentMapByJJHubCommentRow {
+export interface GetLinearCommentMapByCodeplaneCommentRow {
     id: string;
     issueMapId: string;
-    jjhubCommentId: string;
+    codeplaneCommentId: string;
     linearCommentId: string;
     createdAt: Date;
 }
 
-export async function getLinearCommentMapByJJHubComment(sql: Sql, args: GetLinearCommentMapByJJHubCommentArgs): Promise<GetLinearCommentMapByJJHubCommentRow | null> {
-    const rows = await sql.unsafe(getLinearCommentMapByJJHubCommentQuery, [args.issueMapId, args.jjhubCommentId]).values();
+export async function getLinearCommentMapByCodeplaneComment(sql: Sql, args: GetLinearCommentMapByCodeplaneCommentArgs): Promise<GetLinearCommentMapByCodeplaneCommentRow | null> {
+    const rows = await sql.unsafe(getLinearCommentMapByCodeplaneCommentQuery, [args.issueMapId, args.codeplaneCommentId]).values();
     if (rows.length !== 1) {
         return null;
     }
@@ -675,14 +675,14 @@ export async function getLinearCommentMapByJJHubComment(sql: Sql, args: GetLinea
     return {
         id: row[0],
         issueMapId: row[1],
-        jjhubCommentId: row[2],
+        codeplaneCommentId: row[2],
         linearCommentId: row[3],
         createdAt: row[4]
     };
 }
 
 export const getLinearCommentMapByLinearCommentQuery = `-- name: GetLinearCommentMapByLinearComment :one
-SELECT id, issue_map_id, jjhub_comment_id, linear_comment_id, created_at FROM linear_comment_map
+SELECT id, issue_map_id, codeplane_comment_id, linear_comment_id, created_at FROM linear_comment_map
 WHERE issue_map_id = $1 AND linear_comment_id = $2`;
 
 export interface GetLinearCommentMapByLinearCommentArgs {
@@ -693,7 +693,7 @@ export interface GetLinearCommentMapByLinearCommentArgs {
 export interface GetLinearCommentMapByLinearCommentRow {
     id: string;
     issueMapId: string;
-    jjhubCommentId: string;
+    codeplaneCommentId: string;
     linearCommentId: string;
     createdAt: Date;
 }
@@ -707,23 +707,23 @@ export async function getLinearCommentMapByLinearComment(sql: Sql, args: GetLine
     return {
         id: row[0],
         issueMapId: row[1],
-        jjhubCommentId: row[2],
+        codeplaneCommentId: row[2],
         linearCommentId: row[3],
         createdAt: row[4]
     };
 }
 
-export const deleteLinearCommentMapByJJHubCommentQuery = `-- name: DeleteLinearCommentMapByJJHubComment :exec
+export const deleteLinearCommentMapByCodeplaneCommentQuery = `-- name: DeleteLinearCommentMapByCodeplaneComment :exec
 DELETE FROM linear_comment_map
-WHERE issue_map_id = $1 AND jjhub_comment_id = $2`;
+WHERE issue_map_id = $1 AND codeplane_comment_id = $2`;
 
-export interface DeleteLinearCommentMapByJJHubCommentArgs {
+export interface DeleteLinearCommentMapByCodeplaneCommentArgs {
     issueMapId: string;
-    jjhubCommentId: string;
+    codeplaneCommentId: string;
 }
 
-export async function deleteLinearCommentMapByJJHubComment(sql: Sql, args: DeleteLinearCommentMapByJJHubCommentArgs): Promise<void> {
-    await sql.unsafe(deleteLinearCommentMapByJJHubCommentQuery, [args.issueMapId, args.jjhubCommentId]);
+export async function deleteLinearCommentMapByCodeplaneComment(sql: Sql, args: DeleteLinearCommentMapByCodeplaneCommentArgs): Promise<void> {
+    await sql.unsafe(deleteLinearCommentMapByCodeplaneCommentQuery, [args.issueMapId, args.codeplaneCommentId]);
 }
 
 export const deleteLinearCommentMapByLinearCommentQuery = `-- name: DeleteLinearCommentMapByLinearComment :exec

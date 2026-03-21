@@ -51,7 +51,7 @@ function createChunks(text: string): DocsChunk[] {
   const chunks: DocsChunk[] = [];
   const headingStack: string[] = [];
 
-  let sectionTitle = "JJHub Docs";
+  let sectionTitle = "Codeplane Docs";
   let buffer: string[] = [];
   let chunkStart = 1;
   let chunkIndex = 0;
@@ -120,7 +120,7 @@ function createChunks(text: string): DocsChunk[] {
       flush(index);
       headingStack.splice(heading.level - 1);
       headingStack[heading.level - 1] = heading.title;
-      sectionTitle = headingStack.filter(Boolean).join(" > ") || "JJHub Docs";
+      sectionTitle = headingStack.filter(Boolean).join(" > ") || "Codeplane Docs";
       chunkStart = index + 1;
       return;
     }
@@ -137,7 +137,7 @@ function createChunks(text: string): DocsChunk[] {
   return [
     {
       id: "0",
-      title: "JJHub Docs",
+      title: "Codeplane Docs",
       lineStart: 1,
       lineEnd: lines.length,
       text: text.trim(),

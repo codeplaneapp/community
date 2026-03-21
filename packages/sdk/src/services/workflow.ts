@@ -633,7 +633,7 @@ function inputContains(value: unknown, target: string): boolean {
 
 function generateAgentToken(): { plaintext: string; hash: string } {
   const hexPart = randomBytes(20).toString("hex");
-  const plaintext = "jjhub_agent_" + hexPart;
+  const plaintext = "codeplane_agent_" + hexPart;
   const hash = createHash("sha256").update(plaintext).digest("hex");
   return { plaintext, hash };
 }

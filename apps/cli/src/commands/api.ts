@@ -2,7 +2,7 @@ import { Cli, z } from "incur";
 import { requireAuthToken } from "../auth-state.js";
 
 export const apiCmd = Cli.create("api", {
-  description: "Make raw API calls to the JJHub server",
+  description: "Make raw API calls to the Codeplane server",
   args: z.object({
     endpoint: z.string().describe("API endpoint path (e.g. /repos/owner/name)"),
   }),

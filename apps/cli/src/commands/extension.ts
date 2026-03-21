@@ -11,14 +11,14 @@ const linear = Cli.create("linear", {
   description: "Configure and manage the Linear integration",
 })
   .command("install", {
-    description: "Configure a Linear team for a JJHub repository",
+    description: "Configure a Linear team for a Codeplane repository",
     options: z.object({
       "team-id": z.string().describe("Linear team ID"),
       "team-name": z.string().optional().describe("Linear team display name"),
       "team-key": z.string().optional().describe("Linear team key (e.g. JJH)"),
-      "repo-owner": z.string().describe("JJHub repo owner"),
-      "repo-name": z.string().describe("JJHub repo name"),
-      "repo-id": z.coerce.number().describe("JJHub repo ID"),
+      "repo-owner": z.string().describe("Codeplane repo owner"),
+      "repo-name": z.string().describe("Codeplane repo name"),
+      "repo-id": z.coerce.number().describe("Codeplane repo ID"),
       "credentials-stdin": z
         .boolean()
         .default(false)

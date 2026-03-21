@@ -1,19 +1,19 @@
 ---
 title: Issues
-description: Create, manage, and track issues on JJHub
+description: Create, manage, and track issues on Codeplane
 icon: circle-exclamation
 ---
 
 # Issues
 
-Issues are JJHub's primary tool for tracking bugs, feature requests, tasks, and discussions. They support labels, milestones, assignees, reactions, dependencies, pinning, locking, and templates -- the full feature set you expect from a modern forge.
+Issues are Codeplane's primary tool for tracking bugs, feature requests, tasks, and discussions. They support labels, milestones, assignees, reactions, dependencies, pinning, locking, and templates -- the full feature set you expect from a modern forge.
 
 ## Creating Issues
 
 ### Via CLI
 
 ```bash
-jjhub issue create --title "Login page returns 500 on Safari" --body "Steps to reproduce..."
+codeplane issue create --title "Login page returns 500 on Safari" --body "Steps to reproduce..."
 ```
 
 Key flags:
@@ -31,26 +31,26 @@ Examples:
 
 ```bash
 # Simple issue
-jjhub issue create -t "Add dark mode support"
+codeplane issue create -t "Add dark mode support"
 
 # Issue with body, assignee, and label
-jjhub issue create \
+codeplane issue create \
   -t "Fix memory leak in worker pool" \
   -b "The worker pool leaks ~2MB per hour under sustained load." \
   -a alice
 
 # Issue from a template
-jjhub issue create --template bug-report
+codeplane issue create --template bug-report
 
 # Issue with dependencies
-jjhub issue create -t "Deploy v2.0" --blocked-by 15 --blocked-by 16
+codeplane issue create -t "Deploy v2.0" --blocked-by 15 --blocked-by 16
 ```
 
 ### Via API
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/repos/owner/repo/issues \
-  -H "Authorization: token jjhub_xxxxx" \
+curl -X POST https://api.codeplane.app/api/repos/owner/repo/issues \
+  -H "Authorization: token codeplane_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Add dark mode support",
@@ -62,14 +62,14 @@ curl -X POST https://api.jjhub.tech/api/repos/owner/repo/issues \
 
 ### Using Templates
 
-Issue templates provide structured forms for consistent issue creation. Templates are Markdown files in `.jjhub/ISSUE_TEMPLATE/`:
+Issue templates provide structured forms for consistent issue creation. Templates are Markdown files in `.codeplane/ISSUE_TEMPLATE/`:
 
 ```bash
 # Use the bug-report template
-jjhub issue create --template bug-report
+codeplane issue create --template bug-report
 
 # Override template defaults
-jjhub issue create --template bug-report --title "Safari crash on login"
+codeplane issue create --template bug-report --title "Safari crash on login"
 ```
 
 See the [Issue Templates guide](/guides/issue-templates) for details on creating and configuring templates.
@@ -78,41 +78,41 @@ See the [Issue Templates guide](/guides/issue-templates) for details on creating
 
 ```bash
 # List open issues (default)
-jjhub issue list
+codeplane issue list
 
 # List closed issues
-jjhub issue list --state closed
+codeplane issue list --state closed
 
 # List all issues
-jjhub issue list --state all
+codeplane issue list --state all
 
 # Limit results
-jjhub issue list --limit 10
+codeplane issue list --limit 10
 
 # List pinned issues only
-jjhub issue list --pinned
+codeplane issue list --pinned
 
 # View a specific issue
-jjhub issue view 42
+codeplane issue view 42
 
 # JSON output for scripting
-jjhub issue list --json number,title,state
+codeplane issue list --json number,title,state
 ```
 
 ## Editing and Closing Issues
 
 ```bash
 # Edit an issue's title and body
-jjhub issue edit 42 -t "Updated title" -b "Updated description"
+codeplane issue edit 42 -t "Updated title" -b "Updated description"
 
 # Add an assignee
-jjhub issue edit 42 -a bob
+codeplane issue edit 42 -a bob
 
 # Close an issue
-jjhub issue close 42
+codeplane issue close 42
 
 # Close with a comment
-jjhub issue close 42 --comment "Fixed in LR #15"
+codeplane issue close 42 --comment "Fixed in LR #15"
 ```
 
 ## Labels
@@ -123,16 +123,16 @@ Labels categorize issues with color-coded tags. They make issues filterable and 
 
 ```bash
 # List labels
-jjhub label list
+codeplane label list
 
 # Create a label
-jjhub label create bug --color e11d48 --description "Something isn't working"
+codeplane label create bug --color e11d48 --description "Something isn't working"
 
 # Create a label with default color
-jjhub label create enhancement
+codeplane label create enhancement
 
 # Delete a label
-jjhub label delete bug
+codeplane label delete bug
 ```
 
 ### Adding Labels to Issues
@@ -141,14 +141,14 @@ Labels are applied when creating issues (via templates or API) or through the AP
 
 ```bash
 # Add a label to an issue
-curl -X POST https://api.jjhub.tech/api/repos/owner/repo/issues/42/labels \
-  -H "Authorization: token jjhub_xxxxx" \
+curl -X POST https://api.codeplane.app/api/repos/owner/repo/issues/42/labels \
+  -H "Authorization: token codeplane_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{"labels": ["bug", "high-priority"]}'
 
 # Remove a label
-curl -X DELETE https://api.jjhub.tech/api/repos/owner/repo/issues/42/labels/bug \
-  -H "Authorization: token jjhub_xxxxx"
+curl -X DELETE https://api.codeplane.app/api/repos/owner/repo/issues/42/labels/bug \
+  -H "Authorization: token codeplane_xxxxx"
 ```
 
 ### API Endpoints
@@ -169,12 +169,12 @@ Milestones group issues into time-boxed goals. They help track progress toward r
 
 ```bash
 # List milestones
-curl -H "Authorization: token jjhub_xxxxx" \
-  https://api.jjhub.tech/api/repos/owner/repo/milestones
+curl -H "Authorization: token codeplane_xxxxx" \
+  https://api.codeplane.app/api/repos/owner/repo/milestones
 
 # Create a milestone
-curl -X POST https://api.jjhub.tech/api/repos/owner/repo/milestones \
-  -H "Authorization: token jjhub_xxxxx" \
+curl -X POST https://api.codeplane.app/api/repos/owner/repo/milestones \
+  -H "Authorization: token codeplane_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "v1.0 Release",
@@ -204,24 +204,24 @@ Issues can have blocking/blocked-by relationships to model task dependencies. A 
 
 ```bash
 # Create an issue that blocks issue #5
-jjhub issue create -t "Add auth middleware" --blocks 5
+codeplane issue create -t "Add auth middleware" --blocks 5
 
 # Create an issue blocked by issues #3 and #4
-jjhub issue create -t "Deploy to production" --blocked-by 3 --blocked-by 4
+codeplane issue create -t "Deploy to production" --blocked-by 3 --blocked-by 4
 
 # Add a dependency to an existing issue
-jjhub issue edit 7 --blocks 10
-jjhub issue edit 7 --blocked-by 2
+codeplane issue edit 7 --blocks 10
+codeplane issue edit 7 --blocked-by 2
 ```
 
 ### Viewing the Dependency Graph
 
 ```bash
 # View full dependency graph for an issue
-jjhub issue deps 7
+codeplane issue deps 7
 
 # JSON output
-jjhub issue deps 7 --json
+codeplane issue deps 7 --json
 ```
 
 The output shows all issues that block the given issue and all issues it blocks, with their current state.
@@ -246,13 +246,13 @@ Pin up to 3 important issues to the top of the issue list. Pinned issues appear 
 
 ```bash
 # Pin an issue
-jjhub issue pin 42
+codeplane issue pin 42
 
 # Unpin an issue
-jjhub issue unpin 42
+codeplane issue unpin 42
 
 # List only pinned issues
-jjhub issue list --pinned
+codeplane issue list --pinned
 ```
 
 Only repository admins and owners can pin or unpin issues. Both open and closed issues can be pinned.
@@ -270,13 +270,13 @@ Locking an issue prevents non-admin users from adding new comments. Existing com
 
 ```bash
 # Lock an issue
-jjhub issue lock 42
+codeplane issue lock 42
 
 # Lock with a reason
-jjhub issue lock 42 --reason resolved
+codeplane issue lock 42 --reason resolved
 
 # Unlock an issue
-jjhub issue unlock 42
+codeplane issue unlock 42
 ```
 
 ### Lock Reasons
@@ -323,13 +323,13 @@ Reactions let you add emoji responses to issues and comments.
 
 ```bash
 # Add a reaction to an issue
-jjhub issue react 42 +1
+codeplane issue react 42 +1
 
 # List reactions on an issue
-jjhub issue reactions 42
+codeplane issue reactions 42
 
 # Add a reaction to a comment
-jjhub issue react --comment 15 heart
+codeplane issue react --comment 15 heart
 ```
 
 ### API Endpoints
@@ -351,8 +351,8 @@ Issues support threaded comments with Markdown formatting and @mentions.
 
 ```bash
 # Add a comment via API
-curl -X POST https://api.jjhub.tech/api/repos/owner/repo/issues/42/comments \
-  -H "Authorization: token jjhub_xxxxx" \
+curl -X POST https://api.codeplane.app/api/repos/owner/repo/issues/42/comments \
+  -H "Authorization: token codeplane_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{"body": "I can reproduce this on macOS 14. Here are the logs..."}'
 ```
@@ -361,14 +361,14 @@ curl -X POST https://api.jjhub.tech/api/repos/owner/repo/issues/42/comments \
 
 ```bash
 # Edit a comment
-curl -X PATCH https://api.jjhub.tech/api/repos/owner/repo/issues/comments/15 \
-  -H "Authorization: token jjhub_xxxxx" \
+curl -X PATCH https://api.codeplane.app/api/repos/owner/repo/issues/comments/15 \
+  -H "Authorization: token codeplane_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{"body": "Updated comment text"}'
 
 # Delete a comment
-curl -X DELETE https://api.jjhub.tech/api/repos/owner/repo/issues/comments/15 \
-  -H "Authorization: token jjhub_xxxxx"
+curl -X DELETE https://api.codeplane.app/api/repos/owner/repo/issues/comments/15 \
+  -H "Authorization: token codeplane_xxxxx"
 ```
 
 ### API Endpoints

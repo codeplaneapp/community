@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { cli, jsonParse, uniqueName, OWNER, READ_TOKEN } from "./helpers";
 
-const VM_E2E_ENABLED = process.env.JJHUB_E2E_FREESTYLE === "true";
+const VM_E2E_ENABLED = process.env.CODEPLANE_E2E_FREESTYLE === "true";
 const workspaceTest = VM_E2E_ENABLED ? test : test.skip;
 
 describe("CLI: Workspace Full Lifecycle", () => {

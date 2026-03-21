@@ -7,7 +7,7 @@ import { cli, jsonParse, uniqueName, OWNER } from "./helpers";
 const tempDirs: string[] = [];
 
 async function generateDeployKey(prefix: string): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), `jjhub-deploy-${prefix}-`));
+  const dir = await mkdtemp(join(tmpdir(), `codeplane-deploy-${prefix}-`));
   tempDirs.push(dir);
 
   const privateKeyPath = join(dir, "id_ed25519");

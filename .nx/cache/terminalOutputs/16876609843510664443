@@ -1,0 +1,20 @@
+
+> codeplane@ build /Users/williamcory/codeplane/apps/cli
+> bun run scripts/build.ts
+
+[1m3 | [0m[0m[35mconst[0m binding = require([0m[32m'../build/Release/cpufeatures.node'[0m)[0m[2m;[0m
+                            [1m[31m[1m^[0m
+[31merror[0m[2m: [0m[1mCould not resolve: "../build/Release/cpufeatures.node"[0m
+    [2mat [0m[36m/Users/williamcory/codeplane/node_modules/.pnpm/cpu-features@0.0.10/node_modules/cpu-features/lib/index.js[0m[2m:[0m[33m3[0m[2m:[0m[33m25[0m
+[0m[1m50 |[0m       stderr: [0m[32m"inherit"[0m,
+[0m[1m51 |[0m     },
+[0m[1m52 |[0m   )[0m[2m;[0m
+[0m[1m53 |[0m 
+[0m[1m54 |[0m   [0m[35mif[0m (proc.exitCode !== [0m[33m0[0m) {
+[0m[1m55 |[0m     [0m[35mthrow[0m [0m[35mnew[0m [0m[1mError[0m([0m[32m`bun build failed with exit code [0m${proc.exitCode}[0m[32m`[0m)[0m[2m;[0m
+                   [31m[1m^[0m
+[0m[31merror[0m[2m:[0m [1mbun build failed with exit code 1[0m
+[0m      [2mat [0m[0m[1m[3mbuildBinary[0m[2m ([0m[0m[36m[2m/Users/williamcory/codeplane/apps/cli/[0m[36mscripts/build.ts[0m[2m:[0m[33m55[0m[2m:[33m15[0m[2m)[0m
+[0m
+[2mBun v1.3.9 (macOS arm64)[0m
+[41m[30m ELIFECYCLE [39m[49m [31mCommand failed with exit code 1.[39m

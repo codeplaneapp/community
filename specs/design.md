@@ -1,6 +1,6 @@
-# JJHub Design Specification
+# Codeplane Design Specification
 
-This design specification describes the current JJHub repository architecture and interface model. It is intentionally code-backed. It explains how the product is structured today, which boundaries are authoritative, and where the current implementation is partial or intentionally gated.
+This design specification describes the current Codeplane repository architecture and interface model. It is intentionally code-backed. It explains how the product is structured today, which boundaries are authoritative, and where the current implementation is partial or intentionally gated.
 
 ## Status Model
 
@@ -13,7 +13,7 @@ The same maturity labels used in the PRD apply here:
 
 ## 1. Design Goals
 
-JJHub’s current repository is designed around these technical goals:
+Codeplane’s current repository is designed around these technical goals:
 
 - `jj-native architecture`: jj concepts are exposed directly in routes, clients, and workflows.
 - `API as contract`: web, CLI, TUI, desktop, and editor integrations should converge on the same HTTP API and shared packages.
@@ -90,7 +90,7 @@ This stack is effectively the common runtime contract for all mounted routes.
 
 `Implemented`
 
-`apps/server/src/services.ts` creates singleton service instances from `@jjhub/sdk`, including:
+`apps/server/src/services.ts` creates singleton service instances from `@codeplane/sdk`, including:
 
 - user
 - repo
@@ -146,7 +146,7 @@ Key properties:
 
 `Implemented`
 
-JJHub does not reimplement jj semantics in TypeScript. The repo-host layer bridges to local repositories and jj operations via subprocess-based integration and repo-host services. This boundary is what enables:
+Codeplane does not reimplement jj semantics in TypeScript. The repo-host layer bridges to local repositories and jj operations via subprocess-based integration and repo-host services. This boundary is what enables:
 
 - bookmark and change browsing
 - file contents and diff retrieval
@@ -270,7 +270,7 @@ The SSH server also supports workspace access when a container sandbox runtime i
 
 `Implemented`
 
-The repository routes expose content, refs, trees, commits, archive, and related repository transport surfaces sufficient for JJHub’s repository browsing and compatibility workflows.
+The repository routes expose content, refs, trees, commits, archive, and related repository transport surfaces sufficient for Codeplane’s repository browsing and compatibility workflows.
 
 ## 7. Web Application Design
 
@@ -378,7 +378,7 @@ This is a significant product-specific orchestration surface, not merely a thin 
 
 `Implemented`
 
-The TUI is built with React and Ink rather than Solid. This is acceptable because it consumes shared `@jjhub/ui-core` data hooks and the common API.
+The TUI is built with React and Ink rather than Solid. This is acceptable because it consumes shared `@codeplane/ui-core` data hooks and the common API.
 
 ### 9.2 Screen model
 
@@ -409,7 +409,7 @@ This makes the TUI a real first-class client, not a placeholder command.
 
 `Implemented`
 
-The desktop application starts the JJHub server in-process using PGLite and then loads the UI from the local daemon URL. This means desktop is not a distinct backend; it is a packaging and runtime composition of existing server and UI surfaces.
+The desktop application starts the Codeplane server in-process using PGLite and then loads the UI from the local daemon URL. This means desktop is not a distinct backend; it is a packaging and runtime composition of existing server and UI surfaces.
 
 ### 10.2 Native desktop affordances
 
@@ -477,7 +477,7 @@ The sync service uses:
 - conflict tracking
 - jj operation watch hooks
 
-This is the technical basis for local-first JJHub behavior in the daemon, desktop, and editor-linked workflows.
+This is the technical basis for local-first Codeplane behavior in the daemon, desktop, and editor-linked workflows.
 
 ## 13. Workflow, Workspace, Preview, and Agent Design
 
@@ -584,7 +584,7 @@ These gaps should remain explicit in any future design updates.
 
 ## 16. Design Rules for Future Changes
 
-Changes to JJHub should preserve these architectural rules:
+Changes to Codeplane should preserve these architectural rules:
 
 - add product logic to shared services before duplicating it in route handlers or clients
 - treat the HTTP API as the main integration boundary
@@ -596,14 +596,14 @@ Changes to JJHub should preserve these architectural rules:
 
 This design spec should be maintained alongside:
 
-- [prd.md](/Users/williamcory/jjhub/specs/prd.md)
-- [features.ts](/Users/williamcory/jjhub/specs/features.ts)
-- [README.md](/Users/williamcory/jjhub/README.md)
+- [prd.md](/Users/williamcory/codeplane/specs/prd.md)
+- [features.ts](/Users/williamcory/codeplane/specs/features.ts)
+- [README.md](/Users/williamcory/codeplane/README.md)
 
-## 9. SuperSmithers Dev Harness (jjhubctl)
+## 9. SuperSmithers Dev Harness (codeplanectl)
 
 The development harness uses `incur` to manage CLI arguments and the Smithers workflow engine for autonomous orchestration.
 
-- **Interactive Pi Session**: `jjhubctl` exposes an interactive command that spawns the `pi` coding agent, loading a local extension and skill.
+- **Interactive Pi Session**: `codeplanectl` exposes an interactive command that spawns the `pi` coding agent, loading a local extension and skill.
 - **TUI Dashboards**: The Dev Harness UI embeds tools to view PRD/Design specs, review implementation plans, monitor Smithers task progress, and surface PromQL/Grafana alerts.
 - **Runbook Execution**: Provides command-line affordances to execute operational runbooks interactively, tracking results as Smithers task attempts.

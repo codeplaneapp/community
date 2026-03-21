@@ -5,7 +5,7 @@ description: Understand API rate limits and how to handle them
 
 # Rate Limiting
 
-The JJHub API enforces per-user rate limits to ensure fair usage and platform stability. Every API response includes rate limit headers so you can monitor your consumption in real time.
+The Codeplane API enforces per-user rate limits to ensure fair usage and platform stability. Every API response includes rate limit headers so you can monitor your consumption in real time.
 
 ## Rate Limit Tiers
 
@@ -35,13 +35,13 @@ X-RateLimit-Reset: 1372700873
 | `X-RateLimit-Remaining` | Number of requests remaining in the current window |
 | `X-RateLimit-Reset` | UTC epoch timestamp (in seconds) when the current window resets |
 
-These headers follow the same format used by Gitea and GitHub, so existing tooling that reads rate limit headers will work with JJHub.
+These headers follow the same format used by Gitea and GitHub, so existing tooling that reads rate limit headers will work with Codeplane.
 
 ## Example: Normal Response Headers
 
 ```bash
-curl -i https://api.jjhub.tech/api/user \
-  -H "Authorization: Bearer jjhub_your_token"
+curl -i https://api.codeplane.app/api/user \
+  -H "Authorization: Bearer codeplane_your_token"
 ```
 
 ```http
@@ -79,8 +79,8 @@ Do not retry immediately after receiving a 429 response. Use the `Retry-After` h
 You can check your current rate limit status without consuming a rate limit slot by inspecting the headers on any successful API response:
 
 ```bash
-curl -s -I https://api.jjhub.tech/api/user \
-  -H "Authorization: Bearer jjhub_your_token" \
+curl -s -I https://api.codeplane.app/api/user \
+  -H "Authorization: Bearer codeplane_your_token" \
   | grep X-RateLimit
 ```
 
@@ -104,8 +104,8 @@ date -r 1709741200     # macOS
 Use `If-None-Match` and `If-Modified-Since` headers for resources you have already fetched. A `304 Not Modified` response does not count against your rate limit.
 
 ```bash
-curl https://api.jjhub.tech/api/repos/owner/repo \
-  -H "Authorization: Bearer jjhub_your_token" \
+curl https://api.codeplane.app/api/repos/owner/repo \
+  -H "Authorization: Bearer codeplane_your_token" \
   -H "If-None-Match: \"abc123\""
 ```
 

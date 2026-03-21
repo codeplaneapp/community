@@ -231,7 +231,7 @@ export async function ensureWorkflowDefinitionReference(sql: Sql, args: EnsureWo
 
 export const upsertAgentWorkflowDefinitionQuery = `-- name: UpsertAgentWorkflowDefinition :one
 INSERT INTO workflow_definitions (repository_id, name, path, config)
-VALUES ($1, 'Agent', '.jjhub/agent', '{"agent": true}'::jsonb)
+VALUES ($1, 'Agent', '.codeplane/agent', '{"agent": true}'::jsonb)
 ON CONFLICT (repository_id, path) DO UPDATE SET updated_at = NOW()
 RETURNING id, repository_id, name, path, config, is_active, created_at, updated_at`;
 

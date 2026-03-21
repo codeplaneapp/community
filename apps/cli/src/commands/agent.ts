@@ -88,17 +88,17 @@ function createRemoteSessionCommands(base: ReturnType<typeof Cli.create>) {
 
 const session = createRemoteSessionCommands(
   Cli.create("session", {
-    description: "Manage remote JJHub agent sessions",
+    description: "Manage remote Codeplane agent sessions",
   }),
 );
 
 const ask = Cli.create("ask", {
-  description: "Talk to the local JJHub usage helper",
+  description: "Talk to the local Codeplane usage helper",
   args: z.object({
     prompt: z
       .string()
       .optional()
-      .describe("Optional one-shot prompt for the local JJHub helper"),
+      .describe("Optional one-shot prompt for the local Codeplane helper"),
   }),
   options: z.object({
     sandbox: z
@@ -120,7 +120,7 @@ const ask = Cli.create("ask", {
 
 export const agent = createRemoteSessionCommands(
   Cli.create("agent", {
-    description: "Talk to a local JJHub usage helper or manage remote agent sessions",
+    description: "Talk to a local Codeplane usage helper or manage remote agent sessions",
   })
     .command(ask)
     .command(session),

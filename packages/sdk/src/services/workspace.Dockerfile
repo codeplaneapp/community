@@ -27,7 +27,7 @@ RUN mkdir -p /var/run/sshd && \
     echo "PermitEmptyPasswords no" >> /etc/ssh/sshd_config && \
     ssh-keygen -A
 
-# Install jj (jujutsu) — the version control system JJHub is built for
+# Install jj (jujutsu) — the version control system Codeplane is built for
 RUN ARCH=$(dpkg --print-architecture) && \
     if [ "$ARCH" = "amd64" ]; then \
         JJ_ARCH="x86_64-unknown-linux-gnu"; \

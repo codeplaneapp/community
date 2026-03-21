@@ -15,7 +15,7 @@ describe("CLI: LFS Operations", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub api POST lfs/batch (upload) returns signed URL", async () => {
+  test("codeplane api POST lfs/batch (upload) returns signed URL", async () => {
     const result = await cli(
       [
         "api",
@@ -34,7 +34,7 @@ describe("CLI: LFS Operations", () => {
     }
   });
 
-  test("jjhub api GET lfs/objects lists LFS objects", async () => {
+  test("codeplane api GET lfs/objects lists LFS objects", async () => {
     const result = await cli(
       ["api", `/api/repos/${OWNER}/${repoName}/lfs/objects`],
       { json: true },
@@ -74,7 +74,7 @@ describe("CLI: Release Assets", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub release create creates a release", async () => {
+  test("codeplane release create creates a release", async () => {
     const result = await cli(
       [
         "release", "create",
@@ -92,7 +92,7 @@ describe("CLI: Release Assets", () => {
     }
   });
 
-  test("jjhub release list lists releases", async () => {
+  test("codeplane release list lists releases", async () => {
     const result = await cli(
       ["release", "list"],
       { repo: repoSlug, json: true },

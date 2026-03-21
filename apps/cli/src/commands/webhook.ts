@@ -24,7 +24,7 @@ export const webhook = Cli.create("webhook", {
         : undefined;
       const { owner, repo } = resolveRepoRef(c.options.repo);
       return api("POST", `/api/repos/${owner}/${repo}/hooks`, {
-        type: "jjhub",
+        type: "codeplane",
         config: {
           url: c.options.url,
           content_type: c.options["content-type"],

@@ -8,7 +8,7 @@ import {
   writeError,
   writeJSON,
   writeRouteError,
-} from "@jjhub/sdk";
+} from "@codeplane/sdk";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -152,7 +152,7 @@ app.get("/api/integrations/linear/oauth/start", async (c) => {
     // Set state cookie for CSRF protection
     c.header(
       "Set-Cookie",
-      `jjhub_linear_oauth_state=${stateVerifier}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`,
+      `codeplane_linear_oauth_state=${stateVerifier}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`,
     );
 
     return c.redirect(redirectURL, 302);
@@ -180,13 +180,13 @@ app.get("/api/integrations/linear/oauth/callback", async (c) => {
   const cookieHeader = c.req.header("Cookie") ?? "";
   const stateVerifier = extractCookieValue(
     cookieHeader,
-    "jjhub_linear_oauth_state",
+    "codeplane_linear_oauth_state",
   );
 
   // Clear the state cookie
   c.header(
     "Set-Cookie",
-    "jjhub_linear_oauth_state=; Path=/; HttpOnly; SameSite=Lax; Max-Age=-1",
+    "codeplane_linear_oauth_state=; Path=/; HttpOnly; SameSite=Lax; Max-Age=-1",
   );
 
   try {

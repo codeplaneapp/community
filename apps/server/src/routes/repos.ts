@@ -10,7 +10,7 @@ import {
   parsePagination,
   cursorToPage,
   setPaginationHeaders,
-} from "@jjhub/sdk";
+} from "@codeplane/sdk";
 import { Result } from "better-result";
 import { getServices } from "../services";
 
@@ -125,7 +125,7 @@ export function mapRepoResponse(owner: string, repo: any, sshHost: string): Repo
 // Helpers
 // ---------------------------------------------------------------------------
 
-const SSH_HOST = process.env.JJHUB_SSH_HOST ?? "ssh.jjhub.tech";
+const SSH_HOST = process.env.CODEPLANE_SSH_HOST ?? "ssh.codeplane.app";
 
 /**
  * Build a RepoActor from the auth context user, or null if not authenticated.

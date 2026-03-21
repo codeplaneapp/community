@@ -18,31 +18,31 @@ Organizations let a group own repositories, manage membership, and delegate acce
 
 ```bash
 # Create an organization
-jjhub org create my-org
+codeplane org create my-org
 
 # Create with a description
-jjhub org create my-org -d "My engineering team"
+codeplane org create my-org -d "My engineering team"
 
 # Create a private organization
-jjhub org create my-org --visibility private
+codeplane org create my-org --visibility private
 
 # List your organizations
-jjhub org list
+codeplane org list
 
 # View organization details
-jjhub org view my-org
+codeplane org view my-org
 
 # Update organization settings
-jjhub org edit my-org -d "Updated description"
+codeplane org edit my-org -d "Updated description"
 
 # Change visibility to limited
-jjhub org edit my-org --visibility limited
+codeplane org edit my-org --visibility limited
 
 # Delete an organization (all repos must be transferred or deleted first)
-jjhub org delete my-org
+codeplane org delete my-org
 ```
 
-See the [CLI reference](/cli-reference/commands#jjhub-org) for the complete list of flags and options.
+See the [CLI reference](/cli-reference/commands#codeplane-org) for the complete list of flags and options.
 
 ## Members
 
@@ -50,19 +50,19 @@ Organization members have either `owner` or `member` roles.
 
 ```bash
 # List members in an org
-jjhub org member list my-org
+codeplane org member list my-org
 
 # List only owners
-jjhub org member list my-org --role owner
+codeplane org member list my-org --role owner
 
 # Add a member with the default "member" role
-jjhub org member add my-org alice
+codeplane org member add my-org alice
 
 # Add an owner
-jjhub org member add my-org bob --role owner
+codeplane org member add my-org bob --role owner
 
 # Remove a member
-jjhub org member remove my-org alice
+codeplane org member remove my-org alice
 ```
 
 ## Teams
@@ -78,45 +78,45 @@ Teams provide granular access control within an organization. Each team has:
 
 ```bash
 # List teams in an org
-jjhub org team list my-org
+codeplane org team list my-org
 
 # Create a team with write access
-jjhub org team create my-org backend -p write -d "Backend team"
+codeplane org team create my-org backend -p write -d "Backend team"
 
 # View team details
-jjhub org team view my-org backend
+codeplane org team view my-org backend
 
 # Update a team's permission level
-jjhub org team edit my-org backend -p admin
+codeplane org team edit my-org backend -p admin
 
 # Delete a team
-jjhub org team delete my-org old-team
+codeplane org team delete my-org old-team
 ```
 
 ### Managing Team Members
 
 ```bash
 # List team members
-jjhub org team member list my-org backend
+codeplane org team member list my-org backend
 
 # Add a user to a team (user must already be an org member)
-jjhub org team member add my-org backend alice
+codeplane org team member add my-org backend alice
 
 # Remove a user from a team (user remains an org member)
-jjhub org team member remove my-org backend alice
+codeplane org team member remove my-org backend alice
 ```
 
 ### Managing Team Repository Access
 
 ```bash
 # List repos a team can access
-jjhub org team repo list my-org backend
+codeplane org team repo list my-org backend
 
 # Grant the team access to a repo
-jjhub org team repo add my-org backend my-org/my-repo
+codeplane org team repo add my-org backend my-org/my-repo
 
 # Revoke team access to a repo
-jjhub org team repo remove my-org backend my-org/my-repo
+codeplane org team repo remove my-org backend my-org/my-repo
 ```
 
 ## Roles and Permissions
@@ -146,14 +146,14 @@ Repositories can be owned by either a user or an organization:
 
 ```bash
 # Create an org-owned repo
-jjhub repo create new-project -d "Org repository" --org my-org
+codeplane repo create new-project -d "Org repository" --org my-org
 
 # List repos owned by an org
-jjhub org view my-org --json
+codeplane org view my-org --json
 ```
 
 <Note>
-The `--org` flag for `jjhub repo create` posts to `/api/orgs/:org/repos` instead of `/api/user/repos`. If `--org` is not yet available in the shipped CLI, use the API fallback: `jjhub api -X POST /orgs/my-org/repos -f name=new-project -f description="Org repository"`.
+The `--org` flag for `codeplane repo create` posts to `/api/orgs/:org/repos` instead of `/api/user/repos`. If `--org` is not yet available in the shipped CLI, use the API fallback: `codeplane api -X POST /orgs/my-org/repos -f name=new-project -f description="Org repository"`.
 </Note>
 
 Org-owned repos inherit team-based access control. Direct collaborator access is also supported for individual users.

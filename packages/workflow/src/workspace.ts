@@ -1,7 +1,7 @@
 /**
- * Workspace, preview, and CI DSL for JJHub.
+ * Workspace, preview, and CI DSL for Codeplane.
  *
- * These functions are used in `.jjhub/workspace.ts` and `.jjhub/preview.ts`
+ * These functions are used in `.codeplane/workspace.ts` and `.codeplane/preview.ts`
  * to define repository workspace templates and preview environment configs.
  *
  * See docs/specs/workspaces.md sections 2.2-2.3 for the spec.
@@ -89,7 +89,7 @@ export interface WorkspaceHandle {
   readFile(path: string): Promise<string>;
 }
 
-// ── Workspace template (.jjhub/workspace.ts) ────────────────────────────────
+// ── Workspace template (.codeplane/workspace.ts) ────────────────────────────────
 
 export interface WorkspaceConfig {
   /** Tools and runtimes to install, e.g. { bun: "latest", jj: "latest" }. */
@@ -118,9 +118,9 @@ export interface WorkspaceDefinition {
 /**
  * Define a workspace template for a repository.
  *
- * Used in `.jjhub/workspace.ts`:
+ * Used in `.codeplane/workspace.ts`:
  * ```ts
- * import { defineWorkspace } from "@jjhub-ai/workflow";
+ * import { defineWorkspace } from "@codeplane-ai/workflow";
  *
  * export default defineWorkspace({
  *   tools: { bun: "latest", jj: "latest" },
@@ -165,7 +165,7 @@ export function defineWorkspace(config: WorkspaceConfig): WorkspaceDefinition {
   return { _type: "workspace", config };
 }
 
-// ── Preview environment (.jjhub/preview.ts) ─────────────────────────────────
+// ── Preview environment (.codeplane/preview.ts) ─────────────────────────────────
 
 export interface PreviewConfig {
   /** Port to expose as the preview URL. */
@@ -190,9 +190,9 @@ export interface PreviewDefinition {
 /**
  * Define a preview environment for Landing Requests.
  *
- * Used in `.jjhub/preview.ts`:
+ * Used in `.codeplane/preview.ts`:
  * ```ts
- * import { definePreview } from "@jjhub-ai/workflow";
+ * import { definePreview } from "@codeplane-ai/workflow";
  *
  * export default definePreview({
  *   port: 3000,
@@ -218,7 +218,7 @@ export function definePreview(config: PreviewConfig): PreviewDefinition {
   return { _type: "preview", config };
 }
 
-// ── CI pipeline (.jjhub/ci.ts or inline) ────────────────────────────────────
+// ── CI pipeline (.codeplane/ci.ts or inline) ────────────────────────────────────
 
 export interface CIStepConfig {
   /** Unique identifier for this step. */
@@ -267,9 +267,9 @@ export interface CIDefinition {
 /**
  * Define a CI pipeline configuration.
  *
- * Used in `.jjhub/ci.ts`:
+ * Used in `.codeplane/ci.ts`:
  * ```ts
- * import { defineCI } from "@jjhub-ai/workflow";
+ * import { defineCI } from "@codeplane-ai/workflow";
  *
  * export default defineCI({
  *   install: "bun install",

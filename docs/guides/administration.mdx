@@ -5,11 +5,11 @@ description: Platform administration and policy controls
 
 # Administration
 
-JJHub includes a set of platform-wide administration tools for managing users, organizations, repositories, compute resources, feature flags, and audit logs. Admin operations are available through the CLI, API, and web interface.
+Codeplane includes a set of platform-wide administration tools for managing users, organizations, repositories, compute resources, feature flags, and audit logs. Admin operations are available through the CLI, API, and web interface.
 
 ## Who Has Admin Access
 
-Admin access is granted through the `is_admin` flag on a user account. Admin users can access all `/api/admin/*` endpoints and `jjhub admin` CLI commands.
+Admin access is granted through the `is_admin` flag on a user account. Admin users can access all `/api/admin/*` endpoints and `codeplane admin` CLI commands.
 
 Admin API calls require a personal access token with the appropriate admin scope:
 
@@ -28,32 +28,32 @@ Admins can list, create, disable, and delete users across the platform.
 
 ```bash
 # List all users (paginated)
-jjhub admin user list
-jjhub admin user list --page 2 --limit 50
+codeplane admin user list
+codeplane admin user list --page 2 --limit 50
 
 # Create a new user
-jjhub admin user create --username alice --email alice@example.com
+codeplane admin user create --username alice --email alice@example.com
 
 # Create a user with a specific password
-jjhub admin user create --username bob --email bob@example.com --password "s3cret"
+codeplane admin user create --username bob --email bob@example.com --password "s3cret"
 
 # Disable a user (sets active=false, blocks login and API access)
-jjhub admin user disable alice
+codeplane admin user disable alice
 
 # Delete a user and all associated data
-jjhub admin user delete alice
+codeplane admin user delete alice
 ```
 
 ### API
 
 ```bash
 # List users
-curl https://api.jjhub.tech/api/admin/users \
-  -H "Authorization: token jjhub_xxx"
+curl https://api.codeplane.app/api/admin/users \
+  -H "Authorization: token codeplane_xxx"
 
 # Create a user
-curl -X POST https://api.jjhub.tech/api/admin/users \
-  -H "Authorization: token jjhub_xxx" \
+curl -X POST https://api.codeplane.app/api/admin/users \
+  -H "Authorization: token codeplane_xxx" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "alice",
@@ -62,18 +62,18 @@ curl -X POST https://api.jjhub.tech/api/admin/users \
   }'
 
 # Delete a user
-curl -X DELETE https://api.jjhub.tech/api/admin/users/alice \
-  -H "Authorization: token jjhub_xxx"
+curl -X DELETE https://api.codeplane.app/api/admin/users/alice \
+  -H "Authorization: token codeplane_xxx"
 
 # Toggle admin flag on a user
-curl -X PATCH https://api.jjhub.tech/api/admin/users/alice/admin \
-  -H "Authorization: token jjhub_xxx" \
+curl -X PATCH https://api.codeplane.app/api/admin/users/alice/admin \
+  -H "Authorization: token codeplane_xxx" \
   -H "Content-Type: application/json" \
   -d '{"is_admin": true}'
 
 # Create a token on behalf of a user
-curl -X POST https://api.jjhub.tech/api/admin/users/alice/tokens \
-  -H "Authorization: token jjhub_xxx" \
+curl -X POST https://api.codeplane.app/api/admin/users/alice/tokens \
+  -H "Authorization: token codeplane_xxx" \
   -H "Content-Type: application/json" \
   -d '{"name": "ci-token", "scopes": ["read:repository", "write:repository"]}'
 ```
@@ -86,15 +86,15 @@ Admins can list all organizations across the platform, regardless of membership.
 
 ```bash
 # List all organizations
-jjhub api -X GET /admin/orgs
+codeplane api -X GET /admin/orgs
 ```
 
 ### API
 
 ```bash
 # List all organizations
-curl https://api.jjhub.tech/api/admin/orgs \
-  -H "Authorization: token jjhub_xxx"
+curl https://api.codeplane.app/api/admin/orgs \
+  -H "Authorization: token codeplane_xxx"
 ```
 
 The response includes each organization's visibility, member count, and creation date. Admins can use the standard organization management endpoints (`/api/orgs/:org`) to modify settings on any organization without being a member.
@@ -107,31 +107,31 @@ Admins can list all repositories across all users and organizations.
 
 ```bash
 # List all repositories platform-wide
-jjhub api -X GET /admin/repos
+codeplane api -X GET /admin/repos
 ```
 
 ### API
 
 ```bash
 # List all repositories
-curl https://api.jjhub.tech/api/admin/repos \
-  -H "Authorization: token jjhub_xxx"
+curl https://api.codeplane.app/api/admin/repos \
+  -H "Authorization: token codeplane_xxx"
 ```
 
 Admins have full access to any repository through the standard repository endpoints (`/api/repos/:owner/:repo`), including archiving, unarchiving, and deletion.
 
 ```bash
 # Archive a repository
-curl -X POST https://api.jjhub.tech/api/repos/alice/my-project/archive \
-  -H "Authorization: token jjhub_xxx"
+curl -X POST https://api.codeplane.app/api/repos/alice/my-project/archive \
+  -H "Authorization: token codeplane_xxx"
 
 # Unarchive a repository
-curl -X POST https://api.jjhub.tech/api/repos/alice/my-project/unarchive \
-  -H "Authorization: token jjhub_xxx"
+curl -X POST https://api.codeplane.app/api/repos/alice/my-project/unarchive \
+  -H "Authorization: token codeplane_xxx"
 
 # Delete a repository
-curl -X DELETE https://api.jjhub.tech/api/repos/alice/my-project \
-  -H "Authorization: token jjhub_xxx"
+curl -X DELETE https://api.codeplane.app/api/repos/alice/my-project \
+  -H "Authorization: token codeplane_xxx"
 ```
 
 ## Compute and Workspace Controls
@@ -142,13 +142,13 @@ Admins can inspect compute runners and cross-repo workflow runs.
 
 ```bash
 # List all runners and their status
-jjhub admin runner list
+codeplane admin runner list
 ```
 
 ```bash
 # API equivalent
-curl https://api.jjhub.tech/api/admin/runners \
-  -H "Authorization: token jjhub_xxx"
+curl https://api.codeplane.app/api/admin/runners \
+  -H "Authorization: token codeplane_xxx"
 ```
 
 The runner list shows pool utilization, runner state, and capacity information.
@@ -159,18 +159,18 @@ Admins can list workflow runs across all repositories, filtered by status:
 
 ```bash
 # List all workflow runs
-jjhub admin workflow list
+codeplane admin workflow list
 
 # Filter by status
-jjhub admin workflow list --status running
-jjhub admin workflow list --status failure --limit 10
+codeplane admin workflow list --status running
+codeplane admin workflow list --status failure --limit 10
 ```
 
 Available status filters: `queued`, `running`, `success`, `failure`.
 
 ## Feature Flags
 
-JJHub uses server-side feature flags to gate product areas. The flags are configured through environment variables with the `JJHUB_FEATURE_FLAGS_` prefix and exposed through a public API endpoint.
+Codeplane uses server-side feature flags to gate product areas. The flags are configured through environment variables with the `CODEPLANE_FEATURE_FLAGS_` prefix and exposed through a public API endpoint.
 
 ### Current Flags
 
@@ -193,7 +193,7 @@ JJHub uses server-side feature flags to gate product areas. The flags are config
 The feature flag endpoint is public (no authentication required) so that web and CLI clients can evaluate flags before establishing a session:
 
 ```bash
-curl https://api.jjhub.tech/api/feature-flags
+curl https://api.codeplane.app/api/feature-flags
 ```
 
 Response:
@@ -221,16 +221,16 @@ Response:
 Feature flags are set through server configuration (environment variables), not through the API. To enable or disable a flag, set the corresponding environment variable and restart the API server:
 
 ```bash
-JJHUB_FEATURE_FLAGS_LANDING_QUEUE=true
-JJHUB_FEATURE_FLAGS_SESSION_REPLAY=true
-JJHUB_FEATURE_FLAGS_WEB_EDITOR=false
+CODEPLANE_FEATURE_FLAGS_LANDING_QUEUE=true
+CODEPLANE_FEATURE_FLAGS_SESSION_REPLAY=true
+CODEPLANE_FEATURE_FLAGS_WEB_EDITOR=false
 ```
 
 Feature-flagged routes in the web UI use `FlaggedRoute` guards that redirect users when a flag is disabled. The flags are enforced server-side as well -- API endpoints behind a flag return `404` when the flag is off.
 
 ## Audit Log Viewing
 
-JJHub records audit events for security-sensitive operations. Admins can query the audit log to inspect who did what, when, and from where.
+Codeplane records audit events for security-sensitive operations. Admins can query the audit log to inspect who did what, when, and from where.
 
 ### Audit Log Fields
 
@@ -253,19 +253,19 @@ Each audit log entry contains:
 
 ```bash
 # List audit logs since a date (required parameter)
-curl "https://api.jjhub.tech/api/admin/audit-logs?since=2026-03-01" \
-  -H "Authorization: token jjhub_xxx"
+curl "https://api.codeplane.app/api/admin/audit-logs?since=2026-03-01" \
+  -H "Authorization: token codeplane_xxx"
 
 # With RFC3339 timestamp and pagination
-curl "https://api.jjhub.tech/api/admin/audit-logs?since=2026-03-01T00:00:00Z&per_page=100" \
-  -H "Authorization: token jjhub_xxx"
+curl "https://api.codeplane.app/api/admin/audit-logs?since=2026-03-01T00:00:00Z&per_page=100" \
+  -H "Authorization: token codeplane_xxx"
 ```
 
 The `since` parameter is required and accepts either `YYYY-MM-DD` or full RFC3339 format. Results are paginated with a default of 50 entries per page.
 
 ## Alpha and Access Controls
 
-JJHub uses a closed alpha model with a waitlist and whitelist for controlling access.
+Codeplane uses a closed alpha model with a waitlist and whitelist for controlling access.
 
 ### Waitlist
 
@@ -273,14 +273,14 @@ Users can join the waitlist without authentication. Admins review and approve en
 
 ```bash
 # Join the waitlist (no auth required)
-jjhub waitlist join --email user@example.com --note "Interested in jj-native CI"
+codeplane waitlist join --email user@example.com --note "Interested in jj-native CI"
 
 # List waitlist entries (admin)
-jjhub waitlist list
-jjhub waitlist list --status pending
+codeplane waitlist list
+codeplane waitlist list --status pending
 
 # Approve a waitlist entry (admin)
-jjhub waitlist approve --email user@example.com
+codeplane waitlist approve --email user@example.com
 ```
 
 ### Whitelist
@@ -289,40 +289,40 @@ Admins can directly add identities to the whitelist to grant immediate access:
 
 ```bash
 # Add an email to the whitelist
-jjhub whitelist add --type email --value user@example.com
+codeplane whitelist add --type email --value user@example.com
 
 # Add a username
-jjhub whitelist add --type username --value alice
+codeplane whitelist add --type username --value alice
 
 # List whitelist entries
-jjhub whitelist list
+codeplane whitelist list
 
 # Remove a whitelist entry
-jjhub whitelist remove --type email --value user@example.com
+codeplane whitelist remove --type email --value user@example.com
 ```
 
 ### API
 
 ```bash
 # List waitlist entries
-curl "https://api.jjhub.tech/api/admin/alpha/waitlist?status=pending" \
-  -H "Authorization: token jjhub_xxx"
+curl "https://api.codeplane.app/api/admin/alpha/waitlist?status=pending" \
+  -H "Authorization: token codeplane_xxx"
 
 # Approve a waitlist entry
-curl -X POST https://api.jjhub.tech/api/admin/alpha/waitlist/approve \
-  -H "Authorization: token jjhub_xxx" \
+curl -X POST https://api.codeplane.app/api/admin/alpha/waitlist/approve \
+  -H "Authorization: token codeplane_xxx" \
   -H "Content-Type: application/json" \
   -d '{"email": "user@example.com"}'
 
 # Add to whitelist
-curl -X POST https://api.jjhub.tech/api/admin/alpha/whitelist \
-  -H "Authorization: token jjhub_xxx" \
+curl -X POST https://api.codeplane.app/api/admin/alpha/whitelist \
+  -H "Authorization: token codeplane_xxx" \
   -H "Content-Type: application/json" \
   -d '{"identity_type": "email", "identity_value": "user@example.com"}'
 
 # Remove from whitelist
-curl -X DELETE https://api.jjhub.tech/api/admin/alpha/whitelist/email/user%40example.com \
-  -H "Authorization: token jjhub_xxx"
+curl -X DELETE https://api.codeplane.app/api/admin/alpha/whitelist/email/user%40example.com \
+  -H "Authorization: token codeplane_xxx"
 ```
 
 ## Service Health
@@ -331,11 +331,11 @@ The system health endpoint provides an operational overview of the platform:
 
 ```bash
 # CLI
-jjhub admin health
+codeplane admin health
 
 # API
-curl https://api.jjhub.tech/api/admin/system/health \
-  -H "Authorization: token jjhub_xxx"
+curl https://api.codeplane.app/api/admin/system/health \
+  -H "Authorization: token codeplane_xxx"
 ```
 
 The health check reports the status of core subsystems including the database, repo-host, workspace service, and queue.
@@ -367,19 +367,19 @@ All admin endpoints require the `RequireAdmin` middleware and the appropriate sc
 
 | Command | Description |
 |---------|-------------|
-| `jjhub admin user list` | List all users |
-| `jjhub admin user create` | Create a user |
-| `jjhub admin user disable <username>` | Disable a user |
-| `jjhub admin user delete <username>` | Delete a user |
-| `jjhub admin runner list` | List compute runners |
-| `jjhub admin workflow list` | List all workflow runs (cross-repo) |
-| `jjhub admin health` | System health status |
-| `jjhub waitlist join` | Join the closed alpha waitlist |
-| `jjhub waitlist list` | List waitlist entries (admin) |
-| `jjhub waitlist approve` | Approve a waitlist entry (admin) |
-| `jjhub whitelist add` | Add a whitelist entry (admin) |
-| `jjhub whitelist list` | List whitelist entries (admin) |
-| `jjhub whitelist remove` | Remove a whitelist entry (admin) |
+| `codeplane admin user list` | List all users |
+| `codeplane admin user create` | Create a user |
+| `codeplane admin user disable <username>` | Disable a user |
+| `codeplane admin user delete <username>` | Delete a user |
+| `codeplane admin runner list` | List compute runners |
+| `codeplane admin workflow list` | List all workflow runs (cross-repo) |
+| `codeplane admin health` | System health status |
+| `codeplane waitlist join` | Join the closed alpha waitlist |
+| `codeplane waitlist list` | List waitlist entries (admin) |
+| `codeplane waitlist approve` | Approve a waitlist entry (admin) |
+| `codeplane whitelist add` | Add a whitelist entry (admin) |
+| `codeplane whitelist list` | List whitelist entries (admin) |
+| `codeplane whitelist remove` | Remove a whitelist entry (admin) |
 
 ## Next Steps
 

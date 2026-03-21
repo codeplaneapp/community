@@ -973,7 +973,7 @@ export class DatabaseAuthService implements AuthService {
     }
 
     // Generate token
-    const rawToken = "jjhub_" + randomHex(20);
+    const rawToken = "codeplane_" + randomHex(20);
     const tokenHash = hashSHA256(rawToken);
     const tokenLastEight = tokenHash.slice(-8);
 
@@ -1020,21 +1020,21 @@ export class DatabaseAuthService implements AuthService {
 export function getAuthConfig(): AuthConfig {
   return {
     sessionCookieName:
-      process.env.JJHUB_AUTH_SESSION_COOKIE_NAME || "jjhub_session",
-    cookieSecure: process.env.JJHUB_AUTH_COOKIE_SECURE === "true",
-    sessionDuration: process.env.JJHUB_AUTH_SESSION_DURATION || "720h",
-    sessionSecret: process.env.JJHUB_AUTH_SESSION_SECRET || "",
+      process.env.CODEPLANE_AUTH_SESSION_COOKIE_NAME || "codeplane_session",
+    cookieSecure: process.env.CODEPLANE_AUTH_COOKIE_SECURE === "true",
+    sessionDuration: process.env.CODEPLANE_AUTH_SESSION_DURATION || "720h",
+    sessionSecret: process.env.CODEPLANE_AUTH_SESSION_SECRET || "",
     keyAuthDomain:
-      process.env.JJHUB_AUTH_KEY_AUTH_DOMAIN || "",
+      process.env.CODEPLANE_AUTH_KEY_AUTH_DOMAIN || "",
     closedAlphaEnabled:
-      process.env.JJHUB_AUTH_CLOSED_ALPHA_ENABLED === "true",
-    githubClientId: process.env.JJHUB_AUTH_GITHUB_CLIENT_ID || "",
+      process.env.CODEPLANE_AUTH_CLOSED_ALPHA_ENABLED === "true",
+    githubClientId: process.env.CODEPLANE_AUTH_GITHUB_CLIENT_ID || "",
     githubClientSecret:
-      process.env.JJHUB_AUTH_GITHUB_CLIENT_SECRET || "",
+      process.env.CODEPLANE_AUTH_GITHUB_CLIENT_SECRET || "",
     githubRedirectUrl:
-      process.env.JJHUB_AUTH_GITHUB_REDIRECT_URL || "",
+      process.env.CODEPLANE_AUTH_GITHUB_REDIRECT_URL || "",
     githubOAuthBaseUrl:
-      process.env.JJHUB_AUTH_GITHUB_OAUTH_BASE_URL || "",
+      process.env.CODEPLANE_AUTH_GITHUB_OAUTH_BASE_URL || "",
   };
 }
 

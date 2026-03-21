@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { cli, jsonParse, uniqueName, OWNER, ORG } from "./helpers";
 
 describe("CLI: Repository Transfer", () => {
-  test("jjhub repo transfer moves repo to org", async () => {
+  test("codeplane repo transfer moves repo to org", async () => {
     const repoName = uniqueName("cli-xfer-to-org");
 
     // Create repo under user
@@ -24,7 +24,7 @@ describe("CLI: Repository Transfer", () => {
     expect(body.full_name).toBe(`${ORG}/${repoName}`);
   });
 
-  test("jjhub repo view confirms new ownership after transfer", async () => {
+  test("codeplane repo view confirms new ownership after transfer", async () => {
     const repoName = uniqueName("cli-xfer-verify");
 
     await cli(
@@ -55,7 +55,7 @@ describe("CLI: Repository Transfer", () => {
     expect(oldResult.exitCode).not.toBe(0);
   });
 
-  test("jjhub repo transfer to nonexistent owner fails", async () => {
+  test("codeplane repo transfer to nonexistent owner fails", async () => {
     const repoName = uniqueName("cli-xfer-bad");
 
     await cli(
@@ -71,7 +71,7 @@ describe("CLI: Repository Transfer", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub repo transfer without --yes prompts and fails in non-interactive", async () => {
+  test("codeplane repo transfer without --yes prompts and fails in non-interactive", async () => {
     const repoName = uniqueName("cli-xfer-noprompt");
 
     await cli(

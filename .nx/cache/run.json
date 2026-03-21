@@ -1,0 +1,32 @@
+{
+  "run": {
+    "command": "nx build codeplane",
+    "startTime": "2026-03-21T18:41:03.211Z",
+    "endTime": "2026-03-21T18:41:03.254Z",
+    "inner": false
+  },
+  "tasks": [
+    {
+      "taskId": "@jjhub/server:build",
+      "target": "build",
+      "projectName": "@jjhub/server",
+      "hash": "7894232433795946411",
+      "startTime": "2026-03-21T18:41:03.245Z",
+      "endTime": "2026-03-21T18:41:03.250Z",
+      "params": "",
+      "cacheStatus": "local-cache-hit",
+      "status": 0
+    },
+    {
+      "taskId": "codeplane:build",
+      "target": "build",
+      "projectName": "codeplane",
+      "hash": "5025913761750309846",
+      "startTime": "2026-03-21T18:41:03.254Z",
+      "endTime": "2026-03-21T18:41:03.254Z",
+      "params": "",
+      "cacheStatus": "local-cache-hit",
+      "status": 0
+    }
+  ]
+}

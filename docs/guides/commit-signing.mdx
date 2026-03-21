@@ -5,7 +5,7 @@ description: Verify commit authorship with GPG or SSH key signatures
 
 # Commit Signing
 
-Commit signing provides cryptographic proof that a commit was authored by a specific person. When you sign a commit, you attach a digital signature that JJHub can verify against your uploaded public key. Verified commits display a **Verified** badge, giving reviewers and collaborators confidence that the code was not tampered with and genuinely came from you.
+Commit signing provides cryptographic proof that a commit was authored by a specific person. When you sign a commit, you attach a digital signature that Codeplane can verify against your uploaded public key. Verified commits display a **Verified** badge, giving reviewers and collaborators confidence that the code was not tampered with and genuinely came from you.
 
 ## Why Sign Commits
 
@@ -16,14 +16,14 @@ Commit signing provides cryptographic proof that a commit was authored by a spec
 
 ## Supported Key Types
 
-JJHub supports two signing backends:
+Codeplane supports two signing backends:
 
 | Backend | Key Type | Best For |
 |---------|----------|----------|
 | **GPG** | RSA, Ed25519, ECDSA | Traditional PGP key infrastructure, multiple identities per key |
 | **SSH** | Ed25519, RSA, ECDSA | Simpler setup, reuse existing SSH keys |
 
-Both backends produce signatures that JJHub can verify when the corresponding public key is uploaded to your account.
+Both backends produce signatures that Codeplane can verify when the corresponding public key is uploaded to your account.
 
 ## Configuring jj for Commit Signing
 
@@ -59,11 +59,11 @@ jj config set --user signing.key "~/.ssh/id_ed25519"
 jj config set --user signing.sign-all true
 ```
 
-SSH signing uses the same key format as your authentication SSH keys. If you already have an SSH key uploaded to JJHub for push/pull access, you can use that same key for signing.
+SSH signing uses the same key format as your authentication SSH keys. If you already have an SSH key uploaded to Codeplane for push/pull access, you can use that same key for signing.
 
-## Uploading Your Signing Key to JJHub
+## Uploading Your Signing Key to Codeplane
 
-For JJHub to verify your signed commits, you must upload the corresponding public key to your account.
+For Codeplane to verify your signed commits, you must upload the corresponding public key to your account.
 
 ### GPG Keys
 
@@ -80,17 +80,17 @@ gpg --armor --export YOUR_GPG_KEY_ID
 
 ```bash
 # Add a GPG key from a file
-jjhub gpg-key add --key-file ~/.gnupg/pubkey.asc
+codeplane gpg-key add --key-file ~/.gnupg/pubkey.asc
 
 # Or pipe the key directly
-gpg --armor --export YOUR_GPG_KEY_ID | jjhub gpg-key add
+gpg --armor --export YOUR_GPG_KEY_ID | codeplane gpg-key add
 ```
 
 **Upload via API:**
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/user/gpg-keys \
-  -H "Authorization: token jjhub_your_token" \
+curl -X POST https://api.codeplane.app/api/user/gpg-keys \
+  -H "Authorization: token codeplane_your_token" \
   -H "Content-Type: application/json" \
   -d '{
     "armored_public_key": "-----BEGIN PGP PUBLIC KEY BLOCK-----\n...\n-----END PGP PUBLIC KEY BLOCK-----"
@@ -124,34 +124,34 @@ curl -X POST https://api.jjhub.tech/api/user/gpg-keys \
 **List your GPG keys:**
 
 ```bash
-jjhub gpg-key list
+codeplane gpg-key list
 ```
 
 **Delete a GPG key:**
 
 ```bash
-jjhub gpg-key delete <key-id>
+codeplane gpg-key delete <key-id>
 ```
 
 ### SSH Keys
 
-SSH signing keys use the same keys you upload for SSH authentication. If you have already added an SSH key via `jjhub ssh-key add`, that key is automatically available for commit signature verification -- no additional upload is needed.
+SSH signing keys use the same keys you upload for SSH authentication. If you have already added an SSH key via `codeplane ssh-key add`, that key is automatically available for commit signature verification -- no additional upload is needed.
 
 If you use a separate key for signing (different from your authentication key), add it as an SSH key:
 
 ```bash
-jjhub ssh-key add -t "Signing Key" -k "$(cat ~/.ssh/id_ed25519_signing.pub)"
+codeplane ssh-key add -t "Signing Key" -k "$(cat ~/.ssh/id_ed25519_signing.pub)"
 ```
 
 ## Verified Commits
 
-When JJHub receives a push containing signed commits, it automatically verifies each commit's signature against the public keys on the author's account.
+When Codeplane receives a push containing signed commits, it automatically verifies each commit's signature against the public keys on the author's account.
 
 ### Verification Statuses
 
 | Status | Meaning |
 |--------|---------|
-| **Verified** | The signature is valid and matches a key on the committer's JJHub account. |
+| **Verified** | The signature is valid and matches a key on the committer's Codeplane account. |
 | **Unverified** | The commit has a signature, but it does not match any key on the committer's account, or the key has expired. |
 | **Unsigned** | The commit has no signature. |
 
@@ -163,7 +163,7 @@ When viewing changes or landing requests, the verification status is shown along
 
 ```bash
 # View a change with its signature status
-jjhub change show <change-id>
+codeplane change show <change-id>
 ```
 
 The output includes a `signature` field showing the verification status:
@@ -182,8 +182,8 @@ Signature: Verified (GPG key 3DE1A1B4D3A8C5F2)
 The change and commit API endpoints include a `verification` field:
 
 ```bash
-curl https://api.jjhub.tech/api/repos/owner/repo/changes/kxyz1234 \
-  -H "Authorization: token jjhub_your_token"
+curl https://api.codeplane.app/api/repos/owner/repo/changes/kxyz1234 \
+  -H "Authorization: token codeplane_your_token"
 ```
 
 ```json
@@ -214,7 +214,7 @@ The `verification.reason` field can be one of:
 |--------|-------------|
 | `valid` | Signature is valid and matches a trusted key |
 | `unsigned` | No signature present |
-| `unverified_key` | Signature is valid but the key is not associated with any JJHub account |
+| `unverified_key` | Signature is valid but the key is not associated with any Codeplane account |
 | `expired_key` | Signature was made with a key that has since expired |
 | `bad_signature` | Signature is malformed or does not match the commit data |
 
@@ -224,8 +224,8 @@ Repository owners can require that all commits pushed to a protected bookmark ar
 
 ```bash
 # View bookmark protection rules (via API)
-curl https://api.jjhub.tech/api/repos/owner/repo/bookmarks/main/protection \
-  -H "Authorization: token jjhub_your_token"
+curl https://api.codeplane.app/api/repos/owner/repo/bookmarks/main/protection \
+  -H "Authorization: token codeplane_your_token"
 ```
 
 When `require_signed_commits` is enabled on a protected bookmark, any push containing unsigned or unverified commits is rejected.
@@ -242,8 +242,8 @@ When `require_signed_commits` is enabled on a protected bookmark, any push conta
 ### List GPG Keys
 
 ```bash
-curl https://api.jjhub.tech/api/user/gpg-keys \
-  -H "Authorization: token jjhub_your_token"
+curl https://api.codeplane.app/api/user/gpg-keys \
+  -H "Authorization: token codeplane_your_token"
 ```
 
 Returns an array of GPG key objects.
@@ -251,8 +251,8 @@ Returns an array of GPG key objects.
 ### Get a GPG Key
 
 ```bash
-curl https://api.jjhub.tech/api/user/gpg-keys/1 \
-  -H "Authorization: token jjhub_your_token"
+curl https://api.codeplane.app/api/user/gpg-keys/1 \
+  -H "Authorization: token codeplane_your_token"
 ```
 
 Returns a single GPG key object.
@@ -260,8 +260,8 @@ Returns a single GPG key object.
 ### Upload a GPG Key
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/user/gpg-keys \
-  -H "Authorization: token jjhub_your_token" \
+curl -X POST https://api.codeplane.app/api/user/gpg-keys \
+  -H "Authorization: token codeplane_your_token" \
   -H "Content-Type: application/json" \
   -d '{
     "armored_public_key": "-----BEGIN PGP PUBLIC KEY BLOCK-----\n...\n-----END PGP PUBLIC KEY BLOCK-----"
@@ -273,8 +273,8 @@ Returns `201 Created` with the GPG key object. Returns `422 Unprocessable Entity
 ### Delete a GPG Key
 
 ```bash
-curl -X DELETE https://api.jjhub.tech/api/user/gpg-keys/1 \
-  -H "Authorization: token jjhub_your_token"
+curl -X DELETE https://api.codeplane.app/api/user/gpg-keys/1 \
+  -H "Authorization: token codeplane_your_token"
 ```
 
 Returns `204 No Content` on success.
@@ -283,12 +283,12 @@ Returns `204 No Content` on success.
 
 ### "Unverified" status on signed commits
 
-1. Confirm the signing key is uploaded to your JJHub account:
+1. Confirm the signing key is uploaded to your Codeplane account:
    ```bash
-   jjhub gpg-key list
+   codeplane gpg-key list
    ```
-2. For GPG: ensure the email on your GPG key matches a verified email on your JJHub account.
-3. For SSH: ensure the signing key is added via `jjhub ssh-key add`.
+2. For GPG: ensure the email on your GPG key matches a verified email on your Codeplane account.
+3. For SSH: ensure the signing key is added via `codeplane ssh-key add`.
 4. Check that the key has not expired:
    ```bash
    gpg --list-keys --keyid-format long YOUR_GPG_KEY_ID
@@ -305,6 +305,6 @@ gpg --list-secret-keys
 ls -la ~/.ssh/id_ed25519
 ```
 
-### Commits signed locally but show as unsigned on JJHub
+### Commits signed locally but show as unsigned on Codeplane
 
-This happens when the public key corresponding to your signing key has not been uploaded to JJHub. Upload it with `jjhub gpg-key add` (for GPG) or `jjhub ssh-key add` (for SSH).
+This happens when the public key corresponding to your signing key has not been uploaded to Codeplane. Upload it with `codeplane gpg-key add` (for GPG) or `codeplane ssh-key add` (for SSH).

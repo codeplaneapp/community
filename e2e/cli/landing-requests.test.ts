@@ -15,7 +15,7 @@ describe("CLI: Landing Requests", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub lr create creates a landing request", async () => {
+  test("codeplane lr create creates a landing request", async () => {
     const result = await cli(
       [
         "lr", "create",
@@ -42,7 +42,7 @@ describe("CLI: Landing Requests", () => {
     landingNumber = body.number;
   });
 
-  test("jjhub lr list lists landing requests", async () => {
+  test("codeplane lr list lists landing requests", async () => {
     const result = await cli(
       ["lr", "list"],
       { repo: repoSlug, json: true },
@@ -53,7 +53,7 @@ describe("CLI: Landing Requests", () => {
     expect(body.some((lr) => lr.number === landingNumber)).toBe(true);
   });
 
-  test("jjhub lr view shows a single landing request", async () => {
+  test("codeplane lr view shows a single landing request", async () => {
     const result = await cli(
       ["lr", "view", String(landingNumber)],
       { repo: repoSlug, json: true },

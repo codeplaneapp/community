@@ -5,7 +5,7 @@ description: Claude-powered AI agents in sandboxed cloud VMs
 
 # AI Agents
 
-JJHub integrates Claude-powered AI agents as first-class citizens. Agents run in sandboxed cloud VMs with full VM-level isolation, can read and modify your repository, triage issues, review landing requests, and ship code - all orchestrated through the same Smithers-powered TSX workflow system that powers CI.
+Codeplane integrates Claude-powered AI agents as first-class citizens. Agents run in sandboxed cloud VMs with full VM-level isolation, can read and modify your repository, triage issues, review landing requests, and ship code - all orchestrated through the same Smithers-powered TSX workflow system that powers CI.
 
 ## AI Keys via Workflow Secrets
 
@@ -14,7 +14,7 @@ You provide your own API keys via repository secrets. There's no platform-level 
 Configure your key via repository secrets:
 
 ```bash
-printf %s "sk-ant-..." | jjhub secret set ANTHROPIC_API_KEY --body-stdin
+printf %s "sk-ant-..." | codeplane secret set ANTHROPIC_API_KEY --body-stdin
 ```
 
 Secrets are encrypted at rest and injected as environment variables into workflow runs. Only workflow steps that need AI access will receive the key.
@@ -24,8 +24,8 @@ Secrets are encrypted at rest and injected as environment variables into workflo
 Agents are a `<Task>` with an `agent` prop in TSX workflows:
 
 ```tsx
-// .jjhub/workflows/triage.tsx
-import { Workflow, Task, on } from "@jjhub-ai/workflow";
+// .codeplane/workflows/triage.tsx
+import { Workflow, Task, on } from "@codeplane-ai/workflow";
 import { ToolLoopAgent } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 
@@ -59,7 +59,7 @@ Agent workflow steps run in isolated **sandboxed VMs** - full microVM-level isol
 - **VM-level isolation** - each agent runs in its own microVM with a separate kernel, stronger than container-based sandboxing
 - **Snapshot-cached boot** - agent base environments (Bun + Smithers + dependencies) are pre-cached as snapshots for near-instant startup
 - **Ephemeral by default** - each agent run gets a fresh VM that's deleted when the task completes
-- **Repo clone** - the VM clones the repo from `git.jjhub.tech` using a short-lived read token, giving the agent full git history
+- **Repo clone** - the VM clones the repo from `git.codeplane.app` using a short-lived read token, giving the agent full git history
 
 ## VM Forking
 

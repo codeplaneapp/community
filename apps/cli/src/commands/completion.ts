@@ -1,7 +1,7 @@
 import { Cli, z } from "incur";
 
-const BASH_COMPLETION = `# jjhub bash completion
-_jjhub() {
+const BASH_COMPLETION = `# codeplane bash completion
+_codeplane() {
   local cur prev commands
   COMPREPLY=()
   cur="\${COMP_WORDS[COMP_CWORD]}"
@@ -87,11 +87,11 @@ _jjhub() {
   esac
   return 0
 }
-complete -F _jjhub jjhub`;
+complete -F _codeplane codeplane`;
 
-const ZSH_COMPLETION = `#compdef jjhub
+const ZSH_COMPLETION = `#compdef codeplane
 
-_jjhub() {
+_codeplane() {
   local -a commands
   commands=(
     'auth:Manage authentication'
@@ -112,7 +112,7 @@ _jjhub() {
     'config:Get and set configuration'
     'status:Show working copy status'
     'completion:Generate shell completions'
-    'agent:Talk to the JJHub helper'
+    'agent:Talk to the Codeplane helper'
     'org:Organization management'
     'wiki:Manage wiki pages'
     'notification:Manage notifications'
@@ -154,74 +154,74 @@ _jjhub() {
   esac
 }
 
-_jjhub`;
+_codeplane`;
 
-const FISH_COMPLETION = `# jjhub fish completions
+const FISH_COMPLETION = `# codeplane fish completions
 set -l commands auth repo issue land change bookmark release workflow run workspace search label secret variable ssh-key config status completion agent org wiki notification webhook admin beta api
 
-complete -c jjhub -f
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a auth -d "Manage authentication"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a repo -d "Manage repositories"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a issue -d "Manage issues"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a land -d "Manage landing requests"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a change -d "View changes"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a bookmark -d "Manage bookmarks"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a release -d "Manage releases"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a workflow -d "Manage workflows"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a run -d "View workflow runs"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a workspace -d "Manage workspaces"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a search -d "Search repos, issues, code"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a label -d "Manage labels"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a secret -d "Manage secrets"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a variable -d "Manage variables"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a ssh-key -d "Manage SSH keys"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a config -d "Get and set configuration"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a status -d "Show working copy status"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a completion -d "Generate shell completions"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a agent -d "Talk to the JJHub helper"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a org -d "Organization management"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a wiki -d "Manage wiki pages"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a notification -d "Manage notifications"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a webhook -d "Manage webhooks"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a admin -d "Admin commands"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a beta -d "Alpha/beta features"
-complete -c jjhub -n "not __fish_seen_subcommand_from $commands" -a api -d "Make raw API calls"
+complete -c codeplane -f
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a auth -d "Manage authentication"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a repo -d "Manage repositories"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a issue -d "Manage issues"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a land -d "Manage landing requests"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a change -d "View changes"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a bookmark -d "Manage bookmarks"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a release -d "Manage releases"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a workflow -d "Manage workflows"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a run -d "View workflow runs"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a workspace -d "Manage workspaces"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a search -d "Search repos, issues, code"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a label -d "Manage labels"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a secret -d "Manage secrets"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a variable -d "Manage variables"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a ssh-key -d "Manage SSH keys"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a config -d "Get and set configuration"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a status -d "Show working copy status"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a completion -d "Generate shell completions"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a agent -d "Talk to the Codeplane helper"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a org -d "Organization management"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a wiki -d "Manage wiki pages"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a notification -d "Manage notifications"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a webhook -d "Manage webhooks"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a admin -d "Admin commands"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a beta -d "Alpha/beta features"
+complete -c codeplane -n "not __fish_seen_subcommand_from $commands" -a api -d "Make raw API calls"
 
 # auth subcommands
-complete -c jjhub -n "__fish_seen_subcommand_from auth" -a "login logout status token"
+complete -c codeplane -n "__fish_seen_subcommand_from auth" -a "login logout status token"
 
 # repo subcommands
-complete -c jjhub -n "__fish_seen_subcommand_from repo" -a "create list view clone fork transfer archive unarchive"
+complete -c codeplane -n "__fish_seen_subcommand_from repo" -a "create list view clone fork transfer archive unarchive"
 
 # issue subcommands
-complete -c jjhub -n "__fish_seen_subcommand_from issue" -a "create list view close reopen edit comment react pin lock link"
+complete -c codeplane -n "__fish_seen_subcommand_from issue" -a "create list view close reopen edit comment react pin lock link"
 
 # land subcommands
-complete -c jjhub -n "__fish_seen_subcommand_from land" -a "create list view review checks conflicts land"
+complete -c codeplane -n "__fish_seen_subcommand_from land" -a "create list view review checks conflicts land"
 
 # change subcommands
-complete -c jjhub -n "__fish_seen_subcommand_from change" -a "list show diff"
+complete -c codeplane -n "__fish_seen_subcommand_from change" -a "list show diff"
 
 # bookmark subcommands
-complete -c jjhub -n "__fish_seen_subcommand_from bookmark" -a "list create delete"
+complete -c codeplane -n "__fish_seen_subcommand_from bookmark" -a "list create delete"
 
 # release subcommands
-complete -c jjhub -n "__fish_seen_subcommand_from release" -a "create list view delete upload"
+complete -c codeplane -n "__fish_seen_subcommand_from release" -a "create list view delete upload"
 
 # workflow subcommands
-complete -c jjhub -n "__fish_seen_subcommand_from workflow" -a "list dispatch"
+complete -c codeplane -n "__fish_seen_subcommand_from workflow" -a "list dispatch"
 
 # run subcommands
-complete -c jjhub -n "__fish_seen_subcommand_from run" -a "list view rerun"
+complete -c codeplane -n "__fish_seen_subcommand_from run" -a "list view rerun"
 
 # workspace subcommands
-complete -c jjhub -n "__fish_seen_subcommand_from workspace" -a "create list view delete ssh fork snapshots"
+complete -c codeplane -n "__fish_seen_subcommand_from workspace" -a "create list view delete ssh fork snapshots"
 
 # search subcommands
-complete -c jjhub -n "__fish_seen_subcommand_from search" -a "repos issues code"
+complete -c codeplane -n "__fish_seen_subcommand_from search" -a "repos issues code"
 
 # agent subcommands
-complete -c jjhub -n "__fish_seen_subcommand_from agent" -a "session list view run chat"`;
+complete -c codeplane -n "__fish_seen_subcommand_from agent" -a "session list view run chat"`;
 
 export const completion = Cli.create("completion", {
   description: "Generate shell completions",

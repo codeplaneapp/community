@@ -1,11 +1,11 @@
 ---
 title: Server-Sent Events (SSE)
-description: Consume real-time event streams from the JJHub API
+description: Consume real-time event streams from the Codeplane API
 ---
 
 # Server-Sent Events (SSE)
 
-JJHub uses **Server-Sent Events** (SSE) for all real-time features. SSE provides a lightweight, HTTP-based protocol for streaming events from the server to connected clients. JJHub chose SSE over WebSockets or polling because it works naturally with HTTP infrastructure, supports automatic reconnection, and is well-suited for streaming use cases like workflow logs and agent output.
+Codeplane uses **Server-Sent Events** (SSE) for all real-time features. SSE provides a lightweight, HTTP-based protocol for streaming events from the server to connected clients. Codeplane chose SSE over WebSockets or polling because it works naturally with HTTP infrastructure, supports automatic reconnection, and is well-suited for streaming use cases like workflow logs and agent output.
 
 ## Endpoint
 
@@ -17,9 +17,9 @@ Connect to the unified event stream. The server responds with `Content-Type: tex
 
 ```bash
 curl -N \
-  -H "Authorization: Bearer jjhub_your_token_here" \
+  -H "Authorization: Bearer codeplane_your_token_here" \
   -H "Accept: text/event-stream" \
-  https://api.jjhub.tech/api/events/stream
+  https://api.codeplane.app/api/events/stream
 ```
 
 ## Authentication
@@ -27,7 +27,7 @@ curl -N \
 SSE endpoints require a valid bearer token. Pass it in the `Authorization` header:
 
 ```
-Authorization: Bearer jjhub_your_token_here
+Authorization: Bearer codeplane_your_token_here
 ```
 
 If the token is missing or invalid, the server responds with `401 Unauthorized` and closes the connection.
@@ -36,7 +36,7 @@ If the token lacks the required scope for the requested channels, the server res
 
 ## Resource-Specific SSE Endpoints
 
-In addition to the unified stream, JJHub provides resource-specific SSE endpoints for targeted use cases:
+In addition to the unified stream, Codeplane provides resource-specific SSE endpoints for targeted use cases:
 
 | Endpoint | Description |
 |----------|-------------|
@@ -52,8 +52,8 @@ Subscribe to specific channels using the `channels` query parameter. Multiple ch
 
 ```bash
 curl -N \
-  -H "Authorization: Bearer jjhub_your_token_here" \
-  "https://api.jjhub.tech/api/events/stream?channels=notification,repo.push"
+  -H "Authorization: Bearer codeplane_your_token_here" \
+  "https://api.codeplane.app/api/events/stream?channels=notification,repo.push"
 ```
 
 If no `channels` parameter is provided, the server streams all events the authenticated user has access to.
@@ -74,8 +74,8 @@ For repository-scoped channels (`agent.session`, `workflow.log`, `landing_reques
 
 ```bash
 curl -N \
-  -H "Authorization: Bearer jjhub_your_token_here" \
-  "https://api.jjhub.tech/api/events/stream?channels=landing_request.update&repo=alice/my-repo"
+  -H "Authorization: Bearer codeplane_your_token_here" \
+  "https://api.codeplane.app/api/events/stream?channels=landing_request.update&repo=alice/my-repo"
 ```
 
 ## Event Format
@@ -116,9 +116,9 @@ SSE supports automatic reconnection through the `Last-Event-ID` header. If the c
 
 ```bash
 curl -N \
-  -H "Authorization: Bearer jjhub_your_token_here" \
+  -H "Authorization: Bearer codeplane_your_token_here" \
   -H "Last-Event-ID: 1003" \
-  "https://api.jjhub.tech/api/events/stream?channels=workflow.log"
+  "https://api.codeplane.app/api/events/stream?channels=workflow.log"
 ```
 
 The server replays any events that occurred after the specified ID, then continues streaming new events. If the requested ID is too old (events are retained for a limited window), the server begins streaming from the current position and includes a `missed_events` warning:
@@ -150,17 +150,17 @@ Stream all events the authenticated user has access to:
 
 ```bash
 curl -N \
-  -H "Authorization: Bearer jjhub_your_token_here" \
+  -H "Authorization: Bearer codeplane_your_token_here" \
   -H "Accept: text/event-stream" \
-  https://api.jjhub.tech/api/events/stream
+  https://api.codeplane.app/api/events/stream
 ```
 
 Stream workflow logs for a specific run:
 
 ```bash
 curl -N \
-  -H "Authorization: Bearer jjhub_your_token_here" \
-  https://api.jjhub.tech/api/repos/alice/my-repo/runs/5/logs
+  -H "Authorization: Bearer codeplane_your_token_here" \
+  https://api.codeplane.app/api/repos/alice/my-repo/runs/5/logs
 ```
 
 ### JavaScript
@@ -170,9 +170,9 @@ The browser-native `EventSource` API does not support custom headers. Use a poly
 ```javascript
 import { fetchEventSource } from "@microsoft/fetch-event-source";
 
-await fetchEventSource("https://api.jjhub.tech/api/events/stream?channels=notification", {
+await fetchEventSource("https://api.codeplane.app/api/events/stream?channels=notification", {
   headers: {
-    "Authorization": "Bearer jjhub_your_token_here",
+    "Authorization": "Bearer codeplane_your_token_here",
   },
   onmessage(event) {
     const data = JSON.parse(event.data);
@@ -194,10 +194,10 @@ For Node.js with the `eventsource` package:
 import EventSource from "eventsource";
 
 const es = new EventSource(
-  "https://api.jjhub.tech/api/events/stream?channels=landing_request.update&repo=alice/my-repo",
+  "https://api.codeplane.app/api/events/stream?channels=landing_request.update&repo=alice/my-repo",
   {
     headers: {
-      "Authorization": "Bearer jjhub_your_token_here",
+      "Authorization": "Bearer codeplane_your_token_here",
     },
   }
 );
@@ -219,11 +219,11 @@ es.onerror = (err) => {
 
 ### CLI
 
-The `jjhub` CLI uses SSE internally. The `jjhub run logs` command (formerly `watch`) streams workflow logs in real time:
+The `codeplane` CLI uses SSE internally. The `codeplane run logs` command (formerly `watch`) streams workflow logs in real time:
 
 ```bash
 # Watch a workflow run
-jjhub run logs 5
+codeplane run logs 5
 ```
 
 ## Error Handling

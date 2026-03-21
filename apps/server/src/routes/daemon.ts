@@ -3,7 +3,7 @@
  *
  * These are only active when the server is running in PGLite (daemon) mode.
  * They expose sync status, conflict management, and remote connection
- * configuration to the CLI's `jjhub daemon` subcommands.
+ * configuration to the CLI's `codeplane daemon` subcommands.
  *
  * Routes:
  *   GET    /api/daemon/status               — full daemon status
@@ -24,7 +24,7 @@ import {
   notFound,
   writeError,
   writeRouteError,
-} from "@jjhub/sdk";
+} from "@codeplane/sdk";
 
 // ---------------------------------------------------------------------------
 // Module-level state — the SyncService is lazily created via /connect
@@ -36,7 +36,7 @@ import {
   type SyncState,
   SyncQueue,
   type SyncQueueItem,
-} from "@jjhub/sdk";
+} from "@codeplane/sdk";
 
 let syncService: SyncService | null = null;
 let remoteUrl: string | null = null;
@@ -97,7 +97,7 @@ app.get("/api/daemon/status", async (c) => {
     pid: process.pid,
     uptime: uptime(),
     uptime_ms: Date.now() - startedAt,
-    port: process.env.JJHUB_PORT ?? "3000",
+    port: process.env.CODEPLANE_PORT ?? "3000",
     db_mode: dbMode,
     sync_status: syncState?.status ?? "offline",
     pending_count: pendingCount,
@@ -116,7 +116,7 @@ app.post("/api/daemon/sync", async (c) => {
     return writeError(
       c,
       badRequest(
-        "No remote configured. Use 'jjhub daemon connect <url>' first.",
+        "No remote configured. Use 'codeplane daemon connect <url>' first.",
       ),
     );
   }

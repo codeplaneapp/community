@@ -14,7 +14,7 @@ describe("CLI: Repository Fork", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub repo fork creates a fork in user namespace", async () => {
+  test("codeplane repo fork creates a fork in user namespace", async () => {
     const forkName = uniqueName("cli-fork-user");
     const result = await cli(
       ["repo", "fork", repoSlug, "--name", forkName],
@@ -34,7 +34,7 @@ describe("CLI: Repository Fork", () => {
     expect(body.parent.full_name).toBe(repoSlug);
   });
 
-  test("jjhub repo fork creates a fork in org namespace", async () => {
+  test("codeplane repo fork creates a fork in org namespace", async () => {
     const forkName = uniqueName("cli-fork-org");
     const result = await cli(
       ["repo", "fork", repoSlug, "--name", forkName, "--org", ORG],
@@ -53,7 +53,7 @@ describe("CLI: Repository Fork", () => {
     expect(body.parent.full_name).toBe(repoSlug);
   });
 
-  test("jjhub repo view shows fork relationship", async () => {
+  test("codeplane repo view shows fork relationship", async () => {
     const forkName = uniqueName("cli-fork-view");
     await cli(
       ["repo", "fork", repoSlug, "--name", forkName],
@@ -75,7 +75,7 @@ describe("CLI: Repository Fork", () => {
     expect(body.parent.full_name).toBe(repoSlug);
   });
 
-  test("jjhub repo fork of nonexistent repo fails", async () => {
+  test("codeplane repo fork of nonexistent repo fails", async () => {
     const result = await cli(
       ["repo", "fork", `${OWNER}/nonexistent-repo-${Date.now()}`],
       { json: true },

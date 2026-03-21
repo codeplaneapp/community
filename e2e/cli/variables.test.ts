@@ -16,7 +16,7 @@ describe("CLI: Variables", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub variable list returns empty list for new repo", async () => {
+  test("codeplane variable list returns empty list for new repo", async () => {
     const result = await cli(
       ["variable", "list"],
       { repo: repoSlug, json: true },
@@ -28,7 +28,7 @@ describe("CLI: Variables", () => {
     expect(body.length).toBe(0);
   });
 
-  test("jjhub variable set creates a variable", async () => {
+  test("codeplane variable set creates a variable", async () => {
     const result = await cli(
       ["variable", "set", varName, "--body", varValue],
       { repo: repoSlug, json: true },
@@ -37,7 +37,7 @@ describe("CLI: Variables", () => {
     expect(result.exitCode).toBe(0);
   });
 
-  test("jjhub variable list shows the created variable", async () => {
+  test("codeplane variable list shows the created variable", async () => {
     const result = await cli(
       ["variable", "list"],
       { repo: repoSlug, json: true },
@@ -49,7 +49,7 @@ describe("CLI: Variables", () => {
     expect(body.some((v) => v.name === varName)).toBe(true);
   });
 
-  test("jjhub variable get retrieves the variable", async () => {
+  test("codeplane variable get retrieves the variable", async () => {
     const result = await cli(
       ["variable", "get", varName],
       { repo: repoSlug, json: true },
@@ -61,7 +61,7 @@ describe("CLI: Variables", () => {
     expect(body.value).toBe(varValue);
   });
 
-  test("jjhub variable set updates an existing variable", async () => {
+  test("codeplane variable set updates an existing variable", async () => {
     const newValue = "updated-cli-value";
     const result = await cli(
       ["variable", "set", varName, "--body", newValue],
@@ -80,7 +80,7 @@ describe("CLI: Variables", () => {
     expect(body.value).toBe(newValue);
   });
 
-  test("jjhub variable delete removes the variable", async () => {
+  test("codeplane variable delete removes the variable", async () => {
     const result = await cli(
       ["variable", "delete", varName],
       { repo: repoSlug, json: true },
@@ -99,7 +99,7 @@ describe("CLI: Variables", () => {
     }
   });
 
-  test("jjhub variable get returns error for non-existent variable", async () => {
+  test("codeplane variable get returns error for non-existent variable", async () => {
     const result = await cli(
       ["variable", "get", "DOES_NOT_EXIST"],
       { repo: repoSlug, json: true },
@@ -108,7 +108,7 @@ describe("CLI: Variables", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub variable delete on non-existent variable fails gracefully", async () => {
+  test("codeplane variable delete on non-existent variable fails gracefully", async () => {
     const result = await cli(
       ["variable", "delete", "DOES_NOT_EXIST"],
       { repo: repoSlug, json: true },

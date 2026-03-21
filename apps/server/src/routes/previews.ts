@@ -12,7 +12,7 @@
 
 import { Hono } from "hono";
 import type { Context } from "hono";
-import { APIError, getUser } from "@jjhub/sdk";
+import { APIError, getUser } from "@codeplane/sdk";
 import { getServices } from "../services";
 
 // ---------------------------------------------------------------------------

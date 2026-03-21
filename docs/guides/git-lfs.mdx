@@ -1,6 +1,6 @@
 ---
 title: Git LFS
-description: Store large binary files with Git Large File Storage on JJHub
+description: Store large binary files with Git Large File Storage on Codeplane
 ---
 
 # Git LFS
@@ -17,28 +17,28 @@ Git LFS solves this by:
 - **Versioning large files**: LFS objects are immutable and content-addressed. Every version of a file is preserved and retrievable.
 - **Efficient transfers**: Only the LFS objects you check out are downloaded, not the entire history of every large file.
 
-## How LFS Works on JJHub
+## How LFS Works on Codeplane
 
-JJHub stores LFS objects in dedicated blob storage. Uploads and downloads use **signed URLs** and go directly to storage -- they are not proxied through the API server. This keeps transfers fast and avoids bottlenecking the API.
+Codeplane stores LFS objects in dedicated blob storage. Uploads and downloads use **signed URLs** and go directly to storage -- they are not proxied through the API server. This keeps transfers fast and avoids bottlenecking the API.
 
 The flow:
 
 ```
 1. You push a commit containing LFS pointer files
 2. Your Git/jj client detects the pointer files and requests upload URLs
-3. JJHub generates short-lived signed URLs
+3. Codeplane generates short-lived signed URLs
 4. Your client uploads the LFS objects directly to storage
-5. Your client confirms the upload with JJHub
-6. JJHub records the object metadata in the database
+5. Your client confirms the upload with Codeplane
+6. Codeplane records the object metadata in the database
 ```
 
-When someone clones or pulls, the reverse happens: JJHub provides signed download URLs and the client fetches objects directly from storage.
+When someone clones or pulls, the reverse happens: Codeplane provides signed download URLs and the client fetches objects directly from storage.
 
 ## Setup
 
 ### Prerequisites
 
-You need Git LFS installed locally. Since jj uses git as its storage backend, standard Git LFS tooling works with JJHub repositories.
+You need Git LFS installed locally. Since jj uses git as its storage backend, standard Git LFS tooling works with Codeplane repositories.
 
 **Install Git LFS:**
 
@@ -121,14 +121,14 @@ During the push:
 
 1. jj exports refs to the git backend
 2. Git detects that `scene.psd` matches an LFS pattern
-3. Git LFS uploads the file content to JJHub (via signed URLs)
+3. Git LFS uploads the file content to Codeplane (via signed URLs)
 4. Only the pointer file is pushed to the repository
 
 ### Pulling LFS Objects
 
 ```bash
 # Clone a repository -- LFS objects are downloaded automatically
-jj git clone git@jjhub.tech:owner/repo.git
+jj git clone git@codeplane.app:owner/repo.git
 
 # Or pull updates
 jj git fetch
@@ -169,7 +169,7 @@ Here are recommended LFS tracking patterns for common use cases:
 
 ## API: Signed URL Endpoints
 
-JJHub provides LFS endpoints for programmatic access. These follow the Git LFS Batch API specification and are used automatically by the Git LFS client.
+Codeplane provides LFS endpoints for programmatic access. These follow the Git LFS Batch API specification and are used automatically by the Git LFS client.
 
 ### Request Upload URL
 
@@ -182,8 +182,8 @@ Request a signed URL for uploading an LFS object.
 **Request:**
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/repos/owner/repo/lfs/upload \
-  -H "Authorization: token jjhub_your_token" \
+curl -X POST https://api.codeplane.app/api/repos/owner/repo/lfs/upload \
+  -H "Authorization: token codeplane_your_token" \
   -H "Content-Type: application/json" \
   -d '{
     "oid": "sha256:abc123...",
@@ -195,7 +195,7 @@ curl -X POST https://api.jjhub.tech/api/repos/owner/repo/lfs/upload \
 
 ```json
 {
-  "upload_url": "https://storage.jjhub.tech/lfs/owner/repo/sha256-abc123...?signature=...",
+  "upload_url": "https://storage.codeplane.app/lfs/owner/repo/sha256-abc123...?signature=...",
   "expires_at": "2026-03-06T13:00:00Z"
 }
 ```
@@ -208,13 +208,13 @@ The `upload_url` is a signed URL with a short expiry. Upload the file content di
 POST /api/repos/:owner/:repo/lfs/confirm
 ```
 
-After uploading, confirm the upload so JJHub records the object metadata.
+After uploading, confirm the upload so Codeplane records the object metadata.
 
 **Request:**
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/repos/owner/repo/lfs/confirm \
-  -H "Authorization: token jjhub_your_token" \
+curl -X POST https://api.codeplane.app/api/repos/owner/repo/lfs/confirm \
+  -H "Authorization: token codeplane_your_token" \
   -H "Content-Type: application/json" \
   -d '{
     "oid": "sha256:abc123...",
@@ -234,7 +234,7 @@ curl -X POST https://api.jjhub.tech/api/repos/owner/repo/lfs/confirm \
 
 ### Download URL
 
-When pulling LFS objects, the Git LFS client requests download URLs through the standard LFS Batch API. JJHub returns signed URLs for direct download.
+When pulling LFS objects, the Git LFS client requests download URLs through the standard LFS Batch API. Codeplane returns signed URLs for direct download.
 
 ## Storage and Retention
 
@@ -250,7 +250,7 @@ This usually means LFS was not installed or initialized locally:
 
 ```bash
 git lfs install
-jj git clone git@jjhub.tech:owner/repo.git
+jj git clone git@codeplane.app:owner/repo.git
 ```
 
 ### Large files committed without LFS

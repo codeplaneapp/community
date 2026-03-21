@@ -1,11 +1,11 @@
 ---
 title: OAuth2 Applications
-description: Build third-party integrations with JJHub using OAuth2
+description: Build third-party integrations with Codeplane using OAuth2
 ---
 
 # OAuth2 Applications
 
-OAuth2 applications let third-party developers build integrations that access JJHub on behalf of users. When a user authorizes your application, JJHub issues scoped access tokens that your application uses to call the API. Users retain full control over what your application can do and can revoke access at any time.
+OAuth2 applications let third-party developers build integrations that access Codeplane on behalf of users. When a user authorizes your application, Codeplane issues scoped access tokens that your application uses to call the API. Users retain full control over what your application can do and can revoke access at any time.
 
 OAuth2 applications are distinct from personal access tokens. Personal access tokens represent first-party access tied to a single user account. OAuth2 applications represent third-party access where a separate application acts on behalf of many users, each of whom must explicitly consent to the requested scopes.
 
@@ -13,8 +13,8 @@ OAuth2 applications are distinct from personal access tokens. Personal access to
 
 Use an OAuth2 application when you are building:
 
-- **A web application** that needs to read or write JJHub data on behalf of its users
-- **A desktop or mobile application** that integrates with JJHub repositories, issues, or landings
+- **A web application** that needs to read or write Codeplane data on behalf of its users
+- **A desktop or mobile application** that integrates with Codeplane repositories, issues, or landings
 - **A CI/CD integration** that needs user-delegated access rather than a single shared token
 - **A bot or service** that operates across multiple users or organizations
 
@@ -22,7 +22,7 @@ If you only need to automate tasks for your own account, a [personal access toke
 
 ## Confidential vs Public Clients
 
-JJHub supports two types of OAuth2 clients:
+Codeplane supports two types of OAuth2 clients:
 
 | Client Type | Can Store Secrets | PKCE Required | Example |
 |-------------|-------------------|---------------|---------|
@@ -38,8 +38,8 @@ Confidential clients authenticate with a `client_secret` during the token exchan
 Create an OAuth2 application by sending a POST request:
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/user/oauth2/applications \
-  -H "Authorization: Bearer jjhub_your_token" \
+curl -X POST https://api.codeplane.app/api/user/oauth2/applications \
+  -H "Authorization: Bearer codeplane_your_token" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "My Integration",
@@ -70,8 +70,8 @@ The `client_secret` is shown once at creation time. Store it securely. If you lo
 For a public client (such as a mobile app or SPA), set `confidential` to `false`:
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/user/oauth2/applications \
-  -H "Authorization: Bearer jjhub_your_token" \
+curl -X POST https://api.codeplane.app/api/user/oauth2/applications \
+  -H "Authorization: Bearer codeplane_your_token" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "My Mobile App",
@@ -86,7 +86,7 @@ Public clients do not receive a `client_secret` and must use PKCE for all author
 ### Via CLI
 
 ```bash
-jjhub auth oauth2 create \
+codeplane auth oauth2 create \
   --name "My Integration" \
   --redirect-uri "https://myapp.example.com/callback" \
   --scopes "read:repository,read:user" \
@@ -104,7 +104,7 @@ jjhub auth oauth2 create \
 
 ## Authorization Flow
 
-JJHub implements the OAuth2 Authorization Code flow. Public clients must use PKCE. Confidential clients should also use PKCE as a best practice.
+Codeplane implements the OAuth2 Authorization Code flow. Public clients must use PKCE. Confidential clients should also use PKCE as a best practice.
 
 ### Step 1: Generate a PKCE Code Verifier (Public and Confidential Clients)
 
@@ -137,12 +137,12 @@ code_challenge = base64.urlsafe_b64encode(
 ).decode().rstrip("=")
 ```
 
-### Step 2: Redirect the User to JJHub for Authorization
+### Step 2: Redirect the User to Codeplane for Authorization
 
-Direct the user's browser to the JJHub authorization endpoint:
+Direct the user's browser to the Codeplane authorization endpoint:
 
 ```
-https://api.jjhub.tech/oauth2/authorize?
+https://api.codeplane.app/oauth2/authorize?
   client_id=a1b2c3d4e5f6...&
   redirect_uri=https://myapp.example.com/callback&
   response_type=code&
@@ -162,11 +162,11 @@ https://api.jjhub.tech/oauth2/authorize?
 | `code_challenge` | Required for public clients | Base64url-encoded SHA-256 hash of the code verifier |
 | `code_challenge_method` | Required for public clients | Must be `S256` |
 
-JJHub displays a consent screen showing your application name and the requested scopes. The user can approve or deny access.
+Codeplane displays a consent screen showing your application name and the requested scopes. The user can approve or deny access.
 
 ### Step 3: Receive the Authorization Code
 
-After the user approves, JJHub redirects the browser back to your `redirect_uri` with an authorization code:
+After the user approves, Codeplane redirects the browser back to your `redirect_uri` with an authorization code:
 
 ```
 https://myapp.example.com/callback?code=auth_code_here&state=random_csrf_token
@@ -176,7 +176,7 @@ Your application must:
 1. Verify that the `state` parameter matches the value you sent in step 2
 2. Exchange the authorization code for tokens in step 4
 
-If the user denies access, JJHub redirects with an error:
+If the user denies access, Codeplane redirects with an error:
 
 ```
 https://myapp.example.com/callback?error=access_denied&state=random_csrf_token
@@ -189,7 +189,7 @@ Exchange the authorization code for an access token and refresh token:
 **Confidential client (with client secret):**
 
 ```bash
-curl -X POST https://api.jjhub.tech/oauth2/token \
+curl -X POST https://api.codeplane.app/oauth2/token \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=authorization_code" \
   -d "client_id=a1b2c3d4e5f6..." \
@@ -202,7 +202,7 @@ curl -X POST https://api.jjhub.tech/oauth2/token \
 **Public client (with PKCE, no client secret):**
 
 ```bash
-curl -X POST https://api.jjhub.tech/oauth2/token \
+curl -X POST https://api.codeplane.app/oauth2/token \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=authorization_code" \
   -d "client_id=a1b2c3d4e5f6..." \
@@ -215,10 +215,10 @@ curl -X POST https://api.jjhub.tech/oauth2/token \
 
 ```json
 {
-  "access_token": "jjhub_oauth2_abc123...",
+  "access_token": "codeplane_oauth2_abc123...",
   "token_type": "Bearer",
   "expires_in": 3600,
-  "refresh_token": "jjhub_refresh_def456...",
+  "refresh_token": "codeplane_refresh_def456...",
   "scope": "read:repository read:user"
 }
 ```
@@ -246,7 +246,7 @@ The `all` scope grants full access to every resource the user can access. Use it
 
 ### Registered Scope Enforcement
 
-When your application requests authorization, the requested scopes must be a subset of the scopes you registered during application creation. JJHub rejects authorization requests that exceed the registered scopes.
+When your application requests authorization, the requested scopes must be a subset of the scopes you registered during application creation. Codeplane rejects authorization requests that exceed the registered scopes.
 
 For example, if your application registered with `["read:repository", "read:user"]`, attempting to request `write:repository` during authorization will fail. To request additional scopes, update your application's registered scopes first.
 
@@ -254,7 +254,7 @@ For example, if your application registered with `["read:repository", "read:user
 
 OAuth2 tokens carry a third-party trust level that is distinct from personal access tokens. This means:
 
-- OAuth2 tokens cannot manage JJHub credentials (personal access tokens, SSH keys, OAuth2 applications)
+- OAuth2 tokens cannot manage Codeplane credentials (personal access tokens, SSH keys, OAuth2 applications)
 - OAuth2 tokens cannot access admin endpoints
 - OAuth2 tokens are restricted to their granted scopes and cannot escalate privileges
 
@@ -266,8 +266,8 @@ OAuth2 tokens carry a third-party trust level that is distinct from personal acc
 - Use the access token in the `Authorization` header for API requests:
 
 ```bash
-curl https://api.jjhub.tech/api/repos/owner/repo \
-  -H "Authorization: Bearer jjhub_oauth2_abc123..."
+curl https://api.codeplane.app/api/repos/owner/repo \
+  -H "Authorization: Bearer codeplane_oauth2_abc123..."
 ```
 
 ### Refreshing Tokens
@@ -275,22 +275,22 @@ curl https://api.jjhub.tech/api/repos/owner/repo \
 When an access token expires, use the refresh token to obtain a new one without requiring the user to re-authorize:
 
 ```bash
-curl -X POST https://api.jjhub.tech/oauth2/token \
+curl -X POST https://api.codeplane.app/oauth2/token \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=refresh_token" \
   -d "client_id=a1b2c3d4e5f6..." \
   -d "client_secret=s3cr3t..." \
-  -d "refresh_token=jjhub_refresh_def456..."
+  -d "refresh_token=codeplane_refresh_def456..."
 ```
 
 **Response:**
 
 ```json
 {
-  "access_token": "jjhub_oauth2_new789...",
+  "access_token": "codeplane_oauth2_new789...",
   "token_type": "Bearer",
   "expires_in": 3600,
-  "refresh_token": "jjhub_refresh_new012...",
+  "refresh_token": "codeplane_refresh_new012...",
   "scope": "read:repository read:user"
 }
 ```
@@ -301,7 +301,7 @@ For public clients, omit the `client_secret` parameter from the refresh request.
 
 ### Token Revocation
 
-Users can revoke access to your application at any time through their JJHub settings. When access is revoked, all access tokens and refresh tokens issued to your application for that user are invalidated.
+Users can revoke access to your application at any time through their Codeplane settings. When access is revoked, all access tokens and refresh tokens issued to your application for that user are invalidated.
 
 Your application should handle `401 Unauthorized` responses gracefully by directing the user through the authorization flow again.
 
@@ -310,8 +310,8 @@ Your application should handle `401 Unauthorized` responses gracefully by direct
 ### List Your Applications
 
 ```bash
-curl https://api.jjhub.tech/api/user/oauth2/applications \
-  -H "Authorization: Bearer jjhub_your_token"
+curl https://api.codeplane.app/api/user/oauth2/applications \
+  -H "Authorization: Bearer codeplane_your_token"
 ```
 
 **Response:**
@@ -334,15 +334,15 @@ curl https://api.jjhub.tech/api/user/oauth2/applications \
 ### Get a Single Application
 
 ```bash
-curl https://api.jjhub.tech/api/user/oauth2/applications/1 \
-  -H "Authorization: Bearer jjhub_your_token"
+curl https://api.codeplane.app/api/user/oauth2/applications/1 \
+  -H "Authorization: Bearer codeplane_your_token"
 ```
 
 ### Update an Application
 
 ```bash
-curl -X PATCH https://api.jjhub.tech/api/user/oauth2/applications/1 \
-  -H "Authorization: Bearer jjhub_your_token" \
+curl -X PATCH https://api.codeplane.app/api/user/oauth2/applications/1 \
+  -H "Authorization: Bearer codeplane_your_token" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "My Updated Integration",
@@ -361,8 +361,8 @@ Updating the registered scopes does not retroactively change existing user grant
 If your client secret is compromised, regenerate it immediately:
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/user/oauth2/applications/1/secret \
-  -H "Authorization: Bearer jjhub_your_token"
+curl -X POST https://api.codeplane.app/api/user/oauth2/applications/1/secret \
+  -H "Authorization: Bearer codeplane_your_token"
 ```
 
 **Response:**
@@ -378,8 +378,8 @@ The previous client secret is invalidated immediately. Update your application's
 ### Delete an Application
 
 ```bash
-curl -X DELETE https://api.jjhub.tech/api/user/oauth2/applications/1 \
-  -H "Authorization: Bearer jjhub_your_token"
+curl -X DELETE https://api.codeplane.app/api/user/oauth2/applications/1 \
+  -H "Authorization: Bearer codeplane_your_token"
 ```
 
 Returns `204 No Content` on success. Deleting an application immediately revokes all authorization codes, access tokens, and refresh tokens associated with it.
@@ -418,7 +418,7 @@ Your application should handle these error responses:
 
 5. **Handle token expiration gracefully.** Use refresh tokens to obtain new access tokens. Do not prompt the user to re-authorize unless the refresh token is also invalid.
 
-6. **Register exact redirect URIs.** JJHub requires exact-match comparison for redirect URIs. Do not use wildcard or partial patterns.
+6. **Register exact redirect URIs.** Codeplane requires exact-match comparison for redirect URIs. Do not use wildcard or partial patterns.
 
 7. **Rotate compromised secrets immediately.** If you suspect your client secret has been exposed, regenerate it through the API.
 

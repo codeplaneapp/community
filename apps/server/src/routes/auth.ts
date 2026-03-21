@@ -9,7 +9,7 @@ import {
   writeJSON,
   writeRouteError,
   getAuthInfo,
-} from "@jjhub/sdk";
+} from "@codeplane/sdk";
 
 // ---------------------------------------------------------------------------
 // Types matching Go's services layer
@@ -93,10 +93,10 @@ class StubAuthService implements AuthService {
 // Constants — match Go's cookie/config constants
 // ---------------------------------------------------------------------------
 
-const OAUTH_STATE_COOKIE_NAME = "jjhub_oauth_state";
-const CLI_CALLBACK_COOKIE_NAME = "jjhub_cli_callback";
+const OAUTH_STATE_COOKIE_NAME = "codeplane_oauth_state";
+const CLI_CALLBACK_COOKIE_NAME = "codeplane_cli_callback";
 const CSRF_COOKIE_NAME = "__csrf";
-const DEFAULT_SESSION_COOKIE_NAME = "jjhub_session";
+const DEFAULT_SESSION_COOKIE_NAME = "codeplane_session";
 
 // ---------------------------------------------------------------------------
 // Config — matches Go's config.AuthConfig fields used by auth routes
@@ -110,8 +110,8 @@ interface AuthConfig {
 function getAuthConfig(): AuthConfig {
   return {
     sessionCookieName:
-      process.env.JJHUB_AUTH_SESSION_COOKIE_NAME || DEFAULT_SESSION_COOKIE_NAME,
-    cookieSecure: process.env.JJHUB_AUTH_COOKIE_SECURE === "true",
+      process.env.CODEPLANE_AUTH_SESSION_COOKIE_NAME || DEFAULT_SESSION_COOKIE_NAME,
+    cookieSecure: process.env.CODEPLANE_AUTH_COOKIE_SECURE === "true",
   };
 }
 
@@ -291,7 +291,7 @@ app.post("/api/auth/key/token", async (c) => {
     const result = await service.verifyKeyAuth(req.message, req.signature);
 
     const tokenResult = await service.createToken(result.user.id, {
-      name: "jjhub-cli",
+      name: "codeplane-cli",
       scopes: ["repo", "user", "org"],
     });
 
@@ -445,7 +445,7 @@ async function completeCLIOAuth(
   try {
     // Create an access token for the CLI.
     const tokenResult = await service.createToken(result.user.id, {
-      name: "jjhub-cli",
+      name: "codeplane-cli",
       scopes: ["repo", "user", "org"],
     });
 

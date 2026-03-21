@@ -2,10 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { cli, jsonParse, uniqueName, OWNER, API_URL } from "./helpers";
 
 const INTERNAL_TOKEN =
-  process.env.JJHUB_REPO_HOST_AUTH_TOKEN ??
+  process.env.CODEPLANE_REPO_HOST_AUTH_TOKEN ??
   process.env.REPO_HOST_AUTH_TOKEN ??
-  process.env.JJHUB_AGENT_TOKEN ??
-  "jjhub-repo-host-dev-token";
+  process.env.CODEPLANE_AGENT_TOKEN ??
+  "codeplane-repo-host-dev-token";
 
 describe("CLI: Webhook Push Event Dispatch", () => {
   const repoName = uniqueName("cli-webhook-push");
@@ -21,7 +21,7 @@ describe("CLI: Webhook Push Event Dispatch", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub webhook create subscribes to push events", async () => {
+  test("codeplane webhook create subscribes to push events", async () => {
     const result = await cli(
       [
         "webhook", "create",

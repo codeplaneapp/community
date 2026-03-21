@@ -4,7 +4,7 @@ import { deleteStoredToken, loadStoredToken, storeToken } from "./credentials.js
 const CLAUDE_SETUP_TOKEN_STORAGE_KEY = "claude.subscription-token";
 const CLAUDE_CODE_KEYCHAIN_SERVICE = "Claude Code-credentials";
 const CLAUDE_SETUP_TOKEN_PATTERN = /\bsk-ant-oat[0-9a-z-]*-[A-Za-z0-9._-]+\b/;
-const CLAUDE_SETUP_TOKEN_PIPE_COMMAND = "claude setup-token | jjhub auth claude login";
+const CLAUDE_SETUP_TOKEN_PIPE_COMMAND = "claude setup-token | codeplane auth claude login";
 const CLAUDE_LOCAL_LOGIN_COMMAND = "claude login";
 
 interface ClaudeCodeKeychainPayload {
@@ -93,7 +93,7 @@ export function deleteStoredClaudeAuthToken(): boolean {
 }
 
 export function loadClaudeOAuthAccessTokenFromKeychain(): string | null {
-  const testPayload = process.env.JJHUB_TEST_CLAUDE_KEYCHAIN_PAYLOAD?.trim();
+  const testPayload = process.env.CODEPLANE_TEST_CLAUDE_KEYCHAIN_PAYLOAD?.trim();
   if (testPayload) {
     try {
       const payload = JSON.parse(testPayload) as ClaudeCodeKeychainPayload;

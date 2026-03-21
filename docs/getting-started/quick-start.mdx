@@ -1,22 +1,22 @@
 ---
 title: Quick Start
-description: Get up and running with JJHub in minutes
+description: Get up and running with Codeplane in minutes
 ---
 
 # Quick Start
 
-Get up and running with JJHub - the jj-native code hosting platform with integrated collaborative agent sandboxes in the cloud.
+Get up and running with Codeplane - the jj-native code hosting platform with integrated collaborative agent sandboxes in the cloud.
 
 ## Prerequisites
 
 - [jj (Jujutsu)](https://github.com/jj-vcs/jj) installed
-- The JJHub CLI (`jjhub`) installed - see [Installation](/cli-reference/installation)
-- A JJHub account - currently available via closed alpha invite
+- The Codeplane CLI (`codeplane`) installed - see [Installation](/cli-reference/installation)
+- A Codeplane account - currently available via closed alpha invite
 
 ## 1. Authenticate
 
 ```bash
-jjhub auth login
+codeplane auth login
 ```
 
 This opens your browser for GitHub OAuth authentication. Once authorized, your credentials are stored securely in your OS keychain.
@@ -24,31 +24,31 @@ This opens your browser for GitHub OAuth authentication. Once authorized, your c
 Verify you're logged in:
 
 ```bash
-jjhub auth status
+codeplane auth status
 ```
 
 For CI environments where a browser isn't available, use a personal access token:
 
 ```bash
-export JJHUB_TOKEN=jjhub_your_token_here
+export CODEPLANE_TOKEN=codeplane_your_token_here
 ```
 
 ## 2. Create a Repository
 
 ```bash
-jjhub repo create my-project --description "My first JJHub project"
+codeplane repo create my-project --description "My first Codeplane project"
 ```
 
 By default, repositories are public. To create a private repo:
 
 ```bash
-jjhub repo create my-private-project --private
+codeplane repo create my-private-project --private
 ```
 
 ## 3. Clone and Work
 
 ```bash
-jjhub repo clone username/my-project
+codeplane repo clone username/my-project
 cd my-project
 ```
 
@@ -61,22 +61,22 @@ echo "# My Project" > README.md
 # Describe your change
 jj describe -m "Add README"
 
-# Push to JJHub
+# Push to Codeplane
 jj git push
 ```
 
 ## 4. Open a Landing Request
 
-Landing Requests (LRs) are JJHub's replacement for Pull Requests, built natively for jj's stacked changes model.
+Landing Requests (LRs) are Codeplane's replacement for Pull Requests, built natively for jj's stacked changes model.
 
 ```bash
-jjhub land create --title "Add README" --target main
+codeplane land create --title "Add README" --target main
 ```
 
 To land a whole stack of changes:
 
 ```bash
-jjhub land create --title "Feature: user auth" --target main --stack
+codeplane land create --title "Feature: user auth" --target main --stack
 ```
 
 ## 5. Review and Merge
@@ -84,19 +84,19 @@ jjhub land create --title "Feature: user auth" --target main --stack
 View your landing request:
 
 ```bash
-jjhub land view 1
+codeplane land view 1
 ```
 
 Check CI status:
 
 ```bash
-jjhub land checks 1
+codeplane land checks 1
 ```
 
 Land when ready:
 
 ```bash
-jjhub land land 1
+codeplane land land 1
 ```
 
 ## Next Steps

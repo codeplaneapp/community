@@ -5,7 +5,7 @@ describe("CLI: Email Management", () => {
   let emailID = 0;
   const uniqueEmail = `cli-e2e-${Date.now()}@example.com`;
 
-  test("jjhub api GET /api/user/emails lists emails", async () => {
+  test("codeplane api GET /api/user/emails lists emails", async () => {
     const result = await cli(
       ["api", "/api/user/emails"],
       { json: true },
@@ -22,7 +22,7 @@ describe("CLI: Email Management", () => {
     }
   });
 
-  test("jjhub api GET /api/user/emails requires auth", async () => {
+  test("codeplane api GET /api/user/emails requires auth", async () => {
     const result = await cli(
       ["api", "/api/user/emails"],
       { json: true, token: "" },
@@ -31,7 +31,7 @@ describe("CLI: Email Management", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub api POST /api/user/emails creates a new email", async () => {
+  test("codeplane api POST /api/user/emails creates a new email", async () => {
     const result = await cli(
       [
         "api",
@@ -50,7 +50,7 @@ describe("CLI: Email Management", () => {
     emailID = body.id as number;
   });
 
-  test("jjhub api POST /api/user/emails rejects invalid email", async () => {
+  test("codeplane api POST /api/user/emails rejects invalid email", async () => {
     const result = await cli(
       [
         "api",
@@ -64,7 +64,7 @@ describe("CLI: Email Management", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub api POST /api/user/emails rejects empty email", async () => {
+  test("codeplane api POST /api/user/emails rejects empty email", async () => {
     const result = await cli(
       [
         "api",
@@ -78,7 +78,7 @@ describe("CLI: Email Management", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub api POST /api/user/emails/{id}/verify requests verification", async () => {
+  test("codeplane api POST /api/user/emails/{id}/verify requests verification", async () => {
     const result = await cli(
       [
         "api",
@@ -103,7 +103,7 @@ describe("CLI: Email Management", () => {
     expect(body.some((e) => e.id === emailID)).toBe(true);
   });
 
-  test("jjhub api DELETE /api/user/emails/{id} removes the email", async () => {
+  test("codeplane api DELETE /api/user/emails/{id} removes the email", async () => {
     const result = await cli(
       [
         "api",
@@ -125,7 +125,7 @@ describe("CLI: Email Management", () => {
     expect(body.some((e) => e.id === emailID)).toBe(false);
   });
 
-  test("jjhub api DELETE /api/user/emails/999999 returns 404 for non-existent", async () => {
+  test("codeplane api DELETE /api/user/emails/999999 returns 404 for non-existent", async () => {
     const result = await cli(
       [
         "api",
@@ -140,7 +140,7 @@ describe("CLI: Email Management", () => {
 });
 
 describe("CLI: Notifications", () => {
-  test("jjhub notification list returns notifications", async () => {
+  test("codeplane notification list returns notifications", async () => {
     const result = await cli(
       ["notification", "list"],
       { json: true },
@@ -151,7 +151,7 @@ describe("CLI: Notifications", () => {
     expect(Array.isArray(body)).toBe(true);
   });
 
-  test("jjhub notification list --unread filters unread notifications", async () => {
+  test("codeplane notification list --unread filters unread notifications", async () => {
     const result = await cli(
       ["notification", "list", "--unread"],
       { json: true },
@@ -162,7 +162,7 @@ describe("CLI: Notifications", () => {
     expect(Array.isArray(body)).toBe(true);
   });
 
-  test("jjhub notification read --all marks all as read", async () => {
+  test("codeplane notification read --all marks all as read", async () => {
     const result = await cli(
       ["notification", "read", "--all"],
       { json: true },

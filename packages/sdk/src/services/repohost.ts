@@ -1,12 +1,12 @@
 /**
- * RepoHost service for JJHub Community Edition.
+ * RepoHost service for Codeplane Community Edition.
  *
  * Manages jj repositories on local disk by shelling out to the `jj` CLI.
  * This replaces the Go repo-host service's Rust FFI approach with a simpler
  * CLI-based implementation suitable for single-tenant / OSS use.
  *
  * All jj commands use custom templates (-T) for structured output parsing.
- * Repository paths live under JJHUB_DATA_DIR/repos/ (default: ./data/repos/).
+ * Repository paths live under CODEPLANE_DATA_DIR/repos/ (default: ./data/repos/).
  */
 
 import { join } from "node:path";
@@ -174,7 +174,7 @@ async function execJJChecked(
 // ---------------------------------------------------------------------------
 
 function getReposBaseDir(): string {
-  return join(process.env.JJHUB_DATA_DIR ?? "./data", "repos");
+  return join(process.env.CODEPLANE_DATA_DIR ?? "./data", "repos");
 }
 
 function resolveRepoPath(owner: string, repo: string): string {

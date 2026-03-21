@@ -1,5 +1,5 @@
 {
-  "name": "@jjhub/user-docs",
+  "name": "@codeplane/user-docs",
   "private": true,
   "scripts": {
     "dev": "mintlify dev",

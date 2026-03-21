@@ -17,7 +17,7 @@ describe("CLI: Commit Status", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub status create creates a commit status", async () => {
+  test("codeplane status create creates a commit status", async () => {
     const result = await cli(
       [
         "status", "create", MOCK_COMMIT_SHA,
@@ -49,7 +49,7 @@ describe("CLI: Commit Status", () => {
     expect(typeof body.updated_at).toBe("string");
   });
 
-  test("jjhub status create supports all valid status values", async () => {
+  test("codeplane status create supports all valid status values", async () => {
     const validStatuses = ["success", "failure", "error", "cancelled"];
     for (const status of validStatuses) {
       const result = await cli(
@@ -67,7 +67,7 @@ describe("CLI: Commit Status", () => {
     }
   });
 
-  test("jjhub status create rejects invalid status value", async () => {
+  test("codeplane status create rejects invalid status value", async () => {
     const result = await cli(
       [
         "status", "create", MOCK_COMMIT_SHA,
@@ -81,7 +81,7 @@ describe("CLI: Commit Status", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub status create fails without auth", async () => {
+  test("codeplane status create fails without auth", async () => {
     const result = await cli(
       [
         "status", "create", MOCK_COMMIT_SHA,
@@ -94,7 +94,7 @@ describe("CLI: Commit Status", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub status create fails with read-only token", async () => {
+  test("codeplane status create fails with read-only token", async () => {
     const result = await cli(
       [
         "status", "create", MOCK_COMMIT_SHA,
@@ -107,7 +107,7 @@ describe("CLI: Commit Status", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub status list returns statuses for a commit", async () => {
+  test("codeplane status list returns statuses for a commit", async () => {
     const result = await cli(
       ["status", "list", MOCK_COMMIT_SHA],
       { repo: repoSlug, json: true },
@@ -127,7 +127,7 @@ describe("CLI: Commit Status", () => {
     }
   });
 
-  test("jjhub status list supports querying by change_id", async () => {
+  test("codeplane status list supports querying by change_id", async () => {
     // Create a status with a change_id
     const createResult = await cli(
       [
@@ -153,7 +153,7 @@ describe("CLI: Commit Status", () => {
     expect(body.some((s) => s.context === "ci/change-id-test")).toBe(true);
   });
 
-  test("jjhub status list shows multiple contexts per commit", async () => {
+  test("codeplane status list shows multiple contexts per commit", async () => {
     const result = await cli(
       ["status", "list", MOCK_COMMIT_SHA],
       { repo: repoSlug, json: true },
@@ -167,7 +167,7 @@ describe("CLI: Commit Status", () => {
     expect(contexts.length).toBeGreaterThanOrEqual(2);
   });
 
-  test("jjhub status create on non-existent repo fails", async () => {
+  test("codeplane status create on non-existent repo fails", async () => {
     const result = await cli(
       [
         "status", "create", MOCK_COMMIT_SHA,
@@ -180,7 +180,7 @@ describe("CLI: Commit Status", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub status list on non-existent repo fails", async () => {
+  test("codeplane status list on non-existent repo fails", async () => {
     const result = await cli(
       ["status", "list", MOCK_COMMIT_SHA],
       { repo: `${OWNER}/nonexistent-repo-12345`, json: true },

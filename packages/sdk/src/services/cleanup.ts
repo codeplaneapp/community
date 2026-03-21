@@ -1,5 +1,5 @@
 /**
- * CleanupScheduler — periodic background cleanup workers for JJHub CE.
+ * CleanupScheduler — periodic background cleanup workers for Codeplane CE.
  *
  * Ported from the Go implementation in internal/cleanup/. Runs periodic
  * background jobs to clean up expired/stale data:

@@ -1,7 +1,7 @@
 /**
- * JJHub CLI configuration.
+ * Codeplane CLI configuration.
  *
- * Non-secret settings live in ~/.config/jjhub/config.toon. Authentication
+ * Non-secret settings live in ~/.config/codeplane/config.toon. Authentication
  * tokens are resolved separately so they never need to be written here.
  */
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
@@ -21,7 +21,7 @@ export interface RawConfig extends Config {
   token?: string;
 }
 
-const DEFAULT_API_URL = "https://api.jjhub.tech";
+const DEFAULT_API_URL = "https://api.codeplane.app";
 
 export function normalizeApiUrl(apiUrl: string): string {
   return apiUrl.trim().replace(/\/+$/, "").replace(/\/api$/i, "");
@@ -62,17 +62,17 @@ function stateBaseDir(): string {
 
 /** Path to the config file. */
 export function configPath(): string {
-  return join(configDir(), "jjhub", "config.toon");
+  return join(configDir(), "codeplane", "config.toon");
 }
 
-/** Path to the JJHub cache directory. */
+/** Path to the Codeplane cache directory. */
 export function cacheDir(): string {
-  return join(cacheBaseDir(), "jjhub");
+  return join(cacheBaseDir(), "codeplane");
 }
 
-/** Path to the JJHub state directory. */
+/** Path to the Codeplane state directory. */
 export function stateDir(): string {
-  return join(stateBaseDir(), "jjhub");
+  return join(stateBaseDir(), "codeplane");
 }
 
 /** Load config from disk without env overlay. */
@@ -101,7 +101,7 @@ export function loadRaw(): RawConfig {
   };
 }
 
-/** Load config from disk with JJHUB_TOKEN env overlay. */
+/** Load config from disk with CODEPLANE_TOKEN env overlay. */
 export function loadConfig(): Config {
   const raw = loadRaw();
   const config: Config = {
@@ -109,7 +109,7 @@ export function loadConfig(): Config {
     git_protocol: raw.git_protocol,
     agent_issue_repo: raw.agent_issue_repo,
   };
-  const envIssueRepo = process.env.JJHUB_AGENT_ISSUE_REPO;
+  const envIssueRepo = process.env.CODEPLANE_AGENT_ISSUE_REPO;
   if (envIssueRepo) {
     config.agent_issue_repo = envIssueRepo;
   }
@@ -148,7 +148,7 @@ export function clearLegacyToken(): boolean {
   return true;
 }
 
-/** Extract hostname from api_url (e.g. "https://api.jjhub.tech" → "jjhub.tech"). */
+/** Extract hostname from api_url (e.g. "https://api.codeplane.app" → "codeplane.app"). */
 export function hostFromUrl(apiUrl: string): string {
   try {
     const url = new URL(apiUrl);

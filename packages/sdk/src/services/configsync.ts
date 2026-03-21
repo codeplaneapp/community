@@ -1,7 +1,7 @@
 /**
- * Config-as-code sync service for JJHub Community Edition.
+ * Config-as-code sync service for Codeplane Community Edition.
  *
- * Reconciles .jjhub/ configuration files (config.yml, labels.yml,
+ * Reconciles .codeplane/ configuration files (config.yml, labels.yml,
  * webhooks.yml, protected-bookmarks.yml) when pushed to the default bookmark.
  * Committed config wins: the database is updated to match what's in the repo.
  *
@@ -67,10 +67,10 @@ import {
 // File path constants — matching Go's configsync/types.go
 // ---------------------------------------------------------------------------
 
-const CONFIG_FILE_PATH = ".jjhub/config.yml";
-const PROTECTED_BOOKMARKS_FILE_PATH = ".jjhub/protected-bookmarks.yml";
-const LABELS_FILE_PATH = ".jjhub/labels.yml";
-const WEBHOOKS_FILE_PATH = ".jjhub/webhooks.yml";
+const CONFIG_FILE_PATH = ".codeplane/config.yml";
+const PROTECTED_BOOKMARKS_FILE_PATH = ".codeplane/protected-bookmarks.yml";
+const LABELS_FILE_PATH = ".codeplane/labels.yml";
+const WEBHOOKS_FILE_PATH = ".codeplane/webhooks.yml";
 
 // ---------------------------------------------------------------------------
 // Validation regexes — matching Go's parser.go
@@ -678,7 +678,7 @@ export class ConfigSyncService {
   }
 
   /**
-   * Load and parse .jjhub/ config files from a specific commit/change.
+   * Load and parse .codeplane/ config files from a specific commit/change.
    * Matches Go's Service.LoadParsedConfigFromCommit.
    */
   async loadParsedConfigFromCommit(
@@ -694,10 +694,10 @@ export class ConfigSyncService {
       return Result.err(new Error("commit sha is required"));
     }
 
-    // List files under .jjhub/ at the given revision
+    // List files under .codeplane/ at the given revision
     const listResult = await this.repoHost.getChangeFiles(owner, repoName, commitSHA);
     if (Result.isError(listResult)) {
-      return Result.err(new Error(`list .jjhub files: ${listResult.error.message}`));
+      return Result.err(new Error(`list .codeplane files: ${listResult.error.message}`));
     }
 
     // We need to check which config files exist at this revision.

@@ -43,7 +43,7 @@ async function buildBinary(): Promise<void> {
 
   const bun = Bun.which("bun") ?? process.execPath;
   const proc = Bun.spawnSync(
-    [bun, "build", "src/main.ts", "--compile", "--outfile", "../../bin/jjhub"],
+    [bun, "build", "src/main.ts", "--outfile", "../../bin/codeplane.js", "--target=bun", "--external", "cpu-features"],
     {
       cwd: cliDir,
       stdout: "inherit",

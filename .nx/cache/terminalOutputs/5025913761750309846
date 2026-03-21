@@ -1,0 +1,8 @@
+
+> codeplane@ build /Users/williamcory/codeplane/apps/cli
+> bun run scripts/build.ts
+
+[32mBundled 2111 modules in 116ms[0m
+
+  [34mjjhub.js[33m  14.39 MB  [2m(entry point)[0m
+

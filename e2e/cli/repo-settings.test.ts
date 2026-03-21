@@ -15,7 +15,7 @@ describe("CLI: Repo Settings", () => {
     expect(body.description).toBe("CLI repo settings e2e");
   });
 
-  test("jjhub repo edit updates description", async () => {
+  test("codeplane repo edit updates description", async () => {
     const newDescription = "Updated description via CLI";
     const result = await cli(
       ["repo", "edit", repoSlug, "--description", newDescription],
@@ -27,7 +27,7 @@ describe("CLI: Repo Settings", () => {
     expect(body.description).toBe(newDescription);
   });
 
-  test("jjhub repo view confirms updated description", async () => {
+  test("codeplane repo view confirms updated description", async () => {
     const result = await cli(
       ["repo", "view"],
       { repo: repoSlug, json: true },
@@ -37,7 +37,7 @@ describe("CLI: Repo Settings", () => {
     expect(body.description).toBe("Updated description via CLI");
   });
 
-  test("jjhub repo edit can update visibility to private", async () => {
+  test("codeplane repo edit can update visibility to private", async () => {
     const result = await cli(
       ["repo", "edit", repoSlug, "--private"],
       { json: true },
@@ -48,7 +48,7 @@ describe("CLI: Repo Settings", () => {
     expect(body.private).toBe(true);
   });
 
-  test("jjhub repo edit can update visibility back to public", async () => {
+  test("codeplane repo edit can update visibility back to public", async () => {
     const result = await cli(
       ["repo", "edit", repoSlug, "--no-private"],
       { json: true },
@@ -59,7 +59,7 @@ describe("CLI: Repo Settings", () => {
     expect(body.private).toBe(false);
   });
 
-  test("jjhub repo archive archives the repository", async () => {
+  test("codeplane repo archive archives the repository", async () => {
     const result = await cli(
       ["repo", "archive", repoSlug],
       { json: true },
@@ -70,7 +70,7 @@ describe("CLI: Repo Settings", () => {
     expect(body.status).toBe("archived");
   });
 
-  test("jjhub repo view confirms archived state", async () => {
+  test("codeplane repo view confirms archived state", async () => {
     const result = await cli(
       ["repo", "view"],
       { repo: repoSlug, json: true },
@@ -80,7 +80,7 @@ describe("CLI: Repo Settings", () => {
     expect(body.archived).toBe(true);
   });
 
-  test("jjhub repo unarchive unarchives the repository", async () => {
+  test("codeplane repo unarchive unarchives the repository", async () => {
     const result = await cli(
       ["repo", "unarchive", repoSlug],
       { json: true },
@@ -91,7 +91,7 @@ describe("CLI: Repo Settings", () => {
     expect(body.status).toBe("unarchived");
   });
 
-  test("jjhub repo view confirms unarchived state", async () => {
+  test("codeplane repo view confirms unarchived state", async () => {
     const result = await cli(
       ["repo", "view"],
       { repo: repoSlug, json: true },
@@ -101,7 +101,7 @@ describe("CLI: Repo Settings", () => {
     expect(body.archived).toBe(false);
   });
 
-  test("jjhub repo star stars the repository", async () => {
+  test("codeplane repo star stars the repository", async () => {
     const result = await cli(
       ["repo", "star", repoSlug],
       { json: true },
@@ -112,7 +112,7 @@ describe("CLI: Repo Settings", () => {
     expect(body.status).toBe("starred");
   });
 
-  test("jjhub repo unstar unstars the repository", async () => {
+  test("codeplane repo unstar unstars the repository", async () => {
     const result = await cli(
       ["repo", "unstar", repoSlug],
       { json: true },
@@ -123,7 +123,7 @@ describe("CLI: Repo Settings", () => {
     expect(body.status).toBe("unstarred");
   });
 
-  test("jjhub repo edit updates name", async () => {
+  test("codeplane repo edit updates name", async () => {
     const newName = uniqueName("cli-repo-renamed");
     const result = await cli(
       ["repo", "edit", repoSlug, "--name", newName],

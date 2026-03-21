@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
-  title: JJHub API
+  title: Codeplane API
   version: 1.0.0
-  description: API for JJHub - a jj-native development platform
+  description: API for Codeplane - a jj-native development platform
 servers:
-  - url: https://api.jjhub.tech
+  - url: https://api.codeplane.app
 paths:
   /auth/key/nonce:
     get:
@@ -48,7 +48,7 @@ paths:
   /auth/key/verify:
     post:
       summary: POST /auth/key/verify
-      description: Verify a signed message and create a JJHub browser session.
+      description: Verify a signed message and create a Codeplane browser session.
       operationId: post_auth_key_verify
       tags:
         - Authentication
@@ -66,12 +66,12 @@ paths:
                   type: string
                   description: Full Sign in with Key message that includes the server-issued nonce.
                   example: |-
-                    jjhub.tech wants you to sign in with your key:
+                    codeplane.app wants you to sign in with your key:
                     0x71C7656EC7ab88b098defB751B7401B5f6d8976F
 
-                    Sign in to JJHub
+                    Sign in to Codeplane
 
-                    URI: https://jjhub.tech
+                    URI: https://codeplane.app
                     Version: 1
                     Chain ID: 1
                     Nonce: abc123
@@ -82,12 +82,12 @@ paths:
                   example: 0x5f2c9ab1
             example:
               message: |-
-                jjhub.tech wants you to sign in with your key:
+                codeplane.app wants you to sign in with your key:
                 0x71C7656EC7ab88b098defB751B7401B5f6d8976F
 
-                Sign in to JJHub
+                Sign in to Codeplane
 
-                URI: https://jjhub.tech
+                URI: https://codeplane.app
                 Version: 1
                 Chain ID: 1
                 Nonce: abc123
@@ -98,10 +98,10 @@ paths:
           description: Signature verified and session created
           headers:
             Set-Cookie:
-              description: Includes `jjhub_session` and `__csrf` cookies.
+              description: Includes `codeplane_session` and `__csrf` cookies.
               schema:
                 type: string
-                example: jjhub_session=3f1f2f3f-8e4c-4e6d-9d3a-123456789abc; Path=/; HttpOnly; Secure; SameSite=Strict
+                example: codeplane_session=3f1f2f3f-8e4c-4e6d-9d3a-123456789abc; Path=/; HttpOnly; Secure; SameSite=Strict
           content:
             application/json:
               schema:
@@ -259,7 +259,7 @@ paths:
               description: OAuth state verifier cookie used to validate the callback.
               schema:
                 type: string
-                example: jjhub_oauth_state=8d3f4c2b; Path=/; HttpOnly; Secure; SameSite=Lax
+                example: codeplane_oauth_state=8d3f4c2b; Path=/; HttpOnly; Secure; SameSite=Lax
         '429':
           description: Auth rate limit exceeded
           content:
@@ -312,7 +312,7 @@ paths:
             type: string
       responses:
         '302':
-          description: GitHub OAuth completed and JJHub session created
+          description: GitHub OAuth completed and Codeplane session created
           headers:
             Location:
               description: Post-login redirect target.
@@ -320,10 +320,10 @@ paths:
                 type: string
                 example: /
             Set-Cookie:
-              description: Includes `jjhub_session`, `__csrf`, and a clearing `jjhub_oauth_state` cookie.
+              description: Includes `codeplane_session`, `__csrf`, and a clearing `codeplane_oauth_state` cookie.
               schema:
                 type: string
-                example: jjhub_session=3f1f2f3f-8e4c-4e6d-9d3a-123456789abc; Path=/; HttpOnly; Secure; SameSite=Strict
+                example: codeplane_session=3f1f2f3f-8e4c-4e6d-9d3a-123456789abc; Path=/; HttpOnly; Secure; SameSite=Strict
         '400':
           description: Missing query parameters or GitHub code exchange failed
           content:
@@ -4515,7 +4515,7 @@ paths:
                     state: success
                     context: ci/test
                     description: All 142 tests passed
-                    target_url: https://api.jjhub.tech/alice/my-project/runs/87
+                    target_url: https://api.codeplane.app/alice/my-project/runs/87
                     creator:
                       login: alice
                       id: 1
@@ -4525,7 +4525,7 @@ paths:
                     state: pending
                     context: ci/build
                     description: Build in progress...
-                    target_url: https://api.jjhub.tech/alice/my-project/runs/88
+                    target_url: https://api.codeplane.app/alice/my-project/runs/88
                     creator:
                       login: alice
                       id: 1
@@ -4605,12 +4605,12 @@ paths:
                   type: string
                   format: uri
                   description: URL to the full details of the check (e.g., workflow run logs)
-                  example: https://api.jjhub.tech/alice/my-project/runs/87
+                  example: https://api.codeplane.app/alice/my-project/runs/87
             example:
               state: success
               context: ci/test
               description: All 142 tests passed
-              target_url: https://api.jjhub.tech/alice/my-project/runs/87
+              target_url: https://api.codeplane.app/alice/my-project/runs/87
       responses:
         '201':
           description: Commit status created or updated
@@ -4663,7 +4663,7 @@ paths:
                 state: success
                 context: ci/test
                 description: All 142 tests passed
-                target_url: https://api.jjhub.tech/alice/my-project/runs/87
+                target_url: https://api.codeplane.app/alice/my-project/runs/87
                 creator:
                   login: alice
                   id: 1
@@ -5769,10 +5769,10 @@ components:
           type: string
         host:
           type: string
-          example: vm-ssh.jjhub.tech
+          example: vm-ssh.codeplane.app
         ssh_host:
           type: string
-          example: vm_abc123+developer@vm-ssh.jjhub.tech
+          example: vm_abc123+developer@vm-ssh.codeplane.app
         username:
           type: string
           example: developer
@@ -5783,7 +5783,7 @@ components:
           type: string
         command:
           type: string
-          example: ssh vm_abc123+developer:ws_xxx@vm-ssh.jjhub.tech
+          example: ssh vm_abc123+developer:ws_xxx@vm-ssh.codeplane.app
     Workspace:
       type: object
       properties:
@@ -5828,7 +5828,7 @@ components:
           type: string
           nullable: true
           description: SSH connection host
-          example: vm-xyz789@vm-ssh.jjhub.tech
+          example: vm-xyz789@vm-ssh.codeplane.app
         snapshot_id:
           type: string
           nullable: true
@@ -5895,8 +5895,8 @@ components:
           description: Unique webhook identifier
         type:
           type: string
-          description: Webhook type (e.g., "jjhub", "slack", "discord")
-          example: jjhub
+          description: Webhook type (e.g., "codeplane", "slack", "discord")
+          example: codeplane
         url:
           type: string
           format: uri
@@ -5942,7 +5942,7 @@ components:
         type:
           type: string
           description: Webhook type
-          example: jjhub
+          example: codeplane
         config:
           type: object
           required:

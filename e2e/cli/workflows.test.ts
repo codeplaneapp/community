@@ -14,7 +14,7 @@ describe("CLI: Workflows", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub workflow list lists workflow definitions", async () => {
+  test("codeplane workflow list lists workflow definitions", async () => {
     const result = await cli(
       ["workflow", "list"],
       { repo: repoSlug, json: true },
@@ -25,7 +25,7 @@ describe("CLI: Workflows", () => {
     expect(Array.isArray(body.workflows)).toBe(true);
   });
 
-  test("jjhub workflow runs lists workflow runs", async () => {
+  test("codeplane workflow runs lists workflow runs", async () => {
     // This tests listing runs for the repo; may return empty if no workflows are seeded
     const result = await cli(
       ["workflow", "runs"],
@@ -37,7 +37,7 @@ describe("CLI: Workflows", () => {
     expect(Array.isArray(body.workflow_runs)).toBe(true);
   });
 
-  test("jjhub workflow run view returns 404 for unknown run", async () => {
+  test("codeplane workflow run view returns 404 for unknown run", async () => {
     const result = await cli(
       ["workflow", "run", "view", "99999"],
       { repo: repoSlug, json: true },

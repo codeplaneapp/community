@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "aspen",
-  "name": "JJHub",
+  "name": "Codeplane",
   "logo": {
     "light": "/logo/light.svg",
     "dark": "/logo/dark.svg"
@@ -16,13 +16,13 @@
     "links": [
       {
         "label": "API Status",
-        "href": "https://status.jjhub.tech"
+        "href": "https://status.codeplane.app"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Join Waitlist",
-      "href": "https://jjhub.tech/waitlist"
+      "href": "https://codeplane.app/waitlist"
     }
   },
   "navigation": {

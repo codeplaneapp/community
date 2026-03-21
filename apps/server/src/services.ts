@@ -1,12 +1,12 @@
 /**
- * Service registry for JJHub Community Edition server.
+ * Service registry for Codeplane Community Edition server.
  *
  * Initializes all SDK service instances with the database connection
  * and exposes them via getServices(). Call initServices() once at startup
  * after initDb().
  */
 
-import { getDb, getBlobStore } from "@jjhub/sdk";
+import { getDb, getBlobStore } from "@codeplane/sdk";
 import {
   UserService,
   RepoService,
@@ -29,7 +29,7 @@ import {
   ContainerSandboxClient,
   PreviewService,
   BillingService,
-} from "@jjhub/sdk";
+} from "@codeplane/sdk";
 
 // ---------------------------------------------------------------------------
 // Services type — every service available to route handlers
@@ -77,8 +77,8 @@ export function initServices(): void {
   let sandbox: ContainerSandboxClient | null = null;
   try {
     sandbox = ContainerSandboxClient.withRuntime(
-      (process.env.JJHUB_CONTAINER_RUNTIME as "docker" | "podman") ?? "docker",
-      process.env.JJHUB_WORKSPACE_SSH_HOST ?? "localhost"
+      (process.env.CODEPLANE_CONTAINER_RUNTIME as "docker" | "podman") ?? "docker",
+      process.env.CODEPLANE_WORKSPACE_SSH_HOST ?? "localhost"
     );
   } catch {
     console.warn("Container sandbox client unavailable — workspace features disabled");
@@ -103,16 +103,16 @@ export function initServices(): void {
     lfs: new LFSService(db, blobs),
     sse,
     workspace: new WorkspaceService(db, sandbox, {
-      sshHost: process.env.JJHUB_WORKSPACE_SSH_HOST ?? "localhost",
-      username: process.env.JJHUB_WORKSPACE_USERNAME ?? "root",
-      persistence: process.env.JJHUB_WORKSPACE_PERSISTENCE ?? "persistent",
+      sshHost: process.env.CODEPLANE_WORKSPACE_SSH_HOST ?? "localhost",
+      username: process.env.CODEPLANE_WORKSPACE_USERNAME ?? "root",
+      persistence: process.env.CODEPLANE_WORKSPACE_PERSISTENCE ?? "persistent",
     }),
     preview: new PreviewService(db, sandbox, {
-      previewDomain: process.env.JJHUB_PREVIEW_DOMAIN ?? "",
-      hostAddress: process.env.JJHUB_PREVIEW_HOST ?? "localhost",
+      previewDomain: process.env.CODEPLANE_PREVIEW_DOMAIN ?? "",
+      hostAddress: process.env.CODEPLANE_PREVIEW_HOST ?? "localhost",
     }),
     billing: new BillingService(db, {
-      billingEnabled: process.env.JJHUB_BILLING_ENABLED === "true",
+      billingEnabled: process.env.CODEPLANE_BILLING_ENABLED === "true",
     }),
   };
 

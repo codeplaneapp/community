@@ -5,7 +5,7 @@ description: Manage and receive repository webhooks
 
 # Webhooks
 
-Webhooks allow you to build or set up integrations which subscribe to certain events on JJHub. When one of those events is triggered, we'll send a HTTP POST payload to the webhook's configured URL. Webhooks can be used to update an external issue tracker, trigger CI builds, update a backup mirror, or even deploy to your production server.
+Webhooks allow you to build or set up integrations which subscribe to certain events on Codeplane. When one of those events is triggered, we'll send a HTTP POST payload to the webhook's configured URL. Webhooks can be used to update an external issue tracker, trigger CI builds, update a backup mirror, or even deploy to your production server.
 
 ## API Endpoints
 
@@ -24,8 +24,8 @@ Webhooks allow you to build or set up integrations which subscribe to certain ev
 To create a webhook, send a `POST` request to the hooks endpoint:
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/repos/alice/my-project/hooks \
-  -H "Authorization: token jjhub_xxxxx" \
+curl -X POST https://api.codeplane.app/api/repos/alice/my-project/hooks \
+  -H "Authorization: token codeplane_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{
     "config": {
@@ -50,7 +50,7 @@ curl -X POST https://api.jjhub.tech/api/repos/alice/my-project/hooks \
 
 ## Event Types
 
-JJHub currently supports the following event types:
+Codeplane currently supports the following event types:
 
 | Event | Description |
 |-------|-------------|
@@ -94,7 +94,7 @@ All webhook payloads are sent as JSON in the request body. Every payload include
 
 ## Security
 
-If a `secret` is configured, JJHub signs every delivery with an HMAC-SHA256 signature. The signature is sent in the `X-JJHub-Signature-256` header.
+If a `secret` is configured, Codeplane signs every delivery with an HMAC-SHA256 signature. The signature is sent in the `X-Codeplane-Signature-256` header.
 
 ### Verifying Signatures
 
@@ -112,17 +112,17 @@ function verifySignature(payload, secret, signature) {
 
 ## Delivery Headers
 
-JJHub includes several headers in every delivery to help you identify and process the event:
+Codeplane includes several headers in every delivery to help you identify and process the event:
 
 | Header | Description |
 |--------|-------------|
-| `X-JJHub-Event` | The name of the event type (e.g., `push`). |
-| `X-JJHub-Delivery` | A unique ID for the delivery. |
-| `X-JJHub-Signature-256` | The HMAC-SHA256 signature (if secret is set). |
-| `User-Agent` | Always starts with `JJHub-Hookshot/`. |
+| `X-Codeplane-Event` | The name of the event type (e.g., `push`). |
+| `X-Codeplane-Delivery` | A unique ID for the delivery. |
+| `X-Codeplane-Signature-256` | The HMAC-SHA256 signature (if secret is set). |
+| `User-Agent` | Always starts with `Codeplane-Hookshot/`. |
 
 ## Retries
 
-If your server responds with a non-2xx status code, JJHub will attempt to redeliver the payload up to **5 times** with exponential backoff.
+If your server responds with a non-2xx status code, Codeplane will attempt to redeliver the payload up to **5 times** with exponential backoff.
 
 If a webhook fails consistently for several days, it may be automatically disabled. You will receive an email notification if this happens.

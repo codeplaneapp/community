@@ -700,7 +700,7 @@ export async function notifyWorkspaceStatus(sql: Sql, args: NotifyWorkspaceStatu
 export const upsertWorkspaceWorkflowDefinitionQuery = `-- name: UpsertWorkspaceWorkflowDefinition :one
 
 INSERT INTO workflow_definitions (repository_id, name, path, config)
-VALUES ($1, 'Workspace', '.jjhub/workspace', '{"workspace": true}'::jsonb)
+VALUES ($1, 'Workspace', '.codeplane/workspace', '{"workspace": true}'::jsonb)
 ON CONFLICT (repository_id, path) DO UPDATE SET updated_at = NOW()
 RETURNING id, repository_id, name, path, config, is_active, created_at, updated_at`;
 

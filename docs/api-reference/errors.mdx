@@ -5,7 +5,7 @@ description: Understand API error responses and how to handle them
 
 # Error Handling
 
-The JJHub API uses a consistent, Gitea-compatible error format across all endpoints. Every error response is a JSON object with a human-readable `message` and an optional `errors` array containing field-level details.
+The Codeplane API uses a consistent, Gitea-compatible error format across all endpoints. Every error response is a JSON object with a human-readable `message` and an optional `errors` array containing field-level details.
 
 ## Error Response Structure
 
@@ -69,8 +69,8 @@ When the `errors` array is present, each entry contains a `code` field with one 
 A request to create an issue without a title:
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/repos/alice/my-repo/issues \
-  -H "Authorization: Bearer jjhub_your_token" \
+curl -X POST https://api.codeplane.app/api/repos/alice/my-repo/issues \
+  -H "Authorization: Bearer codeplane_your_token" \
   -H "Content-Type: application/json" \
   -d '{"body": "This issue has no title"}'
 ```
@@ -93,8 +93,8 @@ curl -X POST https://api.jjhub.tech/api/repos/alice/my-repo/issues \
 A request for a repository that does not exist:
 
 ```bash
-curl https://api.jjhub.tech/api/repos/alice/nonexistent \
-  -H "Authorization: Bearer jjhub_your_token"
+curl https://api.codeplane.app/api/repos/alice/nonexistent \
+  -H "Authorization: Bearer codeplane_your_token"
 ```
 
 ```json
@@ -108,8 +108,8 @@ curl https://api.jjhub.tech/api/repos/alice/nonexistent \
 A request with an invalid or expired token:
 
 ```bash
-curl https://api.jjhub.tech/api/user \
-  -H "Authorization: Bearer jjhub_invalid_token"
+curl https://api.codeplane.app/api/user \
+  -H "Authorization: Bearer codeplane_invalid_token"
 ```
 
 ```json
@@ -123,8 +123,8 @@ curl https://api.jjhub.tech/api/user \
 A request to delete a repository the user does not own:
 
 ```bash
-curl -X DELETE https://api.jjhub.tech/api/repos/bob/private-repo \
-  -H "Authorization: Bearer jjhub_your_token"
+curl -X DELETE https://api.codeplane.app/api/repos/bob/private-repo \
+  -H "Authorization: Bearer codeplane_your_token"
 ```
 
 ```json
@@ -138,8 +138,8 @@ curl -X DELETE https://api.jjhub.tech/api/repos/bob/private-repo \
 A request to create a repository with a name that already exists:
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/user/repos \
-  -H "Authorization: Bearer jjhub_your_token" \
+curl -X POST https://api.codeplane.app/api/user/repos \
+  -H "Authorization: Bearer codeplane_your_token" \
   -H "Content-Type: application/json" \
   -d '{"name": "existing-repo"}'
 ```
@@ -162,8 +162,8 @@ curl -X POST https://api.jjhub.tech/api/user/repos \
 A request with several invalid fields:
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/repos/alice/my-repo/landings \
-  -H "Authorization: Bearer jjhub_your_token" \
+curl -X POST https://api.codeplane.app/api/repos/alice/my-repo/landings \
+  -H "Authorization: Bearer codeplane_your_token" \
   -H "Content-Type: application/json" \
   -d '{"target_bookmark": ""}'
 ```

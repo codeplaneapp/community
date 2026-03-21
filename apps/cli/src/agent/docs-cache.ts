@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { cacheDir } from "../config.js";
 import type { DocsCorpusStatus } from "./types.js";
 
-const DEFAULT_DOCS_URL = "https://docs.jjhub.tech/llms-full.txt";
+const DEFAULT_DOCS_URL = "https://docs.codeplane.app/llms-full.txt";
 
 interface DocsCacheMetadata {
   etag?: string;
@@ -32,7 +32,7 @@ export interface RefreshDocsCacheOptions {
 }
 
 function getDocsUrl(override?: string): string {
-  return override ?? process.env.JJHUB_AGENT_DOCS_URL ?? DEFAULT_DOCS_URL;
+  return override ?? process.env.CODEPLANE_AGENT_DOCS_URL ?? DEFAULT_DOCS_URL;
 }
 
 export function getDocsCachePaths(cacheDirectory?: string): DocsCachePaths {
@@ -78,7 +78,7 @@ export async function loadCachedDocs(cacheDirectory?: string): Promise<DocsCache
         url: getDocsUrl(),
         status: "unavailable",
         source: "none",
-        warning: "No JJHub docs cache is available yet.",
+        warning: "No Codeplane docs cache is available yet.",
       },
     };
   }
@@ -93,7 +93,7 @@ export async function loadCachedDocs(cacheDirectory?: string): Promise<DocsCache
       fetchedAt: metadata.fetchedAt,
       etag: metadata.etag,
       lastModified: metadata.lastModified,
-      warning: "Using cached JJHub docs.",
+      warning: "Using cached Codeplane docs.",
     },
   };
 }
@@ -175,8 +175,8 @@ export async function refreshDocsCache(
           source: "cache",
           warning:
             error instanceof Error
-              ? `Using cached JJHub docs because refresh failed: ${error.message}`
-              : "Using cached JJHub docs because refresh failed.",
+              ? `Using cached Codeplane docs because refresh failed: ${error.message}`
+              : "Using cached Codeplane docs because refresh failed.",
         },
       };
     }
@@ -190,8 +190,8 @@ export async function refreshDocsCache(
         source: "none",
         warning:
           error instanceof Error
-            ? `JJHub docs are unavailable: ${error.message}`
-            : "JJHub docs are unavailable.",
+            ? `Codeplane docs are unavailable: ${error.message}`
+            : "Codeplane docs are unavailable.",
       },
     };
   }

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { cors } from "hono/cors";
 
-import { initDb, initDbSync, closeDb, getDb, getDbMode, getBlobStore, CleanupScheduler, getFeatureFlagService } from "@jjhub/sdk";
+import { initDb, initDbSync, closeDb, getDb, getDbMode, getBlobStore, CleanupScheduler, getFeatureFlagService } from "@codeplane/sdk";
 import {
   requestId,
   authLoader,
@@ -112,9 +112,9 @@ app.route("/", daemon);
 app.route("/", previews);
 app.route("/", billing);
 
-const port = parseInt(process.env.JJHUB_PORT ?? "3000");
+const port = parseInt(process.env.CODEPLANE_PORT ?? "3000");
 
-console.log(`JJHub Community Edition starting on port ${port}`);
+console.log(`Codeplane Community Edition starting on port ${port}`);
 
 // Graceful shutdown
 process.on("SIGINT", async () => {

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { cli, jsonParse, uniqueName, WRITE_TOKEN } from "./helpers";
 
 describe("CLI: Auth", () => {
-  test("jjhub auth status shows the current authenticated user", async () => {
+  test("codeplane auth status shows the current authenticated user", async () => {
     const result = await cli(
       ["auth", "status"],
       { json: true },
@@ -13,7 +13,7 @@ describe("CLI: Auth", () => {
     expect(body.username.length).toBeGreaterThan(0);
   });
 
-  test("jjhub auth status fails without a token", async () => {
+  test("codeplane auth status fails without a token", async () => {
     const result = await cli(
       ["auth", "status"],
       { token: "", json: true },
@@ -22,7 +22,7 @@ describe("CLI: Auth", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub auth token list shows existing tokens", async () => {
+  test("codeplane auth token list shows existing tokens", async () => {
     const result = await cli(
       ["auth", "token", "list"],
       { json: true },
@@ -34,7 +34,7 @@ describe("CLI: Auth", () => {
     expect(Array.isArray(body)).toBe(true);
   });
 
-  test("jjhub auth token create and delete round-trip", async () => {
+  test("codeplane auth token create and delete round-trip", async () => {
     const tokenName = uniqueName("cli-token");
 
     // Create a new token
@@ -44,7 +44,7 @@ describe("CLI: Auth", () => {
     );
     const created = jsonParse<{ id: number; name: string; token: string }>(createResult);
     expect(created.name).toBe(tokenName);
-    expect(created.token).toMatch(/^jjhub_[0-9a-f]{40}$/);
+    expect(created.token).toMatch(/^codeplane_[0-9a-f]{40}$/);
 
     // Delete the token
     const deleteResult = await cli(

@@ -15,7 +15,7 @@ describe("CLI: Secrets", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub secret set creates or updates a secret", async () => {
+  test("codeplane secret set creates or updates a secret", async () => {
     const result = await cli(
       ["secret", "set", secretName, "--value", "super-secret-value"],
       { repo: repoSlug, json: true },
@@ -25,7 +25,7 @@ describe("CLI: Secrets", () => {
     expect(result.exitCode).toBe(0);
   });
 
-  test("jjhub secret list lists secrets (names only, no values)", async () => {
+  test("codeplane secret list lists secrets (names only, no values)", async () => {
     const result = await cli(
       ["secret", "list"],
       { repo: repoSlug, json: true },
@@ -41,7 +41,7 @@ describe("CLI: Secrets", () => {
     }
   });
 
-  test("jjhub secret delete removes a secret", async () => {
+  test("codeplane secret delete removes a secret", async () => {
     const result = await cli(
       ["secret", "delete", secretName, "--yes"],
       { repo: repoSlug, json: true },

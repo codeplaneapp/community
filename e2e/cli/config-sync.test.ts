@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { cli, jsonParse, uniqueName, OWNER } from "./helpers";
 
-describe("CLI: Config Sync (.jjhub/config.yml)", () => {
+describe("CLI: Config Sync (.codeplane/config.yml)", () => {
   const repoName = uniqueName("cli-config-sync");
   const repoSlug = `${OWNER}/${repoName}`;
 

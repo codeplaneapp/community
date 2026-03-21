@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { cli, jsonParse, uniqueName, WRITE_TOKEN, READ_TOKEN } from "./helpers";
 
 describe("CLI: Auth Token CRUD", () => {
-  test("jjhub auth token create creates a new token with scopes", async () => {
+  test("codeplane auth token create creates a new token with scopes", async () => {
     const tokenName = uniqueName("cli-crud-token");
 
     const result = await cli(
@@ -18,13 +18,13 @@ describe("CLI: Auth Token CRUD", () => {
       scopes: string[];
     }>(result);
     expect(body.name).toBe(tokenName);
-    expect(body.token).toMatch(/^jjhub_[0-9a-f]{40}$/);
+    expect(body.token).toMatch(/^codeplane_[0-9a-f]{40}$/);
     expect(body.token_last_eight).toHaveLength(8);
     expect(body.scopes).toEqual(["read:repository"]);
     expect(body.id).toBeGreaterThan(0);
   });
 
-  test("jjhub auth token list returns an array of tokens", async () => {
+  test("codeplane auth token list returns an array of tokens", async () => {
     const result = await cli(
       ["auth", "token", "list"],
       { json: true },
@@ -48,7 +48,7 @@ describe("CLI: Auth Token CRUD", () => {
     expect((body[0] as Record<string, unknown>).token).toBeUndefined();
   });
 
-  test("jjhub auth token create then delete round-trip", async () => {
+  test("codeplane auth token create then delete round-trip", async () => {
     const tokenName = uniqueName("cli-delete-token");
 
     // Create a token
@@ -76,7 +76,7 @@ describe("CLI: Auth Token CRUD", () => {
     expect(found).toBeUndefined();
   });
 
-  test("jjhub auth token list fails without a token", async () => {
+  test("codeplane auth token list fails without a token", async () => {
     const result = await cli(
       ["auth", "token", "list"],
       { token: "", json: true },
@@ -85,7 +85,7 @@ describe("CLI: Auth Token CRUD", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub auth token delete fails for non-existent token id", async () => {
+  test("codeplane auth token delete fails for non-existent token id", async () => {
     const result = await cli(
       ["auth", "token", "delete", "999999", "--yes"],
       { json: true },
@@ -94,7 +94,7 @@ describe("CLI: Auth Token CRUD", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub auth token create fails with read-only token", async () => {
+  test("codeplane auth token create fails with read-only token", async () => {
     const result = await cli(
       ["auth", "token", "create", uniqueName("should-fail"), "--scopes", "read:repository"],
       { token: READ_TOKEN, json: true },
@@ -103,7 +103,7 @@ describe("CLI: Auth Token CRUD", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub auth token create fails with unknown scopes", async () => {
+  test("codeplane auth token create fails with unknown scopes", async () => {
     const result = await cli(
       ["auth", "token", "create", uniqueName("bad-scope"), "--scopes", "write:repository,destroy:instance"],
       { json: true },

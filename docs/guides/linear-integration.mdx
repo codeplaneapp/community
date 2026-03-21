@@ -1,34 +1,34 @@
 ---
 title: Linear Integration
-description: Configure the JJHub Linear integration from the UI or the CLI
+description: Configure the Codeplane Linear integration from the UI or the CLI
 ---
 
 # Configure Linear
 
-JJHub can connect a Linear team to a JJHub repository in two ways:
+Codeplane can connect a Linear team to a Codeplane repository in two ways:
 
-- **UI**: best when you want JJHub to drive the OAuth flow and team discovery for you.
+- **UI**: best when you want Codeplane to drive the OAuth flow and team discovery for you.
 - **CLI**: best for scripted setup or when you already have the Linear team metadata and OAuth token.
 
 ## Configure Linear in the UI
 
-1. Open **Integrations** in the JJHub UI.
+1. Open **Integrations** in the Codeplane UI.
 2. Open **Linear Sync**.
 3. Click **Connect Linear**.
 4. Complete the Linear OAuth flow.
-5. Choose the Linear team and JJHub repository.
+5. Choose the Linear team and Codeplane repository.
 6. Click **Connect Team**.
 
-JJHub now keeps the Linear OAuth credentials server-side during this flow. The browser only receives a short-lived setup handle plus the team metadata needed to finish configuration.
+Codeplane now keeps the Linear OAuth credentials server-side during this flow. The browser only receives a short-lived setup handle plus the team metadata needed to finish configuration.
 
 After setup, the same page lets you review installed integrations, trigger an initial sync, and remove an integration.
 
 ## Configure Linear in the CLI
 
-Use `jjhub extension linear install` when you already know the target repo and the Linear team you want to connect.
+Use `codeplane extension linear install` when you already know the target repo and the Linear team you want to connect.
 
 ```bash
-cat <<'EOF' | jjhub extension linear install \
+cat <<'EOF' | codeplane extension linear install \
   --team-id team_123 \
   --team-name "Platform" \
   --team-key PLT \
@@ -63,13 +63,13 @@ When `--credentials-stdin` is set, stdin must contain JSON with an `access_token
 
 ```bash
 # List configured Linear integrations
-jjhub extension linear list
+codeplane extension linear list
 
 # Trigger the initial sync for integration 7
-jjhub extension linear sync 7
+codeplane extension linear sync 7
 
 # Remove integration 7
-jjhub extension linear remove 7
+codeplane extension linear remove 7
 ```
 
 See the [CLI command reference](/cli-reference/commands) for the full command surface.

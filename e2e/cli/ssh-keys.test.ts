@@ -7,7 +7,7 @@ import { cli, jsonParse, READ_TOKEN } from "./helpers";
 const tempDirs: string[] = [];
 
 async function generateSSHPublicKey(prefix: string): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), `jjhub-cli-ssh-${prefix}-`));
+  const dir = await mkdtemp(join(tmpdir(), `codeplane-cli-ssh-${prefix}-`));
   tempDirs.push(dir);
 
   const privateKeyPath = join(dir, "id_ed25519");
@@ -25,7 +25,7 @@ afterAll(async () => {
 });
 
 describe("CLI: SSH Key Management", () => {
-  test("jjhub ssh-key list returns a list of keys", async () => {
+  test("codeplane ssh-key list returns a list of keys", async () => {
     const result = await cli(
       ["ssh-key", "list"],
       { json: true },
@@ -36,7 +36,7 @@ describe("CLI: SSH Key Management", () => {
     expect(Array.isArray(body)).toBe(true);
   });
 
-  test("jjhub ssh-key add creates a new SSH key", async () => {
+  test("codeplane ssh-key add creates a new SSH key", async () => {
     const publicKey = await generateSSHPublicKey("cli-add");
     const title = `cli-ssh-add-${Date.now()}`;
 
@@ -60,7 +60,7 @@ describe("CLI: SSH Key Management", () => {
     expect(typeof body.created_at).toBe("string");
   });
 
-  test("jjhub ssh-key add rejects duplicate keys", async () => {
+  test("codeplane ssh-key add rejects duplicate keys", async () => {
     const publicKey = await generateSSHPublicKey("cli-dup");
     const title1 = `cli-ssh-dup1-${Date.now()}`;
     const title2 = `cli-ssh-dup2-${Date.now()}`;
@@ -80,7 +80,7 @@ describe("CLI: SSH Key Management", () => {
     expect(second.exitCode).not.toBe(0);
   });
 
-  test("jjhub ssh-key add rejects invalid key material", async () => {
+  test("codeplane ssh-key add rejects invalid key material", async () => {
     const result = await cli(
       ["ssh-key", "add", "--title", "invalid-key", "--key", "not-a-real-ssh-key"],
       { json: true },
@@ -89,7 +89,7 @@ describe("CLI: SSH Key Management", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub ssh-key add then delete round-trip", async () => {
+  test("codeplane ssh-key add then delete round-trip", async () => {
     const publicKey = await generateSSHPublicKey("cli-del");
     const title = `cli-ssh-del-${Date.now()}`;
 
@@ -120,7 +120,7 @@ describe("CLI: SSH Key Management", () => {
     }
   });
 
-  test("jjhub ssh-key delete fails for non-existent key", async () => {
+  test("codeplane ssh-key delete fails for non-existent key", async () => {
     const result = await cli(
       ["ssh-key", "delete", "999999999", "--yes"],
       { json: true },
@@ -129,7 +129,7 @@ describe("CLI: SSH Key Management", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub ssh-key list fails without auth", async () => {
+  test("codeplane ssh-key list fails without auth", async () => {
     const result = await cli(
       ["ssh-key", "list"],
       { token: "", json: true },
@@ -138,7 +138,7 @@ describe("CLI: SSH Key Management", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub ssh-key add fails with read-only token", async () => {
+  test("codeplane ssh-key add fails with read-only token", async () => {
     const publicKey = await generateSSHPublicKey("cli-readonly");
 
     const result = await cli(

@@ -15,7 +15,7 @@ describe("CLI: Workspaces", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub workspace create creates a workspace", async () => {
+  test("codeplane workspace create creates a workspace", async () => {
     const result = await cli(
       ["workspace", "create", "--name", "cli-ws"],
       { repo: repoSlug, json: true },
@@ -32,7 +32,7 @@ describe("CLI: Workspaces", () => {
     workspaceID = body.id;
   });
 
-  test("jjhub workspace list lists workspaces", async () => {
+  test("codeplane workspace list lists workspaces", async () => {
     const result = await cli(
       ["workspace", "list"],
       { repo: repoSlug, json: true },
@@ -43,7 +43,7 @@ describe("CLI: Workspaces", () => {
     expect(body.some((w) => w.id === workspaceID)).toBe(true);
   });
 
-  test("jjhub workspace suspend suspends a workspace", async () => {
+  test("codeplane workspace suspend suspends a workspace", async () => {
     const result = await cli(
       ["workspace", "suspend", workspaceID],
       { repo: repoSlug, json: true },
@@ -54,7 +54,7 @@ describe("CLI: Workspaces", () => {
     expect(body.status).toBe("suspended");
   });
 
-  test("jjhub workspace resume resumes a workspace", async () => {
+  test("codeplane workspace resume resumes a workspace", async () => {
     const result = await cli(
       ["workspace", "resume", workspaceID],
       { repo: repoSlug, json: true },
@@ -65,7 +65,7 @@ describe("CLI: Workspaces", () => {
     expect(body.status).toBe("running");
   });
 
-  test("jjhub workspace delete deletes a workspace", async () => {
+  test("codeplane workspace delete deletes a workspace", async () => {
     const result = await cli(
       ["workspace", "delete", workspaceID, "--yes"],
       { repo: repoSlug, json: true },

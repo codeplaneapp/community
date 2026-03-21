@@ -39,13 +39,13 @@ afterEach(() => {
 });
 
 function createTempDbPath(): string {
-  const dir = mkdtempSync(join(tmpdir(), "jjhub-workflow-tests-"));
+  const dir = mkdtempSync(join(tmpdir(), "codeplane-workflow-tests-"));
   tempDirs.push(dir);
   return join(dir, "smithers.db");
 }
 
-describe("packages/workflow JJHub wrappers", () => {
-  test("createSmithers passes JJHub workflow and task props through to Smithers", () => {
+describe("packages/workflow Codeplane wrappers", () => {
+  test("createSmithers passes Codeplane workflow and task props through to Smithers", () => {
     const workflowApi = createSmithers(
       {
         buildResult: z.object({

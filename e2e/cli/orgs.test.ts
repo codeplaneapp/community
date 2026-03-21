@@ -4,7 +4,7 @@ import { cli, jsonParse, uniqueName, ORG } from "./helpers";
 describe("CLI: Organizations", () => {
   const orgName = uniqueName("cli-org");
 
-  test("jjhub org create creates a new organization", async () => {
+  test("codeplane org create creates a new organization", async () => {
     const result = await cli(
       ["org", "create", orgName, "--description", "CLI org e2e"],
       { json: true },
@@ -15,7 +15,7 @@ describe("CLI: Organizations", () => {
     expect(body.description).toBe("CLI org e2e");
   });
 
-  test("jjhub org list lists organizations", async () => {
+  test("codeplane org list lists organizations", async () => {
     const result = await cli(
       ["org", "list"],
       { json: true },
@@ -27,7 +27,7 @@ describe("CLI: Organizations", () => {
     expect(body.some((o) => o.name === ORG)).toBe(true);
   });
 
-  test("jjhub org create-team creates a team in the org", async () => {
+  test("codeplane org create-team creates a team in the org", async () => {
     const teamName = uniqueName("cli-team");
     const result = await cli(
       ["org", "create-team", teamName, "--org", orgName, "--description", "CLI team", "--permission", "write"],
@@ -40,7 +40,7 @@ describe("CLI: Organizations", () => {
     expect(body.permission).toBe("write");
   });
 
-  test("jjhub org add-member adds a member to the org", async () => {
+  test("codeplane org add-member adds a member to the org", async () => {
     const result = await cli(
       ["org", "add-member", "bob", "--org", orgName, "--role", "member"],
       { json: true },

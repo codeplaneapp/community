@@ -3,7 +3,7 @@
  *
  * When the daemon is offline, writes go to local PGLite AND the sync queue.
  * On reconnect, the queue is flushed by replaying API calls to the remote
- * JJHub server. Handles ID remapping (local UUID -> server-assigned ID) and
+ * Codeplane server. Handles ID remapping (local UUID -> server-assigned ID) and
  * conflict detection (server 409 -> mark as conflict).
  */
 

@@ -1,5 +1,5 @@
 /**
- * AutoPushService — Automatic private branch pushing for JJHub daemon.
+ * AutoPushService — Automatic private branch pushing for Codeplane daemon.
  *
  * Watches local jj repositories for new operations (via fs.watch on the
  * .jj/repo/op_store/ directory) and automatically pushes bookmarks to the
@@ -23,7 +23,7 @@ import { join } from "node:path";
 // ---------------------------------------------------------------------------
 
 export interface AutoPushConfig {
-  /** Base directory for repositories (JJHUB_DATA_DIR/repos/). */
+  /** Base directory for repositories (CODEPLANE_DATA_DIR/repos/). */
   reposBaseDir: string;
   /** Username for the private bookmark namespace. */
   username: string;
@@ -524,7 +524,7 @@ export function createAutoPushService(
 ): AutoPushService {
   const reposBaseDir =
     options?.reposBaseDir ??
-    join(process.env.JJHUB_DATA_DIR ?? "./data", "repos");
+    join(process.env.CODEPLANE_DATA_DIR ?? "./data", "repos");
 
   return new AutoPushService({
     reposBaseDir,

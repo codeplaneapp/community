@@ -60,7 +60,7 @@ function removePid(): void {
  */
 async function daemonUrl(): Promise<string> {
   const config = await import("../config.js").then((m) => m.loadConfig());
-  // The daemon always listens on localhost. Check the JJHUB_PORT env or default.
+  // The daemon always listens on localhost. Check the CODEPLANE_PORT env or default.
   return config.api_url ?? "http://127.0.0.1:3000";
 }
 
@@ -107,10 +107,10 @@ async function daemonFetch<T = unknown>(
 }
 
 export const daemon = Cli.create("daemon", {
-  description: "Run JJHub locally with embedded PostgreSQL (PGLite)",
+  description: "Run Codeplane locally with embedded PostgreSQL (PGLite)",
 })
   .command("start", {
-    description: "Start the local JJHub daemon with embedded PostgreSQL",
+    description: "Start the local Codeplane daemon with embedded PostgreSQL",
     options: z.object({
       port: z.string().default("3000").describe("Port to listen on"),
       host: z.string().default("127.0.0.1").describe("Host to bind to"),
@@ -123,7 +123,7 @@ export const daemon = Cli.create("daemon", {
         return {
           status: "already_running",
           pid: existingPid,
-          message: `Daemon is already running (PID ${existingPid}). Use 'jjhub daemon stop' first.`,
+          message: `Daemon is already running (PID ${existingPid}). Use 'codeplane daemon stop' first.`,
         };
       }
 
@@ -132,10 +132,10 @@ export const daemon = Cli.create("daemon", {
       const dataDir = c.options["data-dir"] ?? "./data";
 
       // Set environment for PGLite mode
-      process.env.JJHUB_DB_MODE = "pglite";
-      process.env.JJHUB_DATA_DIR = dataDir;
-      process.env.JJHUB_PORT = port;
-      process.env.JJHUB_HOST = host;
+      process.env.CODEPLANE_DB_MODE = "pglite";
+      process.env.CODEPLANE_DATA_DIR = dataDir;
+      process.env.CODEPLANE_PORT = port;
+      process.env.CODEPLANE_HOST = host;
 
       if (!c.options.foreground) {
         // Spawn detached daemon process
@@ -160,10 +160,10 @@ export const daemon = Cli.create("daemon", {
             stdio: ["ignore", logFd, logFd],
             env: {
               ...process.env,
-              JJHUB_DB_MODE: "pglite",
-              JJHUB_DATA_DIR: dataDir,
-              JJHUB_PORT: port,
-              JJHUB_HOST: host,
+              CODEPLANE_DB_MODE: "pglite",
+              CODEPLANE_DATA_DIR: dataDir,
+              CODEPLANE_PORT: port,
+              CODEPLANE_HOST: host,
             },
           },
         );
@@ -189,7 +189,7 @@ export const daemon = Cli.create("daemon", {
       // Ensure data directory exists
       mkdirSync(dataDir, { recursive: true });
 
-      console.log(`JJHub daemon starting (PGLite mode)`);
+      console.log(`Codeplane daemon starting (PGLite mode)`);
       console.log(`  Data directory: ${dataDir}`);
       console.log(`  Listening on: http://${host}:${port}`);
 
@@ -201,8 +201,8 @@ export const daemon = Cli.create("daemon", {
       process.on("SIGINT", cleanup);
       process.on("SIGTERM", cleanup);
 
-      // Import and start the server — initDb() inside will pick up JJHUB_DB_MODE=pglite
-      await import("@jjhub/server");
+      // Import and start the server — initDb() inside will pick up CODEPLANE_DB_MODE=pglite
+      await import("@codeplane/server");
 
       // Keep the process alive
       await new Promise(() => {});
@@ -332,7 +332,7 @@ export const daemon = Cli.create("daemon", {
       if (!pid) {
         return {
           status: "error",
-          message: "Daemon is not running. Start it with 'jjhub daemon start'.",
+          message: "Daemon is not running. Start it with 'codeplane daemon start'.",
         };
       }
 
@@ -373,7 +373,7 @@ export const daemon = Cli.create("daemon", {
       if (!pid) {
         return {
           status: "error",
-          message: "Daemon is not running. Start it with 'jjhub daemon start'.",
+          message: "Daemon is not running. Start it with 'codeplane daemon start'.",
         };
       }
 
@@ -466,7 +466,7 @@ export const daemon = Cli.create("daemon", {
   })
   .command("connect", {
     description: "Configure remote sync target",
-    args: z.tuple([z.string().describe("Remote JJHub URL (e.g. https://api.jjhub.tech)")]),
+    args: z.tuple([z.string().describe("Remote Codeplane URL (e.g. https://api.codeplane.app)")]),
     options: z.object({
       token: z.string().optional().describe("Auth token for the remote server"),
     }),
@@ -475,7 +475,7 @@ export const daemon = Cli.create("daemon", {
       if (!pid) {
         return {
           status: "error",
-          message: "Daemon is not running. Start it with 'jjhub daemon start'.",
+          message: "Daemon is not running. Start it with 'codeplane daemon start'.",
         };
       }
 
@@ -517,7 +517,7 @@ export const daemon = Cli.create("daemon", {
       if (!pid) {
         return {
           status: "error",
-          message: "Daemon is not running. Start it with 'jjhub daemon start'.",
+          message: "Daemon is not running. Start it with 'codeplane daemon start'.",
         };
       }
 

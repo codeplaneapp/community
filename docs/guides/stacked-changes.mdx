@@ -1,11 +1,11 @@
 ---
 title: Stacked Changes
-description: Working with stacked changes in JJHub
+description: Working with stacked changes in Codeplane
 ---
 
 # Stacked Changes
 
-Stacked changes are JJHub's premiere feature and a core reason to use jj over git. They're essential for AI workflows, where agents naturally produce incremental, dependent changes at machine speed.
+Stacked changes are Codeplane's premiere feature and a core reason to use jj over git. They're essential for AI workflows, where agents naturally produce incremental, dependent changes at machine speed.
 
 ## Why Stacked Changes?
 
@@ -53,17 +53,17 @@ Use `jj log` to see your stack:
 jj log
 ```
 
-Or use the JJHub CLI to see changes:
+Or use the Codeplane CLI to see changes:
 
 ```bash
-jjhub change list
-jjhub change show qzknlmop
-jjhub change diff qzknlmop
+codeplane change list
+codeplane change show qzknlmop
+codeplane change diff qzknlmop
 ```
 
 ## Pushing a Stack
 
-Push all bookmarks (and the stack) to JJHub:
+Push all bookmarks (and the stack) to Codeplane:
 
 ```bash
 jj git push --all
@@ -74,7 +74,7 @@ jj git push --all
 Create a landing request for the entire stack:
 
 ```bash
-jjhub land create --title "User authentication" --target main --stack
+codeplane land create --title "User authentication" --target main --stack
 ```
 
 The `--stack` flag automatically detects all changes in the stack and includes their Change IDs. The landing request will display:
@@ -108,6 +108,6 @@ Stacked changes are essential for AI workflows:
 3. The human reviews the plan (the stack structure) rather than line-by-line diffs
 4. The agent executes, producing the full stack
 5. CI validates each change independently
-6. The stack lands as a unit via `jjhub land land`
+6. The stack lands as a unit via `codeplane land land`
 
-This is the workflow JJHub is built for - agents working at speed, humans reviewing at the plan level, and the platform handling the mechanics.
+This is the workflow Codeplane is built for - agents working at speed, humans reviewing at the plan level, and the platform handling the mechanics.

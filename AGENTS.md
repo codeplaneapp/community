@@ -1,7 +1,7 @@
 # Smithers IDE — Agent Instructions
 
-You are running inside **Smithers**, an agentic orchestrator environment for building JJHub.
-You can interact with the system using the \`jjhubctl\` CLI tool and by reading/writing the \`specs/\` directory.
+You are running inside **Smithers**, an agentic orchestrator environment for building Codeplane.
+You can interact with the system using the \`codeplanectl\` CLI tool and by reading/writing the \`specs/\` directory.
 
 ## Project Philosophy (SuperSmithers Pattern)
 
@@ -24,40 +24,40 @@ As tickets flow through the factory, they produce a strict set of artifacts:
 - **Actual Changeset** (The code itself, reviewed and tested)
 
 ### The Magic: Recursive Invalidation
-If you edit *anything* (e.g., the PRD, the Design doc, a specific Research finding), you use `jjhubctl edit <doc>`. 
+If you edit *anything* (e.g., the PRD, the Design doc, a specific Research finding), you use `codeplanectl edit <doc>`. 
 This captures the diff and recursively passes it through the entire chain of dependencies in the DAG. An **Impact Analysis** agent determines what downstream artifacts (architecture, tickets, plans, code) must be invalidated and rebuilt, updating the product from top to bottom based on your change.
 
-## jjhubctl Command Reference
+## codeplanectl Command Reference
 
-The `jjhubctl` CLI is built with `incur`. It exposes all necessary tooling to the developer and to you (the agent).
+The `codeplanectl` CLI is built with `incur`. It exposes all necessary tooling to the developer and to you (the agent).
 
 ### View Documents
 ```bash
-jjhubctl view <doc>
+codeplanectl view <doc>
 # Valid docs: prd, design, arch, tickets, smithers
 ```
 
 ### Edit Documents (Triggers the Factory)
 **This is the preferred way to mutate the architecture.**
 ```bash
-jjhubctl edit <doc>
-# Prompts for instructions, uses Claude to apply the edit, and automatically runs `jjhubctl up` passing the diff to the Smithers orchestrator for downstream invalidation.
+codeplanectl edit <doc>
+# Prompts for instructions, uses Claude to apply the edit, and automatically runs `codeplanectl up` passing the diff to the Smithers orchestrator for downstream invalidation.
 ```
 
 ### Engine Control
 ```bash
-jjhubctl up    # Starts the Smithers engine (specs/generate.tsx)
-jjhubctl down  # Stops/cancels the Smithers engine
+codeplanectl up    # Starts the Smithers engine (specs/generate.tsx)
+codeplanectl down  # Stops/cancels the Smithers engine
 ```
 
 ### Interactive Harness
 ```bash
-jjhubctl interactive  # Launches a pi coding agent loaded with the local dev harness extension
+codeplanectl interactive  # Launches a pi coding agent loaded with the local dev harness extension
 ```
 
 ## Key Conventions
 
 - Use `jj` for version control, not `git`.
-- **Do not edit artifacts in `specs/engineering`, `specs/research`, or `specs/plans` manually if it can be avoided.** Edit the upstream PRD/Design via `jjhubctl edit` and let the orchestrator regenerate the downstream artifacts natively.
-- If you are asked to implement a new feature, add it to `specs/features.ts` and then run `jjhubctl up`. The engine will handle the rest.
+- **Do not edit artifacts in `specs/engineering`, `specs/research`, or `specs/plans` manually if it can be avoided.** Edit the upstream PRD/Design via `codeplanectl edit` and let the orchestrator regenerate the downstream artifacts natively.
+- If you are asked to implement a new feature, add it to `specs/features.ts` and then run `codeplanectl up`. The engine will handle the rest.
 

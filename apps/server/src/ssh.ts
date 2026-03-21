@@ -1,17 +1,17 @@
 /**
- * SSH server integration for JJHub Community Edition.
+ * SSH server integration for Codeplane Community Edition.
  *
  * Starts the SSH server alongside the Hono HTTP server in the same process.
  * The SSH server handles git transport (clone/push/pull) and workspace
  * terminal access over SSH.
  *
  * Configuration via environment variables:
- *   JJHUB_SSH_PORT          — SSH listen port (default: 2222)
- *   JJHUB_SSH_HOST          — SSH bind host (default: 0.0.0.0)
- *   JJHUB_SSH_ENABLED       — Set to "false" to disable (default: true)
- *   JJHUB_SSH_MAX_CONNS     — Max concurrent SSH connections (default: 0 = unlimited)
- *   JJHUB_SSH_MAX_CONNS_IP  — Max connections per IP (default: 0 = unlimited)
- *   JJHUB_DATA_DIR          — Data directory for host keys (default: ./data)
+ *   CODEPLANE_SSH_PORT          — SSH listen port (default: 2222)
+ *   CODEPLANE_SSH_HOST          — SSH bind host (default: 0.0.0.0)
+ *   CODEPLANE_SSH_ENABLED       — Set to "false" to disable (default: true)
+ *   CODEPLANE_SSH_MAX_CONNS     — Max concurrent SSH connections (default: 0 = unlimited)
+ *   CODEPLANE_SSH_MAX_CONNS_IP  — Max connections per IP (default: 0 = unlimited)
+ *   CODEPLANE_DATA_DIR          — Data directory for host keys (default: ./data)
  */
 
 import {
@@ -19,7 +19,7 @@ import {
   getRepoHostService,
   createSSHServer,
   type SSHServer,
-} from "@jjhub/sdk";
+} from "@codeplane/sdk";
 
 let sshServer: SSHServer | null = null;
 
@@ -30,9 +30,9 @@ let sshServer: SSHServer | null = null;
  * Returns the SSHServer instance or null if SSH is disabled.
  */
 export async function startSSHServer(): Promise<SSHServer | null> {
-  const enabled = process.env.JJHUB_SSH_ENABLED !== "false";
+  const enabled = process.env.CODEPLANE_SSH_ENABLED !== "false";
   if (!enabled) {
-    console.log("SSH server disabled (JJHUB_SSH_ENABLED=false)");
+    console.log("SSH server disabled (CODEPLANE_SSH_ENABLED=false)");
     return null;
   }
 
@@ -44,18 +44,18 @@ export async function startSSHServer(): Promise<SSHServer | null> {
   // fail if docker/podman isn't installed.
   let containerSandbox = null;
   try {
-    const { ContainerSandboxClient } = await import("@jjhub/sdk");
+    const { ContainerSandboxClient } = await import("@codeplane/sdk");
     containerSandbox = await ContainerSandboxClient.create().catch(() => null);
   } catch {
     // Container runtime not available — workspace SSH will be disabled
   }
 
   const config = {
-    port: parseInt(process.env.JJHUB_SSH_PORT ?? "2222", 10),
-    host: process.env.JJHUB_SSH_HOST ?? "0.0.0.0",
-    maxConnections: parseInt(process.env.JJHUB_SSH_MAX_CONNS ?? "0", 10),
+    port: parseInt(process.env.CODEPLANE_SSH_PORT ?? "2222", 10),
+    host: process.env.CODEPLANE_SSH_HOST ?? "0.0.0.0",
+    maxConnections: parseInt(process.env.CODEPLANE_SSH_MAX_CONNS ?? "0", 10),
     maxConnectionsPerIP: parseInt(
-      process.env.JJHUB_SSH_MAX_CONNS_IP ?? "0",
+      process.env.CODEPLANE_SSH_MAX_CONNS_IP ?? "0",
       10
     ),
   };

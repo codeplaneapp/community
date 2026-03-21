@@ -1,5 +1,5 @@
 /**
- * Code-backed JJHub feature inventory.
+ * Code-backed Codeplane feature inventory.
  *
  * This spec is intentionally grounded in the current repository rather than an
  * aspirational product matrix. It was audited against:
@@ -479,9 +479,9 @@ export const FeatureGroups = {
     "AGENT_CONTEXT_DOCUMENTATION_INDEX",
     "AGENT_CONTEXT_DOCUMENTATION_CACHE",
     "AGENT_RESOURCE_LOADING",
-    "AGENT_TOOL_JJHUB_CONTEXT",
-    "AGENT_TOOL_JJHUB_DOCS",
-    "AGENT_TOOL_JJHUB_ISSUE",
+    "AGENT_TOOL_CODEPLANE_CONTEXT",
+    "AGENT_TOOL_CODEPLANE_DOCS",
+    "AGENT_TOOL_CODEPLANE_ISSUE",
     "AGENT_BACKEND_LOCAL",
     "AGENT_BACKEND_WORKSPACE",
   ],
@@ -730,7 +730,7 @@ export const FeatureGroups = {
     "CLI_TUI_COMMAND",
   ],
 
-  // Source: apps/desktop/src/bun/index.ts, apps/vscode-extension/src/extension.ts, apps/nvim-plugin/lua/jjhub/init.lua
+  // Source: apps/desktop/src/bun/index.ts, apps/vscode-extension/src/extension.ts, apps/nvim-plugin/lua/codeplane/init.lua
   DESKTOP_AND_EDITOR_INTEGRATIONS: [
     "DESKTOP_EMBEDDED_DAEMON",
     "DESKTOP_NATIVE_WEBVIEW",
@@ -820,16 +820,16 @@ export const FeatureGroups = {
     "WORKFLOW_LIBRARY_PACKAGE",
   ],
 
-  // Source: jjhubctl.ts, apps/tui/src/index.ts
+  // Source: codeplanectl.ts, apps/tui/src/index.ts
   SUPER_SMITHERS_DEV_HARNESS: [
-    "JJHUBCTL_INTERACTIVE_PI_SESSION",
-    "JJHUBCTL_DOCS_VIEWER",
-    "JJHUBCTL_RESEARCH_PLAN_VIEWER",
-    "JJHUBCTL_SMITHERS_ORCHESTRATOR_DASHBOARD",
-    "JJHUBCTL_PROD_MONITORING_DASHBOARD",
-    "JJHUBCTL_METRICS_GRAFANA_LAUNCHER",
-    "JJHUBCTL_RUNBOOK_EXECUTOR",
-    "JJHUBCTL_DIFF_INVALIDATION_ENGINE",
+    "CODEPLANECTL_INTERACTIVE_PI_SESSION",
+    "CODEPLANECTL_DOCS_VIEWER",
+    "CODEPLANECTL_RESEARCH_PLAN_VIEWER",
+    "CODEPLANECTL_SMITHERS_ORCHESTRATOR_DASHBOARD",
+    "CODEPLANECTL_PROD_MONITORING_DASHBOARD",
+    "CODEPLANECTL_METRICS_GRAFANA_LAUNCHER",
+    "CODEPLANECTL_RUNBOOK_EXECUTOR",
+    "CODEPLANECTL_DIFF_INVALIDATION_ENGINE",
   ],
 } as const satisfies Record<string, readonly string[]>;
 

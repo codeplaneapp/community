@@ -6,7 +6,7 @@ import {
   writeError,
   writeJSON,
   writeRouteError,
-} from "@jjhub/sdk";
+} from "@codeplane/sdk";
 import { getServices } from "../services";
 
 // ---------------------------------------------------------------------------
@@ -31,7 +31,7 @@ interface PatchWebhookRequest {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const WEBHOOK_SIGNATURE_HEADER = "X-JJHub-Signature-256";
+const WEBHOOK_SIGNATURE_HEADER = "X-Codeplane-Signature-256";
 const MAX_REQUEST_BODY_SIZE = 10 * 1024 * 1024; // 10 MB
 
 function parseWebhookDeliveryPagination(

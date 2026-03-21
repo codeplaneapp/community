@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { cli, jsonParse, uniqueName, OWNER } from "./helpers";
 
 const AGENT_E2E_ENABLED =
-  process.env.JJHUB_E2E_FREESTYLE === "true" &&
-  Boolean(process.env.JJHUB_FREESTYLE_AGENT_SNAPSHOT_ID);
+  process.env.CODEPLANE_E2E_FREESTYLE === "true" &&
+  Boolean(process.env.CODEPLANE_FREESTYLE_AGENT_SNAPSHOT_ID);
 const agentTest = AGENT_E2E_ENABLED ? test : test.skip;
 
 describe("CLI: Agent Sessions", () => {
@@ -20,7 +20,7 @@ describe("CLI: Agent Sessions", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub agent session list lists sessions (empty initially)", async () => {
+  test("codeplane agent session list lists sessions (empty initially)", async () => {
     const result = await cli(
       ["agent", "session", "list"],
       { repo: repoSlug, json: true },
@@ -31,7 +31,7 @@ describe("CLI: Agent Sessions", () => {
     expect(Array.isArray(body)).toBe(true);
   });
 
-  test("jjhub agent session run creates a session and posts a message", async () => {
+  test("codeplane agent session run creates a session and posts a message", async () => {
     const result = await cli(
       ["agent", "session", "run", "Hello from CLI e2e test", "--title", "CLI agent e2e"],
       { repo: repoSlug, json: true },
@@ -43,7 +43,7 @@ describe("CLI: Agent Sessions", () => {
     sessionID = body.id;
   });
 
-  test("jjhub agent session view shows the session", async () => {
+  test("codeplane agent session view shows the session", async () => {
     const result = await cli(
       ["agent", "session", "view", sessionID],
       { repo: repoSlug, json: true },
@@ -53,7 +53,7 @@ describe("CLI: Agent Sessions", () => {
     expect(body.id).toBe(sessionID);
   });
 
-  test("jjhub agent session chat sends a follow-up message", async () => {
+  test("codeplane agent session chat sends a follow-up message", async () => {
     const result = await cli(
       ["agent", "session", "chat", sessionID, "Follow-up message from CLI"],
       { repo: repoSlug, json: true },
@@ -62,7 +62,7 @@ describe("CLI: Agent Sessions", () => {
     expect(result.exitCode).toBe(0);
   });
 
-  test("jjhub agent session list includes created session", async () => {
+  test("codeplane agent session list includes created session", async () => {
     const result = await cli(
       ["agent", "session", "list"],
       { repo: repoSlug, json: true },
@@ -74,7 +74,7 @@ describe("CLI: Agent Sessions", () => {
   });
 
   agentTest(
-    "jjhub api raw DELETE removes the agent session",
+    "codeplane api raw DELETE removes the agent session",
     async () => {
       const result = await cli(
         ["api", `/api/repos/${OWNER}/${repoName}/agent/sessions/${sessionID}`, "--method", "DELETE"],

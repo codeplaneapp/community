@@ -9,7 +9,7 @@ Issue templates let repository maintainers define structured forms for creating 
 
 ## How Issue Templates Work
 
-Issue templates are Markdown files stored in the `.jjhub/ISSUE_TEMPLATE/` directory at the root of your repository. Each file defines a single template with YAML frontmatter for metadata and Markdown content for the issue body.
+Issue templates are Markdown files stored in the `.codeplane/ISSUE_TEMPLATE/` directory at the root of your repository. Each file defines a single template with YAML frontmatter for metadata and Markdown content for the issue body.
 
 When a user creates an issue with `--template`, the CLI fetches the template from the repository, pre-fills the issue fields, and lets the user edit before submitting.
 
@@ -29,7 +29,7 @@ Each template file is a Markdown file (`.md`) with YAML frontmatter. The frontma
 
 ### Example Template
 
-Create a file at `.jjhub/ISSUE_TEMPLATE/bug-report.md`:
+Create a file at `.codeplane/ISSUE_TEMPLATE/bug-report.md`:
 
 ```markdown
 ---
@@ -64,7 +64,7 @@ What actually happened instead.
 ## Environment
 
 - OS: [e.g., macOS 14.0, Ubuntu 22.04]
-- JJHub CLI version: [e.g., 0.1.0]
+- Codeplane CLI version: [e.g., 0.1.0]
 - jj version: [e.g., 0.22.0]
 
 ## Additional Context
@@ -74,7 +74,7 @@ Add any other context about the problem here.
 
 ### More Template Examples
 
-**Feature request** (`.jjhub/ISSUE_TEMPLATE/feature-request.md`):
+**Feature request** (`.codeplane/ISSUE_TEMPLATE/feature-request.md`):
 
 ```markdown
 ---
@@ -102,7 +102,7 @@ Describe any alternative solutions or features you've considered.
 Add any other context, mockups, or examples.
 ```
 
-**Documentation issue** (`.jjhub/ISSUE_TEMPLATE/docs.md`):
+**Documentation issue** (`.codeplane/ISSUE_TEMPLATE/docs.md`):
 
 ```markdown
 ---
@@ -130,22 +130,22 @@ If you have a suggestion for how to fix it, describe it here.
 
 ### Creating an Issue from a Template
 
-Use the `--template` flag (short: `-T`) with `jjhub issue create` to use a template:
+Use the `--template` flag (short: `-T`) with `codeplane issue create` to use a template:
 
 ```bash
 # Create an issue using the bug-report template
-jjhub issue create --template bug-report
+codeplane issue create --template bug-report
 
 # The template pre-fills title, body, labels, and assignees
 # You can override any field with explicit flags
-jjhub issue create --template bug-report --title "Login page crashes on Safari"
+codeplane issue create --template bug-report --title "Login page crashes on Safari"
 
 # List available templates first
-curl -H "Authorization: token jjhub_YOUR_TOKEN" \
-  https://api.jjhub.tech/api/v1/repos/owner/repo/issue-templates
+curl -H "Authorization: token codeplane_YOUR_TOKEN" \
+  https://api.codeplane.app/api/v1/repos/owner/repo/issue-templates
 ```
 
-The `--template` flag accepts the template filename without the `.md` extension. For example, a template at `.jjhub/ISSUE_TEMPLATE/bug-report.md` is referenced as `bug-report`.
+The `--template` flag accepts the template filename without the `.md` extension. For example, a template at `.codeplane/ISSUE_TEMPLATE/bug-report.md` is referenced as `bug-report`.
 
 When you use `--template`, the template's default title, labels, and assignees are applied. Any flags you pass explicitly (like `--title` or `--assignee`) override the template defaults.
 
@@ -154,8 +154,8 @@ When you use `--template`, the template's default title, labels, and assignees a
 To see what templates are available for a repository:
 
 ```bash
-curl -H "Authorization: token jjhub_YOUR_TOKEN" \
-  https://api.jjhub.tech/api/v1/repos/owner/repo/issue-templates
+curl -H "Authorization: token codeplane_YOUR_TOKEN" \
+  https://api.codeplane.app/api/v1/repos/owner/repo/issue-templates
 ```
 
 This returns the list of templates with their names, descriptions, and configured defaults.
@@ -195,15 +195,15 @@ GET /api/repos/:owner/:repo/issue-templates
 ]
 ```
 
-The endpoint reads template files from the `.jjhub/ISSUE_TEMPLATE/` directory on the repository's default bookmark, parses the YAML frontmatter, and returns the structured template data.
+The endpoint reads template files from the `.codeplane/ISSUE_TEMPLATE/` directory on the repository's default bookmark, parses the YAML frontmatter, and returns the structured template data.
 
 ## Directory Structure
 
-Templates must be placed in the `.jjhub/ISSUE_TEMPLATE/` directory at the repository root:
+Templates must be placed in the `.codeplane/ISSUE_TEMPLATE/` directory at the repository root:
 
 ```
 your-repo/
-├── .jjhub/
+├── .codeplane/
 │   └── ISSUE_TEMPLATE/
 │       ├── bug-report.md
 │       ├── feature-request.md

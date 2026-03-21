@@ -1,27 +1,27 @@
 ---
 title: Installation
-description: Install the JJHub CLI
+description: Install the Codeplane CLI
 ---
 
-# Installing the JJHub CLI
+# Installing the Codeplane CLI
 
-The JJHub CLI (`jjhub`) is a Bun-compiled binary (TypeScript) that operates in two modes:
+The Codeplane CLI (`codeplane`) is a Bun-compiled binary (TypeScript) that operates in two modes:
 - **Local mode**: Uses the `jj` CLI directly for repository operations
-- **Remote mode**: Communicates with the JJHub API for cloud operations
+- **Remote mode**: Communicates with the Codeplane API for cloud operations
 
 ## Prerequisites
 
-The JJHub CLI requires **Jujutsu (jj)** to be installed and available on your `PATH`. 
+The Codeplane CLI requires **Jujutsu (jj)** to be installed and available on your `PATH`. 
 
 - **macOS**: `brew install jj`
 - **Linux/Other**: `cargo install jj-cli` or see the [jj installation guide](https://jj-vcs.github.io/jj/latest/install-and-setup/).
 
 ## macOS and Linux
 
-The JJHub CLI provides a unified installation script that automatically detects your operating system and architecture (x86_64 or arm64).
+The Codeplane CLI provides a unified installation script that automatically detects your operating system and architecture (x86_64 or arm64).
 
 ```bash
-curl -fsSL https://get.jjhub.tech/cli | bash
+curl -fsSL https://get.codeplane.app/cli | bash
 ```
 
 
@@ -29,26 +29,26 @@ curl -fsSL https://get.jjhub.tech/cli | bash
 ## Verify Installation
 
 ```bash
-jjhub --version
-jjhub auth status
+codeplane --version
+codeplane auth status
 ```
 
 ## Configuration
 
 The CLI reads configuration from:
-1. `JJHUB_TOKEN` environment variable (for authentication)
-2. `~/.config/jjhub/config.toon` (for defaults)
-3. `.jjhub/config.toon` (repository-level settings)
+1. `CODEPLANE_TOKEN` environment variable (for authentication)
+2. `~/.config/codeplane/config.toon` (for defaults)
+3. `.codeplane/config.toon` (repository-level settings)
 
 ## Shell Completion
 
 ```bash
 # bash
-jjhub completion bash >> ~/.bashrc
+codeplane completion bash >> ~/.bashrc
 
 # zsh
-jjhub completion zsh >> ~/.zshrc
+codeplane completion zsh >> ~/.zshrc
 
 # fish
-jjhub completion fish > ~/.config/fish/completions/jjhub.fish
+codeplane completion fish > ~/.config/fish/completions/codeplane.fish
 ```

@@ -1,5 +1,5 @@
 /**
- * SSH Server service for JJHub Community Edition.
+ * SSH Server service for Codeplane Community Edition.
  *
  * Provides SSH transport for two use cases:
  *   1. Git operations (git clone/push/pull over SSH)
@@ -59,7 +59,7 @@ export interface SSHServerConfig {
   port?: number;
   /** Host to bind to (default: "0.0.0.0"). */
   host?: string;
-  /** Directory to store host keys (default: JJHUB_DATA_DIR/ssh/). */
+  /** Directory to store host keys (default: CODEPLANE_DATA_DIR/ssh/). */
   hostKeyDir?: string;
   /** Maximum concurrent connections (0 = unlimited). */
   maxConnections?: number;
@@ -202,9 +202,9 @@ export class SSHServer {
     this.repoHost = repoHost;
     this.containerSandbox = containerSandbox;
 
-    const dataDir = process.env.JJHUB_DATA_DIR ?? "./data";
+    const dataDir = process.env.CODEPLANE_DATA_DIR ?? "./data";
     this.config = {
-      port: config.port ?? parseInt(process.env.JJHUB_SSH_PORT ?? "2222", 10),
+      port: config.port ?? parseInt(process.env.CODEPLANE_SSH_PORT ?? "2222", 10),
       host: config.host ?? "0.0.0.0",
       hostKeyDir: config.hostKeyDir ?? join(dataDir, "ssh"),
       maxConnections: config.maxConnections ?? 0,
@@ -436,7 +436,7 @@ export class SSHServer {
         const channel = accept();
         channel.stderr.write("interactive shell requires a workspace target\r\n");
         channel.stderr.write(
-          "use: ssh -t workspace-<id>@ssh.jjhub.tech\r\n"
+          "use: ssh -t workspace-<id>@ssh.codeplane.app\r\n"
         );
         channel.exit(1);
         channel.end();
@@ -619,7 +619,7 @@ export class SSHServer {
     }
 
     // If not the direct owner, deny (CE doesn't have full org/team perms)
-    // In production JJHub Cloud, this uses SSHAuthorizationService
+    // In production Codeplane Cloud, this uses SSHAuthorizationService
     throw new Error("permission denied");
   }
 

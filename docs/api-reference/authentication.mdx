@@ -1,11 +1,11 @@
 ---
 title: API Authentication
-description: Authenticate requests to the JJHub API
+description: Authenticate requests to the Codeplane API
 ---
 
 # API Authentication
 
-JJHub supports two authentication modes:
+Codeplane supports two authentication modes:
 
 - Session authentication for browser-based login flows
 - Bearer token authentication for CLI, CI, and other programmatic clients
@@ -16,7 +16,7 @@ Session-based login flows establish authentication with cookies instead of a bea
 
 Successful session login responses set:
 
-- `jjhub_session` for the authenticated session
+- `codeplane_session` for the authenticated session
 - `__csrf` for CSRF protection on session-authenticated write requests
 
 ## Sign in with Key
@@ -26,14 +26,14 @@ Sign in with Key uses a challenge-response flow:
 1. `GET /auth/key/nonce`
 2. Sign a structured message with the returned nonce
 3. `POST /auth/key/verify`
-4. Receive a JJHub session via `Set-Cookie`
+4. Receive a Codeplane session via `Set-Cookie`
 
 ### GET /auth/key/nonce
 
 Returns a single-use nonce for the next signature attempt.
 
 ```bash
-curl https://api.jjhub.tech/auth/key/nonce
+curl https://api.codeplane.app/auth/key/nonce
 ```
 
 ```json
@@ -49,17 +49,17 @@ Notes:
 
 ### POST /auth/key/verify
 
-Submit a signed message and signature to create a JJHub session.
+Submit a signed message and signature to create a Codeplane session.
 
-The signed message must include the configured JJHub auth domain on the first line and the server-issued nonce. On hosted JJHub, the message domain is `jjhub.tech` even though the API endpoint host is `api.jjhub.tech`.
+The signed message must include the configured Codeplane auth domain on the first line and the server-issued nonce. On hosted Codeplane, the message domain is `codeplane.app` even though the API endpoint host is `api.codeplane.app`.
 
 ```text
-jjhub.tech wants you to sign in with your key:
+codeplane.app wants you to sign in with your key:
 0x71C7656EC7ab88b098defB751B7401B5f6d8976F
 
-Sign in to JJHub
+Sign in to Codeplane
 
-URI: https://jjhub.tech
+URI: https://codeplane.app
 Version: 1
 Chain ID: 1
 Nonce: abc123
@@ -67,11 +67,11 @@ Issued At: 2026-03-07T12:00:00Z
 ```
 
 ```bash
-curl -X POST https://api.jjhub.tech/auth/key/verify \
+curl -X POST https://api.codeplane.app/auth/key/verify \
   -H "Content-Type: application/json" \
   -d @- <<'JSON'
 {
-  "message": "jjhub.tech wants you to sign in with your key:\n0x71C7656EC7ab88b098defB751B7401B5f6d8976F\n\nSign in to JJHub\n\nURI: https://jjhub.tech\nVersion: 1\nChain ID: 1\nNonce: abc123\nIssued At: 2026-03-07T12:00:00Z",
+  "message": "codeplane.app wants you to sign in with your key:\n0x71C7656EC7ab88b098defB751B7401B5f6d8976F\n\nSign in to Codeplane\n\nURI: https://codeplane.app\nVersion: 1\nChain ID: 1\nNonce: abc123\nIssued At: 2026-03-07T12:00:00Z",
   "signature": "0x5f2c...9ab1"
 }
 JSON
@@ -86,7 +86,7 @@ JSON
 }
 ```
 
-A successful response also includes `Set-Cookie` headers for `jjhub_session` and `__csrf`.
+A successful response also includes `Set-Cookie` headers for `codeplane_session` and `__csrf`.
 
 Common failure modes:
 
@@ -97,48 +97,48 @@ Common failure modes:
 
 ## GitHub OAuth
 
-JJHub also supports browser-based login via GitHub OAuth.
+Codeplane also supports browser-based login via GitHub OAuth.
 
 ### GET /auth/github
 
 Starts the OAuth flow, stores a CSRF state verifier in a cookie, and redirects the browser to GitHub.
 
 ```bash
-curl -i https://api.jjhub.tech/auth/github
+curl -i https://api.codeplane.app/auth/github
 ```
 
 ```http
 HTTP/2 302 Found
-Set-Cookie: jjhub_oauth_state=8d3f...; Path=/; HttpOnly; Secure; SameSite=Lax
+Set-Cookie: codeplane_oauth_state=8d3f...; Path=/; HttpOnly; Secure; SameSite=Lax
 Location: https://github.com/login/oauth/authorize?client_id=...&state=...&scope=read%3Auser+user%3Aemail
 ```
 
 Notes:
 
 - The response is a redirect, not JSON
-- The `jjhub_oauth_state` cookie must be preserved through the callback request
+- The `codeplane_oauth_state` cookie must be preserved through the callback request
 
 ### GET /auth/github/callback
 
-GitHub redirects the browser back to JJHub with `code` and `state` query parameters:
+GitHub redirects the browser back to Codeplane with `code` and `state` query parameters:
 
 ```bash
-curl -i "https://api.jjhub.tech/auth/github/callback?code=abc123&state=xyz789" \
-  -H "Cookie: jjhub_oauth_state=8d3f..."
+curl -i "https://api.codeplane.app/auth/github/callback?code=abc123&state=xyz789" \
+  -H "Cookie: codeplane_oauth_state=8d3f..."
 ```
 
 ```http
 HTTP/2 302 Found
-Set-Cookie: jjhub_session=3f1f...; Path=/; HttpOnly; Secure; SameSite=Strict
+Set-Cookie: codeplane_session=3f1f...; Path=/; HttpOnly; Secure; SameSite=Strict
 Set-Cookie: __csrf=8bf1...; Path=/; Secure; SameSite=Strict
-Set-Cookie: jjhub_oauth_state=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax
+Set-Cookie: codeplane_oauth_state=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax
 Location: /
 ```
 
 Notes:
 
 - The callback returns a redirect after creating the session
-- On success, JJHub clears the temporary `jjhub_oauth_state` cookie
+- On success, Codeplane clears the temporary `codeplane_oauth_state` cookie
 - The default post-login redirect is `/`
 
 Common failure modes:
@@ -146,14 +146,14 @@ Common failure modes:
 - `400` missing `code` or `state`, or GitHub code exchange failed
 - `401` invalid or replayed OAuth state
 - `403` account suspended or not permitted by closed-alpha access controls
-- `409` GitHub account email is already in use by another JJHub account
+- `409` GitHub account email is already in use by another Codeplane account
 
 ## Bearer Tokens
 
 Programmatic API clients can authenticate with a bearer token:
 
 ```
-Authorization: Bearer jjhub_your_token_here
+Authorization: Bearer codeplane_your_token_here
 ```
 
 ## Generating Tokens
@@ -161,21 +161,21 @@ Authorization: Bearer jjhub_your_token_here
 Via CLI:
 
 ```bash
-jjhub auth token create --name "My Token" --scopes "read:repository,write:repository"
+codeplane auth token create --name "My Token" --scopes "read:repository,write:repository"
 ```
 
 Via API:
 
 ```bash
-curl -X POST https://api.jjhub.tech/tokens \
-  -H "Authorization: Bearer jjhub_existing_token" \
+curl -X POST https://api.codeplane.app/tokens \
+  -H "Authorization: Bearer codeplane_existing_token" \
   -H "Content-Type: application/json" \
   -d '{"name": "My Token", "scopes": ["read:repository", "write:repository"]}'
 ```
 
 ## Token Format
 
-All tokens are prefixed with `jjhub_` and are SHA-256 hashed before storage. Tokens are shown **once** at creation time.
+All tokens are prefixed with `codeplane_` and are SHA-256 hashed before storage. Tokens are shown **once** at creation time.
 
 ## Error Responses
 

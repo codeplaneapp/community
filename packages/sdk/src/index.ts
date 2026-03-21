@@ -1,7 +1,7 @@
-// @jjhub/sdk — JJHub TypeScript SDK
+// @codeplane/sdk — Codeplane TypeScript SDK
 //
-// This package is the core of JJHub Community Edition.
-// It provides type-safe access to all JJHub operations:
+// This package is the core of Codeplane Community Edition.
+// It provides type-safe access to all Codeplane operations:
 // auth, repos, issues, landings, workflows, workspaces, and more.
 //
 // The Hono server (apps/server) is a thin HTTP wrapper around this SDK.

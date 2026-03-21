@@ -19,7 +19,7 @@ describe("CLI: Releases", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub release create creates a release", async () => {
+  test("codeplane release create creates a release", async () => {
     const result = await cli(
       [
         "release", "create", tagName,
@@ -46,8 +46,8 @@ describe("CLI: Releases", () => {
     expect(body.prerelease).toBe(false);
   });
 
-  test("jjhub release asset download increments download_count", async () => {
-    const assetDir = mkdtempSync(join(tmpdir(), "jjhub-release-asset-"));
+  test("codeplane release asset download increments download_count", async () => {
+    const assetDir = mkdtempSync(join(tmpdir(), "codeplane-release-asset-"));
     const assetPath = join(assetDir, "asset.txt");
     writeFileSync(assetPath, "release asset contents\n");
 
@@ -91,7 +91,7 @@ describe("CLI: Releases", () => {
     }
   });
 
-  test("jjhub release list lists releases", async () => {
+  test("codeplane release list lists releases", async () => {
     const result = await cli(
       ["release", "list"],
       { repo: repoSlug, json: true },
@@ -102,7 +102,7 @@ describe("CLI: Releases", () => {
     expect(body.some((r) => r.tag_name === tagName)).toBe(true);
   });
 
-  test("jjhub release create draft release", async () => {
+  test("codeplane release create draft release", async () => {
     const draftTag = "v2.0.0-beta";
     const result = await cli(
       [

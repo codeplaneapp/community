@@ -14,7 +14,7 @@ describe("CLI: Workflow Commit Status", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub api can create a commit status", async () => {
+  test("codeplane api can create a commit status", async () => {
     const sha = "aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111";
     const result = await cli(
       [
@@ -31,7 +31,7 @@ describe("CLI: Workflow Commit Status", () => {
     expect(result.exitCode).toBe(0);
   });
 
-  test("jjhub api can list commit statuses", async () => {
+  test("codeplane api can list commit statuses", async () => {
     const sha = "aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111";
     const result = await cli(
       ["api", `/api/repos/${OWNER}/${repoName}/statuses/${sha}`],
@@ -50,7 +50,7 @@ describe("CLI: Workflow Commit Status", () => {
     }
   });
 
-  test("jjhub workflow list returns workflow definitions", async () => {
+  test("codeplane workflow list returns workflow definitions", async () => {
     const result = await cli(
       ["workflow", "list"],
       { repo: repoSlug, json: true },
@@ -62,7 +62,7 @@ describe("CLI: Workflow Commit Status", () => {
     expect(Array.isArray(body.workflows)).toBe(true);
   });
 
-  test("jjhub workflow runs returns workflow run history", async () => {
+  test("codeplane workflow runs returns workflow run history", async () => {
     const result = await cli(
       ["workflow", "runs"],
       { repo: repoSlug, json: true },

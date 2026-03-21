@@ -6,7 +6,7 @@ import {
   writeError,
   writeJSON,
   writeRouteError,
-} from "@jjhub/sdk";
+} from "@codeplane/sdk";
 
 // ---------------------------------------------------------------------------
 // Types

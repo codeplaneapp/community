@@ -5,7 +5,7 @@ description: A quick introduction to Jujutsu (jj) for Git users
 
 # Jujutsu (jj) Crash Course
 
-Jujutsu (`jj`) is a next-generation version control system that modernizes the way we interact with code history. JJHub is built natively to support `jj`'s unique features, such as first-class conflicts, stable change IDs, and automatic committing.
+Jujutsu (`jj`) is a next-generation version control system that modernizes the way we interact with code history. Codeplane is built natively to support `jj`'s unique features, such as first-class conflicts, stable change IDs, and automatic committing.
 
 This crash course covers the essential commands you'll need to use `jj` effectively.
 
@@ -17,11 +17,11 @@ jj git init my-project
 cd my-project
 ```
 
-To clone an existing JJHub repository:
+To clone an existing Codeplane repository:
 ```bash
-jjhub repo clone owner/repo
+codeplane repo clone owner/repo
 # or
-jj git clone https://jjhub.tech/owner/repo
+jj git clone https://codeplane.app/owner/repo
 ```
 
 ## 2. No More `git add` or `git commit`
@@ -77,7 +77,7 @@ This displays a graph of your changes, along with their stable Change IDs (like 
 
 ## 6. Pushing Changes
 
-To push your changes to JJHub, you use the `git push` command bridged by `jj`:
+To push your changes to Codeplane, you use the `git push` command bridged by `jj`:
 ```bash
 jj git push --all
 # or push a specific bookmark

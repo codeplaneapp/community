@@ -15,7 +15,7 @@ describe("CLI: Webhook Event Dispatch", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub webhook create creates a webhook for issues and issue_comment events", async () => {
+  test("codeplane webhook create creates a webhook for issues and issue_comment events", async () => {
     const result = await cli(
       [
         "webhook", "create",
@@ -59,7 +59,7 @@ describe("CLI: Webhook Event Dispatch", () => {
     expect(issueDel).toBeDefined();
   });
 
-  test("jjhub webhook view shows webhook details and deliveries", async () => {
+  test("codeplane webhook view shows webhook details and deliveries", async () => {
     const result = await cli(
       ["webhook", "view", String(hookID)],
       { repo: repoSlug, json: true },

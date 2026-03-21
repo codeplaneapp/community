@@ -1,15 +1,15 @@
 ---
 title: Landing Requests
-description: JJHub's jj-native replacement for Pull Requests
+description: Codeplane's jj-native replacement for Pull Requests
 ---
 
 # Landing Requests
 
-Landing Requests (LRs) are JJHub's native replacement for Pull Requests. They're built from the ground up for jj's stacked changes model - stable Change IDs, first-class conflict tracking, and automatic rebasing.
+Landing Requests (LRs) are Codeplane's native replacement for Pull Requests. They're built from the ground up for jj's stacked changes model - stable Change IDs, first-class conflict tracking, and automatic rebasing.
 
 ## Landing Requests vs Pull Requests
 
-| Aspect | Pull Requests (GitHub) | Landing Requests (JJHub) |
+| Aspect | Pull Requests (GitHub) | Landing Requests (Codeplane) |
 |--------|----------------------|------------------------|
 | Identity | Tied to branch name | Tied to stable Change IDs |
 | Stacked changes | Painful (rebase chains) | First-class (`--stack` flag) |
@@ -20,7 +20,7 @@ Landing Requests (LRs) are JJHub's native replacement for Pull Requests. They're
 ## Create a Landing Request
 
 ```bash
-jjhub land create --title "Add user authentication" --target main
+codeplane land create --title "Add user authentication" --target main
 ```
 
 Key flags:
@@ -51,7 +51,7 @@ jj new -m "Add login endpoint"
 jj git push --all
 
 # Create an LR for the whole stack
-jjhub land create --title "User authentication" --target main --stack
+codeplane land create --title "User authentication" --target main --stack
 ```
 
 The LR will show the `stack_size` and all `change_ids` in the stack.
@@ -67,18 +67,18 @@ A draft landing request is a work-in-progress LR that is not yet ready for revie
 | Review notifications sent | No | Yes |
 | Status checks required | No | Yes |
 | Bookmark protection rules enforced | No | Yes |
-| Visible in default `jjhub land list` | No (use `--state draft` or `--state all`) | Yes |
+| Visible in default `codeplane land list` | No (use `--state draft` or `--state all`) | Yes |
 | Can receive reviews | Yes (but no notifications are sent) | Yes |
 | Can be merged | No (must be published first) | Yes |
 
-Draft LRs appear with a `draft` state badge when viewed with `jjhub land view`.
+Draft LRs appear with a `draft` state badge when viewed with `codeplane land view`.
 
 ### Creating a draft landing request
 
 Use the `--draft` flag when creating:
 
 ```bash
-jjhub land create --title "Add user authentication" --target main --draft
+codeplane land create --title "Add user authentication" --target main --draft
 ```
 
 This creates the LR in `draft` state. No review notifications are sent and no CI status checks are required while it remains a draft.
@@ -86,8 +86,8 @@ This creates the LR in `draft` state. No review notifications are sent and no CI
 ### Creating a draft via the API
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/repos/owner/repo/landings \
-  -H "Authorization: token jjhub_xxxxx" \
+curl -X POST https://api.codeplane.app/api/repos/owner/repo/landings \
+  -H "Authorization: token codeplane_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Add user authentication",
@@ -102,25 +102,25 @@ The response includes `"state": "draft"` to confirm the LR was created as a draf
 
 When the changes are ready for review, publish the draft to move it to `open` state. There are two ways to do this:
 
-**Using `jjhub land ready`:**
+**Using `codeplane land ready`:**
 
 ```bash
-jjhub land ready 42
+codeplane land ready 42
 ```
 
 This is the recommended shorthand. It moves the LR from `draft` to `open`, triggering review notifications and enabling protection rule enforcement.
 
-**Using `jjhub land edit`:**
+**Using `codeplane land edit`:**
 
 ```bash
-jjhub land edit 42 --state open
+codeplane land edit 42 --state open
 ```
 
 **Via the API:**
 
 ```bash
-curl -X PATCH https://api.jjhub.tech/api/repos/owner/repo/landings/42 \
-  -H "Authorization: token jjhub_xxxxx" \
+curl -X PATCH https://api.codeplane.app/api/repos/owner/repo/landings/42 \
+  -H "Authorization: token codeplane_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{"state": "open"}'
 ```
@@ -137,7 +137,7 @@ curl -X PATCH https://api.jjhub.tech/api/repos/owner/repo/landings/42 \
 If you need to pull a published LR back to draft state (for example, if you discover the changes need more work), use:
 
 ```bash
-jjhub land edit 42 --state draft
+codeplane land edit 42 --state draft
 ```
 
 This stops review notifications and suspends protection rule enforcement until the LR is published again. Existing reviews are preserved but stale review dismissal (if configured via bookmark protection) does not apply to draft LRs.
@@ -148,19 +148,19 @@ This stops review notifications and suspends protection rule enforcement until t
 
 ```bash
 # Open LRs (default)
-jjhub land list
+codeplane land list
 
 # All states
-jjhub land list --state all
+codeplane land list --state all
 
 # Filter by state: open, closed, merged, draft
-jjhub land list --state merged --limit 10
+codeplane land list --state merged --limit 10
 ```
 
 ## View a Landing Request
 
 ```bash
-jjhub land view 42
+codeplane land view 42
 ```
 
 Shows the title, body, state, change IDs, stack size, CI check status, and reviews.
@@ -169,26 +169,26 @@ Shows the title, body, state, change IDs, stack size, CI check status, and revie
 
 ```bash
 # Approve
-jjhub land review 42 --approve --body "Looks good"
+codeplane land review 42 --approve --body "Looks good"
 
 # Request changes
-jjhub land review 42 --request-changes --body "Please add tests"
+codeplane land review 42 --request-changes --body "Please add tests"
 
 # Comment only
-jjhub land review 42 --comment --body "Question about the approach"
+codeplane land review 42 --comment --body "Question about the approach"
 ```
 
 ## Suggested Changes
 
-Suggested changes let reviewers propose specific code edits inline within a review comment. Instead of describing what to change in plain text, a reviewer can include the exact replacement code. The landing request author can then accept the suggestion with a single command, and JJHub automatically creates a new change with the edit applied.
+Suggested changes let reviewers propose specific code edits inline within a review comment. Instead of describing what to change in plain text, a reviewer can include the exact replacement code. The landing request author can then accept the suggestion with a single command, and Codeplane automatically creates a new change with the edit applied.
 
-This is JJHub's equivalent of GitHub's suggested changes feature, adapted for jj's change model.
+This is Codeplane's equivalent of GitHub's suggested changes feature, adapted for jj's change model.
 
 ### How suggested changes differ from regular review comments
 
 Regular review comments are plain text -- they describe what should change but leave the author to interpret and implement the fix. Suggested changes contain an actual code diff: the reviewer specifies the exact lines to replace and what they should become. This eliminates ambiguity, speeds up the review cycle, and is particularly powerful for AI agent reviews where the agent can propose precise fixes.
 
-Because JJHub is jj-native, accepting a suggestion creates a new jj change (with a stable Change ID) rather than amending an existing commit. This preserves the full history of how the code evolved during review.
+Because Codeplane is jj-native, accepting a suggestion creates a new jj change (with a stable Change ID) rather than amending an existing commit. This preserves the full history of how the code evolved during review.
 
 ### Creating a suggestion via CLI
 
@@ -196,7 +196,7 @@ Use the `suggestion` code fence syntax inside a review comment body. The fenced 
 
 ```bash
 # Leave a review comment with a suggested change on a specific file and line range
-jjhub land review 42 --comment --body 'The error message should be more descriptive.
+codeplane land review 42 --comment --body 'The error message should be more descriptive.
 
 ```suggestion
 return fmt.Errorf("authentication failed: invalid token format for user %s", username)
@@ -205,7 +205,7 @@ return fmt.Errorf("authentication failed: invalid token format for user %s", use
 
 The ` ```suggestion ` block works the same way as on GitHub: the contents replace the lines the comment is attached to. You can include multiple suggestion blocks in a single review if commenting on different parts of the diff.
 
-When creating a review comment via the API, attach the suggestion to a specific file path and line range so JJHub knows which lines the replacement targets.
+When creating a review comment via the API, attach the suggestion to a specific file path and line range so Codeplane knows which lines the replacement targets.
 
 ### Viewing suggestions
 
@@ -213,10 +213,10 @@ When viewing a landing request, suggestions are shown alongside regular review c
 
 ```bash
 # View the landing request -- suggestions appear in the review section
-jjhub land view 42
+codeplane land view 42
 
 # List only suggestions for a landing request
-jjhub land suggestion list 42
+codeplane land suggestion list 42
 ```
 
 ### Accepting and rejecting suggestions
@@ -225,18 +225,18 @@ The landing request author (or anyone with write access) can accept or reject in
 
 ```bash
 # Accept a single suggestion by ID -- creates a new change with the edit applied
-jjhub land suggestion accept 42 --id 7
+codeplane land suggestion accept 42 --id 7
 
 # Reject a suggestion by ID
-jjhub land suggestion reject 42 --id 7
+codeplane land suggestion reject 42 --id 7
 
 # Accept all pending suggestions on a landing request at once
-jjhub land suggestion accept-all 42
+codeplane land suggestion accept-all 42
 ```
 
 When a suggestion is accepted:
 
-1. JJHub applies the code replacement to the target file at the specified lines.
+1. Codeplane applies the code replacement to the target file at the specified lines.
 2. A new jj change is created with the edit. The change description is auto-generated (e.g., "Apply suggestion from @reviewer on src/auth.go").
 3. The new change is added to the landing request's change stack.
 4. The suggestion status updates to `accepted`.
@@ -249,14 +249,14 @@ When a suggestion is rejected, its status updates to `rejected` and no code chan
 For landing requests with many suggestions, use `accept-all` to apply every pending suggestion in a single operation:
 
 ```bash
-jjhub land suggestion accept-all 42
+codeplane land suggestion accept-all 42
 ```
 
 This creates one new change per accepted suggestion (preserving granular history) or, if the `--squash` flag is used, combines all accepted suggestions into a single change:
 
 ```bash
 # Combine all accepted suggestions into one change
-jjhub land suggestion accept-all 42 --squash
+codeplane land suggestion accept-all 42 --squash
 ```
 
 ### Suggestion syntax in comments
@@ -292,8 +292,8 @@ PUT    /api/repos/:owner/:repo/landings/:number/suggestions/accept-all   # Accep
 **Create a suggestion:**
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/repos/owner/repo/landings/42/suggestions \
-  -H "Authorization: token jjhub_xxxxx" \
+curl -X POST https://api.codeplane.app/api/repos/owner/repo/landings/42/suggestions \
+  -H "Authorization: token codeplane_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{
     "body": "The error message should be more descriptive.",
@@ -326,8 +326,8 @@ curl -X POST https://api.jjhub.tech/api/repos/owner/repo/landings/42/suggestions
 **Accept a suggestion:**
 
 ```bash
-curl -X PUT https://api.jjhub.tech/api/repos/owner/repo/landings/42/suggestions/7/accept \
-  -H "Authorization: token jjhub_xxxxx"
+curl -X PUT https://api.codeplane.app/api/repos/owner/repo/landings/42/suggestions/7/accept \
+  -H "Authorization: token codeplane_xxxxx"
 ```
 
 After acceptance, the response includes the `change_id` of the newly created change:
@@ -343,7 +343,7 @@ After acceptance, the response includes the `change_id` of the newly created cha
 
 ### How accepted suggestions create new changes
 
-When a suggestion is accepted, JJHub performs the following operations on the repo-host:
+When a suggestion is accepted, Codeplane performs the following operations on the repo-host:
 
 1. The repo-host reads the target file at the specified lines from the change that the suggestion is attached to.
 2. It replaces the specified line range with the suggestion content.
@@ -356,17 +356,17 @@ This approach preserves full auditability -- every accepted suggestion is a dist
 
 ### Suggestions and AI agents
 
-Suggested changes are particularly powerful when combined with JJHub's AI agent system. An AI agent reviewing a landing request can propose precise code fixes as suggestions rather than just describing issues in prose. The author can review the agent's suggestions and accept them with a single command, creating a tight human-in-the-loop workflow:
+Suggested changes are particularly powerful when combined with Codeplane's AI agent system. An AI agent reviewing a landing request can propose precise code fixes as suggestions rather than just describing issues in prose. The author can review the agent's suggestions and accept them with a single command, creating a tight human-in-the-loop workflow:
 
 ```bash
 # AI agent submits a review with suggestions via the API
 # Author reviews what the agent proposed
-jjhub land suggestion list 42
+codeplane land suggestion list 42
 
 # Accept the good ones, reject the rest
-jjhub land suggestion accept 42 --id 12
-jjhub land suggestion accept 42 --id 13
-jjhub land suggestion reject 42 --id 14
+codeplane land suggestion accept 42 --id 12
+codeplane land suggestion accept 42 --id 13
+codeplane land suggestion reject 42 --id 14
 ```
 
 ---
@@ -374,7 +374,7 @@ jjhub land suggestion reject 42 --id 14
 ## Check CI Status
 
 ```bash
-jjhub land checks 42
+codeplane land checks 42
 ```
 
 Shows the status of all CI checks associated with the landing request.
@@ -398,28 +398,28 @@ In jj, a conflict is a structured object stored alongside the file. The file its
 
 ### Viewing conflicts
 
-Use `jjhub land conflicts` to see the conflict details for a landing request:
+Use `codeplane land conflicts` to see the conflict details for a landing request:
 
 ```bash
 # View conflicts for LR #42
-jjhub land conflicts 42
+codeplane land conflicts 42
 ```
 
 This shows each conflicted file with the paths, conflict type, and the change IDs involved. For deeper inspection of a specific change's conflicts, use:
 
 ```bash
 # Show conflict details for a specific change (base, left, right versions)
-jjhub change show <change-id>
+codeplane change show <change-id>
 ```
 
-The `jjhub change show` command displays the full conflict object, including the base, left, and right file contents so you can understand exactly what diverged.
+The `codeplane change show` command displays the full conflict object, including the base, left, and right file contents so you can understand exactly what diverged.
 
 ### Viewing conflicts via the API
 
 ```bash
 # Get conflict status for a landing request
-curl -H "Authorization: token jjhub_xxxxx" \
-  https://api.jjhub.tech/api/repos/:owner/:repo/landings/42/conflicts
+curl -H "Authorization: token codeplane_xxxxx" \
+  https://api.codeplane.app/api/repos/:owner/:repo/landings/42/conflicts
 ```
 
 The `GET /repos/{owner}/{repo}/landings/{number}/conflicts` endpoint returns the list of conflicts for the landing request, including the file paths, conflict type, and the change IDs where conflicts were detected.
@@ -428,15 +428,15 @@ You can also check conflicts at the individual change level:
 
 ```bash
 # Get conflicts for a specific change
-curl -H "Authorization: token jjhub_xxxxx" \
-  https://api.jjhub.tech/api/repos/:owner/:repo/changes/:change_id/conflicts
+curl -H "Authorization: token codeplane_xxxxx" \
+  https://api.codeplane.app/api/repos/:owner/:repo/changes/:change_id/conflicts
 ```
 
 ### The conflict resolution workflow
 
-1. **Detect** -- The LR shows `conflict_status: "conflicted"` automatically. You can also see it when running `jjhub land view 42`.
+1. **Detect** -- The LR shows `conflict_status: "conflicted"` automatically. You can also see it when running `codeplane land view 42`.
 
-2. **Inspect** -- Run `jjhub land conflicts 42` to see which files are conflicted and which changes are involved. Then use `jjhub change show <change-id>` to see the base, left, and right versions.
+2. **Inspect** -- Run `codeplane land conflicts 42` to see which files are conflicted and which changes are involved. Then use `codeplane change show <change-id>` to see the base, left, and right versions.
 
 3. **Resolve locally** -- In your local jj repository, resolve the conflicts using jj's built-in resolution tools:
 
@@ -480,28 +480,28 @@ Review conversations can be **resolved** to indicate that the feedback has been 
 
 ### Resolving and unresolving conversations
 
-Use `jjhub land thread resolve` to mark a review comment thread as resolved, and `jjhub land thread unresolve` to re-open it:
+Use `codeplane land thread resolve` to mark a review comment thread as resolved, and `codeplane land thread unresolve` to re-open it:
 
 ```bash
 # Resolve a review comment thread
-jjhub land thread resolve <comment-id>
+codeplane land thread resolve <comment-id>
 
 # Re-open a previously resolved thread
-jjhub land thread unresolve <comment-id>
+codeplane land thread unresolve <comment-id>
 ```
 
 The `<comment-id>` is the ID of the review comment that anchors the thread. You can find comment IDs by listing the threads on a landing request (see below).
 
 ### Listing threads
 
-To see review threads on a landing request, use `jjhub land threads`. By default this shows all threads; use `--unresolved` to filter to only unresolved ones:
+To see review threads on a landing request, use `codeplane land threads`. By default this shows all threads; use `--unresolved` to filter to only unresolved ones:
 
 ```bash
 # List only unresolved threads on LR #42
-jjhub land threads 42 --unresolved
+codeplane land threads 42 --unresolved
 
 # List all threads (both resolved and unresolved)
-jjhub land threads 42
+codeplane land threads 42
 ```
 
 The output includes each thread's comment ID, file path and line number (for inline comments), the author, the resolution status, and a body preview.
@@ -527,8 +527,8 @@ POST   /api/repos/:owner/:repo/landings/:number/comments/:id/unresolve    # Unre
 **Resolve a review thread:**
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/repos/owner/repo/landings/42/comments/15/resolve \
-  -H "Authorization: token jjhub_xxxxx"
+curl -X POST https://api.codeplane.app/api/repos/owner/repo/landings/42/comments/15/resolve \
+  -H "Authorization: token codeplane_xxxxx"
 ```
 
 **Response:**
@@ -553,8 +553,8 @@ curl -X POST https://api.jjhub.tech/api/repos/owner/repo/landings/42/comments/15
 **Unresolve a review thread:**
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/repos/owner/repo/landings/42/comments/15/unresolve \
-  -H "Authorization: token jjhub_xxxxx"
+curl -X POST https://api.codeplane.app/api/repos/owner/repo/landings/42/comments/15/unresolve \
+  -H "Authorization: token codeplane_xxxxx"
 ```
 
 The unresolve response returns the same comment object with `resolved` set to `false` and `resolved_by` and `resolved_at` cleared to `null`.
@@ -566,25 +566,25 @@ Bookmark protection rules can require that all review conversations are resolved
 To enable this rule on a protected bookmark:
 
 ```bash
-jjhub bookmark protect main --require-resolved-conversations
+codeplane bookmark protect main --require-resolved-conversations
 ```
 
-When this rule is active and unresolved conversations remain, `jjhub land land` will fail with a clear error:
+When this rule is active and unresolved conversations remain, `codeplane land land` will fail with a clear error:
 
 ```bash
-$ jjhub land land 42
+$ codeplane land land 42
 Error: Landing request #42 cannot be landed into protected bookmark "main":
   - Unresolved conversations: 3 threads must be resolved before landing
 ```
 
-The `jjhub land view` command also shows the count of unresolved conversations, so authors can track their progress toward satisfying this protection rule.
+The `codeplane land view` command also shows the count of unresolved conversations, so authors can track their progress toward satisfying this protection rule.
 
 ---
 
 ## Land
 
 ```bash
-jjhub land land 42
+codeplane land land 42
 ```
 
 Lands the landing request into the target bookmark. The landing queue handles conflict detection and serialization.
@@ -594,8 +594,8 @@ Lands the landing request into the target bookmark. The landing queue handles co
 The landing queue is programmable via TypeScript workflows. By default, it serializes merges (one at a time), but you can configure custom merge strategies:
 
 ```tsx
-// .jjhub/workflows/landing-queue.tsx
-import { Workflow, Task, on } from "@jjhub-ai/workflow";
+// .codeplane/workflows/landing-queue.tsx
+import { Workflow, Task, on } from "@codeplane-ai/workflow";
 import { $ } from "bun";
 
 export default (ctx) => (
@@ -628,20 +628,20 @@ Without protection rules, any collaborator with write access can land changes di
 
 ### Setting Up Protection Rules
 
-Use `jjhub bookmark protect` to configure protection on a bookmark pattern:
+Use `codeplane bookmark protect` to configure protection on a bookmark pattern:
 
 ```bash
 # Protect the main bookmark - require 1 approval before landing
-jjhub bookmark protect main --require-review --approvals 1
+codeplane bookmark protect main --require-review --approvals 1
 
 # Protect all release bookmarks with 2 required approvals
-jjhub bookmark protect "release/*" --require-review --approvals 2
+codeplane bookmark protect "release/*" --require-review --approvals 2
 
 # Require status checks to pass before landing
-jjhub bookmark protect main --require-status-checks
+codeplane bookmark protect main --require-status-checks
 
 # Combine multiple rules
-jjhub bookmark protect main \
+codeplane bookmark protect main \
   --require-review \
   --approvals 2 \
   --require-status-checks \
@@ -652,13 +652,13 @@ jjhub bookmark protect main \
 To remove protection from a bookmark pattern:
 
 ```bash
-jjhub bookmark unprotect main
+codeplane bookmark unprotect main
 ```
 
 To list all protection rules for a repository:
 
 ```bash
-jjhub bookmark protections
+codeplane bookmark protections
 ```
 
 ### Configurable Rules
@@ -699,8 +699,8 @@ DELETE /api/repos/:owner/:repo/bookmark-protections/:pattern     # Delete protec
 **Create a protection rule:**
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/repos/owner/repo/bookmark-protections \
-  -H "Authorization: token jjhub_xxxxx" \
+curl -X POST https://api.codeplane.app/api/repos/owner/repo/bookmark-protections \
+  -H "Authorization: token codeplane_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{
     "pattern": "main",
@@ -730,44 +730,44 @@ curl -X POST https://api.jjhub.tech/api/repos/owner/repo/bookmark-protections \
 
 ### How Protection Interacts with Landing Requests
 
-When you run `jjhub land land` on a landing request that targets a protected bookmark, JJHub enforces all matching protection rules:
+When you run `codeplane land land` on a landing request that targets a protected bookmark, Codeplane enforces all matching protection rules:
 
 1. **Review check** - If `require_review` is enabled, the LR must have at least `required_approvals` approving reviews. Reviews with "request changes" block landing regardless of approval count.
 2. **Status check** - If `require_status_checks` is enabled, all CI status checks associated with the LR's changes must report a `success` status.
-3. **Resolved conversations** - If `require_resolved_conversations` is enabled, all review comment threads on the LR must be resolved before landing. Use `jjhub land threads 42 --unresolved` to see remaining threads.
+3. **Resolved conversations** - If `require_resolved_conversations` is enabled, all review comment threads on the LR must be resolved before landing. Use `codeplane land threads 42 --unresolved` to see remaining threads.
 4. **Stale review dismissal** - If `dismiss_stale_reviews` is enabled, pushing new changes to the LR automatically dismisses previous approvals, requiring fresh reviews.
 5. **Force push prevention** - If `no_force_push` is enabled, any attempt to force-push to the protected bookmark is rejected at the git protocol level.
 
 If any rule is not satisfied, the landing is rejected with a clear error message explaining which rules failed:
 
 ```bash
-$ jjhub land land 42
+$ codeplane land land 42
 Error: Landing request #42 cannot be landed into protected bookmark "main":
   - Required approvals: 2 (got 1)
   - Required status checks: ci/test (pending)
 ```
 
-The `jjhub land view` and `jjhub land checks` commands also display protection rule status, so authors know exactly what is needed before attempting to land.
+The `codeplane land view` and `codeplane land checks` commands also display protection rule status, so authors know exactly what is needed before attempting to land.
 
 ---
 
 ## Lifecycle
 
-1. **Create** - Author opens an LR with `jjhub land create` (optionally as a `--draft`)
-1. **Draft (optional)** - If created as a draft, iterate on changes without triggering notifications. Publish with `jjhub land ready` when ready.
-2. **Review** - Team reviews with `jjhub land review`. Reviewers can leave comments, approve, request changes, or propose [suggested changes](#suggested-changes) with inline code replacements.
-3. **Apply Suggestions** - Author reviews any suggested changes and accepts or rejects them with `jjhub land suggestion accept` / `reject`. Accepted suggestions automatically create new changes in the stack.
+1. **Create** - Author opens an LR with `codeplane land create` (optionally as a `--draft`)
+1. **Draft (optional)** - If created as a draft, iterate on changes without triggering notifications. Publish with `codeplane land ready` when ready.
+2. **Review** - Team reviews with `codeplane land review`. Reviewers can leave comments, approve, request changes, or propose [suggested changes](#suggested-changes) with inline code replacements.
+3. **Apply Suggestions** - Author reviews any suggested changes and accepts or rejects them with `codeplane land suggestion accept` / `reject`. Accepted suggestions automatically create new changes in the stack.
 4. **CI Checks** - Automated workflows validate the changes
-5. **Resolve Conflicts** - If conflicts arise, view them with `jjhub land conflicts`, resolve locally with `jj resolve`, and push. The LR updates automatically.
-6. **Resolve Conversations** - Address review feedback and mark threads as resolved with `jjhub land thread resolve`. If bookmark protection requires resolved conversations, all threads must be resolved before landing.
+5. **Resolve Conflicts** - If conflicts arise, view them with `codeplane land conflicts`, resolve locally with `jj resolve`, and push. The LR updates automatically.
+6. **Resolve Conversations** - Address review feedback and mark threads as resolved with `codeplane land thread resolve`. If bookmark protection requires resolved conversations, all threads must be resolved before landing.
 7. **Protection Rules** - All bookmark protection rules for the target bookmark must be satisfied
-8. **Land** - Author or maintainer lands with `jjhub land land`
+8. **Land** - Author or maintainer lands with `codeplane land land`
 
 LRs track conflicts automatically via jj's first-class conflict objects. Unlike git, conflicts do not block work -- the LR surfaces them, other changes in the stack can proceed, and you resolve at your own pace. See [Conflict Resolution](#conflict-resolution) for the full workflow.
 
 ## Reactions
 
-Reactions let you add emoji responses to issues and comments. JJHub supports the same reaction types as Gitea: `+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, and `eyes`.
+Reactions let you add emoji responses to issues and comments. Codeplane supports the same reaction types as Gitea: `+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, and `eyes`.
 
 ### Supported Reaction Types
 
@@ -786,13 +786,13 @@ Reactions let you add emoji responses to issues and comments. JJHub supports the
 
 ```bash
 # Add a reaction to an issue
-jjhub issue react 42 +1
+codeplane issue react 42 +1
 
 # List reactions on an issue
-jjhub issue reactions 42
+codeplane issue reactions 42
 
 # Add a reaction to an issue comment (by comment ID)
-jjhub issue react --comment 15 heart
+codeplane issue react --comment 15 heart
 ```
 
 ### API Endpoints
@@ -801,36 +801,36 @@ jjhub issue react --comment 15 heart
 
 ```bash
 # List reactions on an issue
-curl -H "Authorization: token $JJHUB_TOKEN" \
-  https://api.jjhub.tech/repos/{owner}/{repo}/issues/{number}/reactions
+curl -H "Authorization: token $CODEPLANE_TOKEN" \
+  https://api.codeplane.app/repos/{owner}/{repo}/issues/{number}/reactions
 
 # Add a reaction to an issue
-curl -X POST -H "Authorization: token $JJHUB_TOKEN" \
+curl -X POST -H "Authorization: token $CODEPLANE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"content": "+1"}' \
-  https://api.jjhub.tech/repos/{owner}/{repo}/issues/{number}/reactions
+  https://api.codeplane.app/repos/{owner}/{repo}/issues/{number}/reactions
 
 # Remove a reaction from an issue
-curl -X DELETE -H "Authorization: token $JJHUB_TOKEN" \
-  https://api.jjhub.tech/repos/{owner}/{repo}/issues/{number}/reactions/{id}
+curl -X DELETE -H "Authorization: token $CODEPLANE_TOKEN" \
+  https://api.codeplane.app/repos/{owner}/{repo}/issues/{number}/reactions/{id}
 ```
 
 #### Comment Reactions
 
 ```bash
 # Add a reaction to an issue comment
-curl -X POST -H "Authorization: token $JJHUB_TOKEN" \
+curl -X POST -H "Authorization: token $CODEPLANE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"content": "rocket"}' \
-  https://api.jjhub.tech/repos/{owner}/{repo}/issues/comments/{id}/reactions
+  https://api.codeplane.app/repos/{owner}/{repo}/issues/comments/{id}/reactions
 
 # List reactions on an issue comment
-curl -H "Authorization: token $JJHUB_TOKEN" \
-  https://api.jjhub.tech/repos/{owner}/{repo}/issues/comments/{id}/reactions
+curl -H "Authorization: token $CODEPLANE_TOKEN" \
+  https://api.codeplane.app/repos/{owner}/{repo}/issues/comments/{id}/reactions
 
 # Remove a reaction from an issue comment
-curl -X DELETE -H "Authorization: token $JJHUB_TOKEN" \
-  https://api.jjhub.tech/repos/{owner}/{repo}/issues/comments/{id}/reactions/{reaction_id}
+curl -X DELETE -H "Authorization: token $CODEPLANE_TOKEN" \
+  https://api.codeplane.app/repos/{owner}/{repo}/issues/comments/{id}/reactions/{reaction_id}
 ```
 
 Each reaction response includes the reaction `id`, `content` (the reaction type), and the `user` who reacted.

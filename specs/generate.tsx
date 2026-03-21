@@ -1,11 +1,20 @@
 /** @jsxImportSource smithers-orchestrator */
-import { createSmithers, Parallel, Sequence, Task, Branch, Loop } from "smithers-orchestrator";
+import { createSmithers, Parallel, Sequence, Task, Branch, Loop, Worktree } from "smithers-orchestrator";
 import { ClaudeCodeAgent } from "smithers-orchestrator";
 import { z } from "zod";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as fsSync from "node:fs";
+import { execFileSync } from "node:child_process";
 import { Features } from "./features";
+
+function execJJ(args: string[], cwd?: string): string {
+  return execFileSync("jj", args, {
+    encoding: "utf-8",
+    cwd: cwd || process.cwd(),
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trimEnd();
+}
 
 const { Workflow, smithers, outputs } = createSmithers({
   // Impact Analysis (Only runs if diffs are provided)
@@ -110,6 +119,19 @@ const { Workflow, smithers, outputs } = createSmithers({
   writeReview: z.object({ success: z.boolean() }),
   
   done: z.object({ success: z.boolean() }),
+
+  // Phase 5: PR Stack
+  bookmark: z.object({
+    ticketId: z.string(),
+    changeId: z.string(),
+    bookmarkName: z.string(),
+  }),
+  prStack: z.object({
+    pushed: z.boolean(),
+    landingRequestNumber: z.number().nullable(),
+    stackSize: z.number(),
+    error: z.string().nullable(),
+  }),
 });
 
 export default smithers((ctx) => {
@@ -186,17 +208,17 @@ ${designContent}${diffText}`;
   }
 
   // Instead of nesting everything, we flatten out the ticket items into explicit sequential tasks that depend on each other.
-  // A ticket goes through 4 nodes: spec -> research -> plan -> implement
-  // It only begins its 'spec' node once its master dependencies' 'implement' nodes finish.
+  // A ticket goes through 5 nodes: spec -> research -> plan -> implement -> bookmark
+  // It only begins its 'spec' node once its master dependencies' 'bookmark' nodes finish.
   const flatNodes: any[] = [];
   if (masterTickets && Array.isArray(masterTickets)) {
     for (const t of masterTickets) {
-      // 1. Engineering Spec (depends on upstream tickets finishing entirely)
+      // 1. Engineering Spec (depends on upstream tickets' bookmarks finishing)
       flatNodes.push({
         id: `spec-${t.id}`,
         type: "spec",
         ticket: t,
-        dependsOn: (t.dependencies || []).map((d: string) => `done-impl-${d}`),
+        dependsOn: (t.dependencies || []).map((d: string) => `bookmark-${d}`),
       });
 
       // 2. Research (depends on this ticket's spec finishing)
@@ -222,6 +244,14 @@ ${designContent}${diffText}`;
         ticket: t,
         dependsOn: [`done-plan-${t.id}`],
       });
+
+      // 5. Bookmark (depends on implementation finishing)
+      flatNodes.push({
+        id: `bookmark-${t.id}`,
+        type: "bookmark",
+        ticket: t,
+        dependsOn: [`done-impl-${t.id}`],
+      });
     }
   }
 
@@ -233,7 +263,7 @@ ${designContent}${diffText}`;
         {/* IMPACT ANALYSIS (Only if there are diffs)                         */}
         {/* ================================================================= */}
         {hasDiffs ? (
-          <Task id="impact-analysis" output={outputs.impactAnalysis} agent={specAgent} timeoutMs={60000}>
+          <Task id="impact-analysis" output={outputs.impactAnalysis} agent={specAgent} timeoutMs={1800000}>
             {`The user has made changes to the documentation. We need to determine which features and tickets need to be invalidated and rebuilt.
 Here are the diffs:
 ${diffText}
@@ -313,7 +343,7 @@ Be precise and thorough.`}
                           output={outputs.spec}
                           agent={specAgent}
                           retries={2}
-                          timeoutMs={60000}
+                          timeoutMs={1800000}
                         >
                           {`Write a specification for the feature: ${feature}.
 
@@ -421,7 +451,7 @@ Be precise and thorough.`}
                   output={outputs.arch}
                   agent={specAgent}
                   retries={2}
-                  timeoutMs={120000}
+                  timeoutMs={1800000}
                 >
                   {`Write the High-Level Engineering Architecture document for this project.
 
@@ -498,7 +528,7 @@ ${checkArch.existingContent || "None"}`}
                       output={outputs.featureGroupsOut}
                       agent={specAgent}
                       retries={2}
-                      timeoutMs={120000}
+                      timeoutMs={1800000}
                     >
                       {`You are the lead architect. We have ${featureNames.length} end-user features that must be implemented.
 To avoid token limits, we need to break these features down into logical groups (epics).
@@ -578,7 +608,7 @@ ${featureNames.join(", ")}`}
                               output={outputs.groupTicketsOut}
                               agent={specAgent}
                               retries={2}
-                              timeoutMs={180000}
+                              timeoutMs={1800000}
                             >
                               {`You are the lead architect defining the execution DAG for a specific feature group.
 Group ID: ${group.id}
@@ -670,7 +700,7 @@ RULES FOR TICKETS:
                         if={checkSpec.needsSpec}
                         then={
                           <Sequence>
-                            <Task id={`generate-spec-${ticket.id}`} output={outputs.ticketSpec} agent={specAgent} retries={2} timeoutMs={60000}>
+                            <Task id={`generate-spec-${ticket.id}`} output={outputs.ticketSpec} agent={specAgent} retries={2} timeoutMs={1800000}>
                               {`Write the detailed Engineering Specification for the ticket: ${ticket.id}.
 
 Ticket Details:
@@ -691,9 +721,9 @@ Requirements:
 5. Provide clear Acceptance Criteria including unit and integration tests that provide 100% certainty.
 6. Test specifications must think through corner cases, boundary inputs, and error states.
 7. Follow the architecture rules: No mocking of implementation details (only stable boundaries if absolutely necessary).
-8. If this ticket affects user-facing behavior, specify how the `docs/` folder documentation must be updated.
-9. If this ticket affects CLI or API behavior, specify what E2E tests in `e2e/` must be created or updated.
-10. There is POC (Proof of Concept) code in `apps/`, `packages/sdk`, and `packages/workflow`. Your spec must explicitly outline how to productionize this code (adding robust error handling, tests, removing stubs, strict typing, and adhering to architecture rules) rather than blindly trusting the poc code.
+8. If this ticket affects user-facing behavior, specify how the docs/ folder documentation must be updated.
+9. If this ticket affects CLI or API behavior, specify what E2E tests in e2e/ must be created or updated.
+10. There is POC (Proof of Concept) code in apps/, packages/sdk, and packages/workflow. Your spec must explicitly outline how to productionize this code (adding robust error handling, tests, removing stubs, strict typing, and adhering to architecture rules) rather than blindly trusting the poc code.
 
 If an existing engineering spec is provided, update and improve it. Otherwise, build from scratch.
 
@@ -747,7 +777,7 @@ ${checkSpec.existingContent || "None"}`}
                           <Sequence>
                             <Loop id={`research-loop-${ticket.id}`} until={ctx.outputMaybe(outputs.review, { nodeId: `review-research-${ticket.id}` })?.lgtm === true} maxIterations={3} onMaxReached="return-last">
                               <Sequence>
-                                <Task id={`generate-research-${ticket.id}`} output={outputs.researchOut} agent={implementAgent} retries={2} timeoutMs={120000}>
+                                <Task id={`generate-research-${ticket.id}`} output={outputs.researchOut} agent={implementAgent} retries={2} timeoutMs={1800000}>
                                   {`Research context for ticket: ${ticket.id}
 Title: ${ticket.title}
 
@@ -757,14 +787,14 @@ ${(() => { try { return fsSync.readFileSync(path.join(process.cwd(), "specs", "e
 ${ctx.iteration > 0 ? `REVIEW FEEDBACK FROM PREVIOUS ATTEMPT:\n${ctx.outputMaybe(outputs.review, { nodeId: `review-research-${ticket.id}` })?.feedback}` : ""}
 
 Your job is to find any and all useful context in the codebase that can help implement this feature.
-NOTE: There is a significant amount of Proof of Concept (POC) code already present in `apps/server`, `apps/cli`, `packages/sdk`, and `packages/workflow`. 
+NOTE: There is a significant amount of Proof of Concept (POC) code already present in apps/server, apps/cli, packages/sdk, and packages/workflow. 
 You MUST explore this existing code to see if the feature (or parts of it) is already stubbed out, partially implemented, or has existing architectural patterns you should follow.
 Use your tools to read files, search the codebase, and understand the current state of the architecture and POC implementations.
 Document your findings comprehensively. Do NOT write the implementation plan yet. Just research.
 
 Return a JSON object with a "document" string containing your markdown research.`}
                                 </Task>
-                                <Task id={`review-research-${ticket.id}`} output={outputs.review} agent={reviewAgent} retries={1} timeoutMs={120000}>
+                                <Task id={`review-research-${ticket.id}`} output={outputs.review} agent={reviewAgent} retries={1} timeoutMs={1800000}>
                                   {`Review the research for ticket: ${ticket.id}
 
 The researcher produced this document:
@@ -840,7 +870,7 @@ Return a JSON object with:
                           <Sequence>
                             <Loop id={`plan-loop-${ticket.id}`} until={ctx.outputMaybe(outputs.review, { nodeId: `review-plan-${ticket.id}` })?.lgtm === true} maxIterations={3} onMaxReached="return-last">
                               <Sequence>
-                                <Task id={`generate-plan-${ticket.id}`} output={outputs.planOut} agent={implementAgent} retries={2} timeoutMs={120000}>
+                                <Task id={`generate-plan-${ticket.id}`} output={outputs.planOut} agent={implementAgent} retries={2} timeoutMs={1800000}>
                                   {`Create an implementation plan for ticket: ${ticket.id}
 Title: ${ticket.title}
 
@@ -856,11 +886,11 @@ Your job is to come up with a clear, step-by-step implementation plan based on t
 Specify exactly which files will be modified, what new files will be created, and the logic to be added.
 Be mindful of corner cases.
 IMPORTANT: You must explicitly include steps to refactor and productionize any POC code you touch. Don't just paste POC code into production. Make sure it has proper error handling, types, and logging.
-CRITICAL: Include explicit steps in your plan to update or create the relevant E2E tests in `e2e/` and User Documentation in `docs/` if this feature affects them. Ensure any documentation or test changes are tracked under proper `jj bookmark` scope.
+CRITICAL: Include explicit steps in your plan to update or create the relevant E2E tests in e2e/ and User Documentation in docs/ if this feature affects them. Ensure any documentation or test changes are tracked under proper jj bookmark scope.
 
 Return a JSON object with a "document" string containing your markdown plan.`}
                                 </Task>
-                                <Task id={`review-plan-${ticket.id}`} output={outputs.review} agent={reviewAgent} retries={1} timeoutMs={120000}>
+                                <Task id={`review-plan-${ticket.id}`} output={outputs.review} agent={reviewAgent} retries={1} timeoutMs={1800000}>
                                   {`Review the implementation plan for ticket: ${ticket.id}
 
 The planner produced this document:
@@ -915,18 +945,24 @@ Return a JSON object with:
 
               if (node.type === "implement") {
                 const checkImpl = ctx.outputMaybe(outputs.checkPlan, { nodeId: `check-impl-${ticket.id}` }); // reusing checkPlan shape for simplicity
+                // Determine worktree branch: stack on parent ticket's bookmark, or main
+                const parentBookmark = (ticket.dependencies || []).length > 0
+                  ? `impl/${ticket.dependencies[ticket.dependencies.length - 1]}`
+                  : "main";
+                const worktreePath = path.join(process.cwd(), ".worktrees", ticket.id);
                 return (
                   <Sequence key={node.id} skipIf={false}>
                     <Task id={`check-impl-${ticket.id}`} output={outputs.checkPlan} dependsOn={node.dependsOn}>
                       {async () => {
                         let needsImpl = false;
                         if (impact.invalidateImplForTickets.includes(ticket.id)) needsImpl = true;
-                        // Also logic for checking if impl is done would go here, 
+                        // Also logic for checking if impl is done would go here,
                         // but since the original didn't have an idempotency check for impl (it just ran if writePlan ran),
                         // we use the impact invalidation to force it if needed.
                         return { needsPlan: needsImpl, existingContent: "" };
                       }}
                     </Task>
+                    <Worktree id={`worktree-${ticket.id}`} path={worktreePath} branch={parentBookmark} baseBranch="main">
                     <Branch
                       if={checkImpl?.needsPlan ?? true}
                       then={
@@ -942,7 +978,7 @@ Return a JSON object with:
                           output={outputs.implement} 
                           agent={implementAgent} 
                           retries={1} 
-                          timeoutMs={600000}
+                          timeoutMs={1800000}
                           dependsOn={node.dependsOn} // The actual code writing waits for the plan to finish
                         >
                           {`Implement the feature for ticket: ${ticket.id}
@@ -957,8 +993,8 @@ ${(() => { try { return fsSync.readFileSync(path.join(process.cwd(), "specs", "p
 ${ctx.iteration > 0 ? `REVIEW FEEDBACK FROM PREVIOUS ATTEMPT:\n${ctx.outputMaybe(outputs.review, { nodeId: `review-impl-${ticket.id}` })?.feedback}` : ""}
 
 Use your tools to write the code, modify files, and ensure tests pass. Follow the plan exactly.
-Ensure you also write or update the necessary E2E tests in `e2e/` and User Documentation in `docs/` as outlined in the plan.
-If you update any E2E tests or User Documentation, make sure you use `jj bookmark create` to create scoped, atomic emoji conventional commits for those specific changes.
+Ensure you also write or update the necessary E2E tests in e2e/ and User Documentation in docs/ as outlined in the plan.
+If you update any E2E tests or User Documentation, make sure you use jj bookmark create to create scoped, atomic emoji conventional commits for those specific changes.
 
 Return a JSON object with:
 - summary: string explaining what you did
@@ -970,7 +1006,7 @@ Return a JSON object with:
                           output={outputs.review} 
                           agent={reviewAgent} 
                           retries={1} 
-                          timeoutMs={300000}
+                          timeoutMs={1800000}
                         >
                           {`Review the implementation for ticket: ${ticket.id}
 
@@ -1011,6 +1047,7 @@ Return a JSON object with:
                     </Task>
                   }
                 />
+                    </Worktree>
 
                 {ctx.latest("implement", `implement-${ticket.id}`) || ctx.outputMaybe(outputs.done, { nodeId: `skip-impl-${ticket.id}` }) ? (
                   <Task id={`done-impl-${ticket.id}`} output={outputs.done}>
@@ -1021,9 +1058,92 @@ Return a JSON object with:
             );
           }
 
+              if (node.type === "bookmark") {
+                const wtPath = path.join(process.cwd(), ".worktrees", ticket.id);
+                return (
+                  <Sequence key={node.id}>
+                    <Task id={`bookmark-${ticket.id}`} output={outputs.bookmark} dependsOn={node.dependsOn}>
+                      {async () => {
+                        const bookmarkName = `impl/${ticket.id}`;
+
+                        // Describe the current change in the worktree
+                        execJJ(["describe", "-m", `🔧 impl(${ticket.id}): ${ticket.title}`], wtPath);
+
+                        // Get the change ID of the working copy
+                        const changeId = execJJ(["log", "-r", "@", "--no-graph", "-T", "change_id"], wtPath);
+
+                        // Create bookmark pointing at the working copy (idempotent: set if exists)
+                        try {
+                          execJJ(["bookmark", "create", bookmarkName, "-r", "@"], wtPath);
+                        } catch {
+                          execJJ(["bookmark", "set", bookmarkName, "-r", "@"], wtPath);
+                        }
+
+                        return { ticketId: ticket.id, changeId, bookmarkName };
+                      }}
+                    </Task>
+                  </Sequence>
+                );
+              }
+
               return null;
             })}
           </Parallel>
+        ) : null}
+
+        {/* ================================================================= */}
+        {/* PHASE 5: PR STACK - Push upstream & create Landing Request       */}
+        {/* ================================================================= */}
+        {allTicketsDone && masterTickets.length > 0 ? (
+          <Task
+            id="pr-stack"
+            output={outputs.prStack}
+            dependsOn={masterTickets.map(t => `bookmark-${t.id}`)}
+            needsApproval={true}
+          >
+            {async () => {
+              try {
+                // Rebase bookmarks into a clean stack: each ticket on top of its parent
+                // Process tickets in dependency order (they're already toposorted in masterTickets)
+                for (const t of masterTickets) {
+                  const parentDeps = t.dependencies || [];
+                  const destination = parentDeps.length > 0
+                    ? `impl/${parentDeps[parentDeps.length - 1]}`
+                    : "main";
+                  execJJ(["rebase", "-b", `impl/${t.id}`, "-d", destination]);
+                }
+
+                // Push all bookmarks upstream
+                execJJ(["git", "push", "--all"]);
+
+                // Create landing request for the full stack
+                const result = execFileSync("codeplane", [
+                  "land", "create",
+                  "--title", "Automated implementation stack",
+                  "--target", "main",
+                  "--stack",
+                ], { encoding: "utf-8", cwd: process.cwd(), stdio: ["ignore", "pipe", "pipe"] }).trimEnd();
+
+                // Parse the LR number from CLI output
+                const numMatch = result.match(/#(\d+)/);
+                const lrNumber = numMatch ? parseInt(numMatch[1], 10) : null;
+
+                return {
+                  pushed: true,
+                  landingRequestNumber: lrNumber,
+                  stackSize: masterTickets.length,
+                  error: null,
+                };
+              } catch (err) {
+                return {
+                  pushed: false,
+                  landingRequestNumber: null,
+                  stackSize: 0,
+                  error: err instanceof Error ? err.message : String(err),
+                };
+              }
+            }}
+          </Task>
         ) : null}
 
       </Sequence>

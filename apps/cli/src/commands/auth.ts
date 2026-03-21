@@ -48,8 +48,8 @@ function validateToken(input: string): string {
   if (!token) {
     throw new Error("no token provided on stdin");
   }
-  if (!token.startsWith("jjhub_")) {
-    throw new Error('Invalid token. Tokens must start with "jjhub_".');
+  if (!token.startsWith("codeplane_")) {
+    throw new Error('Invalid token. Tokens must start with "codeplane_".');
   }
   return token;
 }
@@ -71,7 +71,7 @@ function browserCandidates(
 }
 
 async function openBrowser(url: string): Promise<void> {
-  if (process.env.JJHUB_TEST_BROWSER_MODE === "fetch") {
+  if (process.env.CODEPLANE_TEST_BROWSER_MODE === "fetch") {
     const res = await fetch(url, { redirect: "manual" });
     const location = res.headers.get("location");
     if (location) {
@@ -149,7 +149,7 @@ function successHtml(host: string, username?: string): string {
     '<html lang="en">',
     "<head>",
     '<meta charset="utf-8">',
-    "<title>JJHub login complete</title>",
+    "<title>Codeplane login complete</title>",
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
     "<style>",
     "body { font-family: sans-serif; margin: 0; background: #f4f1ea; color: #1b2a2f; }",
@@ -162,7 +162,7 @@ function successHtml(host: string, username?: string): string {
     "<body>",
     '<div class="panel">',
     `<h1>${safeUsername ? `Logged in as ${safeUsername}` : "Logged in"}</h1>`,
-    `<p>Your JJHub CLI token for <code>${safeHost}</code> has been stored securely.</p>`,
+    `<p>Your Codeplane CLI token for <code>${safeHost}</code> has been stored securely.</p>`,
     "<p>You can close this tab and return to the terminal.</p>",
     "</div>",
     "</body>",
@@ -177,7 +177,7 @@ function callbackBridgeHtml(host: string): string {
     '<html lang="en">',
     "<head>",
     '<meta charset="utf-8">',
-    "<title>Completing JJHub login...</title>",
+    "<title>Completing Codeplane login...</title>",
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
     "</head>",
     "<body>",
@@ -321,7 +321,7 @@ async function runBrowserLogin(
   });
 
   const loginUrl = `${target.apiUrl}/api/auth/github/cli?callback_port=${server.port}`;
-  process.stderr.write(`Opening browser for JJHub login at ${target.host}\n`);
+  process.stderr.write(`Opening browser for Codeplane login at ${target.host}\n`);
   process.stderr.write(`If it does not open, visit:\n${loginUrl}\n`);
 
   try {
@@ -599,7 +599,7 @@ export const auth = Cli.create("auth", {
   description: "Manage authentication (login, logout, token)",
 })
   .command("login", {
-    description: "Log in to JJHub",
+    description: "Log in to Codeplane",
     options: z.object({
       "with-token": z
         .boolean()
@@ -640,7 +640,7 @@ export const auth = Cli.create("auth", {
     },
   })
   .command("logout", {
-    description: "Log out of JJHub",
+    description: "Log out of Codeplane",
     options: z.object({
       hostname: z
         .string()
@@ -653,8 +653,8 @@ export const auth = Cli.create("auth", {
         status: "logged_out",
         host: result.host,
         cleared: result.cleared || result.legacy_cleared,
-        message: process.env.JJHUB_TOKEN?.trim()
-          ? `Logged out from ${result.host}. JJHUB_TOKEN env is still active for this shell.`
+        message: process.env.CODEPLANE_TOKEN?.trim()
+          ? `Logged out from ${result.host}. CODEPLANE_TOKEN env is still active for this shell.`
           : `Logged out from ${result.host}`,
       };
     },

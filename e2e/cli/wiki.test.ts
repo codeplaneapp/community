@@ -15,7 +15,7 @@ describe("CLI: Wiki", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub wiki create creates a wiki page", async () => {
+  test("codeplane wiki create creates a wiki page", async () => {
     const result = await cli(
       ["wiki", "create", pageTitle, "--content", "# Welcome\n\nThis is the home page."],
       { repo: repoSlug, json: true },
@@ -26,7 +26,7 @@ describe("CLI: Wiki", () => {
     expect(body.content).toContain("Welcome");
   });
 
-  test("jjhub wiki list lists wiki pages", async () => {
+  test("codeplane wiki list lists wiki pages", async () => {
     const result = await cli(
       ["wiki", "list"],
       { repo: repoSlug, json: true },
@@ -37,7 +37,7 @@ describe("CLI: Wiki", () => {
     expect(body.some((p) => p.title === pageTitle)).toBe(true);
   });
 
-  test("jjhub wiki view shows a wiki page", async () => {
+  test("codeplane wiki view shows a wiki page", async () => {
     const result = await cli(
       ["wiki", "view", pageTitle],
       { repo: repoSlug, json: true },
@@ -48,7 +48,7 @@ describe("CLI: Wiki", () => {
     expect(body.content).toContain("Welcome");
   });
 
-  test("jjhub wiki delete removes a wiki page", async () => {
+  test("codeplane wiki delete removes a wiki page", async () => {
     const result = await cli(
       ["wiki", "delete", pageTitle, "--yes"],
       { repo: repoSlug, json: true },

@@ -1,5 +1,5 @@
 /**
- * Release service for JJHub Community Edition.
+ * Release service for Codeplane Community Edition.
  *
  * Implements release CRUD, asset management with local filesystem blob storage.
  * 1:1 port of Go's internal/services/release.go.

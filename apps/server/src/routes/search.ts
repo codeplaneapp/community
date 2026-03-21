@@ -5,7 +5,7 @@ import {
   writeError,
   writeJSON,
   writeRouteError,
-} from "@jjhub/sdk";
+} from "@codeplane/sdk";
 import { getServices } from "../services";
 
 // ---------------------------------------------------------------------------

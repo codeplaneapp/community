@@ -1,5 +1,5 @@
 /**
- * Feature flags service for JJHub.
+ * Feature flags service for Codeplane.
  *
  * Controls which features are enabled/disabled, user-level beta access,
  * and plan-based feature gating (free vs paid).
@@ -100,7 +100,7 @@ const CE_DEFAULTS: FlagConfig = {
 
 /**
  * Default CE provider: all flags enabled, overridable via
- * JJHUB_FEATURE_FLAGS_<FLAG_NAME> environment variables (set to "false"
+ * CODEPLANE_FEATURE_FLAGS_<FLAG_NAME> environment variables (set to "false"
  * to disable).
  */
 export class DefaultFeatureFlagProvider implements FeatureFlagProvider {
@@ -108,7 +108,7 @@ export class DefaultFeatureFlagProvider implements FeatureFlagProvider {
     const config = { ...CE_DEFAULTS };
 
     for (const key of Object.keys(config) as FeatureFlagName[]) {
-      const envKey = `JJHUB_FEATURE_FLAGS_${key.toUpperCase()}`;
+      const envKey = `CODEPLANE_FEATURE_FLAGS_${key.toUpperCase()}`;
       const envVal = process.env[envKey];
       if (envVal !== undefined) {
         config[key] = { ...config[key], enabled: envVal !== "false" && envVal !== "0" };

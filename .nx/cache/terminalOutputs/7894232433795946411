@@ -1,0 +1,8 @@
+
+> @jjhub/server@0.0.1 build /Users/williamcory/codeplane/apps/server
+> bun build --minify src/index.ts --outfile dist/jjhub.js --target=bun --external cpu-features
+
+[32mBundled 188 modules in 26ms[0m
+
+  [34mjjhub.js[33m  1.66 MB  [2m(entry point)[0m
+

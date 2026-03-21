@@ -1,11 +1,11 @@
 ---
 title: UI Prototype Showcase
-description: A preview of the upcoming JJHub internal application UI
+description: A preview of the upcoming Codeplane internal application UI
 ---
 
-# JJHub Internal Application UI
+# Codeplane Internal Application UI
 
-While the JJHub UI (hosted at [jjhub.tech](https://jjhub.tech)) is currently under active development and not broadly released, we have a functional prototype demonstrating the core product vision! 
+While the Codeplane UI (hosted at [codeplane.app](https://codeplane.app)) is currently under active development and not broadly released, we have a functional prototype demonstrating the core product vision! 
 
 Once authenticated, developers gain access to a powerful interface crafted specifically to bridge the gap between traditional workflows and our modern "Agent-Powered Engineering" paradigm. Here is a sneak peek at the internal application.
 
@@ -23,9 +23,9 @@ The Inbox serves as a unified notification center. Whether an AI agent requests 
 
 ## 3. Integrations & Skills Store
 
-JJHub is built to extend your existing workflow seamlessly. The built-in Integrations view functions like an App Store, allowing you to connect external services such as GitHub Mirror, Linear Sync, Notion Sync, and PostgreSQL, then install custom Agent Skills to augment your workspace.
+Codeplane is built to extend your existing workflow seamlessly. The built-in Integrations view functions like an App Store, allowing you to connect external services such as GitHub Mirror, Linear Sync, Notion Sync, and PostgreSQL, then install custom Agent Skills to augment your workspace.
 
-Linear can be configured from either the browser UI or the CLI. Open **Linear Sync** in the Integrations view to run the OAuth flow in the browser, or use `jjhub extension linear install` when you want a scriptable setup path. See the [Linear Integration guide](/guides/linear-integration) for both flows.
+Linear can be configured from either the browser UI or the CLI. Open **Linear Sync** in the Integrations view to run the OAuth flow in the browser, or use `codeplane extension linear install` when you want a scriptable setup path. See the [Linear Integration guide](/guides/linear-integration) for both flows.
 
 GitHub Mirror follows the Gitea push-mirror model. Open **GitHub Mirror** in the Integrations view to review the required environment variables, webhook events, and provisioning requirements. You must create the destination GitHub repository before enabling sync. See the [GitHub Mirror guide](/guides/github-mirror) for the full setup flow.
 
@@ -33,7 +33,7 @@ GitHub Mirror follows the Gitea push-mirror model. Open **GitHub Mirror** in the
 
 ## 4. Jujutsu-Native Repository View
 
-Unlike traditional platforms, JJHub's repository view natively understands the power of Jujutsu (`jj`). The contextual sidebar provides immediate access to core `jj` concepts: 
+Unlike traditional platforms, Codeplane's repository view natively understands the power of Jujutsu (`jj`). The contextual sidebar provides immediate access to core `jj` concepts: 
 
 - **Changes & Bookmarks**: Native tracking of continuous work.
 - **Conflicts**: First-class conflict resolution.
@@ -51,13 +51,13 @@ The cloud workspace environment includes a fully integrated terminal powered by 
 
 ## 6. Session Replay
 
-JJHub also includes a repo-scoped **Session Replay** view for persisted agent conversations. From the Sessions screen you can open a timeline that replays user messages, agent responses, and tool calls with relative timestamps and token counts.
+Codeplane also includes a repo-scoped **Session Replay** view for persisted agent conversations. From the Sessions screen you can open a timeline that replays user messages, agent responses, and tool calls with relative timestamps and token counts.
 
 This is useful when you need to debug a failed agent run, audit how a change was produced, or review what an interactive agent session actually did over time.
 
 ## A Note on Customizability
 
-While we are dedicated to providing a great, highly polished default experience, we recognize that every team and project is unique. Our core philosophy is to build **composable primitives** directly on top of the JJHub API and agent skills.
+While we are dedicated to providing a great, highly polished default experience, we recognize that every team and project is unique. Our core philosophy is to build **composable primitives** directly on top of the Codeplane API and agent skills.
 
 This means you are never locked into our specific UX choices. The platform is designed from the ground up to be completely extensible, empowering you to build the exact UI/UX workflow that works best for your project.
 

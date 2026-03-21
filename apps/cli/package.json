@@ -1,15 +1,15 @@
 {
-  "name": "@jjhub/cli",
+  "name": "codeplane",
   "private": true,
   "bin": {
-    "jjhub": "src/main.ts"
+    "codeplane": "src/main.ts"
   },
   "scripts": {
     "dev": "bun run src/main.ts",
     "build": "bun run scripts/build.ts"
   },
   "dependencies": {
-    "@jjhub/server": "workspace:*",
+    "@codeplane/server": "workspace:*",
     "@mariozechner/pi-coding-agent": "0.57.1",
     "@sinclair/typebox": "^0.34.41",
     "incur": "^0.3.1",

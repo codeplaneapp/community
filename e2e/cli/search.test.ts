@@ -14,7 +14,7 @@ describe("CLI: Search", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub search repos finds repositories", async () => {
+  test("codeplane search repos finds repositories", async () => {
     const result = await cli(
       ["search", "repos", searchTerm],
       { json: true },
@@ -26,7 +26,7 @@ describe("CLI: Search", () => {
     expect(body.items.some((r) => r.name === repoName)).toBe(true);
   });
 
-  test("jjhub search issues finds issues", async () => {
+  test("codeplane search issues finds issues", async () => {
     // Create an issue first
     const repoSlug = `${OWNER}/${repoName}`;
     await cli(
@@ -45,7 +45,7 @@ describe("CLI: Search", () => {
     expect(body.items.some((i) => i.title.includes(searchTerm))).toBe(true);
   });
 
-  test("jjhub search users finds users", async () => {
+  test("codeplane search users finds users", async () => {
     const result = await cli(
       ["search", "users", "alice"],
       { json: true },

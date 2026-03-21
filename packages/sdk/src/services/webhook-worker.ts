@@ -19,8 +19,8 @@ import {
 // Constants — match Go's webhook package
 // ---------------------------------------------------------------------------
 
-const JJHUB_USER_AGENT = "JJHub-Hookshot/1.0";
-const JJHUB_SIGNATURE_HEADER = "X-JJHub-Signature-256";
+const CODEPLANE_USER_AGENT = "Codeplane-Hookshot/1.0";
+const CODEPLANE_SIGNATURE_HEADER = "X-Codeplane-Signature-256";
 const MAX_FAILURE_STREAK = 10;
 const MAX_RESPONSE_BODY_BYTES = 10 * 1024; // 10KB — per spec
 const DEFAULT_POLL_INTERVAL_MS = 10_000; // 10 seconds
@@ -139,13 +139,13 @@ async function deliver(
 ): Promise<DeliveryResult> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "User-Agent": JJHUB_USER_AGENT,
-    "X-JJHub-Event": req.eventType,
-    "X-JJHub-Delivery": req.deliveryId,
+    "User-Agent": CODEPLANE_USER_AGENT,
+    "X-Codeplane-Event": req.eventType,
+    "X-Codeplane-Delivery": req.deliveryId,
   };
 
   if (req.secret !== "") {
-    headers[JJHUB_SIGNATURE_HEADER] = signPayload(req.secret, req.payload);
+    headers[CODEPLANE_SIGNATURE_HEADER] = signPayload(req.secret, req.payload);
   }
 
   try {

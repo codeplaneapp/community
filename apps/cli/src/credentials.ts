@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-const SERVICE_NAME = "jjhub-cli";
+const SERVICE_NAME = "codeplane-cli";
 
 interface CredentialStoreBackend {
   delete(host: string): boolean;
@@ -210,7 +210,7 @@ function linuxBackend(): CredentialStoreBackend | null {
       try {
         execFileSync(
           "secret-tool",
-          ["store", "--label=JJHub CLI token", "service", SERVICE_NAME, "host", host],
+          ["store", "--label=Codeplane CLI token", "service", SERVICE_NAME, "host", host],
           {
             encoding: "utf8",
             input: token,
@@ -244,7 +244,7 @@ function windowsBackend(): CredentialStoreBackend | null {
         encoding: "utf8",
         env: {
           ...process.env,
-          JJHUB_CRED_SERVICE: SERVICE_NAME,
+          CODEPLANE_CRED_SERVICE: SERVICE_NAME,
           ...env,
         },
         stdio: ["ignore", "pipe", "pipe"],
@@ -257,10 +257,10 @@ function windowsBackend(): CredentialStoreBackend | null {
       try {
         run(
           [
-            "$cred = $vault.Retrieve($env:JJHUB_CRED_SERVICE, $env:JJHUB_CRED_HOST)",
+            "$cred = $vault.Retrieve($env:CODEPLANE_CRED_SERVICE, $env:CODEPLANE_CRED_HOST)",
             "$vault.Remove($cred)",
           ].join("; "),
-          { JJHUB_CRED_HOST: host },
+          { CODEPLANE_CRED_HOST: host },
         );
         return true;
       } catch (error) {
@@ -274,11 +274,11 @@ function windowsBackend(): CredentialStoreBackend | null {
       try {
         const output = run(
           [
-            "$cred = $vault.Retrieve($env:JJHUB_CRED_SERVICE, $env:JJHUB_CRED_HOST)",
+            "$cred = $vault.Retrieve($env:CODEPLANE_CRED_SERVICE, $env:CODEPLANE_CRED_HOST)",
             "$cred.RetrievePassword()",
             "[Console]::Out.Write($cred.Password)",
           ].join("; "),
-          { JJHUB_CRED_HOST: host },
+          { CODEPLANE_CRED_HOST: host },
         );
         return output.trim() || null;
       } catch (error) {
@@ -293,19 +293,19 @@ function windowsBackend(): CredentialStoreBackend | null {
         run(
           [
             "try {",
-            "  $existing = $vault.Retrieve($env:JJHUB_CRED_SERVICE, $env:JJHUB_CRED_HOST)",
+            "  $existing = $vault.Retrieve($env:CODEPLANE_CRED_SERVICE, $env:CODEPLANE_CRED_HOST)",
             "  $vault.Remove($existing)",
             "} catch {}",
             "$cred = New-Object Windows.Security.Credentials.PasswordCredential(",
-            "  $env:JJHUB_CRED_SERVICE,",
-            "  $env:JJHUB_CRED_HOST,",
-            "  $env:JJHUB_CRED_TOKEN",
+            "  $env:CODEPLANE_CRED_SERVICE,",
+            "  $env:CODEPLANE_CRED_HOST,",
+            "  $env:CODEPLANE_CRED_TOKEN",
             ")",
             "$vault.Add($cred)",
           ].join(" "),
           {
-            JJHUB_CRED_HOST: host,
-            JJHUB_CRED_TOKEN: token,
+            CODEPLANE_CRED_HOST: host,
+            CODEPLANE_CRED_TOKEN: token,
           },
         );
       } catch (error) {
@@ -316,12 +316,12 @@ function windowsBackend(): CredentialStoreBackend | null {
 }
 
 function resolveBackend(): CredentialStoreBackend | null {
-  const testStorePath = process.env.JJHUB_TEST_CREDENTIAL_STORE_FILE?.trim();
+  const testStorePath = process.env.CODEPLANE_TEST_CREDENTIAL_STORE_FILE?.trim();
   if (testStorePath) {
     return testFileBackend(testStorePath);
   }
 
-  if (process.env.JJHUB_DISABLE_SYSTEM_KEYRING === "1") {
+  if (process.env.CODEPLANE_DISABLE_SYSTEM_KEYRING === "1") {
     return null;
   }
 
@@ -350,7 +350,7 @@ export function storeToken(host: string, token: string): void {
   const backend = resolveBackend();
   if (!backend) {
     throw new SecureStorageUnavailableError(
-      "Secure credential storage is unavailable. Use JJHUB_TOKEN for headless or CI workflows.",
+      "Secure credential storage is unavailable. Use CODEPLANE_TOKEN for headless or CI workflows.",
     );
   }
 

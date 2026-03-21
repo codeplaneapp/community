@@ -68,7 +68,7 @@ import {
 } from "../lib/errors";
 
 // Types matching Go's JSON shapes — originally in routes/users.ts, inlined here
-// after the services moved to @jjhub/sdk.
+// after the services moved to @codeplane/sdk.
 
 export interface UserProfile {
   id: number;
@@ -203,7 +203,7 @@ export interface ConnectedAccountResponse {
 
 const USER_DEFAULT_PER_PAGE = 30;
 const USER_MAX_PER_PAGE = 100;
-const TOKEN_PREFIX = "jjhub_";
+const TOKEN_PREFIX = "codeplane_";
 
 // Privileged scopes — matches Go's containsPrivilegedScope
 const PRIVILEGED_SCOPES = new Set([

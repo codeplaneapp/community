@@ -8,11 +8,11 @@ import { ApiError, api, resolveRepoRef } from "../client.js";
 import { stateDir } from "../config.js";
 
 const DEFAULT_REMOTE_WORKSPACE_ROOT = "/home/developer/workspace";
-const DEFAULT_REMOTE_CLAUDE_AUTH_DIR = "/home/developer/.jjhub";
-const DEFAULT_REMOTE_CLAUDE_AUTH_FILE = "/home/developer/.jjhub/claude-env.sh";
-const DEFAULT_REMOTE_PROMPT_FILE = "/home/developer/.jjhub/issue-prompt.txt";
-const DEFAULT_REMOTE_CLAUDE_INSTALL_LOG = "/home/developer/.jjhub/claude-install.log";
-const DEFAULT_REMOTE_NODE_INSTALL_LOG = "/home/developer/.jjhub/node-install.log";
+const DEFAULT_REMOTE_CLAUDE_AUTH_DIR = "/home/developer/.codeplane";
+const DEFAULT_REMOTE_CLAUDE_AUTH_FILE = "/home/developer/.codeplane/claude-env.sh";
+const DEFAULT_REMOTE_PROMPT_FILE = "/home/developer/.codeplane/issue-prompt.txt";
+const DEFAULT_REMOTE_CLAUDE_INSTALL_LOG = "/home/developer/.codeplane/claude-install.log";
+const DEFAULT_REMOTE_NODE_INSTALL_LOG = "/home/developer/.codeplane/node-install.log";
 const DEFAULT_REMOTE_WORKSPACE_USER = "developer";
 const DEFAULT_REMOTE_LOCAL_ROOT = "/home/developer/.local";
 const DEFAULT_REMOTE_LOCAL_BIN_DIR = "/home/developer/.local/bin";
@@ -139,11 +139,11 @@ async function waitForWorkspaceSSHInfo(
   workspaceId: string,
 ): Promise<WorkspaceSSHInfo> {
   const pollIntervalMs = parsePositiveIntegerEnv(
-    "JJHUB_WORKSPACE_SSH_POLL_INTERVAL_MS",
+    "CODEPLANE_WORKSPACE_SSH_POLL_INTERVAL_MS",
     DEFAULT_WORKSPACE_SSH_POLL_INTERVAL_MS,
   );
   const pollTimeoutMs = parsePositiveIntegerEnv(
-    "JJHUB_WORKSPACE_SSH_POLL_TIMEOUT_MS",
+    "CODEPLANE_WORKSPACE_SSH_POLL_TIMEOUT_MS",
     DEFAULT_WORKSPACE_SSH_POLL_TIMEOUT_MS,
   );
   const deadline = Date.now() + pollTimeoutMs;
@@ -200,7 +200,7 @@ function buildWorkspaceBootstrapScript(): string {
       "        {",
       '          headers: {',
       '            Accept: "application/vnd.github+json",',
-      '            "User-Agent": "jjhub-workspace-bootstrap",',
+      '            "User-Agent": "codeplane-workspace-bootstrap",',
       "          },",
       "        },",
       "        (res) => {",
@@ -227,7 +227,7 @@ function buildWorkspaceBootstrapScript(): string {
       '    throw new Error(`unsupported architecture: ${os.arch()}`);',
       "  }",
       "",
-      '  const releaseUrl = process.env.JJHUB_JJ_RELEASE_API_URL || "https://api.github.com/repos/jj-vcs/jj/releases/latest";',
+      '  const releaseUrl = process.env.CODEPLANE_JJ_RELEASE_API_URL || "https://api.github.com/repos/jj-vcs/jj/releases/latest";',
       "  const releaseResponse = await request(releaseUrl);",
       "  const releaseChunks = [];",
       "  for await (const chunk of releaseResponse) {",
@@ -243,9 +243,9 @@ function buildWorkspaceBootstrapScript(): string {
       '    throw new Error(`jj release asset not found for target ${target}`);',
       "  }",
       "",
-      "  const archivePath = process.env.JJHUB_JJ_ARCHIVE;",
+      "  const archivePath = process.env.CODEPLANE_JJ_ARCHIVE;",
       "  if (!archivePath) {",
-      '    throw new Error("JJHUB_JJ_ARCHIVE is required");',
+      '    throw new Error("CODEPLANE_JJ_ARCHIVE is required");',
       "  }",
       "",
       "  const archiveResponse = await request(asset.browser_download_url);",
@@ -266,14 +266,14 @@ function buildWorkspaceBootstrapScript(): string {
     '    echo "jj is not installed and node is unavailable for bootstrap." >&2',
     "    exit 1",
     "  fi",
-    '  export JJHUB_JJ_ARCHIVE="/tmp/jjhub-jj-release.tar.gz"',
-    '  export JJHUB_JJ_EXTRACT_DIR="/tmp/jjhub-jj-release"',
-    `  export JJHUB_JJ_RELEASE_API_URL=${shellEscape(DEFAULT_JJ_RELEASE_API_URL)}`,
-    '  rm -rf "$JJHUB_JJ_ARCHIVE" "$JJHUB_JJ_EXTRACT_DIR"',
-    '  mkdir -p "$JJHUB_JJ_EXTRACT_DIR"',
+    '  export CODEPLANE_JJ_ARCHIVE="/tmp/codeplane-jj-release.tar.gz"',
+    '  export CODEPLANE_JJ_EXTRACT_DIR="/tmp/codeplane-jj-release"',
+    `  export CODEPLANE_JJ_RELEASE_API_URL=${shellEscape(DEFAULT_JJ_RELEASE_API_URL)}`,
+    '  rm -rf "$CODEPLANE_JJ_ARCHIVE" "$CODEPLANE_JJ_EXTRACT_DIR"',
+    '  mkdir -p "$CODEPLANE_JJ_EXTRACT_DIR"',
     `  node -e ${shellEscape('void eval(Buffer.from(process.argv[1], "base64").toString("utf8"));')} ${shellEscape(installerScript)}`,
-    '  tar -xzf "$JJHUB_JJ_ARCHIVE" -C "$JJHUB_JJ_EXTRACT_DIR"',
-    '  jj_bin="$(find "$JJHUB_JJ_EXTRACT_DIR" -type f -name jj | head -n 1)"',
+    '  tar -xzf "$CODEPLANE_JJ_ARCHIVE" -C "$CODEPLANE_JJ_EXTRACT_DIR"',
+    '  jj_bin="$(find "$CODEPLANE_JJ_EXTRACT_DIR" -type f -name jj | head -n 1)"',
     '  if [ -z "$jj_bin" ]; then',
     '    echo "Downloaded jj release did not contain a jj binary." >&2',
     "    exit 1",
@@ -329,8 +329,8 @@ function buildWorkspaceNodeBootstrapScript(): string {
       '    throw new Error(`unsupported architecture: ${os.arch()}`);',
       "  }",
       "",
-      '  const indexUrl = process.env.JJHUB_NODE_INDEX_URL || "https://nodejs.org/dist/index.json";',
-      '  const major = process.env.JJHUB_NODE_MAJOR || "22";',
+      '  const indexUrl = process.env.CODEPLANE_NODE_INDEX_URL || "https://nodejs.org/dist/index.json";',
+      '  const major = process.env.CODEPLANE_NODE_MAJOR || "22";',
       "  const indexResponse = await request(indexUrl);",
       "  const indexChunks = [];",
       "  for await (const chunk of indexResponse) {",
@@ -349,9 +349,9 @@ function buildWorkspaceNodeBootstrapScript(): string {
       '    throw new Error(`Node.js release not found for major ${major} and target ${target}`);',
       "  }",
       "",
-      '  const archivePath = process.env.JJHUB_NODE_ARCHIVE;',
+      '  const archivePath = process.env.CODEPLANE_NODE_ARCHIVE;',
       "  if (!archivePath) {",
-      '    throw new Error("JJHUB_NODE_ARCHIVE is required");',
+      '    throw new Error("CODEPLANE_NODE_ARCHIVE is required");',
       "  }",
       "",
       '  const archiveUrl = `https://nodejs.org/dist/${release.version}/node-${release.version}-${target}.tar.gz`;',
@@ -376,15 +376,15 @@ function buildWorkspaceNodeBootstrapScript(): string {
     '    echo "Node.js is unavailable for workspace-local bootstrap." >&2',
     "    exit 1",
     "  fi",
-    '  export JJHUB_NODE_ARCHIVE="/tmp/jjhub-node-release.tar.gz"',
-    '  export JJHUB_NODE_EXTRACT_DIR="/tmp/jjhub-node-release"',
-    `  export JJHUB_NODE_INDEX_URL=${shellEscape(DEFAULT_NODE_DIST_INDEX_URL)}`,
-    `  export JJHUB_NODE_MAJOR=${shellEscape(DEFAULT_NODE_MAJOR)}`,
-    `  rm -rf "$JJHUB_NODE_ARCHIVE" "$JJHUB_NODE_EXTRACT_DIR" ${shellEscape(DEFAULT_REMOTE_LOCAL_NODE_DIR)}`,
-    '  mkdir -p "$JJHUB_NODE_EXTRACT_DIR"',
+    '  export CODEPLANE_NODE_ARCHIVE="/tmp/codeplane-node-release.tar.gz"',
+    '  export CODEPLANE_NODE_EXTRACT_DIR="/tmp/codeplane-node-release"',
+    `  export CODEPLANE_NODE_INDEX_URL=${shellEscape(DEFAULT_NODE_DIST_INDEX_URL)}`,
+    `  export CODEPLANE_NODE_MAJOR=${shellEscape(DEFAULT_NODE_MAJOR)}`,
+    `  rm -rf "$CODEPLANE_NODE_ARCHIVE" "$CODEPLANE_NODE_EXTRACT_DIR" ${shellEscape(DEFAULT_REMOTE_LOCAL_NODE_DIR)}`,
+    '  mkdir -p "$CODEPLANE_NODE_EXTRACT_DIR"',
     `  node -e ${shellEscape('void eval(Buffer.from(process.argv[1], "base64").toString("utf8"));')} ${shellEscape(installerScript)} >${shellEscape(DEFAULT_REMOTE_NODE_INSTALL_LOG)} 2>&1`,
-    `  tar -xzf "$JJHUB_NODE_ARCHIVE" -C "$JJHUB_NODE_EXTRACT_DIR" >>${shellEscape(DEFAULT_REMOTE_NODE_INSTALL_LOG)} 2>&1`,
-    `  node_dir="$(find "$JJHUB_NODE_EXTRACT_DIR" -mindepth 1 -maxdepth 1 -type d -name 'node-*' | head -n 1)"`,
+    `  tar -xzf "$CODEPLANE_NODE_ARCHIVE" -C "$CODEPLANE_NODE_EXTRACT_DIR" >>${shellEscape(DEFAULT_REMOTE_NODE_INSTALL_LOG)} 2>&1`,
+    `  node_dir="$(find "$CODEPLANE_NODE_EXTRACT_DIR" -mindepth 1 -maxdepth 1 -type d -name 'node-*' | head -n 1)"`,
     '  if [ -z "$node_dir" ]; then',
     '    echo "Downloaded Node.js archive did not contain a node directory." >&2',
     "    exit 1",
@@ -433,7 +433,7 @@ function buildClaudeRemoteScript(prompt: string): string {
     `  . ${shellEscape(DEFAULT_REMOTE_CLAUDE_AUTH_FILE)}`,
     "fi",
     'if [ -z "${ANTHROPIC_AUTH_TOKEN:-}" ] && [ -z "${ANTHROPIC_API_KEY:-}" ]; then',
-    '  echo "Claude Code auth is not configured in the workspace. Run jjhub auth claude login, or set ANTHROPIC_AUTH_TOKEN / ANTHROPIC_API_KEY locally and rerun jjhub workspace issue." >&2',
+    '  echo "Claude Code auth is not configured in the workspace. Run codeplane auth claude login, or set ANTHROPIC_AUTH_TOKEN / ANTHROPIC_API_KEY locally and rerun codeplane workspace issue." >&2',
     "  exit 1",
     "fi",
     `prompt="$(cat ${shellEscape(DEFAULT_REMOTE_PROMPT_FILE)})"`,
@@ -516,7 +516,7 @@ function stripAnsi(value: string): string {
 
 function getWorkspaceKnownHostsFile(): string {
   const knownHostsFile =
-    process.env.JJHUB_WORKSPACE_KNOWN_HOSTS_FILE?.trim() ||
+    process.env.CODEPLANE_WORKSPACE_KNOWN_HOSTS_FILE?.trim() ||
     DEFAULT_LOCAL_WORKSPACE_KNOWN_HOSTS_FILE;
   mkdirSync(dirname(knownHostsFile), { recursive: true });
   return knownHostsFile;
@@ -532,7 +532,7 @@ function buildSSHInvocationArgs(
   }
 
   const connectTimeoutSeconds = parsePositiveIntegerEnv(
-    "JJHUB_WORKSPACE_SSH_CONNECT_TIMEOUT_SECONDS",
+    "CODEPLANE_WORKSPACE_SSH_CONNECT_TIMEOUT_SECONDS",
     DEFAULT_WORKSPACE_SSH_CONNECT_TIMEOUT_SECONDS,
   );
   const executable = basename(sshArgs[0] ?? "").toLowerCase();
@@ -611,14 +611,14 @@ function buildRemoteShellSessionScript(beginMarker: string, endMarker: string, s
     "stty -echo",
     "exec 2>&1",
     "export PROMPT_COMMAND=",
-    "export PS1='__JJHUB_PROMPT__ '",
+    "export PS1='__CODEPLANE_PROMPT__ '",
     `printf '${beginMarker}\\n'`,
     "(",
     script,
     ")",
-    "__jjhub_status=$?",
-    `printf '\\n${endMarker}:%s\\n' \"$__jjhub_status\"`,
-    'exit "$__jjhub_status"',
+    "__codeplane_status=$?",
+    `printf '\\n${endMarker}:%s\\n' \"$__codeplane_status\"`,
+    'exit "$__codeplane_status"',
   ].join("\n")}\n`;
 }
 
@@ -691,12 +691,12 @@ async function runRemoteShellCommand(
   options: { streamOutputToStderr?: boolean; timeoutMs?: number } = {},
 ): Promise<string> {
   const markerId = crypto.randomUUID();
-  const beginMarker = `__JJHUB_BEGIN_${markerId}__`;
-  const endMarker = `__JJHUB_END_${markerId}__`;
+  const beginMarker = `__CODEPLANE_BEGIN_${markerId}__`;
+  const endMarker = `__CODEPLANE_END_${markerId}__`;
   const timeoutMs = options.timeoutMs ?? DEFAULT_WORKSPACE_REMOTE_COMMAND_TIMEOUT_MS;
   const sshArgs = buildSSHInvocationArgs(sshCommand, { forceTTY: true });
   const sessionScript = buildRemoteShellSessionScript(beginMarker, endMarker, script);
-  const stdinFilePath = join(tmpdir(), `jjhub-workspace-ssh-${crypto.randomUUID()}.txt`);
+  const stdinFilePath = join(tmpdir(), `codeplane-workspace-ssh-${crypto.randomUUID()}.txt`);
   writeFileSync(stdinFilePath, sessionScript, "utf8");
 
   try {
@@ -744,7 +744,7 @@ async function runRemoteInteractiveCommand(
   await runRemoteShellCommand(sshCommand, script, label, {
     streamOutputToStderr: true,
     timeoutMs: parsePositiveIntegerEnv(
-      "JJHUB_WORKSPACE_CLAUDE_TIMEOUT_MS",
+      "CODEPLANE_WORKSPACE_CLAUDE_TIMEOUT_MS",
       DEFAULT_WORKSPACE_CLAUDE_TIMEOUT_MS,
     ),
   });
@@ -829,7 +829,7 @@ async function ensureWorkspaceClaudeAuth(sshCommand: string): Promise<void> {
   }
 
   throw new Error(
-    "Claude Code auth is not configured. Run `jjhub auth claude login`, or set ANTHROPIC_AUTH_TOKEN / ANTHROPIC_API_KEY locally and rerun `jjhub workspace issue`.",
+    "Claude Code auth is not configured. Run `codeplane auth claude login`, or set ANTHROPIC_AUTH_TOKEN / ANTHROPIC_API_KEY locally and rerun `codeplane workspace issue`.",
   );
 }
 

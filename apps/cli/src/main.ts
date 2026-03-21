@@ -288,8 +288,8 @@ function rewriteCliArgv(argv: string[]): string[] {
   return rewriteAgentArgv(withDefaultAgent);
 }
 
-const cli = Cli.create("jjhub", {
-  description: "JJHub CLI — jj-native code hosting",
+const cli = Cli.create("codeplane", {
+  description: "Codeplane CLI — jj-native code hosting",
   version: "0.1.0",
 })
   .command(auth)

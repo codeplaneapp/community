@@ -5,26 +5,26 @@ description: Write a TypeScript workflow to automate your repository
 
 # Your First Workflow
 
-JJHub workflows are TSX files stored in your repository under `.jjhub/workflows/`. They use [Smithers](https://smithers.sh) JSX components wrapped by the `@jjhub-ai/workflow` package.
+Codeplane workflows are TSX files stored in your repository under `.codeplane/workflows/`. They use [Smithers](https://smithers.sh) JSX components wrapped by the `@codeplane-ai/workflow` package.
 
 ## Project Setup
 
-The `.jjhub/` directory at your repository root is a Bun workspace member with its own `package.json` and `tsconfig.json`. This gives you full LSP support (autocomplete, type checking, go-to-definition) when editing workflows.
+The `.codeplane/` directory at your repository root is a Bun workspace member with its own `package.json` and `tsconfig.json`. This gives you full LSP support (autocomplete, type checking, go-to-definition) when editing workflows.
 
-### `.jjhub/package.json`
+### `.codeplane/package.json`
 
 ```json
 {
-  "name": "jjhub-workflows",
+  "name": "codeplane-workflows",
   "private": true,
   "type": "module",
   "dependencies": {
-    "@jjhub-ai/workflow": "workspace:*"
+    "@codeplane-ai/workflow": "workspace:*"
   }
 }
 ```
 
-### `.jjhub/tsconfig.json`
+### `.codeplane/tsconfig.json`
 
 ```json
 {
@@ -41,7 +41,7 @@ The `.jjhub/` directory at your repository root is a Bun workspace member with i
     "noImplicitAny": false,
     "types": ["bun-types"],
     "paths": {
-      "@jjhub-ai/workflow": ["../packages/workflow/src/index.ts"]
+      "@codeplane-ai/workflow": ["../packages/workflow/src/index.ts"]
     }
   },
   "include": ["workflows/**/*.tsx"]
@@ -50,17 +50,17 @@ The `.jjhub/` directory at your repository root is a Bun workspace member with i
 
 ### Root `package.json`
 
-Add `.jjhub` and `packages/*` to your Bun workspaces so the `@jjhub-ai/workflow` dependency resolves:
+Add `.codeplane` and `packages/*` to your Bun workspaces so the `@codeplane-ai/workflow` dependency resolves:
 
 ```json
 {
-  "workspaces": ["packages/*", ".jjhub"]
+  "workspaces": ["packages/*", ".codeplane"]
 }
 ```
 
 Then run `bun install` to link the workspace.
 
-The `@jjhub-ai/workflow` package lives at `packages/workflow/` and re-exports [Smithers](https://smithers.sh) JSX components (`Workflow`, `Task`, `Parallel`, `Sequence`, `Branch`, `Ralph`) plus the `on` trigger builders.
+The `@codeplane-ai/workflow` package lives at `packages/workflow/` and re-exports [Smithers](https://smithers.sh) JSX components (`Workflow`, `Task`, `Parallel`, `Sequence`, `Branch`, `Ralph`) plus the `on` trigger builders.
 
 ## Create a Workflow File
 
@@ -69,8 +69,8 @@ The `@jjhub-ai/workflow` package lives at `packages/workflow/` and re-exports [S
 </Info>
 
 ```tsx
-// .jjhub/workflows/ci.tsx
-import { Workflow, Task, on } from "@jjhub-ai/workflow";
+// .codeplane/workflows/ci.tsx
+import { Workflow, Task, on } from "@codeplane-ai/workflow";
 import { $ } from "bun";
 
 export default (ctx) => (
@@ -99,7 +99,7 @@ Workflows run automatically on configured events (push, landing request opened, 
 To manually trigger a workflow:
 
 ```bash
-jjhub workflow run <workflow-id> --ref main
+codeplane workflow run <workflow-id> --ref main
 ```
 
 ## Manual Dispatch with Inputs
@@ -111,8 +111,8 @@ Workflows can declare inputs that users provide when triggering a run manually. 
 Use the `on.manualDispatch` trigger to declare the inputs your workflow accepts:
 
 ```tsx
-// .jjhub/workflows/deploy.tsx
-import { Workflow, Task, on } from "@jjhub-ai/workflow";
+// .codeplane/workflows/deploy.tsx
+import { Workflow, Task, on } from "@codeplane-ai/workflow";
 import { $ } from "bun";
 
 export default (ctx) => (
@@ -191,16 +191,16 @@ Pass inputs using the `--input` (or `-i`) flag, one per key-value pair:
 
 ```bash
 # Deploy to staging (uses default dry_run=false, replicas=3)
-jjhub workflow run deploy --input environment=staging --input version=1.2.3
+codeplane workflow run deploy --input environment=staging --input version=1.2.3
 
 # Deploy to production with a dry run
-jjhub workflow run deploy \
+codeplane workflow run deploy \
   --input environment=production \
   --input version=2.0.0 \
   --input dry_run=true
 
 # Short form
-jjhub workflow run deploy -i environment=staging -i version=1.2.3
+codeplane workflow run deploy -i environment=staging -i version=1.2.3
 ```
 
 If a required input is missing, the CLI returns an error:
@@ -220,8 +220,8 @@ Error: input "environment" must be one of: staging, production (got "dev")
 Send a `POST` request to the workflow dispatches endpoint with inputs in the request body:
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/repos/alice/my-project/workflows/deploy/dispatches \
-  -H "Authorization: token jjhub_xxx" \
+curl -X POST https://api.codeplane.app/api/repos/alice/my-project/workflows/deploy/dispatches \
+  -H "Authorization: token codeplane_xxx" \
   -H "Content-Type: application/json" \
   -d '{
     "ref": "main",
@@ -277,16 +277,16 @@ For workflows triggered by other events (push, landing request, schedule), `ctx.
 
 ```bash
 # List runs for a workflow
-jjhub run list <workflow-id>
+codeplane run list <workflow-id>
 
 # View a specific run
-jjhub run view <run-id>
+codeplane run view <run-id>
 
 # Watch a run in real-time
-jjhub run watch <run-id>
+codeplane run watch <run-id>
 
 # Re-run a workflow
-jjhub run rerun <run-id>
+codeplane run rerun <run-id>
 ```
 
 ## Scheduled Triggers
@@ -298,8 +298,8 @@ Workflows can run on a schedule using CRON expressions. This is useful for night
 Use `on.schedule()` in your triggers array with a standard CRON expression:
 
 ```tsx
-// .jjhub/workflows/nightly-build.tsx
-import { Workflow, Task, on } from "@jjhub-ai/workflow";
+// .codeplane/workflows/nightly-build.tsx
+import { Workflow, Task, on } from "@codeplane-ai/workflow";
 import { $ } from "bun";
 
 export default (ctx) => (
@@ -354,8 +354,8 @@ All schedules run in **UTC**. Adjust your CRON expressions accordingly. For exam
 A workflow can have multiple schedule triggers, and can combine schedules with other trigger types:
 
 ```tsx
-// .jjhub/workflows/maintenance.tsx
-import { Workflow, Task, on } from "@jjhub-ai/workflow";
+// .codeplane/workflows/maintenance.tsx
+import { Workflow, Task, on } from "@codeplane-ai/workflow";
 import { ToolLoopAgent } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { $ } from "bun";
@@ -388,7 +388,7 @@ export default (ctx) => (
 
 ### How Scheduled Workflows Run
 
-Scheduled workflows are managed by the JJHub scheduler on the server side, not triggered by push events or user actions. When a schedule fires:
+Scheduled workflows are managed by the Codeplane scheduler on the server side, not triggered by push events or user actions. When a schedule fires:
 
 1. The scheduler matches the CRON expression against the current UTC time
 2. A workflow run is created targeting the default bookmark (typically `main`)
@@ -398,7 +398,7 @@ Scheduled workflows are managed by the JJHub scheduler on the server side, not t
 You can view scheduled runs the same way as any other run:
 
 ```bash
-jjhub run list <workflow-id>
+codeplane run list <workflow-id>
 ```
 
 ## AI Agent Steps
@@ -406,8 +406,8 @@ jjhub run list <workflow-id>
 Workflows can invoke AI agents as tasks using the `agent` prop:
 
 ```tsx
-// .jjhub/workflows/triage.tsx
-import { Workflow, Task, on } from "@jjhub-ai/workflow";
+// .codeplane/workflows/triage.tsx
+import { Workflow, Task, on } from "@codeplane-ai/workflow";
 import { ToolLoopAgent } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 
@@ -431,7 +431,7 @@ export default (ctx) => (
 To use AI agents in workflows, configure your API key as a repository secret:
 
 ```bash
-printf %s "sk-ant-..." | jjhub secret set ANTHROPIC_API_KEY --body-stdin
+printf %s "sk-ant-..." | codeplane secret set ANTHROPIC_API_KEY --body-stdin
 ```
 
 ## Schema-Driven Workflows
@@ -439,8 +439,8 @@ printf %s "sk-ant-..." | jjhub secret set ANTHROPIC_API_KEY --body-stdin
 For AI agent workflows that pass structured data between tasks, use `createSmithers` to define output schemas with Zod. This gives you type-safe `ctx.output()` for reading previous task results and automatic SQLite-backed persistence.
 
 ```tsx
-// .jjhub/workflows/bugfix.tsx
-import { createSmithers, Task, on } from "@jjhub-ai/workflow";
+// .codeplane/workflows/bugfix.tsx
+import { createSmithers, Task, on } from "@codeplane-ai/workflow";
 import { ToolLoopAgent as Agent } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";

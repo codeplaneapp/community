@@ -75,7 +75,7 @@ const RESERVED_REPO_NAMES = new Set([
   "workflows",
 ]);
 
-const DEFAULT_SHARD = "jjhub-repo-host-0";
+const DEFAULT_SHARD = "codeplane-repo-host-0";
 
 // ---------------------------------------------------------------------------
 // Types

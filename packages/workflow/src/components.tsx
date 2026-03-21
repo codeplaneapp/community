@@ -1,7 +1,7 @@
 /**
- * JJHub workflow components.
+ * Codeplane workflow components.
  *
- * These wrap Smithers primitives with JJHub-specific props (triggers, optional
+ * These wrap Smithers primitives with Codeplane-specific props (triggers, optional
  * output, conditional execution). The rendered JSX tree is identical to what
  * Smithers produces — the workflow renderer traverses it the same way.
  */

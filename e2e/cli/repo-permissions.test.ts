@@ -9,7 +9,7 @@ import { cli, jsonParse, uniqueName, OWNER, ORG, READ_TOKEN } from "./helpers";
  * commands. Uses seed tokens for alice (write), bob (read), and charlie.
  */
 
-const NON_ADMIN_TOKEN = process.env.JJHUB_NON_ADMIN_WRITE_TOKEN ?? "jjhub_cafebabecafebabecafebabecafebabecafebabe";
+const NON_ADMIN_TOKEN = process.env.CODEPLANE_NON_ADMIN_WRITE_TOKEN ?? "codeplane_cafebabecafebabecafebabecafebabecafebabe";
 
 describe("CLI: Repository Permissions", () => {
   const repoName = uniqueName("cli-perm-repo");

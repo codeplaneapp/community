@@ -1,5 +1,5 @@
 /**
- * Trigger builders for JJHub workflows.
+ * Trigger builders for Codeplane workflows.
  *
  * Each builder returns a plain object with `_type` that the workflow renderer
  * (scripts/lib/workflow-renderer.ts) uses to produce the JSON shape Go expects.

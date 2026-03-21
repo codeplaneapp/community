@@ -14,7 +14,7 @@ describe("CLI: Workflow Cache", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub cache list returns empty list for new repo", async () => {
+  test("codeplane cache list returns empty list for new repo", async () => {
     const result = await cli(
       ["cache", "list"],
       { repo: repoSlug, json: true },
@@ -26,7 +26,7 @@ describe("CLI: Workflow Cache", () => {
     expect(body.length).toBe(0);
   });
 
-  test("jjhub cache stats returns statistics for repo", async () => {
+  test("codeplane cache stats returns statistics for repo", async () => {
     const result = await cli(
       ["cache", "stats"],
       { repo: repoSlug, json: true },
@@ -40,7 +40,7 @@ describe("CLI: Workflow Cache", () => {
     expect(Number(body.ttl_seconds)).toBeGreaterThan(0);
   });
 
-  test("jjhub cache list supports bookmark filter", async () => {
+  test("codeplane cache list supports bookmark filter", async () => {
     const result = await cli(
       ["cache", "list", "--bookmark", "main"],
       { repo: repoSlug, json: true },
@@ -51,7 +51,7 @@ describe("CLI: Workflow Cache", () => {
     expect(Array.isArray(body)).toBe(true);
   });
 
-  test("jjhub cache list supports key filter", async () => {
+  test("codeplane cache list supports key filter", async () => {
     const result = await cli(
       ["cache", "list", "--key", "npm"],
       { repo: repoSlug, json: true },
@@ -62,7 +62,7 @@ describe("CLI: Workflow Cache", () => {
     expect(Array.isArray(body)).toBe(true);
   });
 
-  test("jjhub cache clear on empty repo returns zero deleted", async () => {
+  test("codeplane cache clear on empty repo returns zero deleted", async () => {
     const result = await cli(
       ["cache", "clear"],
       { repo: repoSlug, json: true },
@@ -74,7 +74,7 @@ describe("CLI: Workflow Cache", () => {
     expect(body.deleted_bytes).toBe(0);
   });
 
-  test("jjhub cache clear supports bookmark and key filters", async () => {
+  test("codeplane cache clear supports bookmark and key filters", async () => {
     const result = await cli(
       ["cache", "clear", "--bookmark", "main", "--key", "npm"],
       { repo: repoSlug, json: true },

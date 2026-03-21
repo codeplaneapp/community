@@ -15,7 +15,7 @@ describe("CLI: Webhooks", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub webhook create creates a webhook", async () => {
+  test("codeplane webhook create creates a webhook", async () => {
     const result = await cli(
       [
         "webhook", "create",
@@ -42,7 +42,7 @@ describe("CLI: Webhooks", () => {
     hookID = body.id;
   });
 
-  test("jjhub webhook list lists webhooks", async () => {
+  test("codeplane webhook list lists webhooks", async () => {
     const result = await cli(
       ["webhook", "list"],
       { repo: repoSlug, json: true },
@@ -53,7 +53,7 @@ describe("CLI: Webhooks", () => {
     expect(body.some((h) => h.id === hookID)).toBe(true);
   });
 
-  test("jjhub webhook delete removes a webhook", async () => {
+  test("codeplane webhook delete removes a webhook", async () => {
     const result = await cli(
       ["webhook", "delete", String(hookID), "--yes"],
       { repo: repoSlug, json: true },

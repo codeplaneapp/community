@@ -1,21 +1,21 @@
 ---
 title: Command Reference
-description: Complete reference for all jjhub CLI commands
+description: Complete reference for all codeplane CLI commands
 ---
 
-# jjhub
+# codeplane
 
-## jjhub agent
+## codeplane agent
 
-Talk to the local JJHub usage helper.
+Talk to the local Codeplane usage helper.
 
-By default, both `jjhub` and `jjhub agent` run locally, auto-detect the current jj repo, gather JJ/JJHub startup context, and use JJHub docs retrieval instead of stuffing the full docs corpus into every turn. Run them with a one-shot prompt or with no prompt for interactive use.
+By default, both `codeplane` and `codeplane agent` run locally, auto-detect the current jj repo, gather JJ/Codeplane startup context, and use Codeplane docs retrieval instead of stuffing the full docs corpus into every turn. Run them with a one-shot prompt or with no prompt for interactive use.
 
 #### Arguments
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `prompt` | `string` | no | Optional one-shot prompt for the local JJHub helper |
+| `prompt` | `string` | no | Optional one-shot prompt for the local Codeplane helper |
 
 #### Options
 
@@ -24,13 +24,13 @@ By default, both `jjhub` and `jjhub agent` run locally, auto-detect the current 
 | `--sandbox` | `boolean` | `false` | Use the workspace-backed sandbox backend instead of direct local execution |
 | `--repo` | `string` |  | Override the detected repository slug (`OWNER/REPO`) |
 
-### jjhub agent session
+### codeplane agent session
 
-Manage remote JJHub agent sessions.
+Manage remote Codeplane agent sessions.
 
-Legacy compatibility aliases remain available: `jjhub agent list`, `jjhub agent view`, `jjhub agent run`, and `jjhub agent chat`.
+Legacy compatibility aliases remain available: `codeplane agent list`, `codeplane agent view`, `codeplane agent run`, and `codeplane agent chat`.
 
-### jjhub agent session chat
+### codeplane agent session chat
 
 Send a message to an existing remote agent session
 
@@ -47,7 +47,7 @@ Send a message to an existing remote agent session
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub agent session list
+### codeplane agent session list
 
 List remote agent sessions
 
@@ -59,7 +59,7 @@ List remote agent sessions
 | `--per-page` | `number` | `30` | Results per page |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub agent session run
+### codeplane agent session run
 
 Start a new remote agent session and run a prompt
 
@@ -76,7 +76,7 @@ Start a new remote agent session and run a prompt
 | `--title` | `string` |  | Optional title for the session |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub agent session view
+### codeplane agent session view
 
 View a remote agent session
 
@@ -92,11 +92,11 @@ View a remote agent session
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-## jjhub api
+## codeplane api
 
-### jjhub api
+### codeplane api
 
-Make raw API calls to the JJHub server
+Make raw API calls to the Codeplane server
 
 #### Arguments
 
@@ -112,11 +112,11 @@ Make raw API calls to the JJHub server
 | `--field` | `array` |  | Request body field (key=value) |
 | `--header` | `array` |  | Request header (key:value) |
 
-## jjhub artifact
+## codeplane artifact
 
 Manage workflow artifacts
 
-### jjhub artifact download
+### codeplane artifact download
 
 Download an artifact from a workflow run
 
@@ -134,7 +134,7 @@ Download an artifact from a workflow run
 | `--output` | `string` |  | Output file path |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub artifact list
+### codeplane artifact list
 
 List artifacts for a workflow run
 
@@ -150,13 +150,13 @@ List artifacts for a workflow run
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-## jjhub auth
+## codeplane auth
 
 Manage authentication (login, logout, token)
 
-### jjhub auth login
+### codeplane auth login
 
-Log in to JJHub
+Log in to Codeplane
 
 #### Options
 
@@ -165,9 +165,9 @@ Log in to JJHub
 | `--with-token` | `boolean` | `false` | Read token from stdin instead of browser flow |
 | `--hostname` | `string` |  | API hostname to authenticate with |
 
-### jjhub auth logout
+### codeplane auth logout
 
-Log out of JJHub
+Log out of Codeplane
 
 #### Options
 
@@ -175,19 +175,19 @@ Log out of JJHub
 |------|------|---------|-------------|
 | `--hostname` | `string` |  | Hostname to log out from |
 
-### jjhub auth status
+### codeplane auth status
 
 Show authentication status
 
-### jjhub auth token
+### codeplane auth token
 
 Print the authentication token
 
-## jjhub beta
+## codeplane beta
 
 Manage closed alpha whitelist and waitlist
 
-### jjhub beta waitlist approve
+### codeplane beta waitlist approve
 
 Approve a waitlist entry by email (admin)
 
@@ -197,7 +197,7 @@ Approve a waitlist entry by email (admin)
 |------|------|---------|-------------|
 | `--email` | `string` |  | Email to approve |
 
-### jjhub beta waitlist join
+### codeplane beta waitlist join
 
 Join the closed alpha waitlist
 
@@ -209,7 +209,7 @@ Join the closed alpha waitlist
 | `--note` | `string` |  | Optional note for admins |
 | `--source` | `string` | `cli` | Source tag |
 
-### jjhub beta waitlist list
+### codeplane beta waitlist list
 
 List waitlist entries (admin)
 
@@ -220,7 +220,7 @@ List waitlist entries (admin)
 | `--status` | `string` |  | Filter by status (pending, approved, rejected) |
 | `--limit` | `number` | `30` | Maximum number of results (max 100) |
 
-### jjhub beta whitelist add
+### codeplane beta whitelist add
 
 Add or update a whitelist entry (admin)
 
@@ -231,11 +231,11 @@ Add or update a whitelist entry (admin)
 | `--type` | `string` |  | Identity type: email, wallet, username |
 | `--value` | `string` |  | Identity value |
 
-### jjhub beta whitelist list
+### codeplane beta whitelist list
 
 List whitelist entries (admin)
 
-### jjhub beta whitelist remove
+### codeplane beta whitelist remove
 
 Remove a whitelist entry (admin)
 
@@ -246,11 +246,11 @@ Remove a whitelist entry (admin)
 | `--type` | `string` |  | Identity type: email, wallet, username |
 | `--value` | `string` |  | Identity value |
 
-## jjhub bookmark
+## codeplane bookmark
 
 Manage bookmarks (branches)
 
-### jjhub bookmark create
+### codeplane bookmark create
 
 Create a bookmark
 
@@ -267,7 +267,7 @@ Create a bookmark
 | `--change` | `string` |  | Target change ID |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub bookmark delete
+### codeplane bookmark delete
 
 Delete a bookmark
 
@@ -283,7 +283,7 @@ Delete a bookmark
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub bookmark list
+### codeplane bookmark list
 
 List bookmarks
 
@@ -293,11 +293,11 @@ List bookmarks
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-## jjhub cache
+## codeplane cache
 
 Manage workflow caches
 
-### jjhub cache clear
+### codeplane cache clear
 
 Clear all caches for a repository
 
@@ -309,7 +309,7 @@ Clear all caches for a repository
 | `--key` | `string` |  | Filter by cache key |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub cache list
+### codeplane cache list
 
 List all caches for a repository
 
@@ -323,7 +323,7 @@ List all caches for a repository
 | `--page` | `number` | `1` | Page number |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub cache stats
+### codeplane cache stats
 
 Show cache statistics for a repository
 
@@ -333,11 +333,11 @@ Show cache statistics for a repository
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-## jjhub change
+## codeplane change
 
 View changes
 
-### jjhub change diff
+### codeplane change diff
 
 Show diff for a change
 
@@ -353,7 +353,7 @@ Show diff for a change
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub change list
+### codeplane change list
 
 List changes
 
@@ -364,7 +364,7 @@ List changes
 | `--limit` | `number` | `10` | Number of changes to show |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub change show
+### codeplane change show
 
 Show a specific change
 
@@ -380,9 +380,9 @@ Show a specific change
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-## jjhub completion
+## codeplane completion
 
-### jjhub completion
+### codeplane completion
 
 Generate shell completions
 
@@ -392,11 +392,11 @@ Generate shell completions
 |------|------|----------|-------------|
 | `shell` | `string` | yes | Shell type |
 
-## jjhub config
+## codeplane config
 
 Get and set configuration
 
-### jjhub config get
+### codeplane config get
 
 Get a config value by key
 
@@ -406,11 +406,11 @@ Get a config value by key
 |------|------|----------|-------------|
 | `key` | `string` | yes | Config key (api_url, git_protocol) |
 
-### jjhub config list
+### codeplane config list
 
 List all config values
 
-### jjhub config set
+### codeplane config set
 
 Set a config value by key
 
@@ -421,19 +421,19 @@ Set a config value by key
 | `key` | `string` | yes | Config key (api_url, git_protocol) |
 | `value` | `string` | yes | Value to set |
 
-## jjhub extension
+## codeplane extension
 
 Configure built-in integrations from the CLI
 
-### jjhub extension linear
+### codeplane extension linear
 
 Configure and manage the Linear integration
 
-Use the UI at `/integrations/linear` when you want JJHub to drive the OAuth flow, or use these CLI commands when you already have the Linear team metadata and tokens.
+Use the UI at `/integrations/linear` when you want Codeplane to drive the OAuth flow, or use these CLI commands when you already have the Linear team metadata and tokens.
 
-### jjhub extension linear install
+### codeplane extension linear install
 
-Configure a Linear team for a JJHub repository
+Configure a Linear team for a Codeplane repository
 
 #### Options
 
@@ -442,18 +442,18 @@ Configure a Linear team for a JJHub repository
 | `--team-id` | `string` |  | Linear team ID |
 | `--team-name` | `string` |  | Linear team display name |
 | `--team-key` | `string` |  | Linear team key (for example `PLT`) |
-| `--repo-owner` | `string` |  | JJHub repo owner |
-| `--repo-name` | `string` |  | JJHub repo name |
-| `--repo-id` | `number` |  | JJHub repo ID |
+| `--repo-owner` | `string` |  | Codeplane repo owner |
+| `--repo-name` | `string` |  | Codeplane repo name |
+| `--repo-id` | `number` |  | Codeplane repo ID |
 | `--credentials-stdin` | `boolean` | `false` | Read Linear OAuth credentials from stdin as JSON |
 | `--expires-at` | `string` |  | Token expiry timestamp (ISO-8601) |
 | `--actor-id` | `string` |  | Linear actor ID for loop-guard filtering |
 
-### jjhub extension linear list
+### codeplane extension linear list
 
 List configured Linear integrations
 
-### jjhub extension linear remove
+### codeplane extension linear remove
 
 Remove a Linear integration
 
@@ -463,7 +463,7 @@ Remove a Linear integration
 |------|------|----------|-------------|
 | `id` | `number` | yes | Integration ID |
 
-### jjhub extension linear sync
+### codeplane extension linear sync
 
 Trigger the initial sync for a Linear integration
 
@@ -473,11 +473,11 @@ Trigger the initial sync for a Linear integration
 |------|------|----------|-------------|
 | `id` | `number` | yes | Integration ID |
 
-## jjhub issue
+## codeplane issue
 
 Manage issues
 
-### jjhub issue close
+### codeplane issue close
 
 Close an issue
 
@@ -494,7 +494,7 @@ Close an issue
 | `--comment` | `string` |  | Add a comment when closing |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub issue create
+### codeplane issue create
 
 Create an issue
 
@@ -512,7 +512,7 @@ Create an issue
 | `--assignee` | `string` |  | Assignee username |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub issue list
+### codeplane issue list
 
 List issues
 
@@ -524,7 +524,7 @@ List issues
 | `--limit` | `number` | `30` | Maximum number of results (max 100) |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub issue reopen
+### codeplane issue reopen
 
 Reopen an issue
 
@@ -540,7 +540,7 @@ Reopen an issue
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub issue view
+### codeplane issue view
 
 View an issue
 
@@ -556,11 +556,11 @@ View an issue
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-## jjhub label
+## codeplane label
 
 Manage labels
 
-### jjhub label create
+### codeplane label create
 
 Create a label
 
@@ -578,7 +578,7 @@ Create a label
 | `--description` | `string` |  | Label description |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub label delete
+### codeplane label delete
 
 Delete a label
 
@@ -594,7 +594,7 @@ Delete a label
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub label list
+### codeplane label list
 
 List labels
 
@@ -604,11 +604,11 @@ List labels
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-## jjhub land
+## codeplane land
 
 Manage landing requests
 
-### jjhub land checks
+### codeplane land checks
 
 View landing request checks
 
@@ -624,7 +624,7 @@ View landing request checks
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub land conflicts
+### codeplane land conflicts
 
 View landing request conflicts
 
@@ -640,7 +640,7 @@ View landing request conflicts
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub land create
+### codeplane land create
 
 Create a landing request
 
@@ -654,7 +654,7 @@ Create a landing request
 | `--change` | `string` |  | Change ID(s) to land |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub land land
+### codeplane land land
 
 Land (merge) a landing request
 
@@ -670,7 +670,7 @@ Land (merge) a landing request
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub land list
+### codeplane land list
 
 List landing requests
 
@@ -682,7 +682,7 @@ List landing requests
 | `--limit` | `number` | `30` | Maximum number of results (max 100) |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub land review
+### codeplane land review
 
 Submit a review on a landing request
 
@@ -700,7 +700,7 @@ Submit a review on a landing request
 | `--body` | `string` |  | Review comment |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub land view
+### codeplane land view
 
 View a landing request
 
@@ -716,11 +716,11 @@ View a landing request
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-## jjhub notification
+## codeplane notification
 
 Manage notifications
 
-### jjhub notification list
+### codeplane notification list
 
 List recent notifications
 
@@ -731,7 +731,7 @@ List recent notifications
 | `--all` | `boolean` | `false` | Include read notifications |
 | `--limit` | `number` | `30` | Results per page |
 
-### jjhub notification mark-read
+### codeplane notification mark-read
 
 Mark a notification as read
 
@@ -741,11 +741,11 @@ Mark a notification as read
 |------|------|----------|-------------|
 | `id` | `string` | yes | Notification ID |
 
-## jjhub org
+## codeplane org
 
 Manage organizations and teams
 
-### jjhub org create
+### codeplane org create
 
 Create a new organization
 
@@ -762,7 +762,7 @@ Create a new organization
 | `--description` | `string` |  | Organization description |
 | `--visibility` | `string` | `public` | Visibility (public, private) |
 
-### jjhub org delete
+### codeplane org delete
 
 Delete an organization
 
@@ -772,11 +772,11 @@ Delete an organization
 |------|------|----------|-------------|
 | `name` | `string` | yes | Organization name |
 
-### jjhub org list
+### codeplane org list
 
 List organizations you belong to
 
-### jjhub org member add
+### codeplane org member add
 
 Add a user to an organization
 
@@ -787,7 +787,7 @@ Add a user to an organization
 | `org` | `string` | yes | Organization name |
 | `username` | `string` | yes | Username to add |
 
-### jjhub org member list
+### codeplane org member list
 
 List organization members
 
@@ -797,7 +797,7 @@ List organization members
 |------|------|----------|-------------|
 | `org` | `string` | yes | Organization name |
 
-### jjhub org member remove
+### codeplane org member remove
 
 Remove a user from an organization
 
@@ -808,7 +808,7 @@ Remove a user from an organization
 | `org` | `string` | yes | Organization name |
 | `username` | `string` | yes | Username to remove |
 
-### jjhub org team create
+### codeplane org team create
 
 Create a team in an organization
 
@@ -826,7 +826,7 @@ Create a team in an organization
 | `--description` | `string` |  | Team description |
 | `--permission` | `string` | `read` | Default permission (read, write, admin) |
 
-### jjhub org team delete
+### codeplane org team delete
 
 Delete a team
 
@@ -837,7 +837,7 @@ Delete a team
 | `org` | `string` | yes | Organization name |
 | `team` | `string` | yes | Team slug |
 
-### jjhub org team list
+### codeplane org team list
 
 List teams in an organization
 
@@ -847,7 +847,7 @@ List teams in an organization
 |------|------|----------|-------------|
 | `org` | `string` | yes | Organization name |
 
-### jjhub org team member add
+### codeplane org team member add
 
 Add a user to a team
 
@@ -859,7 +859,7 @@ Add a user to a team
 | `team` | `string` | yes | Team slug |
 | `username` | `string` | yes | Username to add |
 
-### jjhub org team member list
+### codeplane org team member list
 
 List team members
 
@@ -870,7 +870,7 @@ List team members
 | `org` | `string` | yes | Organization name |
 | `team` | `string` | yes | Team slug |
 
-### jjhub org team member remove
+### codeplane org team member remove
 
 Remove a user from a team
 
@@ -882,7 +882,7 @@ Remove a user from a team
 | `team` | `string` | yes | Team slug |
 | `username` | `string` | yes | Username to remove |
 
-### jjhub org team repo add
+### codeplane org team repo add
 
 Grant a team access to a repository
 
@@ -894,7 +894,7 @@ Grant a team access to a repository
 | `team` | `string` | yes | Team slug |
 | `repo` | `string` | yes | Repository (OWNER/REPO) |
 
-### jjhub org team repo list
+### codeplane org team repo list
 
 List repositories a team has access to
 
@@ -905,7 +905,7 @@ List repositories a team has access to
 | `org` | `string` | yes | Organization name |
 | `team` | `string` | yes | Team slug |
 
-### jjhub org team repo remove
+### codeplane org team repo remove
 
 Remove repository access from a team
 
@@ -917,7 +917,7 @@ Remove repository access from a team
 | `team` | `string` | yes | Team slug |
 | `repo` | `string` | yes | Repository (OWNER/REPO) |
 
-### jjhub org view
+### codeplane org view
 
 View organization details
 
@@ -927,11 +927,11 @@ View organization details
 |------|------|----------|-------------|
 | `name` | `string` | yes | Organization name |
 
-## jjhub repo
+## codeplane repo
 
 Manage repositories
 
-### jjhub repo clone
+### codeplane repo clone
 
 Clone a repository
 
@@ -948,7 +948,7 @@ Clone a repository
 | `--directory` | `string` |  | Target directory |
 | `--protocol` | `string` |  | Git protocol to use |
 
-### jjhub repo create
+### codeplane repo create
 
 Create a new repository
 
@@ -965,7 +965,7 @@ Create a new repository
 | `--description` | `string` |  | Repository description |
 | `--private` | `boolean` | `false` | Make repository private |
 
-### jjhub repo list
+### codeplane repo list
 
 List your repositories
 
@@ -975,7 +975,7 @@ List your repositories
 |------|------|---------|-------------|
 | `--limit` | `number` | `30` | Maximum number of results (max 100) |
 
-### jjhub repo view
+### codeplane repo view
 
 View repository details
 
@@ -985,11 +985,11 @@ View repository details
 |------|------|----------|-------------|
 | `repo` | `string` | yes | Repository in OWNER/REPO format |
 
-## jjhub run
+## codeplane run
 
 View and manage workflow runs
 
-### jjhub run list
+### codeplane run list
 
 List workflow runs
 
@@ -999,7 +999,7 @@ List workflow runs
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub run rerun
+### codeplane run rerun
 
 Rerun a workflow
 
@@ -1015,7 +1015,7 @@ Rerun a workflow
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub run view
+### codeplane run view
 
 View a workflow run
 
@@ -1031,11 +1031,11 @@ View a workflow run
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-## jjhub search
+## codeplane search
 
 Search repos, issues, and code
 
-### jjhub search code
+### codeplane search code
 
 Search code
 
@@ -1051,7 +1051,7 @@ Search code
 |------|------|---------|-------------|
 | `--limit` | `number` | `30` | Maximum number of results (max 100) |
 
-### jjhub search issues
+### codeplane search issues
 
 Search issues
 
@@ -1067,7 +1067,7 @@ Search issues
 |------|------|---------|-------------|
 | `--limit` | `number` | `30` | Maximum number of results (max 100) |
 
-### jjhub search repos
+### codeplane search repos
 
 Search repositories
 
@@ -1083,11 +1083,11 @@ Search repositories
 |------|------|---------|-------------|
 | `--limit` | `number` | `30` | Maximum number of results (max 100) |
 
-## jjhub secret
+## codeplane secret
 
 Manage secrets
 
-### jjhub secret delete
+### codeplane secret delete
 
 Delete a secret
 
@@ -1103,7 +1103,7 @@ Delete a secret
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub secret list
+### codeplane secret list
 
 List secrets
 
@@ -1113,7 +1113,7 @@ List secrets
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub secret set
+### codeplane secret set
 
 Set a secret
 
@@ -1130,11 +1130,11 @@ Set a secret
 | `--body-stdin` | `boolean` | `false` | Read the secret value from stdin |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-## jjhub ssh-key
+## codeplane ssh-key
 
 Manage SSH keys
 
-### jjhub ssh-key add
+### codeplane ssh-key add
 
 Add an SSH key
 
@@ -1145,7 +1145,7 @@ Add an SSH key
 | `--title` | `string` |  | Key title |
 | `--key` | `string` |  | Public key content |
 
-### jjhub ssh-key delete
+### codeplane ssh-key delete
 
 Delete an SSH key
 
@@ -1155,21 +1155,21 @@ Delete an SSH key
 |------|------|----------|-------------|
 | `id` | `number` | yes | Key ID |
 
-### jjhub ssh-key list
+### codeplane ssh-key list
 
 List SSH keys
 
-## jjhub status
+## codeplane status
 
-### jjhub status
+### codeplane status
 
 Show working copy status
 
-## jjhub variable
+## codeplane variable
 
 Manage variables
 
-### jjhub variable delete
+### codeplane variable delete
 
 Delete a variable
 
@@ -1185,7 +1185,7 @@ Delete a variable
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub variable get
+### codeplane variable get
 
 Get a variable value
 
@@ -1201,7 +1201,7 @@ Get a variable value
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub variable list
+### codeplane variable list
 
 List variables
 
@@ -1211,7 +1211,7 @@ List variables
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub variable set
+### codeplane variable set
 
 Set a variable
 
@@ -1228,11 +1228,11 @@ Set a variable
 | `--body` | `string` |  | Variable value |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-## jjhub webhook
+## codeplane webhook
 
 Manage repository webhooks
 
-### jjhub webhook create
+### codeplane webhook create
 
 Create a new webhook
 
@@ -1245,7 +1245,7 @@ Create a new webhook
 | `--events` | `string` | `*` | Comma-separated event types |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub webhook delete
+### codeplane webhook delete
 
 Delete a webhook
 
@@ -1261,7 +1261,7 @@ Delete a webhook
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub webhook list
+### codeplane webhook list
 
 List webhooks for a repository
 
@@ -1273,11 +1273,11 @@ List webhooks for a repository
 | `--page` | `number` | `1` | Page number |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-## jjhub wiki
+## codeplane wiki
 
 Manage repository wiki pages
 
-### jjhub wiki list
+### codeplane wiki list
 
 List all wiki pages
 
@@ -1287,7 +1287,7 @@ List all wiki pages
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub wiki view
+### codeplane wiki view
 
 View a wiki page content
 
@@ -1303,11 +1303,11 @@ View a wiki page content
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-## jjhub workflow
+## codeplane workflow
 
 Manage workflows
 
-### jjhub workflow dispatch
+### codeplane workflow dispatch
 
 Trigger a workflow
 
@@ -1324,7 +1324,7 @@ Trigger a workflow
 | `--ref` | `string` | `main` | Git ref to run against |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub workflow list
+### codeplane workflow list
 
 List workflows
 
@@ -1334,11 +1334,11 @@ List workflows
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-## jjhub workspace
+## codeplane workspace
 
 Manage cloud workspaces
 
-### jjhub workspace create
+### codeplane workspace create
 
 Create a workspace
 
@@ -1350,7 +1350,7 @@ Create a workspace
 | `--snapshot` | `string` |  | Snapshot ID to restore from |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub workspace delete
+### codeplane workspace delete
 
 Delete a workspace
 
@@ -1366,7 +1366,7 @@ Delete a workspace
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub workspace fork
+### codeplane workspace fork
 
 Fork a workspace
 
@@ -1383,7 +1383,7 @@ Fork a workspace
 | `--name` | `string` |  | Name for the forked workspace |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub workspace issue
+### codeplane workspace issue
 
 Spin up a workspace for an issue, open a draft landing request, and connect to the workspace
 
@@ -1400,7 +1400,7 @@ Spin up a workspace for an issue, open a draft landing request, and connect to t
 | `--target` | `string` | `main` | Target bookmark for the draft landing request |
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub workspace list
+### codeplane workspace list
 
 List workspaces
 
@@ -1410,7 +1410,7 @@ List workspaces
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub workspace snapshots
+### codeplane workspace snapshots
 
 List workspace snapshots
 
@@ -1426,7 +1426,7 @@ List workspace snapshots
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub workspace ssh
+### codeplane workspace ssh
 
 SSH into a workspace, auto-detecting or creating one for the repository when needed
 
@@ -1442,7 +1442,7 @@ SSH into a workspace, auto-detecting or creating one for the repository when nee
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-### jjhub workspace view
+### codeplane workspace view
 
 View workspace details (status, SSH info, persistence)
 
@@ -1458,19 +1458,19 @@ View workspace details (status, SSH info, persistence)
 |------|------|---------|-------------|
 | `--repo` | `string` |  | Repository (OWNER/REPO) |
 
-## jjhub admin
+## codeplane admin
 
-Manage JJHub instance settings and resources (admin only).
+Manage Codeplane instance settings and resources (admin only).
 
-### jjhub admin health
+### codeplane admin health
 
 Show system health status
 
-### jjhub admin runner list
+### codeplane admin runner list
 
 List all registered runners and their current status
 
-### jjhub admin user list
+### codeplane admin user list
 
 List all users in the system
 
@@ -1481,7 +1481,7 @@ List all users in the system
 | `--page` | `number` | `1` | Page number |
 | `--limit` | `number` | `30` | Results per page |
 
-### jjhub admin user create
+### codeplane admin user create
 
 Create a new user
 
@@ -1494,7 +1494,7 @@ Create a new user
 | `--password` | `string` |  | Initial password |
 | `--must-change-password` | `boolean` | `true` | Require password change on first login |
 
-### jjhub admin user disable
+### codeplane admin user disable
 
 Disable a user account
 
@@ -1504,7 +1504,7 @@ Disable a user account
 |------|------|----------|-------------|
 | `username` | `string` | yes | Username to disable |
 
-### jjhub admin user delete
+### codeplane admin user delete
 
 Permanently delete a user account
 
@@ -1514,7 +1514,7 @@ Permanently delete a user account
 |------|------|----------|-------------|
 | `username` | `string` | yes | Username to delete |
 
-### jjhub admin workflow list
+### codeplane admin workflow list
 
 List all workflow runs across all repositories
 

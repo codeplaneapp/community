@@ -221,7 +221,7 @@ async function checkRemoteRepoAvailability(
   if (!repoSlug || !auth.loggedIn) {
     return {
       checked: false,
-      message: repoSlug ? "Skipped because JJHub auth is unavailable" : "No JJHub repo detected",
+      message: repoSlug ? "Skipped because Codeplane auth is unavailable" : "No Codeplane repo detected",
     };
   }
 
@@ -304,7 +304,7 @@ export async function collectRepoContext(
       repoSource = "detected";
     } else {
       warnings.push(
-        "Could not determine the current JJHub repository from local remotes.",
+        "Could not determine the current Codeplane repository from local remotes.",
       );
     }
   }

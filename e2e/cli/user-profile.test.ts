@@ -2,19 +2,19 @@ import { describe, expect, test } from "bun:test";
 import { cli, jsonParse, OWNER } from "./helpers";
 
 describe("CLI: User Profile", () => {
-  test("jjhub user view shows the authenticated user profile", async () => {
+  test("codeplane user view shows the authenticated user profile", async () => {
     const result = await cli(
       ["user", "view"],
       { json: true },
     );
 
-    // jjhub user view without arguments shows the authenticated user
+    // codeplane user view without arguments shows the authenticated user
     const body = jsonParse<{ username: string; display_name: string }>(result);
     expect(body.username).toBe(OWNER);
     expect(typeof body.display_name).toBe("string");
   });
 
-  test("jjhub user view <username> shows a public profile", async () => {
+  test("codeplane user view <username> shows a public profile", async () => {
     const result = await cli(
       ["user", "view", OWNER],
       { json: true },
@@ -24,7 +24,7 @@ describe("CLI: User Profile", () => {
     expect(body.username).toBe(OWNER);
   });
 
-  test("jjhub user view returns error for nonexistent user", async () => {
+  test("codeplane user view returns error for nonexistent user", async () => {
     const result = await cli(
       ["user", "view", "nonexistent-user-12345"],
       { json: true },
@@ -33,7 +33,7 @@ describe("CLI: User Profile", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub ssh-key list shows SSH keys", async () => {
+  test("codeplane ssh-key list shows SSH keys", async () => {
     const result = await cli(
       ["ssh-key", "list"],
       { json: true },

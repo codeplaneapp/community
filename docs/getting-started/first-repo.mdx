@@ -1,6 +1,6 @@
 ---
 title: Create Your First Repo
-description: Create and configure your first JJHub repository
+description: Create and configure your first Codeplane repository
 ---
 
 # Create Your First Repository
@@ -8,40 +8,40 @@ description: Create and configure your first JJHub repository
 ## Create via CLI
 
 ```bash
-jjhub repo create my-project --description "My first JJHub project"
+codeplane repo create my-project --description "My first Codeplane project"
 ```
 
 By default, repositories are **public** (open source focus). To create a private repo:
 
 ```bash
-jjhub repo create my-private-project --private
+codeplane repo create my-private-project --private
 ```
 
 ## Clone a Repository
 
-Use the `jjhub repo clone` command to clone a repository and set up jj:
+Use the `codeplane repo clone` command to clone a repository and set up jj:
 
 ```bash
-jjhub repo clone username/my-project
+codeplane repo clone username/my-project
 cd my-project
 ```
 
 You can also clone with a full URL or specify a target directory:
 
 ```bash
-jjhub repo clone username/my-project ./my-local-dir
+codeplane repo clone username/my-project ./my-local-dir
 ```
 
 ## List Your Repositories
 
 ```bash
-jjhub repo list
+codeplane repo list
 ```
 
 Limit the number of results:
 
 ```bash
-jjhub repo list --limit 10
+codeplane repo list --limit 10
 ```
 
 ## View Repository Details
@@ -49,8 +49,8 @@ jjhub repo list --limit 10
 View the current repository (or specify one):
 
 ```bash
-jjhub repo view
-jjhub repo view --repo username/my-project
+codeplane repo view
+codeplane repo view --repo username/my-project
 ```
 
 ## Working with jj
@@ -64,7 +64,7 @@ jj describe -m "Add feature X"
 # Create a new change on top of the current one
 jj new -m "Follow-up improvement"
 
-# Push to JJHub
+# Push to Codeplane
 jj git push
 ```
 

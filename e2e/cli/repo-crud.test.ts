@@ -4,7 +4,7 @@ import { cli, jsonParse, uniqueName, OWNER, ORG } from "./helpers";
 describe("CLI: Repository CRUD", () => {
   const repoName = uniqueName("cli-repo-crud");
 
-  test("jjhub repo create creates a new user repository", async () => {
+  test("codeplane repo create creates a new user repository", async () => {
     const result = await cli(
       ["repo", "create", repoName, "--description", "CLI e2e repo"],
       { json: true },
@@ -17,7 +17,7 @@ describe("CLI: Repository CRUD", () => {
     expect(body.description).toBe("CLI e2e repo");
   });
 
-  test("jjhub repo view returns repo details", async () => {
+  test("codeplane repo view returns repo details", async () => {
     const result = await cli(
       ["repo", "view"],
       { repo: `${OWNER}/${repoName}`, json: true },
@@ -29,7 +29,7 @@ describe("CLI: Repository CRUD", () => {
     expect(body.full_name).toBe(`${OWNER}/${repoName}`);
   });
 
-  test("jjhub repo list returns a list of repos", async () => {
+  test("codeplane repo list returns a list of repos", async () => {
     const result = await cli(
       ["repo", "list"],
       { json: true },
@@ -40,7 +40,7 @@ describe("CLI: Repository CRUD", () => {
     expect(body.some((r) => r.name === repoName)).toBe(true);
   });
 
-  test("jjhub repo create creates an org repository", async () => {
+  test("codeplane repo create creates an org repository", async () => {
     const orgRepoName = uniqueName("cli-repo-org");
 
     const result = await cli(
@@ -54,7 +54,7 @@ describe("CLI: Repository CRUD", () => {
     expect(body.full_name).toBe(`${ORG}/${orgRepoName}`);
   });
 
-  test("jjhub repo delete removes the repository", async () => {
+  test("codeplane repo delete removes the repository", async () => {
     const deleteResult = await cli(
       ["repo", "delete", "--yes"],
       { repo: `${OWNER}/${repoName}`, json: true },

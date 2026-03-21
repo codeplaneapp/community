@@ -1,9 +1,9 @@
-// JJHub workflow components (extend Smithers with triggers, optional output, etc.)
+// Codeplane workflow components (extend Smithers with triggers, optional output, etc.)
 export { Workflow, Task } from "./components";
 export type { WorkflowProps, TaskProps } from "./components";
 export { createWorkflowArtifactHelpers } from "./artifacts";
 export type {
-  JJHubWorkflowCtx,
+  CodeplaneWorkflowCtx,
   WorkflowArtifactClient,
   WorkflowArtifactRecord,
   WorkflowArtifactUploadOptions,
@@ -18,9 +18,9 @@ export type {
 
 // Schema-driven API (createSmithers pattern).
 export { createSmithers } from "./create";
-export type { CreateJJHubSmithersApi } from "./create";
+export type { CreateCodeplaneSmithersApi } from "./create";
 
-// Re-export Smithers components that don't need JJHub extensions.
+// Re-export Smithers components that don't need Codeplane extensions.
 export { Sequence, Parallel, Branch, Ralph } from "smithers-orchestrator";
 
 // Re-export Smithers core API for schema-driven workflows.

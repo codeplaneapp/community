@@ -150,7 +150,7 @@ export class SecretService {
     private readonly sql: Sql,
     secretKey?: string
   ) {
-    const key = secretKey ?? process.env.JJHUB_SECRET_KEY ?? "";
+    const key = secretKey ?? process.env.CODEPLANE_SECRET_KEY ?? "";
     this.encryptionKey = key.trim() !== "" ? deriveKey(key.trim()) : null;
   }
 

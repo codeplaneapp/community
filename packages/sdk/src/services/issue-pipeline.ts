@@ -13,7 +13,7 @@
  * In Community Edition, agent steps use BYOK (the user's own API key stored
  * as a repository secret) or stub out the LLM calls for testing.
  *
- * Mirrors Go's internal/services pattern for the JJHub Cloud implementation.
+ * Mirrors Go's internal/services pattern for the Codeplane Cloud implementation.
  */
 
 import type { Sql } from "postgres";
@@ -124,8 +124,8 @@ export interface IssuePipelineConfig {
 
   /**
    * Name of the repository secret holding the LLM API key for agent steps.
-   * In CE, users provide their own key via `jjhub secret set`.
-   * Default: "JJHUB_LLM_API_KEY"
+   * In CE, users provide their own key via `codeplane secret set`.
+   * Default: "CODEPLANE_LLM_API_KEY"
    */
   llmApiKeySecret?: string;
 
@@ -180,7 +180,7 @@ function researchWorkflowConfig(issueNumber: number): unknown {
     jobs: {
       research: {
         name: "research",
-        "runs-on": "jjhub-agent",
+        "runs-on": "codeplane-agent",
         steps: [
           {
             name: "Gather context",
@@ -201,7 +201,7 @@ function planWorkflowConfig(issueNumber: number): unknown {
     jobs: {
       plan: {
         name: "plan",
-        "runs-on": "jjhub-agent",
+        "runs-on": "codeplane-agent",
         steps: [
           {
             name: "Create plan",
@@ -222,7 +222,7 @@ function implementWorkflowConfig(issueNumber: number): unknown {
     jobs: {
       implement: {
         name: "implement",
-        "runs-on": "jjhub-workspace",
+        "runs-on": "codeplane-workspace",
         steps: [
           {
             name: "Write code and tests",
@@ -243,7 +243,7 @@ function reviewWorkflowConfig(issueNumber: number): unknown {
     jobs: {
       review: {
         name: "review",
-        "runs-on": "jjhub-agent",
+        "runs-on": "codeplane-agent",
         steps: [
           {
             name: "Self-review changes",
@@ -264,7 +264,7 @@ function landWorkflowConfig(issueNumber: number): unknown {
     jobs: {
       land: {
         name: "land",
-        "runs-on": "jjhub-agent",
+        "runs-on": "codeplane-agent",
         steps: [
           {
             name: "Create landing request",
@@ -300,7 +300,7 @@ function workflowConfigForStep(step: PipelineStep, issueNumber: number): unknown
 
 function generateAgentToken(): { plaintext: string; hash: string } {
   const hexPart = randomBytes(20).toString("hex");
-  const plaintext = "jjhub_agent_" + hexPart;
+  const plaintext = "codeplane_agent_" + hexPart;
   const hash = createHash("sha256").update(plaintext).digest("hex");
   return { plaintext, hash };
 }
@@ -387,7 +387,7 @@ export class IssuePipelineService {
     // Resolve config with defaults
     const resolvedConfig = {
       triggerLabel: config?.triggerLabel ?? DEFAULT_TRIGGER_LABEL,
-      llmApiKeySecret: config?.llmApiKeySecret ?? "JJHUB_LLM_API_KEY",
+      llmApiKeySecret: config?.llmApiKeySecret ?? "CODEPLANE_LLM_API_KEY",
       stubLlmCalls: config?.stubLlmCalls ?? false,
       stepTimeoutSeconds: config?.stepTimeoutSeconds ?? 600,
     };
@@ -652,7 +652,7 @@ export class IssuePipelineService {
 
     const workflowConfig = workflowConfigForStep(step, record.issueNumber);
     const definitionName = `issue-pipeline-${step}`;
-    const definitionPath = `.jjhub/workflows/issue-pipeline-${step}.ts`;
+    const definitionPath = `.codeplane/workflows/issue-pipeline-${step}.ts`;
 
     // Ensure workflow definition reference exists
     const defRef = await dbEnsureWorkflowDefinitionReference(this.sql, {
@@ -728,7 +728,7 @@ export class IssuePipelineService {
     // Create workflow task record
     const taskPayload = {
       job: step,
-      runs_on: step === "implement" ? "jjhub-workspace" : "jjhub-agent",
+      runs_on: step === "implement" ? "codeplane-workspace" : "codeplane-agent",
       steps: (workflowConfig as { jobs: Record<string, { steps: unknown[] }> }).jobs[step]?.steps ?? [],
       event: "issue_pipeline",
       ref: record.config.triggerLabel,
@@ -785,7 +785,7 @@ export class IssuePipelineService {
         issueId: record.issueId,
         userId: "0", // system user
         body: `**[Issue Pipeline]** ${body}`,
-        commenter: "jjhub-bot",
+        commenter: "codeplane-bot",
       });
       if (comment) {
         await dbIncrementIssueCommentCount(this.sql, { id: record.issueId });

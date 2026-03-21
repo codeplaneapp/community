@@ -1,5 +1,5 @@
 /**
- * JJHub API client.
+ * Codeplane API client.
  *
  * Typed HTTP client matching the Rust CLI's api_client.rs.
  * Loads config for API URL and auth token.
@@ -28,7 +28,7 @@ export function requireJj(): void {
       [
         "jj (Jujutsu) is not installed or not on your PATH.",
         "",
-        "JJHub requires jj for local repository operations.",
+        "Codeplane requires jj for local repository operations.",
         "",
         "Install it:",
         "  brew install jj            # macOS",
@@ -149,12 +149,12 @@ function parseOwnerRepoRef(repoRef: string): { owner: string; repo: string } | n
 }
 
 /**
- * Parse OWNER/REPO from a remote URL matching the configured JJHub host.
+ * Parse OWNER/REPO from a remote URL matching the configured Codeplane host.
  *
  * Supported formats:
- *   ssh://git@ssh.jjhub.tech/OWNER/REPO.git
- *   git@ssh.jjhub.tech:OWNER/REPO.git
- *   https://jjhub.tech/OWNER/REPO.git
+ *   ssh://git@ssh.codeplane.app/OWNER/REPO.git
+ *   git@ssh.codeplane.app:OWNER/REPO.git
+ *   https://codeplane.app/OWNER/REPO.git
  */
 function parseRepoFromUrl(
   url: string,
@@ -169,9 +169,9 @@ function parseRepoFromUrl(
     `api.${normalizedHost}`,
   ]);
   if (normalizedHost === "127.0.0.1" || normalizedHost === "localhost") {
-    acceptedHosts.add("jjhub.tech");
-    acceptedHosts.add("ssh.jjhub.tech");
-    acceptedHosts.add("api.jjhub.tech");
+    acceptedHosts.add("codeplane.app");
+    acceptedHosts.add("ssh.codeplane.app");
+    acceptedHosts.add("api.codeplane.app");
   }
 
   // ssh:// style
@@ -188,7 +188,7 @@ function parseRepoFromUrl(
     // Not a URL — try SCP-style
   }
 
-  // SCP-style: git@ssh.jjhub.tech:OWNER/REPO
+  // SCP-style: git@ssh.codeplane.app:OWNER/REPO
   const scpMatch = clean.match(/^[^@]+@([^:]+):(.+)$/);
   if (scpMatch) {
     const h = scpMatch[1]!.toLowerCase();
@@ -243,7 +243,7 @@ function detectRepoFromRemotes(): { owner: string; repo: string } | null {
     return null;
   }
 
-  // Parse lines like: "origin ssh://git@ssh.jjhub.tech/owner/repo.git"
+  // Parse lines like: "origin ssh://git@ssh.codeplane.app/owner/repo.git"
   // Prefer "origin" remote, fall back to first match
   let fallback: { owner: string; repo: string } | null = null;
   for (const output of outputs) {

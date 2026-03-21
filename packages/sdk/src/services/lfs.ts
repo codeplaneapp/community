@@ -1,5 +1,5 @@
 /**
- * LFS service for JJHub Community Edition.
+ * LFS service for Codeplane Community Edition.
  *
  * Implements LFS batch API, object storage, upload confirmation, and deletion.
  * 1:1 port of Go's internal/services/lfs.go.

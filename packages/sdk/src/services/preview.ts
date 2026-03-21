@@ -1,18 +1,18 @@
 /**
  * PreviewService — Landing Request preview environment manager
  *
- * Manages preview environments for Landing Requests in JJHub Community Edition.
+ * Manages preview environments for Landing Requests in Codeplane Community Edition.
  * Preview environments are workspaces that are automatically created when a
- * Landing Request is opened (if .jjhub/preview.ts exists), run the preview
+ * Landing Request is opened (if .codeplane/preview.ts exists), run the preview
  * configuration, and expose the result on a URL.
  *
  * CE Mode: Preview proxy runs in-process. Routes incoming requests by
  * Host header or path prefix to the preview container's exposed port.
  *
  * Lifecycle:
- *   1. Auto-create workspace when LR is opened (if .jjhub/preview.ts exists)
+ *   1. Auto-create workspace when LR is opened (if .codeplane/preview.ts exists)
  *   2. Run preview config (install, start, expose port)
- *   3. Generate preview URL: {lr-number}-{repo}.preview.jjhub.tech (cloud)
+ *   3. Generate preview URL: {lr-number}-{repo}.preview.codeplane.app (cloud)
  *      or localhost:{port} (CE)
  *   4. Auto-suspend when idle (no HTTP requests for 15 min)
  *   5. Auto-resume when preview URL is accessed
@@ -40,7 +40,7 @@ const PREVIEW_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 const DEFAULT_PREVIEW_PORT = 3000;
 
 /** Label used to identify preview containers. */
-const PREVIEW_LABEL_PREFIX = "tech.jjhub.preview";
+const PREVIEW_LABEL_PREFIX = "tech.codeplane.preview";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -54,7 +54,7 @@ export type PreviewStatus =
   | "stopped"
   | "failed";
 
-/** Configuration for a preview environment, parsed from .jjhub/preview.ts. */
+/** Configuration for a preview environment, parsed from .codeplane/preview.ts. */
 export interface PreviewConfig {
   /** Port to expose as the preview URL. */
   port: number;
@@ -141,7 +141,7 @@ export class PreviewService {
     private readonly sql: Sql,
     private readonly sandbox: ContainerSandboxClient | null,
     options?: {
-      /** Preview domain for cloud mode (e.g. "preview.jjhub.tech"). */
+      /** Preview domain for cloud mode (e.g. "preview.codeplane.app"). */
       previewDomain?: string;
       /** Host address for CE mode (default: "localhost"). */
       hostAddress?: string;
@@ -188,10 +188,10 @@ export class PreviewService {
 
     // Build environment variables
     const env: Record<string, string> = {
-      JJHUB_PREVIEW: "true",
-      JJHUB_REPO_OWNER: input.repoOwner,
-      JJHUB_REPO_NAME: input.repoName,
-      JJHUB_LR_NUMBER: String(input.lrNumber),
+      CODEPLANE_PREVIEW: "true",
+      CODEPLANE_REPO_OWNER: input.repoOwner,
+      CODEPLANE_REPO_NAME: input.repoName,
+      CODEPLANE_LR_NUMBER: String(input.lrNumber),
       PORT: String(containerPort),
       ...(config.env ?? {}),
     };
@@ -208,7 +208,7 @@ export class PreviewService {
     let result;
     try {
       result = await this.sandbox.createVM({
-        namePrefix: `jjhub-preview-lr${input.lrNumber}`,
+        namePrefix: `codeplane-preview-lr${input.lrNumber}`,
         env,
         ports: [
           { hostPort: 0, containerPort, protocol: "tcp" },
@@ -417,7 +417,7 @@ export class PreviewService {
    * Parses the Host header to extract the LR number and repo name,
    * then returns the preview record if one exists.
    *
-   * Expected format: {lr-number}-{repo}.preview.jjhub.tech
+   * Expected format: {lr-number}-{repo}.preview.codeplane.app
    * For CE: falls back to path-based lookup.
    */
   resolvePreviewByHost(host: string): PreviewRecord | null {

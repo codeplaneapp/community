@@ -14,7 +14,7 @@ describe("CLI: Labels and Milestones", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub label create creates a label", async () => {
+  test("codeplane label create creates a label", async () => {
     const result = await cli(
       ["label", "create", "bug", "--color", "d73a4a", "--description", "Something is broken"],
       { repo: repoSlug, json: true },
@@ -27,7 +27,7 @@ describe("CLI: Labels and Milestones", () => {
     expect(body.description).toBe("Something is broken");
   });
 
-  test("jjhub label list returns labels", async () => {
+  test("codeplane label list returns labels", async () => {
     const result = await cli(
       ["label", "list"],
       { repo: repoSlug, json: true },
@@ -38,7 +38,7 @@ describe("CLI: Labels and Milestones", () => {
     expect(body.some((l) => l.name === "bug")).toBe(true);
   });
 
-  test("jjhub milestone create creates a milestone", async () => {
+  test("codeplane milestone create creates a milestone", async () => {
     const result = await cli(
       ["milestone", "create", "v1.0", "--description", "First release"],
       { repo: repoSlug, json: true },
@@ -51,7 +51,7 @@ describe("CLI: Labels and Milestones", () => {
     expect(body.description).toBe("First release");
   });
 
-  test("jjhub milestone list returns milestones", async () => {
+  test("codeplane milestone list returns milestones", async () => {
     const result = await cli(
       ["milestone", "list"],
       { repo: repoSlug, json: true },

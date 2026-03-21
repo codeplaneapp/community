@@ -10,7 +10,7 @@ import { cli } from "./helpers";
  * is the CLI's interaction point with the key-auth system.
  */
 describe("CLI: Auth Key", () => {
-  test("jjhub auth status shows authenticated user (token-based)", async () => {
+  test("codeplane auth status shows authenticated user (token-based)", async () => {
     const result = await cli(
       ["auth", "status"],
       { json: true },
@@ -22,7 +22,7 @@ describe("CLI: Auth Key", () => {
     expect(body.username.length).toBeGreaterThan(0);
   });
 
-  test("jjhub auth status fails with empty token", async () => {
+  test("codeplane auth status fails with empty token", async () => {
     const result = await cli(
       ["auth", "status"],
       { token: "", json: true },
@@ -31,19 +31,19 @@ describe("CLI: Auth Key", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub auth status fails with invalid token", async () => {
+  test("codeplane auth status fails with invalid token", async () => {
     const result = await cli(
       ["auth", "status"],
-      { token: "not-a-jjhub-token", json: true },
+      { token: "not-a-codeplane-token", json: true },
     );
 
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub auth status fails with malformed jjhub token", async () => {
+  test("codeplane auth status fails with malformed codeplane token", async () => {
     const result = await cli(
       ["auth", "status"],
-      { token: "jjhub_0000000000000000000000000000000000000000", json: true },
+      { token: "codeplane_0000000000000000000000000000000000000000", json: true },
     );
 
     expect(result.exitCode).not.toBe(0);

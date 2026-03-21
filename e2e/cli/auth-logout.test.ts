@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { cli } from "./helpers";
 
 describe("CLI: Auth Logout", () => {
-  test("jjhub auth logout succeeds when authenticated", async () => {
+  test("codeplane auth logout succeeds when authenticated", async () => {
     const result = await cli(
       ["auth", "logout"],
       { json: true },
@@ -12,7 +12,7 @@ describe("CLI: Auth Logout", () => {
     expect(result.exitCode).toBe(0);
   });
 
-  test("jjhub auth logout succeeds without a token (no-op)", async () => {
+  test("codeplane auth logout succeeds without a token (no-op)", async () => {
     const result = await cli(
       ["auth", "logout"],
       { token: "", json: true },

@@ -10,7 +10,7 @@ import {
   formatSSEEvent,
   sseResponse,
   sseStreamWithInitial,
-} from "@jjhub/sdk";
+} from "@codeplane/sdk";
 import { Result } from "better-result";
 import { getServices } from "../services";
 

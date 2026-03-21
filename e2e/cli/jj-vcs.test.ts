@@ -28,7 +28,7 @@ describe("CLI: jj VCS (bookmarks, changes, diffs)", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub bookmark list returns bookmarks", async () => {
+  test("codeplane bookmark list returns bookmarks", async () => {
     const result = await cli(
       ["bookmark", "list"],
       { repo: repoSlug, json: true },
@@ -50,7 +50,7 @@ describe("CLI: jj VCS (bookmarks, changes, diffs)", () => {
     }
   });
 
-  test("jjhub change list returns changes", async () => {
+  test("codeplane change list returns changes", async () => {
     const result = await cli(
       ["change", "list"],
       { repo: repoSlug, json: true },
@@ -73,7 +73,7 @@ describe("CLI: jj VCS (bookmarks, changes, diffs)", () => {
     }
   });
 
-  test("jjhub change view shows a single change", async () => {
+  test("codeplane change view shows a single change", async () => {
     if (!mainChangeID) {
       console.log("Skipping: no change ID available (repo may not have commits)");
       return;
@@ -98,7 +98,7 @@ describe("CLI: jj VCS (bookmarks, changes, diffs)", () => {
     expect(typeof body.description).toBe("string");
   });
 
-  test("jjhub change diff shows diff for a change", async () => {
+  test("codeplane change diff shows diff for a change", async () => {
     if (!mainChangeID) {
       console.log("Skipping: no change ID available (repo may not have commits)");
       return;
@@ -117,7 +117,7 @@ describe("CLI: jj VCS (bookmarks, changes, diffs)", () => {
     expect(Array.isArray(body.file_diffs)).toBe(true);
   });
 
-  test("jjhub change view returns error for nonexistent change", async () => {
+  test("codeplane change view returns error for nonexistent change", async () => {
     const result = await cli(
       ["change", "view", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
       { repo: repoSlug, json: true },
@@ -126,7 +126,7 @@ describe("CLI: jj VCS (bookmarks, changes, diffs)", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub bookmark list works without auth (public repo)", async () => {
+  test("codeplane bookmark list works without auth (public repo)", async () => {
     const result = await cli(
       ["bookmark", "list"],
       { repo: repoSlug, token: "", json: true },

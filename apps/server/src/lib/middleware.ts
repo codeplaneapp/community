@@ -1,13 +1,13 @@
 /**
- * Core middleware for JJHub Community Edition.
+ * Core middleware for Codeplane Community Edition.
  *
  * Mirrors Go's internal/middleware/auth.go auth flow:
- *   1. Check for `Authorization: token jjhub_xxx` or `Authorization: Bearer jjhub_xxx`
+ *   1. Check for `Authorization: token codeplane_xxx` or `Authorization: Bearer codeplane_xxx`
  *   2. SHA-256 hash the raw token
  *   3. Look up hash in access_tokens table (via sqlc-generated getAuthInfoByTokenHash)
  *   4. Load user + scopes onto Hono context
  *
- * Also supports session-cookie auth via the `jjhub_session` cookie,
+ * Also supports session-cookie auth via the `codeplane_session` cookie,
  * looking up the session in the auth_sessions table.
  */
 
@@ -26,15 +26,15 @@ import {
   getAuthInfoByTokenHash,
   getAuthSessionBySessionKey,
   updateAccessTokenLastUsed,
-} from "@jjhub/sdk";
+} from "@codeplane/sdk";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const SESSION_COOKIE_NAME = "jjhub_session";
-const TOKEN_PREFIX = "jjhub_";
-const OAUTH_TOKEN_PREFIX = "jjhub_oat_";
+const SESSION_COOKIE_NAME = "codeplane_session";
+const TOKEN_PREFIX = "codeplane_";
+const OAUTH_TOKEN_PREFIX = "codeplane_oat_";
 
 // ---------------------------------------------------------------------------
 // Token extraction — matches Go's ExtractToken
@@ -42,7 +42,7 @@ const OAUTH_TOKEN_PREFIX = "jjhub_oat_";
 
 /**
  * Extract the API token from the Authorization header.
- * Accepts: "Authorization: token jjhub_xxx" or "Authorization: Bearer jjhub_xxx"
+ * Accepts: "Authorization: token codeplane_xxx" or "Authorization: Bearer codeplane_xxx"
  * Query-string auth is intentionally unsupported so tokens never leak into
  * request URLs, browser history, or intermediary logs.
  */
@@ -63,7 +63,7 @@ function extractToken(c: Context): string | null {
 }
 
 /**
- * Validate token format — must start with jjhub_ or jjhub_oat_ prefix.
+ * Validate token format — must start with codeplane_ or codeplane_oat_ prefix.
  */
 function isValidTokenFormat(token: string): boolean {
   return token.startsWith(OAUTH_TOKEN_PREFIX) || token.startsWith(TOKEN_PREFIX);

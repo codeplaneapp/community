@@ -1,0 +1,13 @@
+> nx run @jjhub/server:build
+
+> pnpm run build
+
+
+> @jjhub/server@0.0.1 build /Users/williamcory/codeplane/apps/server
+> bun build --compile --minify src/index.ts --outfile dist/jjhub
+
+[1m3 | [0m[0m[35mconst[0m binding = require([0m[32m'../build/Release/cpufeatures.node'[0m)[0m[2m;[0m
+                            [1m[31m[1m^[0m
+[31merror[0m[2m: [0m[1mCould not resolve: "../build/Release/cpufeatures.node"[0m
+    [2mat [0m[36m/Users/williamcory/codeplane/node_modules/.pnpm/cpu-features@0.0.10/node_modules/cpu-features/lib/index.js[0m[2m:[0m[33m3[0m[2m:[0m[33m25[0m
+[41m[30m ELIFECYCLE [39m[49m [31mCommand failed with exit code 1.[39m

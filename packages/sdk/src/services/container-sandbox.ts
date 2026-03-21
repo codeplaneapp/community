@@ -1,12 +1,12 @@
 // ContainerSandboxClient — Docker/Podman-based workspace container manager
 //
 // This is the OSS Community Edition replacement for the proprietary Freestyle
-// VM service used in JJHub Cloud. It maps the Freestyle VM lifecycle operations
+// VM service used in Codeplane Cloud. It maps the Freestyle VM lifecycle operations
 // onto Docker/Podman container commands using Bun.spawn().
 //
-// Limitations vs JJHub Cloud (Freestyle/Firecracker):
+// Limitations vs Codeplane Cloud (Freestyle/Firecracker):
 //   - No memory snapshots — suspend is docker stop, resume is docker start (cold)
-//   - No VM forking — returns an explicit error directing users to JJHub Cloud
+//   - No VM forking — returns an explicit error directing users to Codeplane Cloud
 //   - No microVM isolation — containers share the host kernel
 
 import { randomBytes } from "crypto";
@@ -48,7 +48,7 @@ export interface VolumeMount {
 
 /** Configuration for creating a new workspace container. */
 export interface CreateContainerConfig {
-  /** Workspace image (default: ghcr.io/jjhub-ai/workspace:latest). */
+  /** Workspace image (default: ghcr.io/codeplane-ai/workspace:latest). */
   image?: string;
   /** Container name prefix (will have random suffix appended). */
   namePrefix?: string;
@@ -126,11 +126,11 @@ export interface SSHConnectionInfo {
 // Constants
 // ---------------------------------------------------------------------------
 
-const DEFAULT_IMAGE = "ghcr.io/jjhub-ai/workspace:latest";
+const DEFAULT_IMAGE = "ghcr.io/codeplane-ai/workspace:latest";
 const DEFAULT_SSH_PORT = 22;
 const DEFAULT_HEALTHCHECK_INTERVAL_SECS = 5;
 const DEFAULT_HEALTHCHECK_TIMEOUT_SECS = 120;
-const CONTAINER_LABEL_PREFIX = "tech.jjhub.workspace";
+const CONTAINER_LABEL_PREFIX = "tech.codeplane.workspace";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -226,7 +226,7 @@ export class ContainerSandboxClient {
   async createVM(config: CreateContainerConfig = {}): Promise<CreateContainerResult> {
     const image = config.image ?? DEFAULT_IMAGE;
     const sshPort = config.sshPort ?? DEFAULT_SSH_PORT;
-    const namePrefix = config.namePrefix ?? "jjhub-workspace";
+    const namePrefix = config.namePrefix ?? "codeplane-workspace";
     const containerName = `${namePrefix}-${randomSuffix()}`;
 
     // Pull image (best effort — may already exist locally)
@@ -441,11 +441,11 @@ export class ContainerSandboxClient {
    *
    * This operation is NOT supported in the OSS Community Edition.
    * Workspace forking requires Firecracker VM snapshots which are only
-   * available in JJHub Cloud.
+   * available in Codeplane Cloud.
    */
   async forkVM(_sourceVmId: string): Promise<never> {
     throw new Error(
-      "workspace forking requires JJHub Cloud — " +
+      "workspace forking requires Codeplane Cloud — " +
         "container-based workspaces cannot fork a running VM's memory state. " +
         "Use createVM() to create an independent workspace instead."
     );

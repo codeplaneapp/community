@@ -12,7 +12,7 @@ Deploy keys are SSH keys scoped to a single repository. They grant either read-o
 Personal SSH keys and API tokens are tied to a user account and grant access to every repository that user can see. Deploy keys solve several problems with that model:
 
 - **Least privilege**: A deploy key grants access to a single repository. If the key is compromised, the blast radius is limited to that one repository.
-- **No user account required**: Automated systems do not need their own JJHub user account. A deploy key is registered directly on the repository.
+- **No user account required**: Automated systems do not need their own Codeplane user account. A deploy key is registered directly on the repository.
 - **Auditable**: Deploy key usage is logged alongside other repository access events, making it clear which automated system performed an action.
 - **Independent lifecycle**: Deploy keys can be rotated or revoked without affecting any user's access to the platform.
 
@@ -24,12 +24,12 @@ A CI runner needs to clone a repository, run tests, and report results. A read-o
 
 ```bash
 # Generate a dedicated key pair for CI
-ssh-keygen -t ed25519 -f ~/.ssh/jjhub_ci -N "" -C "ci@my-project"
+ssh-keygen -t ed25519 -f ~/.ssh/codeplane_ci -N "" -C "ci@my-project"
 
 # Register the public key as a read-only deploy key
-jjhub repo deploy-key add -R owner/repo \
+codeplane repo deploy-key add -R owner/repo \
   --title "CI Runner" \
-  --key "$(cat ~/.ssh/jjhub_ci.pub)" \
+  --key "$(cat ~/.ssh/codeplane_ci.pub)" \
   --read-only
 ```
 
@@ -39,12 +39,12 @@ A deployment script needs to pull the latest code onto a production server. A re
 
 ```bash
 # On the deployment server
-ssh-keygen -t ed25519 -f ~/.ssh/jjhub_deploy -N "" -C "deploy@prod"
+ssh-keygen -t ed25519 -f ~/.ssh/codeplane_deploy -N "" -C "deploy@prod"
 
 # Register the key
-jjhub repo deploy-key add -R owner/repo \
+codeplane repo deploy-key add -R owner/repo \
   --title "Production Deploy" \
-  --key "$(cat ~/.ssh/jjhub_deploy.pub)" \
+  --key "$(cat ~/.ssh/codeplane_deploy.pub)" \
   --read-only
 ```
 
@@ -53,9 +53,9 @@ jjhub repo deploy-key add -R owner/repo \
 Some automation needs to push changes -- for example, a bot that updates dependency versions. A read-write deploy key grants the necessary access:
 
 ```bash
-jjhub repo deploy-key add -R owner/repo \
+codeplane repo deploy-key add -R owner/repo \
   --title "Dependency Bot" \
-  --key "$(cat ~/.ssh/jjhub_bot.pub)"
+  --key "$(cat ~/.ssh/codeplane_bot.pub)"
 ```
 
 Without `--read-only`, the key has read-write access by default.
@@ -65,9 +65,9 @@ Without `--read-only`, the key has read-write access by default.
 If you maintain a mirror of a repository on another server, a read-only deploy key lets the mirror pull updates without being able to modify the source:
 
 ```bash
-jjhub repo deploy-key add -R owner/repo \
+codeplane repo deploy-key add -R owner/repo \
   --title "Mirror Sync" \
-  --key "$(cat ~/.ssh/jjhub_mirror.pub)" \
+  --key "$(cat ~/.ssh/codeplane_mirror.pub)" \
   --read-only
 ```
 
@@ -76,7 +76,7 @@ jjhub repo deploy-key add -R owner/repo \
 ### Add a Deploy Key
 
 ```bash
-jjhub repo deploy-key add -R owner/repo \
+codeplane repo deploy-key add -R owner/repo \
   --title "My Deploy Key" \
   --key "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5... deploy@server"
 ```
@@ -91,7 +91,7 @@ jjhub repo deploy-key add -R owner/repo \
 ### List Deploy Keys
 
 ```bash
-jjhub repo deploy-key list -R owner/repo
+codeplane repo deploy-key list -R owner/repo
 ```
 
 | Flag | Description |
@@ -110,22 +110,22 @@ ID    TITLE              READ-ONLY   CREATED
 ### Delete a Deploy Key
 
 ```bash
-jjhub repo deploy-key delete -R owner/repo 1
+codeplane repo deploy-key delete -R owner/repo 1
 ```
 
 | Flag | Description |
 |------|-------------|
 | `-R, --repo <owner/repo>` | Repository (required) |
 
-The positional argument is the deploy key ID, which you can find from `jjhub repo deploy-key list`.
+The positional argument is the deploy key ID, which you can find from `codeplane repo deploy-key list`.
 
 ## Managing Deploy Keys via API
 
 ### List Deploy Keys
 
 ```bash
-curl https://api.jjhub.tech/api/repos/owner/repo/keys \
-  -H "Authorization: token jjhub_your_token"
+curl https://api.codeplane.app/api/repos/owner/repo/keys \
+  -H "Authorization: token codeplane_your_token"
 ```
 
 **Response:**
@@ -146,8 +146,8 @@ curl https://api.jjhub.tech/api/repos/owner/repo/keys \
 ### Get a Deploy Key
 
 ```bash
-curl https://api.jjhub.tech/api/repos/owner/repo/keys/1 \
-  -H "Authorization: token jjhub_your_token"
+curl https://api.codeplane.app/api/repos/owner/repo/keys/1 \
+  -H "Authorization: token codeplane_your_token"
 ```
 
 Returns a single deploy key object.
@@ -155,8 +155,8 @@ Returns a single deploy key object.
 ### Add a Deploy Key
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/repos/owner/repo/keys \
-  -H "Authorization: token jjhub_your_token" \
+curl -X POST https://api.codeplane.app/api/repos/owner/repo/keys \
+  -H "Authorization: token codeplane_your_token" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "CI Runner",
@@ -189,8 +189,8 @@ curl -X POST https://api.jjhub.tech/api/repos/owner/repo/keys \
 ### Delete a Deploy Key
 
 ```bash
-curl -X DELETE https://api.jjhub.tech/api/repos/owner/repo/keys/1 \
-  -H "Authorization: token jjhub_your_token"
+curl -X DELETE https://api.codeplane.app/api/repos/owner/repo/keys/1 \
+  -H "Authorization: token codeplane_your_token"
 ```
 
 Returns `204 No Content` on success.

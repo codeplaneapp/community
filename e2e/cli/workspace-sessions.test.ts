@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { cli, jsonParse, uniqueName, OWNER } from "./helpers";
 
-const VM_E2E_ENABLED = process.env.JJHUB_E2E_FREESTYLE === "true";
+const VM_E2E_ENABLED = process.env.CODEPLANE_E2E_FREESTYLE === "true";
 const workspaceTest = VM_E2E_ENABLED ? test : test.skip;
 
 describe("CLI: Workspace Sessions", () => {
@@ -18,7 +18,7 @@ describe("CLI: Workspace Sessions", () => {
     expect(body.name).toBe(repoName);
   });
 
-  workspaceTest("jjhub workspace create creates a session", async () => {
+  workspaceTest("codeplane workspace create creates a session", async () => {
     const result = await cli(
       ["workspace", "create", "--name", "cli-session-ws"],
       { repo: repoSlug, json: true },
@@ -34,7 +34,7 @@ describe("CLI: Workspace Sessions", () => {
     sessionID = body.id;
   });
 
-  workspaceTest("jjhub workspace list shows the session", async () => {
+  workspaceTest("codeplane workspace list shows the session", async () => {
     const result = await cli(
       ["workspace", "list"],
       { repo: repoSlug, json: true },
@@ -45,7 +45,7 @@ describe("CLI: Workspace Sessions", () => {
     expect(body.some((w) => w.id === sessionID)).toBe(true);
   });
 
-  workspaceTest("jjhub workspace delete destroys the session", async () => {
+  workspaceTest("codeplane workspace delete destroys the session", async () => {
     const result = await cli(
       ["workspace", "delete", sessionID, "--yes"],
       { repo: repoSlug, json: true },

@@ -1,5 +1,5 @@
 /**
- * Feature flag middleware for JJHub Community Edition.
+ * Feature flag middleware for Codeplane Community Edition.
  *
  * Provides Hono middleware that checks feature flags on specific routes.
  * Returns 403 when a feature is disabled for the requesting user/plan.
@@ -19,7 +19,7 @@ import {
   forbidden,
   writeError,
   getUser,
-} from "@jjhub/sdk";
+} from "@codeplane/sdk";
 
 // ---------------------------------------------------------------------------
 // requireFeature — route-level middleware

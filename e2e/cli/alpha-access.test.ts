@@ -9,7 +9,7 @@ import { cli, jsonParse, WRITE_TOKEN } from "./helpers";
  */
 
 describe("CLI: Alpha Access", () => {
-  test("jjhub alpha waitlist join submits a waitlist request", async () => {
+  test("codeplane alpha waitlist join submits a waitlist request", async () => {
     const email = `cli-waitlist-${Date.now()}@example.com`;
 
     const result = await cli(
@@ -22,7 +22,7 @@ describe("CLI: Alpha Access", () => {
     expect(body.status).toBe("pending");
   });
 
-  test("jjhub alpha waitlist join works without auth (public endpoint)", async () => {
+  test("codeplane alpha waitlist join works without auth (public endpoint)", async () => {
     const email = `cli-waitlist-noauth-${Date.now()}@example.com`;
 
     const result = await cli(

@@ -403,7 +403,7 @@ export class WorkspaceService {
     // Container-based workspaces cannot fork a running VM's memory state
     throw new APIError(
       501,
-      "forking requires JJHub Cloud — container-based workspaces cannot fork a running VM's memory state"
+      "forking requires Codeplane Cloud — container-based workspaces cannot fork a running VM's memory state"
     );
   }
 
@@ -428,7 +428,7 @@ export class WorkspaceService {
 
     // Commit the container to an image (docker commit)
     const name = input.name.trim() || `snapshot-${Date.now()}`;
-    const imageName = `jjhub-snapshot-${workspace.id.slice(0, 8)}-${Date.now()}`;
+    const imageName = `codeplane-snapshot-${workspace.id.slice(0, 8)}-${Date.now()}`;
 
     // Use exec to run docker commit, since ContainerSandboxClient doesn't have snapshotVM
     // Instead, we store a reference. The "freestyle_snapshot_id" is the image name.
@@ -937,14 +937,14 @@ export class WorkspaceService {
     let result;
     try {
       result = await this.sandbox.createVM({
-        namePrefix: `jjhub-workspace`,
+        namePrefix: `codeplane-workspace`,
         env: {
-          JJHUB_REPO_OWNER: input.repoOwner,
-          JJHUB_REPO_NAME: input.repoName,
+          CODEPLANE_REPO_OWNER: input.repoOwner,
+          CODEPLANE_REPO_NAME: input.repoName,
         },
         labels: {
-          "tech.jjhub.workspace.id": workspace.id,
-          "tech.jjhub.workspace.repo": `${input.repoOwner}/${input.repoName}`,
+          "tech.codeplane.workspace.id": workspace.id,
+          "tech.codeplane.workspace.repo": `${input.repoOwner}/${input.repoName}`,
         },
       });
     } catch (err) {

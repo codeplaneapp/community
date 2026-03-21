@@ -9,10 +9,10 @@ import { refreshDocsCache } from "./docs-cache.js";
 import { prepareDocsIndex } from "./docs-index.js";
 import { createLocalBackend } from "./backends/local.js";
 import { createWorkspaceBackend } from "./backends/workspace.js";
-import { createJjhubResourceLoader } from "./resource-loader.js";
-import { createJjhubContextTool } from "./tools/jjhub-context.js";
-import { createJjhubDocsTool } from "./tools/jjhub-docs.js";
-import { createJjhubIssueTool } from "./tools/jjhub-issue.js";
+import { createCodeplaneResourceLoader } from "./resource-loader.js";
+import { createCodeplaneContextTool } from "./tools/codeplane-context.js";
+import { createCodeplaneDocsTool } from "./tools/codeplane-docs.js";
+import { createCodeplaneIssueTool } from "./tools/codeplane-issue.js";
 import type {
   AgentExecutionBackend,
   DocsCorpusStatus,
@@ -57,15 +57,15 @@ function buildStructuredResponse(
 
 function createSkippedDocsStatus(): DocsCorpusStatus {
   return {
-    url: process.env.JJHUB_AGENT_DOCS_URL ?? "https://docs.jjhub.tech/llms-full.txt",
+    url: process.env.CODEPLANE_AGENT_DOCS_URL ?? "https://docs.codeplane.app/llms-full.txt",
     status: "unavailable",
     source: "none",
-    warning: "JJHub docs refresh was skipped for lightweight summary mode.",
+    warning: "Codeplane docs refresh was skipped for lightweight summary mode.",
   };
 }
 
 function getDocsRefreshTimeoutMs(): number {
-  const raw = process.env.JJHUB_AGENT_DOCS_TIMEOUT_MS;
+  const raw = process.env.CODEPLANE_AGENT_DOCS_TIMEOUT_MS;
   const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
   return Number.isFinite(parsed) && parsed > 0
     ? parsed
@@ -140,19 +140,19 @@ export async function initializeAgentRuntime(
   });
   const docsIndex = await prepareDocsIndex(docsEntry);
   const contextRef = { current: repoContext };
-  const resourceLoader = await createJjhubResourceLoader({
+  const resourceLoader = await createCodeplaneResourceLoader({
     cwd: backend.cwd,
     repoContext,
     docsStatus: docsEntry.status,
     backendContext: backend.describeContext(),
   });
   const customTools = [
-    createJjhubDocsTool(docsIndex, docsEntry.status),
-    createJjhubContextTool(contextRef, {
+    createCodeplaneDocsTool(docsIndex, docsEntry.status),
+    createCodeplaneContextTool(contextRef, {
       repoOverride: options.repoOverride,
       backendContext: () => backend.describeContext(),
     }),
-    createJjhubIssueTool(contextRef),
+    createCodeplaneIssueTool(contextRef),
   ] as unknown as NonNullable<CreateAgentSessionOptions["customTools"]>;
 
   const sessionResult = await createAgentSession({
@@ -173,7 +173,7 @@ export async function initializeAgentRuntime(
 }
 
 export async function runAgent(options: RunAgentOptions): Promise<unknown> {
-  const testMode = process.env.JJHUB_AGENT_TEST_MODE;
+  const testMode = process.env.CODEPLANE_AGENT_TEST_MODE;
   let baseRuntime: BaseAgentRuntime | undefined;
   let runtime: InitializedAgentRuntime | undefined;
 
@@ -197,7 +197,7 @@ export async function runAgent(options: RunAgentOptions): Promise<unknown> {
 
     if (options.formatExplicit && options.format !== "toon") {
       throw new Error(
-        "Interactive `jjhub agent` only supports the default text output mode.",
+        "Interactive `codeplane agent` only supports the default text output mode.",
       );
     }
 

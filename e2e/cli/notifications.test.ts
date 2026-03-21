@@ -10,7 +10,7 @@ import { cli, jsonParse, WRITE_TOKEN } from "./helpers";
  */
 
 describe("CLI: Notifications", () => {
-  test("jjhub notification list requires auth", async () => {
+  test("codeplane notification list requires auth", async () => {
     const result = await cli(
       ["notification", "list"],
       { token: "", json: true },
@@ -19,7 +19,7 @@ describe("CLI: Notifications", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub notification list returns notifications for authenticated user", async () => {
+  test("codeplane notification list returns notifications for authenticated user", async () => {
     const result = await cli(
       ["notification", "list"],
       { token: WRITE_TOKEN, json: true },
@@ -39,7 +39,7 @@ describe("CLI: Notifications", () => {
     }
   });
 
-  test("jjhub notification list respects pagination", async () => {
+  test("codeplane notification list respects pagination", async () => {
     const result = await cli(
       ["notification", "list", "--per-page", "5", "--page", "1"],
       { token: WRITE_TOKEN, json: true },
@@ -51,7 +51,7 @@ describe("CLI: Notifications", () => {
     expect(body.length).toBeLessThanOrEqual(5);
   });
 
-  test("jjhub notification mark-read marks a specific notification as read", async () => {
+  test("codeplane notification mark-read marks a specific notification as read", async () => {
     // Mark notification ID 1 as read (may be a no-op if it doesn't exist for this user)
     const result = await cli(
       ["notification", "mark-read", "1"],
@@ -62,7 +62,7 @@ describe("CLI: Notifications", () => {
     expect(result.exitCode).toBe(0);
   });
 
-  test("jjhub notification mark-read rejects zero ID", async () => {
+  test("codeplane notification mark-read rejects zero ID", async () => {
     const result = await cli(
       ["notification", "mark-read", "0"],
       { token: WRITE_TOKEN, json: true },
@@ -71,7 +71,7 @@ describe("CLI: Notifications", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub notification mark-read requires auth", async () => {
+  test("codeplane notification mark-read requires auth", async () => {
     const result = await cli(
       ["notification", "mark-read", "1"],
       { token: "", json: true },
@@ -80,7 +80,7 @@ describe("CLI: Notifications", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub notification mark-all-read marks all as read", async () => {
+  test("codeplane notification mark-all-read marks all as read", async () => {
     const result = await cli(
       ["notification", "mark-all-read"],
       { token: WRITE_TOKEN, json: true },
@@ -89,7 +89,7 @@ describe("CLI: Notifications", () => {
     expect(result.exitCode).toBe(0);
   });
 
-  test("jjhub notification mark-all-read requires auth", async () => {
+  test("codeplane notification mark-all-read requires auth", async () => {
     const result = await cli(
       ["notification", "mark-all-read"],
       { token: "", json: true },

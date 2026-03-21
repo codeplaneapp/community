@@ -9,7 +9,7 @@ import { cli, jsonParse, uniqueName, READ_TOKEN, WRITE_TOKEN } from "./helpers";
  */
 
 describe("CLI: Token Scopes", () => {
-  test("jjhub repo create fails with no token (401)", async () => {
+  test("codeplane repo create fails with no token (401)", async () => {
     const repoName = uniqueName("cli-scope-notoken");
     const result = await cli(
       ["repo", "create", repoName, "--description", "no token test"],
@@ -19,17 +19,17 @@ describe("CLI: Token Scopes", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub repo create fails with invalid token", async () => {
+  test("codeplane repo create fails with invalid token", async () => {
     const repoName = uniqueName("cli-scope-bad");
     const result = await cli(
       ["repo", "create", repoName, "--description", "bad token test"],
-      { token: "not-a-jjhub-token", json: true },
+      { token: "not-a-codeplane-token", json: true },
     );
 
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub repo create fails with read-only scope token (403)", async () => {
+  test("codeplane repo create fails with read-only scope token (403)", async () => {
     const repoName = uniqueName("cli-scope-readonly");
     const result = await cli(
       ["repo", "create", repoName, "--description", "read-only scope test"],
@@ -39,7 +39,7 @@ describe("CLI: Token Scopes", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub repo create succeeds with write scope token", async () => {
+  test("codeplane repo create succeeds with write scope token", async () => {
     const repoName = uniqueName("cli-scope-write");
     const result = await cli(
       ["repo", "create", repoName, "--description", "write scope test"],
@@ -50,7 +50,7 @@ describe("CLI: Token Scopes", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub repo list succeeds with read-only token", async () => {
+  test("codeplane repo list succeeds with read-only token", async () => {
     const result = await cli(
       ["repo", "list"],
       { token: READ_TOKEN, json: true },
@@ -62,7 +62,7 @@ describe("CLI: Token Scopes", () => {
     expect(Array.isArray(body)).toBe(true);
   });
 
-  test("jjhub auth token create fails with read-only token (scope escalation)", async () => {
+  test("codeplane auth token create fails with read-only token (scope escalation)", async () => {
     const result = await cli(
       ["auth", "token", "create", uniqueName("cli-escalate"), "--scopes", "write:repository"],
       { token: READ_TOKEN, json: true },
@@ -72,7 +72,7 @@ describe("CLI: Token Scopes", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub auth token list succeeds with write token", async () => {
+  test("codeplane auth token list succeeds with write token", async () => {
     const result = await cli(
       ["auth", "token", "list"],
       { token: WRITE_TOKEN, json: true },

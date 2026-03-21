@@ -3,11 +3,11 @@ import { cli, jsonParse, WRITE_TOKEN, READ_TOKEN } from "./helpers";
 
 // WRITE_TOKEN is alice (admin), READ_TOKEN is a non-admin token
 const NON_ADMIN_TOKEN =
-  process.env.JJHUB_NON_ADMIN_WRITE_TOKEN ??
-  "jjhub_cafebabecafebabecafebabecafebabecafebabe";
+  process.env.CODEPLANE_NON_ADMIN_WRITE_TOKEN ??
+  "codeplane_cafebabecafebabecafebabecafebabecafebabe";
 
 describe("CLI: Admin", () => {
-  test("jjhub admin user list returns users (admin)", async () => {
+  test("codeplane admin user list returns users (admin)", async () => {
     const result = await cli(
       ["admin", "user", "list"],
       { json: true },
@@ -18,7 +18,7 @@ describe("CLI: Admin", () => {
     expect(Array.isArray(body)).toBe(true);
   });
 
-  test("jjhub admin user list supports pagination", async () => {
+  test("codeplane admin user list supports pagination", async () => {
     const result = await cli(
       ["admin", "user", "list", "--page", "1", "--limit", "5"],
       { json: true },
@@ -30,7 +30,7 @@ describe("CLI: Admin", () => {
     expect(body.length).toBeLessThanOrEqual(5);
   });
 
-  test("jjhub admin runner list returns runners (admin)", async () => {
+  test("codeplane admin runner list returns runners (admin)", async () => {
     const result = await cli(
       ["admin", "runner", "list"],
       { json: true },
@@ -41,7 +41,7 @@ describe("CLI: Admin", () => {
     expect(Array.isArray(body)).toBe(true);
   });
 
-  test("jjhub admin runner list items have correct shape", async () => {
+  test("codeplane admin runner list items have correct shape", async () => {
     const result = await cli(
       ["admin", "runner", "list"],
       { json: true },
@@ -57,7 +57,7 @@ describe("CLI: Admin", () => {
     }
   });
 
-  test("jjhub admin workflow list returns workflow runs (admin)", async () => {
+  test("codeplane admin workflow list returns workflow runs (admin)", async () => {
     const result = await cli(
       ["admin", "workflow", "list"],
       { json: true },
@@ -66,7 +66,7 @@ describe("CLI: Admin", () => {
     expect(result.exitCode).toBe(0);
   });
 
-  test("jjhub admin health returns system health", async () => {
+  test("codeplane admin health returns system health", async () => {
     const result = await cli(
       ["admin", "health"],
       { json: true },
@@ -75,7 +75,7 @@ describe("CLI: Admin", () => {
     expect(result.exitCode).toBe(0);
   });
 
-  test("jjhub admin user list fails for non-admin user", async () => {
+  test("codeplane admin user list fails for non-admin user", async () => {
     const result = await cli(
       ["admin", "user", "list"],
       { json: true, token: NON_ADMIN_TOKEN },
@@ -84,7 +84,7 @@ describe("CLI: Admin", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub admin runner list fails for non-admin user", async () => {
+  test("codeplane admin runner list fails for non-admin user", async () => {
     const result = await cli(
       ["admin", "runner", "list"],
       { json: true, token: NON_ADMIN_TOKEN },
@@ -93,7 +93,7 @@ describe("CLI: Admin", () => {
     expect(result.exitCode).not.toBe(0);
   });
 
-  test("jjhub admin user list fails without auth", async () => {
+  test("codeplane admin user list fails without auth", async () => {
     const result = await cli(
       ["admin", "user", "list"],
       { json: true, token: "" },

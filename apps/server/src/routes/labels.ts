@@ -11,7 +11,7 @@ import {
   setPaginationHeaders,
   parseInt64Param,
   repoOwnerAndName,
-} from "@jjhub/sdk";
+} from "@codeplane/sdk";
 import { getServices } from "../services";
 
 // ---------------------------------------------------------------------------

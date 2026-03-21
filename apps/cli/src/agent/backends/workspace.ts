@@ -377,19 +377,19 @@ export async function createWorkspaceBackend(
 
   if (!repoContext.repoRoot) {
     throw new Error(
-      "Sandbox mode requires a local jj repository. Run `jjhub agent` from inside a repo.",
+      "Sandbox mode requires a local jj repository. Run `codeplane agent` from inside a repo.",
     );
   }
 
   if (!repoContext.repoSlug) {
     throw new Error(
-      "Sandbox mode requires a JJHub repository slug. Use `--repo OWNER/REPO` or add a JJHub remote.",
+      "Sandbox mode requires a Codeplane repository slug. Use `--repo OWNER/REPO` or add a Codeplane remote.",
     );
   }
 
   if (!repoContext.auth.loggedIn) {
     throw new Error(
-      "Sandbox mode requires JJHub auth. Run `jjhub auth login` first.",
+      "Sandbox mode requires Codeplane auth. Run `codeplane auth login` first.",
     );
   }
 

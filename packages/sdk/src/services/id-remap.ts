@@ -1,6 +1,6 @@
 /**
  * IdRemapService — temporary ID allocation and server ID remapping for
- * JJHub's local-first sync engine.
+ * Codeplane's local-first sync engine.
  *
  * When a user creates resources offline (e.g. issues), they get local UUIDs
  * as temporary IDs. When synced, the server assigns real sequential IDs

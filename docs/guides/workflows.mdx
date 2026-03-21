@@ -6,9 +6,9 @@ icon: gears
 
 # Workflows
 
-JJHub workflows are TSX files that define automated tasks for your repository. They use [Smithers](https://smithers.sh) JSX components wrapped by the `@jjhub-ai/workflow` package. There is no distinction between CI workflows and AI workflows -- a workflow task can run tests, deploy code, or invoke an AI agent. They are all just code running in the same sandboxed environment.
+Codeplane workflows are TSX files that define automated tasks for your repository. They use [Smithers](https://smithers.sh) JSX components wrapped by the `@codeplane-ai/workflow` package. There is no distinction between CI workflows and AI workflows -- a workflow task can run tests, deploy code, or invoke an AI agent. They are all just code running in the same sandboxed environment.
 
-Workflows live in your repository under `.jjhub/workflows/` and are triggered by events like pushes, landing request activity, schedules, or manual dispatch.
+Workflows live in your repository under `.codeplane/workflows/` and are triggered by events like pushes, landing request activity, schedules, or manual dispatch.
 
 ## Workflow Basics
 
@@ -17,8 +17,8 @@ A workflow is a TSX file that default-exports a function returning a `<Workflow>
 ### Minimal Example
 
 ```tsx
-// .jjhub/workflows/ci.tsx
-import { Workflow, Task, on } from "@jjhub-ai/workflow";
+// .codeplane/workflows/ci.tsx
+import { Workflow, Task, on } from "@codeplane-ai/workflow";
 import { $ } from "bun";
 
 export default (ctx) => (
@@ -60,12 +60,12 @@ Every workflow has three parts:
 
 ### Directory Layout
 
-Workflows must be placed in the `.jjhub/workflows/` directory at the repository root:
+Workflows must be placed in the `.codeplane/workflows/` directory at the repository root:
 
 ```
 your-repo/
-├── .jjhub/
-│   ├── package.json          # Depends on @jjhub-ai/workflow
+├── .codeplane/
+│   ├── package.json          # Depends on @codeplane-ai/workflow
 │   ├── tsconfig.json         # JSX + Smithers config
 │   └── workflows/
 │       ├── ci.tsx
@@ -73,21 +73,21 @@ your-repo/
 │       ├── triage.tsx
 │       └── nightly.tsx
 ├── packages/
-│   └── workflow/             # @jjhub-ai/workflow package
+│   └── workflow/             # @codeplane-ai/workflow package
 │       ├── package.json
 │       ├── tsconfig.json
 │       └── src/
 │           ├── index.ts      # Re-exports Smithers components + triggers
-│           ├── components.tsx # Workflow, Task (JJHub extensions)
+│           ├── components.tsx # Workflow, Task (Codeplane extensions)
 │           └── triggers.ts   # on.push(), on.landingRequest.*, etc.
-├── package.json              # workspaces: ["packages/*", ".jjhub"]
+├── package.json              # workspaces: ["packages/*", ".codeplane"]
 ├── src/
 └── ...
 ```
 
-Each `.tsx` file in the `workflows/` directory is discovered automatically. The filename (without extension) becomes the workflow ID used in CLI commands like `jjhub workflow run ci`.
+Each `.tsx` file in the `workflows/` directory is discovered automatically. The filename (without extension) becomes the workflow ID used in CLI commands like `codeplane workflow run ci`.
 
-The `.jjhub/` directory is a Bun workspace member with its own `package.json` and `tsconfig.json`, giving full LSP support (autocomplete, type checking, go-to-definition) when editing workflows. See [Your First Workflow](/getting-started/first-workflow#project-setup) for the complete setup.
+The `.codeplane/` directory is a Bun workspace member with its own `package.json` and `tsconfig.json`, giving full LSP support (autocomplete, type checking, go-to-definition) when editing workflows. See [Your First Workflow](/getting-started/first-workflow#project-setup) for the complete setup.
 
 ## Triggers & Events
 
@@ -229,14 +229,14 @@ Input types:
 Trigger manually from the CLI:
 
 ```bash
-jjhub workflow run deploy --input environment=production --input version=1.2.3
+codeplane workflow run deploy --input environment=production --input version=1.2.3
 ```
 
 Or via the API:
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/repos/owner/repo/workflows/deploy/dispatches \
-  -H "Authorization: token jjhub_xxxxx" \
+curl -X POST https://api.codeplane.app/api/repos/owner/repo/workflows/deploy/dispatches \
+  -H "Authorization: token codeplane_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{
     "ref": "main",
@@ -290,7 +290,7 @@ Tasks are the units of work a workflow executes. Children of `<Workflow>` run se
 A compute task runs an async function. Use Bun's `$` template literal for shell commands:
 
 ```tsx
-import { Workflow, Task, on } from "@jjhub-ai/workflow";
+import { Workflow, Task, on } from "@codeplane-ai/workflow";
 import { $ } from "bun";
 
 export default (ctx) => (
@@ -326,10 +326,10 @@ Each task has an `id` (used in logs and status checks) and an async function chi
 
 ### Agent Tasks
 
-An agent task invokes an AI agent by passing a string prompt as the child and an `agent` prop. The agent runs in the same sandboxed environment and can read/write files, execute commands, and interact with the JJHub API:
+An agent task invokes an AI agent by passing a string prompt as the child and an `agent` prop. The agent runs in the same sandboxed environment and can read/write files, execute commands, and interact with the Codeplane API:
 
 ```tsx
-import { Workflow, Task, on } from "@jjhub-ai/workflow";
+import { Workflow, Task, on } from "@codeplane-ai/workflow";
 import { ToolLoopAgent } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { $ } from "bun";
@@ -359,7 +359,7 @@ export default (ctx) => (
 To use agent tasks, configure your AI API key as a repository secret:
 
 ```bash
-printf %s "sk-ant-..." | jjhub secret set ANTHROPIC_API_KEY --body-stdin
+printf %s "sk-ant-..." | codeplane secret set ANTHROPIC_API_KEY --body-stdin
 ```
 
 ### Schema-Driven Tasks
@@ -367,7 +367,7 @@ printf %s "sk-ant-..." | jjhub secret set ANTHROPIC_API_KEY --body-stdin
 For AI workflows where tasks pass structured data to each other, use `createSmithers` to define Zod output schemas. This gives you type-safe `ctx.output()` and automatic persistence:
 
 ```tsx
-import { createSmithers, Task, on } from "@jjhub-ai/workflow";
+import { createSmithers, Task, on } from "@codeplane-ai/workflow";
 import { ToolLoopAgent as Agent } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
@@ -413,7 +413,7 @@ Key differences from compute tasks:
 | Aspect | Compute Task | Schema-Driven Task |
 |--------|-------------|-------------------|
 | Export | `export default (ctx) => ...` | `export default smithers((ctx) => ...)` |
-| Workflow/Task | Imported directly from `@jjhub-ai/workflow` | Destructured from `createSmithers()` |
+| Workflow/Task | Imported directly from `@codeplane-ai/workflow` | Destructured from `createSmithers()` |
 | Output | None (side effects only) | Typed Zod schema via `output="name"` |
 | Data passing | Not supported | `ctx.output("name", { nodeId: "id" })` |
 
@@ -424,7 +424,7 @@ Use the simple compute pattern for CI tasks (lint, test, build, deploy). Use `cr
 Use `<Parallel>` to run tasks concurrently:
 
 ```tsx
-import { Workflow, Task, Parallel, on } from "@jjhub-ai/workflow";
+import { Workflow, Task, Parallel, on } from "@codeplane-ai/workflow";
 import { $ } from "bun";
 
 export default (ctx) => (
@@ -483,7 +483,7 @@ If any task fails (non-zero exit code or thrown error), the workflow run is mark
 
 ## Secrets & Variables
 
-Workflows often need credentials (API keys, deploy tokens) and configuration values. JJHub provides two mechanisms:
+Workflows often need credentials (API keys, deploy tokens) and configuration values. Codeplane provides two mechanisms:
 
 ### Secrets
 
@@ -491,16 +491,16 @@ Secrets are encrypted values injected as environment variables into workflow run
 
 ```bash
 # Set a secret
-printf %s "sk-ant-..." | jjhub secret set ANTHROPIC_API_KEY --body-stdin
+printf %s "sk-ant-..." | codeplane secret set ANTHROPIC_API_KEY --body-stdin
 
 # Set a deploy token
-printf %s "your-deploy-token" | jjhub secret set DEPLOY_TOKEN --body-stdin
+printf %s "your-deploy-token" | codeplane secret set DEPLOY_TOKEN --body-stdin
 
 # List secrets (names only, values are hidden)
-jjhub secret list
+codeplane secret list
 
 # Delete a secret
-jjhub secret delete DEPLOY_TOKEN
+codeplane secret delete DEPLOY_TOKEN
 ```
 
 Access secrets in workflow tasks via environment variables:
@@ -516,7 +516,7 @@ Access secrets in workflow tasks via environment variables:
 ```
 
 <Warning>
-  Secrets are encrypted at rest and only injected into workflow runs. They are never visible in API responses, CLI output, or logs. If a workflow task prints a secret value to stdout, JJHub automatically redacts it in the log output.
+  Secrets are encrypted at rest and only injected into workflow runs. They are never visible in API responses, CLI output, or logs. If a workflow task prints a secret value to stdout, Codeplane automatically redacts it in the log output.
 </Warning>
 
 ### Variables
@@ -525,16 +525,16 @@ Variables are non-secret configuration values. Unlike secrets, variable values a
 
 ```bash
 # Set a variable
-jjhub variable set NODE_VERSION -b "20"
+codeplane variable set NODE_VERSION -b "20"
 
 # Get a variable value
-jjhub variable get NODE_VERSION
+codeplane variable get NODE_VERSION
 
 # List variables
-jjhub variable list
+codeplane variable list
 
 # Delete a variable
-jjhub variable delete NODE_VERSION
+codeplane variable delete NODE_VERSION
 ```
 
 Variables are also injected as environment variables into workflow runs.
@@ -555,8 +555,8 @@ Variables are also injected as environment variables into workflow runs.
 A standard CI workflow that runs on pushes and landing requests:
 
 ```tsx
-// .jjhub/workflows/ci.tsx
-import { Workflow, Task, Parallel, on } from "@jjhub-ai/workflow";
+// .codeplane/workflows/ci.tsx
+import { Workflow, Task, Parallel, on } from "@codeplane-ai/workflow";
 import { $ } from "bun";
 
 export default (ctx) => (
@@ -603,8 +603,8 @@ export default (ctx) => (
 A deploy workflow triggered manually with environment selection:
 
 ```tsx
-// .jjhub/workflows/deploy.tsx
-import { Workflow, Task, on } from "@jjhub-ai/workflow";
+// .codeplane/workflows/deploy.tsx
+import { Workflow, Task, on } from "@codeplane-ai/workflow";
 import { $ } from "bun";
 
 export default (ctx) => (
@@ -641,7 +641,7 @@ export default (ctx) => (
 ```
 
 ```bash
-jjhub workflow run deploy -i environment=production -i version=1.2.3
+codeplane workflow run deploy -i environment=production -i version=1.2.3
 ```
 
 ### AI Issue Triage
@@ -649,8 +649,8 @@ jjhub workflow run deploy -i environment=production -i version=1.2.3
 Automatically label and assign new issues using an AI agent:
 
 ```tsx
-// .jjhub/workflows/triage.tsx
-import { Workflow, Task, on } from "@jjhub-ai/workflow";
+// .codeplane/workflows/triage.tsx
+import { Workflow, Task, on } from "@codeplane-ai/workflow";
 import { ToolLoopAgent } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 
@@ -679,8 +679,8 @@ export default (ctx) => (
 Review landing requests with an AI agent after CI passes:
 
 ```tsx
-// .jjhub/workflows/ai-review.tsx
-import { Workflow, Task, on } from "@jjhub-ai/workflow";
+// .codeplane/workflows/ai-review.tsx
+import { Workflow, Task, on } from "@codeplane-ai/workflow";
 import { ToolLoopAgent } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { $ } from "bun";
@@ -718,8 +718,8 @@ export default (ctx) => (
 Customize the landing queue behavior with a workflow:
 
 ```tsx
-// .jjhub/workflows/landing-queue.tsx
-import { Workflow, Task, on } from "@jjhub-ai/workflow";
+// .codeplane/workflows/landing-queue.tsx
+import { Workflow, Task, on } from "@codeplane-ai/workflow";
 import { $ } from "bun";
 
 export default (ctx) => (
@@ -742,8 +742,8 @@ export default (ctx) => (
 Scan for outdated or vulnerable dependencies on a schedule:
 
 ```tsx
-// .jjhub/workflows/deps.tsx
-import { Workflow, Task, on } from "@jjhub-ai/workflow";
+// .codeplane/workflows/deps.tsx
+import { Workflow, Task, on } from "@codeplane-ai/workflow";
 import { ToolLoopAgent } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { $ } from "bun";
@@ -777,8 +777,8 @@ export default (ctx) => (
 Chain workflows using `on.workflowRun()` -- build after CI passes, deploy after build succeeds:
 
 ```tsx
-// .jjhub/workflows/build.tsx
-import { Workflow, Task, Parallel, on } from "@jjhub-ai/workflow";
+// .codeplane/workflows/build.tsx
+import { Workflow, Task, Parallel, on } from "@codeplane-ai/workflow";
 import { $ } from "bun";
 
 export default (ctx) => (
@@ -807,8 +807,8 @@ export default (ctx) => (
 A single workflow that runs tests and invokes an AI agent to analyze failures:
 
 ```tsx
-// .jjhub/workflows/smart-ci.tsx
-import { Workflow, Task, Branch, on } from "@jjhub-ai/workflow";
+// .codeplane/workflows/smart-ci.tsx
+import { Workflow, Task, Branch, on } from "@codeplane-ai/workflow";
 import { ToolLoopAgent } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { $ } from "bun";
@@ -845,33 +845,33 @@ export default (ctx) => (
 ### List Workflows
 
 ```bash
-jjhub workflow list
+codeplane workflow list
 ```
 
 ### Trigger a Workflow
 
 ```bash
 # Trigger manually
-jjhub workflow run ci --ref main
+codeplane workflow run ci --ref main
 
 # Trigger with inputs
-jjhub workflow run deploy -i environment=staging -i version=1.0.0
+codeplane workflow run deploy -i environment=staging -i version=1.0.0
 ```
 
 ### View Runs
 
 ```bash
 # List runs for a workflow
-jjhub run list ci
+codeplane run list ci
 
 # View a specific run
-jjhub run view 42
+codeplane run view 42
 
 # Watch a run in real-time (SSE streaming)
-jjhub run watch 42
+codeplane run watch 42
 
 # Re-run a failed workflow
-jjhub run rerun 42
+codeplane run rerun 42
 ```
 
 ### Commit Statuses
@@ -880,10 +880,10 @@ Workflow runs automatically create commit statuses on the associated changes. Yo
 
 ```bash
 # List statuses for a change
-jjhub status list <change-id>
+codeplane status list <change-id>
 
 # Set a status manually
-jjhub status set <sha> --state success --context ci/test
+codeplane status set <sha> --state success --context ci/test
 ```
 
 ## API Endpoints

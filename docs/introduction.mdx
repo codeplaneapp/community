@@ -1,32 +1,32 @@
 ---
-title: "JJHub Documentation"
+title: "Codeplane Documentation"
 description: "The jj-native code hosting platform with integrated collaborative agent sandboxes in the cloud"
 ---
 
 <Note>
-  JJHub is currently in **closed alpha**. [Join the waitlist](https://jjhub.tech/waitlist) for early access.
+  Codeplane is currently in **closed alpha**. [Join the waitlist](https://codeplane.app/waitlist) for early access.
 </Note>
 
-# What Is JJHub?
+# What Is Codeplane?
 
-JJHub is a code hosting platform built for agent-powered engineering teams. It unifies version control, AI-native workflows, and CI/CD into a single streamlined environment. We build on top of [Jujutsu (jj)](https://github.com/jj-vcs/jj) to provide a foundation with stable change IDs, first-class conflict tracking, and stacked changes.
+Codeplane is a code hosting platform built for agent-powered engineering teams. It unifies version control, AI-native workflows, and CI/CD into a single streamlined environment. We build on top of [Jujutsu (jj)](https://github.com/jj-vcs/jj) to provide a foundation with stable change IDs, first-class conflict tracking, and stacked changes.
 
-JJHub is not a GitHub clone. It is inspired by GitHub's excellent patterns like API design and ecosystem conventions, but it is fundamentally built for the agentic era. For us, jj is a means to an end: providing the high-throughput infrastructure required to let humans and AI agents collaborate seamlessly.
+Codeplane is not a GitHub clone. It is inspired by GitHub's excellent patterns like API design and ecosystem conventions, but it is fundamentally built for the agentic era. For us, jj is a means to an end: providing the high-throughput infrastructure required to let humans and AI agents collaborate seamlessly.
 
 ## Key Features
 
 <CardGroup cols={2}>
   <Card title="Landing Requests" icon="rocket">
-    JJHub's native replacement for Pull Requests. Built for jj's stacked changes model with stable Change IDs, conflict tracking, and programmable landing queues.
+    Codeplane's native replacement for Pull Requests. Built for jj's stacked changes model with stable Change IDs, conflict tracking, and programmable landing queues.
   </Card>
   <Card title="Stacked Changes" icon="bars-staggered">
-    First-class support for stacked, incremental changes. Create a stack with `jj new`, land the stack with `jjhub land create --change <id>`. No manual rebasing required.
+    First-class support for stacked, incremental changes. Create a stack with `jj new`, land the stack with `codeplane land create --change <id>`. No manual rebasing required.
   </Card>
   <Card title="AI Agents" icon="star">
     Vercel AI SDK powered agents run in sandboxed environments. Triage issues, review code, ship changes - all orchestrated through TypeScript workflows. Bring your own API keys via workflow secrets.
   </Card>
   <Card title="TypeScript Workflows" icon="code">
-    Unified AI + CI workflows written in TypeScript. No YAML. Agents and CI steps are the same thing - just code in `.jjhub/workflows/`.
+    Unified AI + CI workflows written in TypeScript. No YAML. Agents and CI steps are the same thing - just code in `.codeplane/workflows/`.
   </Card>
 </CardGroup>
 
@@ -45,19 +45,19 @@ The net effect: a platform built on jj lets agents iterate at full speed without
 
 <CardGroup cols={2}>
   <Card title="Quick Start" href="/getting-started/quick-start" icon="bolt">
-    Get up and running with JJHub in minutes
+    Get up and running with Codeplane in minutes
   </Card>
   <Card title="CLI Reference" href="/cli-reference/commands" icon="terminal">
-    Complete reference for all jjhub CLI commands
+    Complete reference for all codeplane CLI commands
   </Card>
   <Card title="API Reference" href="/api-reference/authentication" icon="code">
     REST API documentation
   </Card>
   <Card title="jj Concepts" href="/cli-reference/jj-concepts" icon="book">
-    Understanding Jujutsu concepts as used by JJHub
+    Understanding Jujutsu concepts as used by Codeplane
   </Card>
 </CardGroup>
 
 ## Philosophy
 
-See [Philosophy & Tenets](/philosophy) for the principles that guide every JJHub decision.
+See [Philosophy & Tenets](/philosophy) for the principles that guide every Codeplane decision.

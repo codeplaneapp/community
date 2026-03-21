@@ -1,12 +1,12 @@
 ---
 title: Repositories
-description: Create, manage, and configure JJHub repositories
+description: Create, manage, and configure Codeplane repositories
 icon: code-branch
 ---
 
 # Repositories
 
-Repositories are the core unit of JJHub. They store your code, track changes via jj, and host landing requests, issues, workflows, and more. JJHub repositories are jj-native -- they use bookmarks instead of branches, stable Change IDs instead of commit SHAs, and first-class conflict tracking.
+Repositories are the core unit of Codeplane. They store your code, track changes via jj, and host landing requests, issues, workflows, and more. Codeplane repositories are jj-native -- they use bookmarks instead of branches, stable Change IDs instead of commit SHAs, and first-class conflict tracking.
 
 ## Creating Repositories
 
@@ -14,13 +14,13 @@ Repositories are the core unit of JJHub. They store your code, track changes via
 
 ```bash
 # Create a public repository
-jjhub repo create my-project --description "A new project"
+codeplane repo create my-project --description "A new project"
 
 # Create a private repository
-jjhub repo create my-project --private
+codeplane repo create my-project --private
 
 # Create a repository under an organization
-jjhub repo create my-org/my-project --description "Org repository"
+codeplane repo create my-org/my-project --description "Org repository"
 ```
 
 | Flag | Description |
@@ -33,8 +33,8 @@ jjhub repo create my-org/my-project --description "Org repository"
 
 ```bash
 # Create a user-owned repository
-curl -X POST https://api.jjhub.tech/api/user/repos \
-  -H "Authorization: token jjhub_xxxxx" \
+curl -X POST https://api.codeplane.app/api/user/repos \
+  -H "Authorization: token codeplane_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "my-project",
@@ -43,8 +43,8 @@ curl -X POST https://api.jjhub.tech/api/user/repos \
   }'
 
 # Create an org-owned repository
-curl -X POST https://api.jjhub.tech/api/orgs/my-org/repos \
-  -H "Authorization: token jjhub_xxxxx" \
+curl -X POST https://api.codeplane.app/api/orgs/my-org/repos \
+  -H "Authorization: token codeplane_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "my-project",
@@ -57,37 +57,37 @@ curl -X POST https://api.jjhub.tech/api/orgs/my-org/repos \
 
 ```bash
 # Clone by owner/repo
-jjhub repo clone alice/my-project
+codeplane repo clone alice/my-project
 
 # Clone into a specific directory
-jjhub repo clone alice/my-project ./local-dir
+codeplane repo clone alice/my-project ./local-dir
 ```
 
-The `jjhub repo clone` command clones via your preferred git protocol (SSH or HTTPS, configurable with `jjhub config set git_protocol`). After cloning, you work with standard jj commands.
+The `codeplane repo clone` command clones via your preferred git protocol (SSH or HTTPS, configurable with `codeplane config set git_protocol`). After cloning, you work with standard jj commands.
 
 ## Listing and Viewing
 
 ```bash
 # List your repositories
-jjhub repo list
+codeplane repo list
 
 # Limit results
-jjhub repo list --limit 10
+codeplane repo list --limit 10
 
 # Include archived repositories (excluded by default)
-jjhub repo list --archived
+codeplane repo list --archived
 
 # View repository details
-jjhub repo view
-jjhub repo view -R alice/my-project
+codeplane repo view
+codeplane repo view -R alice/my-project
 
 # JSON output
-jjhub repo view --json
+codeplane repo view --json
 ```
 
 ## Bookmarks
 
-Bookmarks are jj's replacement for git branches. They are named pointers to changes, and they are the primary reference type in JJHub.
+Bookmarks are jj's replacement for git branches. They are named pointers to changes, and they are the primary reference type in Codeplane.
 
 ### Key Differences from Branches
 
@@ -102,23 +102,23 @@ Bookmarks are jj's replacement for git branches. They are named pointers to chan
 
 ```bash
 # List bookmarks (local jj-lib operation)
-jjhub bookmark list
+codeplane bookmark list
 
 # List bookmarks from remote API
-jjhub bookmark list --remote
+codeplane bookmark list --remote
 
 # Create a bookmark at the current working copy
-jjhub bookmark create feature-auth
+codeplane bookmark create feature-auth
 
 # Create a bookmark at a specific change
-jjhub bookmark create feature-auth --change-id kxyz1234
+codeplane bookmark create feature-auth --change-id kxyz1234
 
 # Delete a bookmark
-jjhub bookmark delete feature-auth
+codeplane bookmark delete feature-auth
 
 # Remote operations
-jjhub bookmark create feature-auth --remote --change-id kxyz1234 -R owner/repo
-jjhub bookmark delete feature-auth --remote -R owner/repo
+codeplane bookmark create feature-auth --remote --change-id kxyz1234 -R owner/repo
+codeplane bookmark delete feature-auth --remote -R owner/repo
 ```
 
 ### Bookmark Protection
@@ -127,10 +127,10 @@ Protect important bookmarks with rules that gate landing:
 
 ```bash
 # Require 1 approval before landing into main
-jjhub bookmark protect main --require-review --approvals 1
+codeplane bookmark protect main --require-review --approvals 1
 
 # Require CI checks and 2 approvals
-jjhub bookmark protect main \
+codeplane bookmark protect main \
   --require-review \
   --approvals 2 \
   --require-status-checks \
@@ -138,13 +138,13 @@ jjhub bookmark protect main \
   --no-force-push
 
 # Protect release bookmarks with a glob pattern
-jjhub bookmark protect "release/*" --require-review --approvals 2
+codeplane bookmark protect "release/*" --require-review --approvals 2
 
 # View all protection rules
-jjhub bookmark protections
+codeplane bookmark protections
 
 # Remove protection
-jjhub bookmark unprotect main
+codeplane bookmark unprotect main
 ```
 
 See the [Landing Requests guide](/guides/landing-requests#bookmark-protection) for full details on protection rules.
@@ -165,16 +165,16 @@ Changes are the fundamental unit of work in jj. Every edit you make creates a ch
 
 ```bash
 # List recent changes (local jj-lib operation)
-jjhub change list
+codeplane change list
 
 # Show details for a specific change
-jjhub change show kxyz1234
+codeplane change show kxyz1234
 
 # Show the diff for a change
-jjhub change diff kxyz1234
+codeplane change diff kxyz1234
 
 # Diff the working copy
-jjhub change diff
+codeplane change diff
 ```
 
 ### How Change IDs Work
@@ -221,8 +221,8 @@ Repositories can be public or private:
 Change visibility via the API:
 
 ```bash
-curl -X PATCH https://api.jjhub.tech/api/repos/owner/repo \
-  -H "Authorization: token jjhub_xxxxx" \
+curl -X PATCH https://api.codeplane.app/api/repos/owner/repo \
+  -H "Authorization: token codeplane_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{"private": true}'
 ```
@@ -233,12 +233,12 @@ Topics tag your repository for discoverability:
 
 ```bash
 # View topics
-curl -H "Authorization: token jjhub_xxxxx" \
-  https://api.jjhub.tech/api/repos/owner/repo/topics
+curl -H "Authorization: token codeplane_xxxxx" \
+  https://api.codeplane.app/api/repos/owner/repo/topics
 
 # Set topics
-curl -X PUT https://api.jjhub.tech/api/repos/owner/repo/topics \
-  -H "Authorization: token jjhub_xxxxx" \
+curl -X PUT https://api.codeplane.app/api/repos/owner/repo/topics \
+  -H "Authorization: token codeplane_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{"topics": ["jj", "typescript", "ai"]}'
 ```
@@ -249,15 +249,15 @@ Star a repository to bookmark it and show appreciation:
 
 ```bash
 # Star a repository
-curl -X PUT -H "Authorization: token jjhub_xxxxx" \
-  https://api.jjhub.tech/api/user/starred/owner/repo
+curl -X PUT -H "Authorization: token codeplane_xxxxx" \
+  https://api.codeplane.app/api/user/starred/owner/repo
 
 # Unstar a repository
-curl -X DELETE -H "Authorization: token jjhub_xxxxx" \
-  https://api.jjhub.tech/api/user/starred/owner/repo
+curl -X DELETE -H "Authorization: token codeplane_xxxxx" \
+  https://api.codeplane.app/api/user/starred/owner/repo
 
 # List stargazers
-curl https://api.jjhub.tech/api/repos/owner/repo/stargazers
+curl https://api.codeplane.app/api/repos/owner/repo/stargazers
 ```
 
 ## Repository Archiving
@@ -266,10 +266,10 @@ Archiving puts a repository into a read-only state. No pushes, no new issues, no
 
 ```bash
 # Archive a repository
-jjhub repo archive owner/repo
+codeplane repo archive owner/repo
 
 # Unarchive a repository
-jjhub repo unarchive owner/repo
+codeplane repo unarchive owner/repo
 ```
 
 **Who can archive/unarchive**: repository owner, organization owners (for org-owned repos), and platform admins.
@@ -292,10 +292,10 @@ Transfer moves a repository from one owner to another (user-to-org, org-to-user,
 
 ```bash
 # Transfer a repo to an organization
-jjhub repo transfer alice/my-repo acme-org
+codeplane repo transfer alice/my-repo acme-org
 
 # Skip confirmation prompt
-jjhub repo transfer alice/my-repo acme-org -y
+codeplane repo transfer alice/my-repo acme-org -y
 ```
 
 **What happens during transfer:**
@@ -317,21 +317,21 @@ Deploy keys are SSH keys scoped to a single repository. They are useful for CI/C
 
 ```bash
 # List deploy keys
-jjhub repo deploy-key list -R owner/repo
+codeplane repo deploy-key list -R owner/repo
 
 # Add a read-only deploy key
-jjhub repo deploy-key add -R owner/repo \
+codeplane repo deploy-key add -R owner/repo \
   --title "CI Runner" \
   --key "ssh-ed25519 AAAAC3..." \
   --read-only
 
 # Add a read-write deploy key
-jjhub repo deploy-key add -R owner/repo \
+codeplane repo deploy-key add -R owner/repo \
   --title "Dependency Bot" \
   --key "$(cat ~/.ssh/bot.pub)"
 
 # Delete a deploy key
-jjhub repo deploy-key delete -R owner/repo 3
+codeplane repo deploy-key delete -R owner/repo 3
 ```
 
 See the [Deploy Keys guide](/guides/deploy-keys) for detailed usage and security best practices.
@@ -351,12 +351,12 @@ Access file contents via the API:
 
 ```bash
 # Get file contents
-curl -H "Authorization: token jjhub_xxxxx" \
-  https://api.jjhub.tech/api/repos/owner/repo/contents/src/main.ts
+curl -H "Authorization: token codeplane_xxxxx" \
+  https://api.codeplane.app/api/repos/owner/repo/contents/src/main.ts
 
 # Get a git tree
-curl -H "Authorization: token jjhub_xxxxx" \
-  https://api.jjhub.tech/api/repos/owner/repo/git/trees/main
+curl -H "Authorization: token codeplane_xxxxx" \
+  https://api.codeplane.app/api/repos/owner/repo/git/trees/main
 ```
 
 ### API Endpoints
@@ -374,8 +374,8 @@ jj maintains an operation log of every repository operation. This provides a ful
 
 ```bash
 # View operation log via API
-curl -H "Authorization: token jjhub_xxxxx" \
-  https://api.jjhub.tech/api/repos/owner/repo/operations
+curl -H "Authorization: token codeplane_xxxxx" \
+  https://api.codeplane.app/api/repos/owner/repo/operations
 ```
 
 | Method | Endpoint | Description |

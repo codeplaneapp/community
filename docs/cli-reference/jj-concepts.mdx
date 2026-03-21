@@ -1,18 +1,18 @@
 ---
 title: jj Concepts Guide
-description: Understanding Jujutsu (jj) concepts as used by JJHub
+description: Understanding Jujutsu (jj) concepts as used by Codeplane
 ---
 
 # jj Concepts Guide
 
-JJHub is built natively on [Jujutsu (jj)](https://github.com/jj-vcs/jj), a next-generation VCS. This guide explains key jj concepts.
+Codeplane is built natively on [Jujutsu (jj)](https://github.com/jj-vcs/jj), a next-generation VCS. This guide explains key jj concepts.
 
 ## Changes vs. Commits
 
 In jj, a **change** is the fundamental unit of work. Unlike git commits:
 - Changes have a **stable Change ID** (e.g., `qzknlmop`) that doesn't change when you amend
 - The commit hash changes on amend, but the Change ID persists
-- JJHub tracks and displays Change IDs everywhere
+- Codeplane tracks and displays Change IDs everywhere
 
 ```bash
 jj log --no-graph
@@ -39,7 +39,7 @@ jj describe -m "Add feature X"
 
 ## Stacked Changes
 
-JJHub's premiere feature is first-class support for stacked changes:
+Codeplane's premiere feature is first-class support for stacked changes:
 
 ```
 main
@@ -58,10 +58,10 @@ jj git push --all
 
 ## Landing Requests (not Pull Requests)
 
-JJHub uses "Landing Requests" (LRs) instead of "Pull Requests". LRs natively understand stacked changes and Change IDs.
+Codeplane uses "Landing Requests" (LRs) instead of "Pull Requests". LRs natively understand stacked changes and Change IDs.
 
 ```bash
-jjhub land create --title "Add feature X"
+codeplane land create --title "Add feature X"
 ```
 
 ## Operation Log

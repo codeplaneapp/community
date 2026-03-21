@@ -15,7 +15,7 @@ describe("CLI: Issues", () => {
     expect(body.name).toBe(repoName);
   });
 
-  test("jjhub issue create creates a new issue", async () => {
+  test("codeplane issue create creates a new issue", async () => {
     const result = await cli(
       ["issue", "create", "--title", "First issue from CLI", "--body", "Issue body text"],
       { repo: repoSlug, json: true },
@@ -29,7 +29,7 @@ describe("CLI: Issues", () => {
     issueNumber = body.number;
   });
 
-  test("jjhub issue list lists issues in the repo", async () => {
+  test("codeplane issue list lists issues in the repo", async () => {
     const result = await cli(
       ["issue", "list"],
       { repo: repoSlug, json: true },
@@ -40,7 +40,7 @@ describe("CLI: Issues", () => {
     expect(body.some((i) => i.number === issueNumber)).toBe(true);
   });
 
-  test("jjhub issue view shows a single issue", async () => {
+  test("codeplane issue view shows a single issue", async () => {
     const result = await cli(
       ["issue", "view", String(issueNumber)],
       { repo: repoSlug, json: true },
@@ -52,7 +52,7 @@ describe("CLI: Issues", () => {
     expect(body.state).toBe("open");
   });
 
-  test("jjhub issue comment adds a comment", async () => {
+  test("codeplane issue comment adds a comment", async () => {
     const result = await cli(
       ["issue", "comment", String(issueNumber), "--body", "CLI comment"],
       { repo: repoSlug, json: true },
@@ -63,7 +63,7 @@ describe("CLI: Issues", () => {
     expect(body.body).toBe("CLI comment");
   });
 
-  test("jjhub issue close closes the issue", async () => {
+  test("codeplane issue close closes the issue", async () => {
     const result = await cli(
       ["issue", "close", String(issueNumber)],
       { repo: repoSlug, json: true },

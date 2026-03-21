@@ -1,14 +1,14 @@
 /**
- * Database connection module for JJHub Community Edition.
+ * Database connection module for Codeplane Community Edition.
  *
- * Supports two modes controlled by JJHUB_DB_MODE:
+ * Supports two modes controlled by CODEPLANE_DB_MODE:
  *
  *   "postgres" (default) — connects to external PostgreSQL via postgres.js.
- *     Configured via JJHUB_DATABASE_URL or JJHUB_DB_HOST/PORT/NAME/USER/PASSWORD.
+ *     Configured via CODEPLANE_DATABASE_URL or CODEPLANE_DB_HOST/PORT/NAME/USER/PASSWORD.
  *
  *   "pglite" — uses @electric-sql/pglite (PostgreSQL compiled to WASM),
  *     running in-process with no external PostgreSQL needed.
- *     Data stored in JJHUB_DATA_DIR/db/ (default: ./data/db/).
+ *     Data stored in CODEPLANE_DATA_DIR/db/ (default: ./data/db/).
  *
  * The sqlc-generated TypeScript code imports `{ Sql } from "postgres"`
  * and calls `sql.unsafe(query, params).values()`. In PGLite mode, an
@@ -31,17 +31,17 @@ export function getDbMode(): "postgres" | "pglite" {
  * Build postgres.js connection options from environment variables.
  */
 function buildConnectionOptions(): postgres.Options<{}> | string {
-  const url = process.env.JJHUB_DATABASE_URL;
+  const url = process.env.CODEPLANE_DATABASE_URL;
   if (url) {
     return url;
   }
 
   return {
-    host: process.env.JJHUB_DB_HOST ?? "localhost",
-    port: parseInt(process.env.JJHUB_DB_PORT ?? "5432", 10),
-    database: process.env.JJHUB_DB_NAME ?? "jjhub",
-    username: process.env.JJHUB_DB_USER ?? "jjhub",
-    password: process.env.JJHUB_DB_PASSWORD ?? "",
+    host: process.env.CODEPLANE_DB_HOST ?? "localhost",
+    port: parseInt(process.env.CODEPLANE_DB_PORT ?? "5432", 10),
+    database: process.env.CODEPLANE_DB_NAME ?? "codeplane",
+    username: process.env.CODEPLANE_DB_USER ?? "codeplane",
+    password: process.env.CODEPLANE_DB_PASSWORD ?? "",
   };
 }
 
@@ -49,7 +49,7 @@ function buildConnectionOptions(): postgres.Options<{}> | string {
  * Resolve the PGLite data directory from environment variables.
  */
 function resolvePGLiteDataDir(): string {
-  const dataDir = process.env.JJHUB_DATA_DIR ?? "./data";
+  const dataDir = process.env.CODEPLANE_DATA_DIR ?? "./data";
   return `${dataDir}/db`;
 }
 
@@ -57,7 +57,7 @@ function resolvePGLiteDataDir(): string {
  * Initialize the database connection. Call once at startup.
  * Subsequent calls return the existing connection.
  *
- * Reads JJHUB_DB_MODE to select the backend:
+ * Reads CODEPLANE_DB_MODE to select the backend:
  *   - "postgres" (default): uses postgres.js
  *   - "pglite": uses @electric-sql/pglite with adapter
  */
@@ -66,7 +66,7 @@ export async function initDb(): Promise<Sql> {
     return instance;
   }
 
-  const envMode = process.env.JJHUB_DB_MODE ?? "postgres";
+  const envMode = process.env.CODEPLANE_DB_MODE ?? "postgres";
 
   if (envMode === "pglite") {
     mode = "pglite";
@@ -97,7 +97,7 @@ export function initDbSync(): Sql {
     return instance;
   }
 
-  const envMode = process.env.JJHUB_DB_MODE ?? "postgres";
+  const envMode = process.env.CODEPLANE_DB_MODE ?? "postgres";
   if (envMode === "pglite") {
     throw new Error(
       "Cannot use initDbSync() with PGLite mode. Use initDb() (async) instead.",

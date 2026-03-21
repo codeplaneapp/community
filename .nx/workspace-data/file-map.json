@@ -1,0 +1,1853 @@
+{
+  "version": "6.0",
+  "nxVersion": "22.6.1",
+  "pathMappings": {},
+  "nxJsonPlugins": [],
+  "fileMap": {
+    "nonProjectFiles": [
+      {
+        "file": ".gitignore",
+        "hash": "12805726938311831394"
+      },
+      {
+        "file": "AGENTS.md",
+        "hash": "9691161953215873665"
+      },
+      {
+        "file": "CLAUDE.md",
+        "hash": "11707916653966285763"
+      },
+      {
+        "file": "README.md",
+        "hash": "17537933949406899586"
+      },
+      {
+        "file": "e2e/cli/admin.test.ts",
+        "hash": "5046087106647008092"
+      },
+      {
+        "file": "e2e/cli/agent-sessions.test.ts",
+        "hash": "10130040717919964999"
+      },
+      {
+        "file": "e2e/cli/alpha-access.test.ts",
+        "hash": "17657527429775471938"
+      },
+      {
+        "file": "e2e/cli/auth-key.test.ts",
+        "hash": "16256891695065662384"
+      },
+      {
+        "file": "e2e/cli/auth-logout.test.ts",
+        "hash": "16781243470559447330"
+      },
+      {
+        "file": "e2e/cli/auth-token-crud.test.ts",
+        "hash": "15452189778725130059"
+      },
+      {
+        "file": "e2e/cli/auth.test.ts",
+        "hash": "11800060193466631653"
+      },
+      {
+        "file": "e2e/cli/bulk-operations.test.ts",
+        "hash": "3508194727907170964"
+      },
+      {
+        "file": "e2e/cli/collaborators.test.ts",
+        "hash": "18138091547446623534"
+      },
+      {
+        "file": "e2e/cli/commit-status.test.ts",
+        "hash": "15850870948232252069"
+      },
+      {
+        "file": "e2e/cli/config-sync.test.ts",
+        "hash": "6677168767210533469"
+      },
+      {
+        "file": "e2e/cli/deploy-keys.test.ts",
+        "hash": "5358608104255907066"
+      },
+      {
+        "file": "e2e/cli/email.test.ts",
+        "hash": "16052514188072477235"
+      },
+      {
+        "file": "e2e/cli/error-handling.test.ts",
+        "hash": "18298058659277575600"
+      },
+      {
+        "file": "e2e/cli/helpers.ts",
+        "hash": "14679144742503481800"
+      },
+      {
+        "file": "e2e/cli/input-validation.test.ts",
+        "hash": "10235575204490606623"
+      },
+      {
+        "file": "e2e/cli/issue-dependencies.test.ts",
+        "hash": "5168680538249979138"
+      },
+      {
+        "file": "e2e/cli/issue-lifecycle.test.ts",
+        "hash": "9936030830544775089"
+      },
+      {
+        "file": "e2e/cli/issues.test.ts",
+        "hash": "13249987793928690047"
+      },
+      {
+        "file": "e2e/cli/jj-vcs.test.ts",
+        "hash": "3222513381083132305"
+      },
+      {
+        "file": "e2e/cli/labels-milestones.test.ts",
+        "hash": "4433958102437367162"
+      },
+      {
+        "file": "e2e/cli/landing-land.test.ts",
+        "hash": "8318733842274542823"
+      },
+      {
+        "file": "e2e/cli/landing-requests.test.ts",
+        "hash": "4085949492702854442"
+      },
+      {
+        "file": "e2e/cli/landing-review.test.ts",
+        "hash": "9078621623620422574"
+      },
+      {
+        "file": "e2e/cli/lfs.test.ts",
+        "hash": "10626558607304671337"
+      },
+      {
+        "file": "e2e/cli/multi-repo-search.test.ts",
+        "hash": "1002586440752786249"
+      },
+      {
+        "file": "e2e/cli/notifications.test.ts",
+        "hash": "14002698874620446141"
+      },
+      {
+        "file": "e2e/cli/oauth2-flow.test.ts",
+        "hash": "3547894454330850906"
+      },
+      {
+        "file": "e2e/cli/org-teams.test.ts",
+        "hash": "3481954777060029072"
+      },
+      {
+        "file": "e2e/cli/orgs.test.ts",
+        "hash": "11560129966259348234"
+      },
+      {
+        "file": "e2e/cli/pinned-issues.test.ts",
+        "hash": "14593267247572791646"
+      },
+      {
+        "file": "e2e/cli/protected-bookmarks.test.ts",
+        "hash": "15182573676063310547"
+      },
+      {
+        "file": "e2e/cli/reactions.test.ts",
+        "hash": "2204544836566706687"
+      },
+      {
+        "file": "e2e/cli/releases.test.ts",
+        "hash": "10579215527608699310"
+      },
+      {
+        "file": "e2e/cli/repo-crud.test.ts",
+        "hash": "12275215812889510573"
+      },
+      {
+        "file": "e2e/cli/repo-fork.test.ts",
+        "hash": "17619331539687825363"
+      },
+      {
+        "file": "e2e/cli/repo-permissions.test.ts",
+        "hash": "15983779542332314968"
+      },
+      {
+        "file": "e2e/cli/repo-settings.test.ts",
+        "hash": "11183155491457431340"
+      },
+      {
+        "file": "e2e/cli/repo-transfer.test.ts",
+        "hash": "5334734931396048742"
+      },
+      {
+        "file": "e2e/cli/search.test.ts",
+        "hash": "11780891340133369205"
+      },
+      {
+        "file": "e2e/cli/secrets.test.ts",
+        "hash": "17047152525887706318"
+      },
+      {
+        "file": "e2e/cli/ssh-keys.test.ts",
+        "hash": "11748816041482048153"
+      },
+      {
+        "file": "e2e/cli/token-scopes.test.ts",
+        "hash": "6540938855596364626"
+      },
+      {
+        "file": "e2e/cli/user-profile.test.ts",
+        "hash": "10078360869556134445"
+      },
+      {
+        "file": "e2e/cli/variables.test.ts",
+        "hash": "16377493130845641930"
+      },
+      {
+        "file": "e2e/cli/webhook-dispatch.test.ts",
+        "hash": "12958798708721345247"
+      },
+      {
+        "file": "e2e/cli/webhook-push.test.ts",
+        "hash": "1490121534200772503"
+      },
+      {
+        "file": "e2e/cli/webhooks.test.ts",
+        "hash": "10743428066790835197"
+      },
+      {
+        "file": "e2e/cli/wiki.test.ts",
+        "hash": "16175139087323316757"
+      },
+      {
+        "file": "e2e/cli/workflow-cache.test.ts",
+        "hash": "8339349248511401008"
+      },
+      {
+        "file": "e2e/cli/workflow-dispatch.test.ts",
+        "hash": "16382264824041309014"
+      },
+      {
+        "file": "e2e/cli/workflow-lifecycle.test.ts",
+        "hash": "9479438959058521515"
+      },
+      {
+        "file": "e2e/cli/workflow-status.test.ts",
+        "hash": "6945977515021594144"
+      },
+      {
+        "file": "e2e/cli/workflows.test.ts",
+        "hash": "15741491810603289296"
+      },
+      {
+        "file": "e2e/cli/workspace-lifecycle.test.ts",
+        "hash": "12057025332067771602"
+      },
+      {
+        "file": "e2e/cli/workspace-sessions.test.ts",
+        "hash": "14756299419882840431"
+      },
+      {
+        "file": "e2e/cli/workspaces.test.ts",
+        "hash": "13415656224560264417"
+      },
+      {
+        "file": "nx.json",
+        "hash": "13744748595349974657"
+      },
+      {
+        "file": "package.json",
+        "hash": "3991393915756594877"
+      },
+      {
+        "file": "pnpm-lock.yaml",
+        "hash": "10114286223198743111"
+      },
+      {
+        "file": "pnpm-workspace.yaml",
+        "hash": "9411226547590948675"
+      }
+    ],
+    "projectFileMap": {
+      "@jjhub/sdk": [
+        {
+          "file": "packages/sdk/package.json",
+          "hash": "3670569830072300802",
+          "deps": [
+            "npm:@types/js-yaml",
+            "npm:@types/ssh2",
+            "npm:@electric-sql/client",
+            "npm:@electric-sql/pglite",
+            "npm:better-result",
+            "npm:hono",
+            "npm:js-yaml@4.1.1",
+            "npm:postgres",
+            "npm:ssh2"
+          ]
+        },
+        {
+          "file": "packages/sdk/src/db/agent_sql.ts",
+          "hash": "10445581429367775819"
+        },
+        {
+          "file": "packages/sdk/src/db/alpha_access_sql.ts",
+          "hash": "10219858823551090722"
+        },
+        {
+          "file": "packages/sdk/src/db/audit_log_sql.ts",
+          "hash": "8837677327855324134"
+        },
+        {
+          "file": "packages/sdk/src/db/auth_sql.ts",
+          "hash": "17674970962880637689"
+        },
+        {
+          "file": "packages/sdk/src/db/billing_sql.ts",
+          "hash": "2416888885350583099"
+        },
+        {
+          "file": "packages/sdk/src/db/bookmarks_sql.ts",
+          "hash": "7383536918743070081"
+        },
+        {
+          "file": "packages/sdk/src/db/canary_results_sql.ts",
+          "hash": "8614075142542000220"
+        },
+        {
+          "file": "packages/sdk/src/db/changes_sql.ts",
+          "hash": "10314933105262125596"
+        },
+        {
+          "file": "packages/sdk/src/db/conflicts_sql.ts",
+          "hash": "3422455560962067303"
+        },
+        {
+          "file": "packages/sdk/src/db/deploy_keys_sql.ts",
+          "hash": "16364069391649623508"
+        },
+        {
+          "file": "packages/sdk/src/db/issue_artifacts_sql.ts",
+          "hash": "11347947762023486482"
+        },
+        {
+          "file": "packages/sdk/src/db/issue_dependencies_sql.ts",
+          "hash": "2398864193242687124"
+        },
+        {
+          "file": "packages/sdk/src/db/issues_sql.ts",
+          "hash": "10901956159654997852"
+        },
+        {
+          "file": "packages/sdk/src/db/jj_operations_sql.ts",
+          "hash": "920519296736679410"
+        },
+        {
+          "file": "packages/sdk/src/db/labels_sql.ts",
+          "hash": "7753506456004209998"
+        },
+        {
+          "file": "packages/sdk/src/db/landings_sql.ts",
+          "hash": "10067672013809063282"
+        },
+        {
+          "file": "packages/sdk/src/db/lfs_sql.ts",
+          "hash": "7113901370816470575"
+        },
+        {
+          "file": "packages/sdk/src/db/linear_integrations_sql.ts",
+          "hash": "11040651844404547691"
+        },
+        {
+          "file": "packages/sdk/src/db/linear_oauth_setups_sql.ts",
+          "hash": "9250529319771863756"
+        },
+        {
+          "file": "packages/sdk/src/db/mentions_sql.ts",
+          "hash": "9692403943484665625"
+        },
+        {
+          "file": "packages/sdk/src/db/milestones_sql.ts",
+          "hash": "12462319171468119741"
+        },
+        {
+          "file": "packages/sdk/src/db/notifications_sql.ts",
+          "hash": "3216513530300519770"
+        },
+        {
+          "file": "packages/sdk/src/db/oauth2_sql.ts",
+          "hash": "1907616675308420056"
+        },
+        {
+          "file": "packages/sdk/src/db/orgs_sql.ts",
+          "hash": "4351778701117059497"
+        },
+        {
+          "file": "packages/sdk/src/db/pinned_issues_sql.ts",
+          "hash": "11979759578335683876"
+        },
+        {
+          "file": "packages/sdk/src/db/protected_bookmarks_sql.ts",
+          "hash": "11580790262549208919"
+        },
+        {
+          "file": "packages/sdk/src/db/rate_limits_sql.ts",
+          "hash": "17039812159774991625"
+        },
+        {
+          "file": "packages/sdk/src/db/reactions_sql.ts",
+          "hash": "1297290488633810049"
+        },
+        {
+          "file": "packages/sdk/src/db/release_assets_sql.ts",
+          "hash": "5384131144291757329"
+        },
+        {
+          "file": "packages/sdk/src/db/releases_sql.ts",
+          "hash": "3892045734416292511"
+        },
+        {
+          "file": "packages/sdk/src/db/repos_sql.ts",
+          "hash": "15934228884893693007"
+        },
+        {
+          "file": "packages/sdk/src/db/runner_pool_sql.ts",
+          "hash": "14407061064272570386"
+        },
+        {
+          "file": "packages/sdk/src/db/sandbox_access_tokens_sql.ts",
+          "hash": "4131330501771057177"
+        },
+        {
+          "file": "packages/sdk/src/db/search_sql.ts",
+          "hash": "8859904958258277984"
+        },
+        {
+          "file": "packages/sdk/src/db/secrets_sql.ts",
+          "hash": "8426046473979988737"
+        },
+        {
+          "file": "packages/sdk/src/db/social_sql.ts",
+          "hash": "1408724053520554414"
+        },
+        {
+          "file": "packages/sdk/src/db/sse_tickets_sql.ts",
+          "hash": "9168065968622229629"
+        },
+        {
+          "file": "packages/sdk/src/db/ssh_keys_sql.ts",
+          "hash": "14209241862276280369"
+        },
+        {
+          "file": "packages/sdk/src/db/users_sql.ts",
+          "hash": "2882302750900055201"
+        },
+        {
+          "file": "packages/sdk/src/db/variables_sql.ts",
+          "hash": "13931566916077659831"
+        },
+        {
+          "file": "packages/sdk/src/db/webhooks_sql.ts",
+          "hash": "15259996980728229653"
+        },
+        {
+          "file": "packages/sdk/src/db/wiki_sql.ts",
+          "hash": "5559052526232012404"
+        },
+        {
+          "file": "packages/sdk/src/db/workflow_artifacts_sql.ts",
+          "hash": "3862852594187458878"
+        },
+        {
+          "file": "packages/sdk/src/db/workflow_caches_sql.ts",
+          "hash": "3813022476378598301"
+        },
+        {
+          "file": "packages/sdk/src/db/workflow_logs_sql.ts",
+          "hash": "11416523862556494580"
+        },
+        {
+          "file": "packages/sdk/src/db/workflow_runs_agent_tokens_sql.ts",
+          "hash": "8263299285691573478"
+        },
+        {
+          "file": "packages/sdk/src/db/workflow_schedules_sql.ts",
+          "hash": "1170353604855423933"
+        },
+        {
+          "file": "packages/sdk/src/db/workflows_sql.ts",
+          "hash": "8686538503688010246"
+        },
+        {
+          "file": "packages/sdk/src/db/workspace_sql.ts",
+          "hash": "15286140446350802874"
+        },
+        {
+          "file": "packages/sdk/src/index.ts",
+          "hash": "11978237886617563521"
+        },
+        {
+          "file": "packages/sdk/src/lib/blob.ts",
+          "hash": "7699816057861968541"
+        },
+        {
+          "file": "packages/sdk/src/lib/context.ts",
+          "hash": "18081988481429207490"
+        },
+        {
+          "file": "packages/sdk/src/lib/db.ts",
+          "hash": "10652196370375658723"
+        },
+        {
+          "file": "packages/sdk/src/lib/errors.ts",
+          "hash": "436361363774941327"
+        },
+        {
+          "file": "packages/sdk/src/lib/pagination.ts",
+          "hash": "4009691150893734351"
+        },
+        {
+          "file": "packages/sdk/src/lib/pglite-adapter.ts",
+          "hash": "18019866529309931559"
+        },
+        {
+          "file": "packages/sdk/src/services/auth.ts",
+          "hash": "1429728420172110402"
+        },
+        {
+          "file": "packages/sdk/src/services/auto-push.ts",
+          "hash": "3571631228561189960"
+        },
+        {
+          "file": "packages/sdk/src/services/billing.ts",
+          "hash": "14466279389452980089"
+        },
+        {
+          "file": "packages/sdk/src/services/cleanup.ts",
+          "hash": "3254462591210149149"
+        },
+        {
+          "file": "packages/sdk/src/services/configsync.ts",
+          "hash": "8709951341493806530"
+        },
+        {
+          "file": "packages/sdk/src/services/container-sandbox.ts",
+          "hash": "9761117495238895440"
+        },
+        {
+          "file": "packages/sdk/src/services/feature-flags.ts",
+          "hash": "3621912850353809840"
+        },
+        {
+          "file": "packages/sdk/src/services/id-remap.ts",
+          "hash": "15946094027054146381"
+        },
+        {
+          "file": "packages/sdk/src/services/issue-pipeline.ts",
+          "hash": "7016201273123536989"
+        },
+        {
+          "file": "packages/sdk/src/services/issue.ts",
+          "hash": "541363499012263149"
+        },
+        {
+          "file": "packages/sdk/src/services/label.ts",
+          "hash": "14220586908625250243"
+        },
+        {
+          "file": "packages/sdk/src/services/landing.ts",
+          "hash": "384711881583991092"
+        },
+        {
+          "file": "packages/sdk/src/services/lfs.ts",
+          "hash": "6212946787854846983"
+        },
+        {
+          "file": "packages/sdk/src/services/milestone.ts",
+          "hash": "15031804924063417095"
+        },
+        {
+          "file": "packages/sdk/src/services/notification-fanout.ts",
+          "hash": "15530869318221852139"
+        },
+        {
+          "file": "packages/sdk/src/services/notification.ts",
+          "hash": "5168190993892785974"
+        },
+        {
+          "file": "packages/sdk/src/services/oauth2.ts",
+          "hash": "1700294901866947585"
+        },
+        {
+          "file": "packages/sdk/src/services/org.ts",
+          "hash": "7785945696080834569"
+        },
+        {
+          "file": "packages/sdk/src/services/preview.ts",
+          "hash": "7298630661073115777"
+        },
+        {
+          "file": "packages/sdk/src/services/release.ts",
+          "hash": "2890566337692967200"
+        },
+        {
+          "file": "packages/sdk/src/services/repo.ts",
+          "hash": "4964149892677242099"
+        },
+        {
+          "file": "packages/sdk/src/services/repohost.ts",
+          "hash": "13018456909669737571"
+        },
+        {
+          "file": "packages/sdk/src/services/search.ts",
+          "hash": "4303064723595318894"
+        },
+        {
+          "file": "packages/sdk/src/services/secret.ts",
+          "hash": "10891117622967000988"
+        },
+        {
+          "file": "packages/sdk/src/services/sse.ts",
+          "hash": "11853978112543315185"
+        },
+        {
+          "file": "packages/sdk/src/services/ssh-server.ts",
+          "hash": "2575683819376921295"
+        },
+        {
+          "file": "packages/sdk/src/services/sync-queue.ts",
+          "hash": "10855811572091872278"
+        },
+        {
+          "file": "packages/sdk/src/services/sync.ts",
+          "hash": "5852214045994406425"
+        },
+        {
+          "file": "packages/sdk/src/services/user.ts",
+          "hash": "6894251875203992816"
+        },
+        {
+          "file": "packages/sdk/src/services/webhook-worker.ts",
+          "hash": "6963008515611482424"
+        },
+        {
+          "file": "packages/sdk/src/services/webhook.ts",
+          "hash": "12557099793653506076"
+        },
+        {
+          "file": "packages/sdk/src/services/wiki.ts",
+          "hash": "35702619164679044"
+        },
+        {
+          "file": "packages/sdk/src/services/workflow.ts",
+          "hash": "2947595844241290223"
+        },
+        {
+          "file": "packages/sdk/src/services/workspace.Dockerfile",
+          "hash": "4157392319208526274"
+        },
+        {
+          "file": "packages/sdk/src/services/workspace.ts",
+          "hash": "4061712798353923531"
+        },
+        {
+          "file": "packages/sdk/tsconfig.json",
+          "hash": "1919855077306841695"
+        }
+      ],
+      "@jjhub-ai/workflow": [
+        {
+          "file": "packages/workflow/package.json",
+          "hash": "5934940473498944534"
+        },
+        {
+          "file": "packages/workflow/src/artifacts.ts",
+          "hash": "5174899962840524920"
+        },
+        {
+          "file": "packages/workflow/src/cache.ts",
+          "hash": "11901030398040401691"
+        },
+        {
+          "file": "packages/workflow/src/components.tsx",
+          "hash": "18401403814808330272"
+        },
+        {
+          "file": "packages/workflow/src/create.tsx",
+          "hash": "22932130973612885"
+        },
+        {
+          "file": "packages/workflow/src/index.ts",
+          "hash": "15320243153172661803"
+        },
+        {
+          "file": "packages/workflow/src/triggers.ts",
+          "hash": "5549943841861909671"
+        },
+        {
+          "file": "packages/workflow/src/workspace.ts",
+          "hash": "1198073316362810486"
+        },
+        {
+          "file": "packages/workflow/src/wrappers.test.ts",
+          "hash": "5191947787852710654"
+        },
+        {
+          "file": "packages/workflow/tsconfig.json",
+          "hash": "4809057666035827071"
+        }
+      ],
+      "@jjhub/specs": [
+        {
+          "file": "specs/AUTH_ACTIVE_SESSION_LIST.md",
+          "hash": "12991422316616428322"
+        },
+        {
+          "file": "specs/AUTH_ACTIVE_SESSION_REVOKE.md",
+          "hash": "14449841014471873061"
+        },
+        {
+          "file": "specs/AUTH_CLI_BROWSER_LOGIN.md",
+          "hash": "11894621291319775513"
+        },
+        {
+          "file": "specs/AUTH_CLI_CLAUDE_LOGIN.md",
+          "hash": "12390416229673912350"
+        },
+        {
+          "file": "specs/AUTH_CLI_CLAUDE_LOGOUT.md",
+          "hash": "7092864313068925863"
+        },
+        {
+          "file": "specs/AUTH_CLI_CLAUDE_SECRET_PUSH.md",
+          "hash": "5006021746820629434"
+        },
+        {
+          "file": "specs/AUTH_CLI_CLAUDE_STATUS.md",
+          "hash": "3364788758009242852"
+        },
+        {
+          "file": "specs/AUTH_CLI_CLAUDE_TOKEN_PRINT.md",
+          "hash": "3334140903803265349"
+        },
+        {
+          "file": "specs/AUTH_CLI_HOST_TARGET_SELECTION.md",
+          "hash": "2681625049819986502"
+        },
+        {
+          "file": "specs/AUTH_CLI_LOGOUT.md",
+          "hash": "11614206721004780421"
+        },
+        {
+          "file": "specs/AUTH_CLI_PUSH_REMOTE_TOKEN.md",
+          "hash": "4409866398415731717"
+        },
+        {
+          "file": "specs/AUTH_CLI_STATUS.md",
+          "hash": "5084009693682186950"
+        },
+        {
+          "file": "specs/AUTH_CLI_STDIN_TOKEN_LOGIN.md",
+          "hash": "16448939730562500401"
+        },
+        {
+          "file": "specs/AUTH_CLI_TOKEN_PRINT.md",
+          "hash": "14190428291133122998"
+        },
+        {
+          "file": "specs/AUTH_CLOSED_ALPHA_IDENTITY_ENFORCEMENT.md",
+          "hash": "6754846519871700425"
+        },
+        {
+          "file": "specs/AUTH_CSRF_COOKIE_ISSUANCE.md",
+          "hash": "7938612599990667170"
+        },
+        {
+          "file": "specs/AUTH_KEY_AUTH_NONCE_ISSUANCE.md",
+          "hash": "12626040163398971038"
+        },
+        {
+          "file": "specs/AUTH_KEY_AUTH_SIGNATURE_VERIFICATION.md",
+          "hash": "4038383105630419576"
+        },
+        {
+          "file": "specs/AUTH_LOGOUT.md",
+          "hash": "12975307784556126943"
+        },
+        {
+          "file": "specs/AUTH_PERSONAL_ACCESS_TOKEN_CREATE.md",
+          "hash": "13824923650854749252"
+        },
+        {
+          "file": "specs/AUTH_PERSONAL_ACCESS_TOKEN_EXCHANGE.md",
+          "hash": "3206950453014129462"
+        },
+        {
+          "file": "specs/AUTH_PERSONAL_ACCESS_TOKEN_LIST.md",
+          "hash": "4670565531583009659"
+        },
+        {
+          "file": "specs/AUTH_PERSONAL_ACCESS_TOKEN_REVOKE.md",
+          "hash": "8785374151786131974"
+        },
+        {
+          "file": "specs/AUTH_SESSION_COOKIE_ISSUANCE.md",
+          "hash": "6945452972969570672"
+        },
+        {
+          "file": "specs/AUTH_SIGN_IN_WITH_GITHUB_CLI_OAUTH.md",
+          "hash": "13887669708053296965"
+        },
+        {
+          "file": "specs/AUTH_SIGN_IN_WITH_GITHUB_OAUTH.md",
+          "hash": "11360751448273545684"
+        },
+        {
+          "file": "specs/AUTH_SIGN_IN_WITH_KEY_CHALLENGE.md",
+          "hash": "11336501349376090832"
+        },
+        {
+          "file": "specs/AUTH_SIGN_IN_WITH_PERSONAL_ACCESS_TOKEN.md",
+          "hash": "11096424344956451211"
+        },
+        {
+          "file": "specs/AUTH_SSE_TICKET_ISSUANCE.md",
+          "hash": "1927774101089072374"
+        },
+        {
+          "file": "specs/OAUTH_APPLICATION_CREATE.md",
+          "hash": "3309694881604912316"
+        },
+        {
+          "file": "specs/PLATFORM_BACKGROUND_CLEANUP_SCHEDULER.md",
+          "hash": "1183142570222051897"
+        },
+        {
+          "file": "specs/PLATFORM_DB_INITIALIZATION.md",
+          "hash": "14565888597273817256"
+        },
+        {
+          "file": "specs/PLATFORM_FEATURE_FLAG_LOADING.md",
+          "hash": "935762327268973007"
+        },
+        {
+          "file": "specs/PLATFORM_GRACEFUL_SHUTDOWN.md",
+          "hash": "639881675858588835"
+        },
+        {
+          "file": "specs/PLATFORM_HEALTHCHECK_ENDPOINTS.md",
+          "hash": "9738682264111168765"
+        },
+        {
+          "file": "specs/PLATFORM_HTTP_MIDDLEWARE_AUTH_CONTEXT.md",
+          "hash": "14131158761128320978"
+        },
+        {
+          "file": "specs/PLATFORM_HTTP_MIDDLEWARE_CORS.md",
+          "hash": "13251966403456785490"
+        },
+        {
+          "file": "specs/PLATFORM_HTTP_MIDDLEWARE_JSON_MUTATION_ENFORCEMENT.md",
+          "hash": "4404324303381562477"
+        },
+        {
+          "file": "specs/PLATFORM_HTTP_MIDDLEWARE_LOGGING.md",
+          "hash": "8257808562322795437"
+        },
+        {
+          "file": "specs/PLATFORM_HTTP_MIDDLEWARE_RATE_LIMITING.md",
+          "hash": "11934989234376145039"
+        },
+        {
+          "file": "specs/PLATFORM_HTTP_MIDDLEWARE_REQUEST_ID.md",
+          "hash": "9518741858787104592"
+        },
+        {
+          "file": "specs/PLATFORM_PUBLIC_FEATURE_FLAGS_ENDPOINT.md",
+          "hash": "9784358218018134205"
+        },
+        {
+          "file": "specs/PLATFORM_SERVER_BOOTSTRAP.md",
+          "hash": "16671335832693512690"
+        },
+        {
+          "file": "specs/PLATFORM_SERVICE_REGISTRY_INITIALIZATION.md",
+          "hash": "3299972805158134506"
+        },
+        {
+          "file": "specs/PLATFORM_SSH_SERVER_BOOT.md",
+          "hash": "546333022789190214"
+        },
+        {
+          "file": "specs/USER_ACTIVITY_FEED_OR_HEATMAP_VIEW.md",
+          "hash": "11492237723101720446"
+        },
+        {
+          "file": "specs/USER_API_TOKENS_UI.md",
+          "hash": "6266837604871062686"
+        },
+        {
+          "file": "specs/USER_AVATAR_UPLOAD.md",
+          "hash": "17194720377428383730"
+        },
+        {
+          "file": "specs/USER_CONNECTED_ACCOUNTS_UI.md",
+          "hash": "16316441688971737670"
+        },
+        {
+          "file": "specs/USER_CONNECTED_ACCOUNT_LIST.md",
+          "hash": "1141435293273617474"
+        },
+        {
+          "file": "specs/USER_CONNECTED_ACCOUNT_REMOVE.md",
+          "hash": "2142799428145674127"
+        },
+        {
+          "file": "specs/USER_EMAILS_UI.md",
+          "hash": "4830400114656637186"
+        },
+        {
+          "file": "specs/USER_EMAIL_ADD.md",
+          "hash": "8360550795560507689"
+        },
+        {
+          "file": "specs/USER_EMAIL_DELETE.md",
+          "hash": "12843446082854789501"
+        },
+        {
+          "file": "specs/USER_EMAIL_LIST.md",
+          "hash": "3492281222248305070"
+        },
+        {
+          "file": "specs/USER_EMAIL_VERIFICATION_CONFIRM.md",
+          "hash": "890653919805369658"
+        },
+        {
+          "file": "specs/USER_EMAIL_VERIFICATION_SEND.md",
+          "hash": "4399186921408095016"
+        },
+        {
+          "file": "specs/USER_NOTIFICATION_PREFERENCES_UI.md",
+          "hash": "15583635689863966088"
+        },
+        {
+          "file": "specs/USER_NOTIFICATION_SETTINGS_UPDATE.md",
+          "hash": "5773269980317212255"
+        },
+        {
+          "file": "specs/USER_NOTIFICATION_SETTINGS_VIEW.md",
+          "hash": "14011190339222654089"
+        },
+        {
+          "file": "specs/USER_ORGANIZATION_LIST.md",
+          "hash": "10883827796759490496"
+        },
+        {
+          "file": "specs/USER_PERSONAL_REPOSITORY_LIST.md",
+          "hash": "7051268989123426160"
+        },
+        {
+          "file": "specs/USER_PROFILE_UPDATE.md",
+          "hash": "17853355355567829629"
+        },
+        {
+          "file": "specs/USER_PUBLIC_PROFILE_VIEW.md",
+          "hash": "17191035493010909075"
+        },
+        {
+          "file": "specs/USER_PUBLIC_REPOSITORY_LIST.md",
+          "hash": "1989071867641288427"
+        },
+        {
+          "file": "specs/USER_REPOSITORY_SUBSCRIPTION_LIST.md",
+          "hash": "3038449884882366718"
+        },
+        {
+          "file": "specs/USER_SELF_PROFILE_VIEW.md",
+          "hash": "7479506440734789370"
+        },
+        {
+          "file": "specs/USER_SETTINGS_HOME_UI.md",
+          "hash": "16034848533094768872"
+        },
+        {
+          "file": "specs/USER_SSH_KEYS_UI.md",
+          "hash": "8281030068719222753"
+        },
+        {
+          "file": "specs/USER_SSH_KEY_ADD.md",
+          "hash": "5441235148505035373"
+        },
+        {
+          "file": "specs/USER_SSH_KEY_DELETE.md",
+          "hash": "17207947985014280151"
+        },
+        {
+          "file": "specs/USER_SSH_KEY_LIST.md",
+          "hash": "7500075158789244805"
+        },
+        {
+          "file": "specs/USER_STARRED_REPOSITORY_LIST.md",
+          "hash": "5927629577978006037"
+        },
+        {
+          "file": "specs/design.md",
+          "hash": "16536597959722509205"
+        },
+        {
+          "file": "specs/features.ts",
+          "hash": "3027720230795169893"
+        },
+        {
+          "file": "specs/generate.tsx",
+          "hash": "17048198721790512042"
+        },
+        {
+          "file": "specs/package.json",
+          "hash": "9573454760222214470",
+          "deps": [
+            "npm:@types/node@22.19.15",
+            "npm:bun-types",
+            "npm:typescript",
+            "npm:smithers-orchestrator",
+            "npm:zod@3.25.76"
+          ]
+        },
+        {
+          "file": "specs/prd.md",
+          "hash": "9120084086290484053"
+        },
+        {
+          "file": "specs/tsconfig.json",
+          "hash": "13342051535139500590"
+        }
+      ],
+      "codeplane": [
+        {
+          "file": "apps/cli/package.json",
+          "hash": "15921046649398144764",
+          "deps": [
+            "@jjhub/server",
+            "npm:@mariozechner/pi-coding-agent",
+            "npm:@sinclair/typebox",
+            "npm:incur@0.3.5",
+            "npm:js-yaml@4.1.1",
+            "npm:zod@4.3.6"
+          ]
+        },
+        {
+          "file": "apps/cli/scripts/build.ts",
+          "hash": "5537307377927509340"
+        },
+        {
+          "file": "apps/cli/src/agent/backends/local.ts",
+          "hash": "5493690096884097969"
+        },
+        {
+          "file": "apps/cli/src/agent/backends/workspace.ts",
+          "hash": "1896745959161031818"
+        },
+        {
+          "file": "apps/cli/src/agent/docs-cache.ts",
+          "hash": "15556966811114576080"
+        },
+        {
+          "file": "apps/cli/src/agent/docs-index.ts",
+          "hash": "18134096672721984326"
+        },
+        {
+          "file": "apps/cli/src/agent/repo-context.ts",
+          "hash": "8056497463023896277"
+        },
+        {
+          "file": "apps/cli/src/agent/resource-loader.ts",
+          "hash": "10917180210798887168"
+        },
+        {
+          "file": "apps/cli/src/agent/runtime.ts",
+          "hash": "13584268844991033534"
+        },
+        {
+          "file": "apps/cli/src/agent/tools/jjhub-context.ts",
+          "hash": "1549963765224869712"
+        },
+        {
+          "file": "apps/cli/src/agent/tools/jjhub-docs.ts",
+          "hash": "5440179806036998367"
+        },
+        {
+          "file": "apps/cli/src/agent/tools/jjhub-issue.ts",
+          "hash": "1627710458576942491"
+        },
+        {
+          "file": "apps/cli/src/agent/types.ts",
+          "hash": "13616707606243834832"
+        },
+        {
+          "file": "apps/cli/src/auth-state.ts",
+          "hash": "8886085529834617833"
+        },
+        {
+          "file": "apps/cli/src/claude-auth.ts",
+          "hash": "1263020918203768331"
+        },
+        {
+          "file": "apps/cli/src/client.ts",
+          "hash": "14627882726666245213"
+        },
+        {
+          "file": "apps/cli/src/commands/admin.ts",
+          "hash": "7710643724773742223"
+        },
+        {
+          "file": "apps/cli/src/commands/agent.ts",
+          "hash": "14551273489960625677"
+        },
+        {
+          "file": "apps/cli/src/commands/alpha.ts",
+          "hash": "4216175960322650660"
+        },
+        {
+          "file": "apps/cli/src/commands/api.ts",
+          "hash": "6230534933230761994"
+        },
+        {
+          "file": "apps/cli/src/commands/artifact.ts",
+          "hash": "7395702038509651641"
+        },
+        {
+          "file": "apps/cli/src/commands/auth.ts",
+          "hash": "12918219736545406565"
+        },
+        {
+          "file": "apps/cli/src/commands/bookmark.ts",
+          "hash": "11383932357299745728"
+        },
+        {
+          "file": "apps/cli/src/commands/cache.ts",
+          "hash": "13034245993211588115"
+        },
+        {
+          "file": "apps/cli/src/commands/change.ts",
+          "hash": "6937926473091388705"
+        },
+        {
+          "file": "apps/cli/src/commands/completion.ts",
+          "hash": "11651314926928787607"
+        },
+        {
+          "file": "apps/cli/src/commands/config.ts",
+          "hash": "15679114993993757883"
+        },
+        {
+          "file": "apps/cli/src/commands/daemon.ts",
+          "hash": "13561571577707196112"
+        },
+        {
+          "file": "apps/cli/src/commands/extension.ts",
+          "hash": "8764916230602524793"
+        },
+        {
+          "file": "apps/cli/src/commands/health.ts",
+          "hash": "1839439233872640974"
+        },
+        {
+          "file": "apps/cli/src/commands/issue.ts",
+          "hash": "16532287561802566716"
+        },
+        {
+          "file": "apps/cli/src/commands/label.ts",
+          "hash": "11885581181242941253"
+        },
+        {
+          "file": "apps/cli/src/commands/land.ts",
+          "hash": "13206124620597896504"
+        },
+        {
+          "file": "apps/cli/src/commands/notification.ts",
+          "hash": "6079252519350162526"
+        },
+        {
+          "file": "apps/cli/src/commands/org.ts",
+          "hash": "8700896260093108947"
+        },
+        {
+          "file": "apps/cli/src/commands/release.ts",
+          "hash": "4615515334086174267"
+        },
+        {
+          "file": "apps/cli/src/commands/repo.ts",
+          "hash": "17417369441036811650"
+        },
+        {
+          "file": "apps/cli/src/commands/search.ts",
+          "hash": "16189079006446867870"
+        },
+        {
+          "file": "apps/cli/src/commands/secret.ts",
+          "hash": "4889330483413440411"
+        },
+        {
+          "file": "apps/cli/src/commands/serve.ts",
+          "hash": "140747191178610627"
+        },
+        {
+          "file": "apps/cli/src/commands/ssh-key.ts",
+          "hash": "6056140678413133190"
+        },
+        {
+          "file": "apps/cli/src/commands/status.ts",
+          "hash": "3154226732731860257"
+        },
+        {
+          "file": "apps/cli/src/commands/tui.ts",
+          "hash": "8371645955340681461"
+        },
+        {
+          "file": "apps/cli/src/commands/variable.ts",
+          "hash": "9701990662872387353"
+        },
+        {
+          "file": "apps/cli/src/commands/webhook.ts",
+          "hash": "3419098583244421586"
+        },
+        {
+          "file": "apps/cli/src/commands/wiki.ts",
+          "hash": "1978096368201438220"
+        },
+        {
+          "file": "apps/cli/src/commands/workflow.ts",
+          "hash": "8121163202144696300"
+        },
+        {
+          "file": "apps/cli/src/commands/workspace.ts",
+          "hash": "1317114270578042144"
+        },
+        {
+          "file": "apps/cli/src/config.ts",
+          "hash": "13682166815985725685"
+        },
+        {
+          "file": "apps/cli/src/credentials.ts",
+          "hash": "10374408751914526392"
+        },
+        {
+          "file": "apps/cli/src/jj.ts",
+          "hash": "3428279207183874751"
+        },
+        {
+          "file": "apps/cli/src/js-yaml.d.ts",
+          "hash": "14994286661892303322"
+        },
+        {
+          "file": "apps/cli/src/main.ts",
+          "hash": "11189033098614767470"
+        },
+        {
+          "file": "apps/cli/src/output.ts",
+          "hash": "14874913543196255981"
+        },
+        {
+          "file": "apps/cli/src/stdin.ts",
+          "hash": "9082405401693457262"
+        },
+        {
+          "file": "apps/cli/src/workspace-bootstrap-contract.ts",
+          "hash": "7337337943065514979"
+        },
+        {
+          "file": "apps/cli/tsconfig.json",
+          "hash": "13786070967345633061"
+        }
+      ],
+      "jjhubctl": [
+        {
+          "file": "apps/jjhub/package.json",
+          "hash": "16845890495598804189",
+          "deps": [
+            "npm:@types/diff",
+            "npm:@types/node@22.19.15",
+            "npm:bun-types",
+            "npm:typescript",
+            "npm:@clack/prompts@0.10.1",
+            "npm:diff@7.0.0",
+            "npm:incur@0.1.17",
+            "npm:smithers-orchestrator"
+          ]
+        },
+        {
+          "file": "apps/jjhub/src/cli.ts",
+          "hash": "1222771249823784445"
+        },
+        {
+          "file": "apps/jjhub/src/commands/down.ts",
+          "hash": "11742276611664632385"
+        },
+        {
+          "file": "apps/jjhub/src/commands/edit.ts",
+          "hash": "16287962278903566347"
+        },
+        {
+          "file": "apps/jjhub/src/commands/interactive.ts",
+          "hash": "1184299075638073584"
+        },
+        {
+          "file": "apps/jjhub/src/commands/up.ts",
+          "hash": "16893914068997694276"
+        },
+        {
+          "file": "apps/jjhub/src/commands/view.ts",
+          "hash": "9461328044004966231"
+        },
+        {
+          "file": "apps/jjhub/src/file-map.ts",
+          "hash": "3310538131821215216"
+        },
+        {
+          "file": "apps/jjhub/tsconfig.json",
+          "hash": "1159539638650969151"
+        }
+      ],
+      "@jjhub/user-docs": [
+        {
+          "file": "docs/api-reference/authentication.mdx",
+          "hash": "9427453880399937743"
+        },
+        {
+          "file": "docs/api-reference/errors.mdx",
+          "hash": "2025677587082566957"
+        },
+        {
+          "file": "docs/api-reference/jj-vcs.mdx",
+          "hash": "536513092328089380"
+        },
+        {
+          "file": "docs/api-reference/pagination.mdx",
+          "hash": "998259626351440644"
+        },
+        {
+          "file": "docs/api-reference/rate-limiting.mdx",
+          "hash": "14240156690138942016"
+        },
+        {
+          "file": "docs/api-reference/sse.mdx",
+          "hash": "15484600796310525884"
+        },
+        {
+          "file": "docs/api-reference/webhooks.mdx",
+          "hash": "1338237482246582092"
+        },
+        {
+          "file": "docs/cli-reference/commands.mdx",
+          "hash": "12265828709945755529"
+        },
+        {
+          "file": "docs/cli-reference/installation.mdx",
+          "hash": "14732666633301376716"
+        },
+        {
+          "file": "docs/cli-reference/jj-concepts.mdx",
+          "hash": "4279551826610494924"
+        },
+        {
+          "file": "docs/docs.json",
+          "hash": "4504858690472120909"
+        },
+        {
+          "file": "docs/favicon.svg",
+          "hash": "3937801006024693151"
+        },
+        {
+          "file": "docs/getting-started/authentication.mdx",
+          "hash": "3604967015136894445"
+        },
+        {
+          "file": "docs/getting-started/first-repo.mdx",
+          "hash": "7496709068090211576"
+        },
+        {
+          "file": "docs/getting-started/first-workflow.mdx",
+          "hash": "1068059405927755348"
+        },
+        {
+          "file": "docs/getting-started/quick-start.mdx",
+          "hash": "237885495425670642"
+        },
+        {
+          "file": "docs/guides/administration.mdx",
+          "hash": "14044222219085332105"
+        },
+        {
+          "file": "docs/guides/ai-agents.mdx",
+          "hash": "15180189114322285405"
+        },
+        {
+          "file": "docs/guides/commit-signing.mdx",
+          "hash": "13911373851949705378"
+        },
+        {
+          "file": "docs/guides/deploy-keys.mdx",
+          "hash": "1738744834136680312"
+        },
+        {
+          "file": "docs/guides/git-lfs.mdx",
+          "hash": "10628062802618819926"
+        },
+        {
+          "file": "docs/guides/github-cheat-sheet.mdx",
+          "hash": "14791147291335025427"
+        },
+        {
+          "file": "docs/guides/github-mirror.mdx",
+          "hash": "6876993565433883410"
+        },
+        {
+          "file": "docs/guides/issue-templates.mdx",
+          "hash": "5743541744771529124"
+        },
+        {
+          "file": "docs/guides/issues.mdx",
+          "hash": "874640150216105932"
+        },
+        {
+          "file": "docs/guides/jj-cheat-sheet.mdx",
+          "hash": "10092550023572603386"
+        },
+        {
+          "file": "docs/guides/jj-crash-course.mdx",
+          "hash": "16977219591881247397"
+        },
+        {
+          "file": "docs/guides/landing-requests.mdx",
+          "hash": "18100834813290659711"
+        },
+        {
+          "file": "docs/guides/linear-integration.mdx",
+          "hash": "6768583776581216088"
+        },
+        {
+          "file": "docs/guides/oauth2-applications.mdx",
+          "hash": "9926492929153717700"
+        },
+        {
+          "file": "docs/guides/organizations.mdx",
+          "hash": "945065704253435071"
+        },
+        {
+          "file": "docs/guides/repositories.mdx",
+          "hash": "12890226384423412896"
+        },
+        {
+          "file": "docs/guides/search.mdx",
+          "hash": "1727134304534315914"
+        },
+        {
+          "file": "docs/guides/ssh-keys.mdx",
+          "hash": "10866174432086277727"
+        },
+        {
+          "file": "docs/guides/stacked-changes.mdx",
+          "hash": "14145639370448965196"
+        },
+        {
+          "file": "docs/guides/ui.mdx",
+          "hash": "2188557735566743837"
+        },
+        {
+          "file": "docs/guides/workflows.mdx",
+          "hash": "13733927275419100282"
+        },
+        {
+          "file": "docs/guides/workspaces.mdx",
+          "hash": "11988688934657476180"
+        },
+        {
+          "file": "docs/introduction.mdx",
+          "hash": "17724148104317354860"
+        },
+        {
+          "file": "docs/logo/dark.svg",
+          "hash": "13344087094876804038"
+        },
+        {
+          "file": "docs/logo/light.svg",
+          "hash": "16366418112819570412"
+        },
+        {
+          "file": "docs/openapi.yaml",
+          "hash": "8357411316196668594"
+        },
+        {
+          "file": "docs/package.json",
+          "hash": "5808931764417681634",
+          "deps": [
+            "npm:mintlify"
+          ]
+        },
+        {
+          "file": "docs/philosophy.mdx",
+          "hash": "3162882983428568874"
+        },
+        {
+          "file": "docs/roadmap.mdx",
+          "hash": "12791479543473209386"
+        },
+        {
+          "file": "docs/ui/ui_internal_dashboard_1772749776419.png",
+          "hash": "3418716886921320693"
+        },
+        {
+          "file": "docs/ui/ui_internal_inbox_1772749786783.png",
+          "hash": "10947340409087503808"
+        },
+        {
+          "file": "docs/ui/ui_internal_integrations_1772749798201.png",
+          "hash": "14617687121204652321"
+        },
+        {
+          "file": "docs/ui/ui_internal_repo_1772748583368.png",
+          "hash": "17022524596995184993"
+        },
+        {
+          "file": "docs/ui/ui_terminal.png",
+          "hash": "15403285289136218630"
+        }
+      ],
+      "@jjhub/server": [
+        {
+          "file": "apps/server/package.json",
+          "hash": "12224715938294045621",
+          "deps": [
+            "npm:@types/ssh2",
+            "@jjhub/sdk",
+            "@jjhub-ai/workflow",
+            "npm:hono",
+            "npm:ssh2"
+          ]
+        },
+        {
+          "file": "apps/server/src/db/agent_sql.ts",
+          "hash": "10445581429367775819"
+        },
+        {
+          "file": "apps/server/src/db/alpha_access_sql.ts",
+          "hash": "10219858823551090722"
+        },
+        {
+          "file": "apps/server/src/db/audit_log_sql.ts",
+          "hash": "8837677327855324134"
+        },
+        {
+          "file": "apps/server/src/db/auth_sql.ts",
+          "hash": "17674970962880637689"
+        },
+        {
+          "file": "apps/server/src/db/billing_sql.ts",
+          "hash": "12305534383354661276"
+        },
+        {
+          "file": "apps/server/src/db/bookmarks_sql.ts",
+          "hash": "7383536918743070081"
+        },
+        {
+          "file": "apps/server/src/db/canary_results_sql.ts",
+          "hash": "8614075142542000220"
+        },
+        {
+          "file": "apps/server/src/db/changes_sql.ts",
+          "hash": "10314933105262125596"
+        },
+        {
+          "file": "apps/server/src/db/conflicts_sql.ts",
+          "hash": "3422455560962067303"
+        },
+        {
+          "file": "apps/server/src/db/deploy_keys_sql.ts",
+          "hash": "16364069391649623508"
+        },
+        {
+          "file": "apps/server/src/db/issue_artifacts_sql.ts",
+          "hash": "11347947762023486482"
+        },
+        {
+          "file": "apps/server/src/db/issue_dependencies_sql.ts",
+          "hash": "2398864193242687124"
+        },
+        {
+          "file": "apps/server/src/db/issues_sql.ts",
+          "hash": "10901956159654997852"
+        },
+        {
+          "file": "apps/server/src/db/jj_operations_sql.ts",
+          "hash": "920519296736679410"
+        },
+        {
+          "file": "apps/server/src/db/labels_sql.ts",
+          "hash": "7753506456004209998"
+        },
+        {
+          "file": "apps/server/src/db/landings_sql.ts",
+          "hash": "10067672013809063282"
+        },
+        {
+          "file": "apps/server/src/db/lfs_sql.ts",
+          "hash": "7113901370816470575"
+        },
+        {
+          "file": "apps/server/src/db/linear_integrations_sql.ts",
+          "hash": "11040651844404547691"
+        },
+        {
+          "file": "apps/server/src/db/linear_oauth_setups_sql.ts",
+          "hash": "9250529319771863756"
+        },
+        {
+          "file": "apps/server/src/db/mentions_sql.ts",
+          "hash": "9692403943484665625"
+        },
+        {
+          "file": "apps/server/src/db/milestones_sql.ts",
+          "hash": "12462319171468119741"
+        },
+        {
+          "file": "apps/server/src/db/notifications_sql.ts",
+          "hash": "3216513530300519770"
+        },
+        {
+          "file": "apps/server/src/db/oauth2_sql.ts",
+          "hash": "1907616675308420056"
+        },
+        {
+          "file": "apps/server/src/db/orgs_sql.ts",
+          "hash": "4351778701117059497"
+        },
+        {
+          "file": "apps/server/src/db/pinned_issues_sql.ts",
+          "hash": "11979759578335683876"
+        },
+        {
+          "file": "apps/server/src/db/protected_bookmarks_sql.ts",
+          "hash": "11580790262549208919"
+        },
+        {
+          "file": "apps/server/src/db/rate_limits_sql.ts",
+          "hash": "17039812159774991625"
+        },
+        {
+          "file": "apps/server/src/db/reactions_sql.ts",
+          "hash": "1297290488633810049"
+        },
+        {
+          "file": "apps/server/src/db/release_assets_sql.ts",
+          "hash": "5384131144291757329"
+        },
+        {
+          "file": "apps/server/src/db/releases_sql.ts",
+          "hash": "3892045734416292511"
+        },
+        {
+          "file": "apps/server/src/db/repos_sql.ts",
+          "hash": "643432484570462525"
+        },
+        {
+          "file": "apps/server/src/db/runner_pool_sql.ts",
+          "hash": "14407061064272570386"
+        },
+        {
+          "file": "apps/server/src/db/sandbox_access_tokens_sql.ts",
+          "hash": "4131330501771057177"
+        },
+        {
+          "file": "apps/server/src/db/search_sql.ts",
+          "hash": "8859904958258277984"
+        },
+        {
+          "file": "apps/server/src/db/secrets_sql.ts",
+          "hash": "8426046473979988737"
+        },
+        {
+          "file": "apps/server/src/db/social_sql.ts",
+          "hash": "1408724053520554414"
+        },
+        {
+          "file": "apps/server/src/db/sse_tickets_sql.ts",
+          "hash": "9168065968622229629"
+        },
+        {
+          "file": "apps/server/src/db/ssh_keys_sql.ts",
+          "hash": "14209241862276280369"
+        },
+        {
+          "file": "apps/server/src/db/users_sql.ts",
+          "hash": "2882302750900055201"
+        },
+        {
+          "file": "apps/server/src/db/variables_sql.ts",
+          "hash": "13931566916077659831"
+        },
+        {
+          "file": "apps/server/src/db/webhooks_sql.ts",
+          "hash": "15259996980728229653"
+        },
+        {
+          "file": "apps/server/src/db/wiki_sql.ts",
+          "hash": "5559052526232012404"
+        },
+        {
+          "file": "apps/server/src/db/workflow_artifacts_sql.ts",
+          "hash": "3862852594187458878"
+        },
+        {
+          "file": "apps/server/src/db/workflow_caches_sql.ts",
+          "hash": "10605668484335246753"
+        },
+        {
+          "file": "apps/server/src/db/workflow_logs_sql.ts",
+          "hash": "11416523862556494580"
+        },
+        {
+          "file": "apps/server/src/db/workflow_runs_agent_tokens_sql.ts",
+          "hash": "8263299285691573478"
+        },
+        {
+          "file": "apps/server/src/db/workflow_schedules_sql.ts",
+          "hash": "1170353604855423933"
+        },
+        {
+          "file": "apps/server/src/db/workflows_sql.ts",
+          "hash": "8135166546523381722"
+        },
+        {
+          "file": "apps/server/src/db/workspace_sql.ts",
+          "hash": "17817437287682542824"
+        },
+        {
+          "file": "apps/server/src/index.ts",
+          "hash": "9070993008244011775"
+        },
+        {
+          "file": "apps/server/src/lib/feature-flags.ts",
+          "hash": "9927658069627788193"
+        },
+        {
+          "file": "apps/server/src/lib/middleware.ts",
+          "hash": "17779307062283579480"
+        },
+        {
+          "file": "apps/server/src/routes/admin.ts",
+          "hash": "1109152956126332978"
+        },
+        {
+          "file": "apps/server/src/routes/agents.ts",
+          "hash": "5660096226924219596"
+        },
+        {
+          "file": "apps/server/src/routes/auth.ts",
+          "hash": "18207564264085959248"
+        },
+        {
+          "file": "apps/server/src/routes/billing.ts",
+          "hash": "16481723693027698432"
+        },
+        {
+          "file": "apps/server/src/routes/daemon.ts",
+          "hash": "3820607896923525521"
+        },
+        {
+          "file": "apps/server/src/routes/health.ts",
+          "hash": "6582834808483103870"
+        },
+        {
+          "file": "apps/server/src/routes/integrations.ts",
+          "hash": "7914075464884047104"
+        },
+        {
+          "file": "apps/server/src/routes/issues.ts",
+          "hash": "18036652408870062728"
+        },
+        {
+          "file": "apps/server/src/routes/jj.ts",
+          "hash": "8102996551645696554"
+        },
+        {
+          "file": "apps/server/src/routes/labels.ts",
+          "hash": "14844325764206131291"
+        },
+        {
+          "file": "apps/server/src/routes/landings.ts",
+          "hash": "3142582239685343807"
+        },
+        {
+          "file": "apps/server/src/routes/lfs.ts",
+          "hash": "10208303462146115887"
+        },
+        {
+          "file": "apps/server/src/routes/milestones.ts",
+          "hash": "6311542927704569822"
+        },
+        {
+          "file": "apps/server/src/routes/notifications.ts",
+          "hash": "11572278261465725538"
+        },
+        {
+          "file": "apps/server/src/routes/oauth2.ts",
+          "hash": "9506762795555805240"
+        },
+        {
+          "file": "apps/server/src/routes/orgs.ts",
+          "hash": "7550789537756531901"
+        },
+        {
+          "file": "apps/server/src/routes/previews.ts",
+          "hash": "7000784504149409351"
+        },
+        {
+          "file": "apps/server/src/routes/releases.ts",
+          "hash": "17313169942346391695"
+        },
+        {
+          "file": "apps/server/src/routes/repos.ts",
+          "hash": "12528738730851479867"
+        },
+        {
+          "file": "apps/server/src/routes/search.ts",
+          "hash": "5573923442258347179"
+        },
+        {
+          "file": "apps/server/src/routes/secrets.ts",
+          "hash": "6093109059498963559"
+        },
+        {
+          "file": "apps/server/src/routes/users.ts",
+          "hash": "16710667068811782130"
+        },
+        {
+          "file": "apps/server/src/routes/webhooks.ts",
+          "hash": "7958877974876338037"
+        },
+        {
+          "file": "apps/server/src/routes/wiki.ts",
+          "hash": "7772605564734585968"
+        },
+        {
+          "file": "apps/server/src/routes/workflows.ts",
+          "hash": "1857067176674422512"
+        },
+        {
+          "file": "apps/server/src/routes/workspaces.ts",
+          "hash": "1824061898612911964"
+        },
+        {
+          "file": "apps/server/src/services.ts",
+          "hash": "12484783705822011973"
+        },
+        {
+          "file": "apps/server/src/ssh.ts",
+          "hash": "13780498514469841808"
+        },
+        {
+          "file": "apps/server/tsconfig.json",
+          "hash": "11956223161037305643"
+        }
+      ]
+    }
+  },
+  "externalNodesHash": "14911648267643563124"
+}

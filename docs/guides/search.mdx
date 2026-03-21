@@ -1,19 +1,19 @@
 ---
 title: Search
-description: Find repositories, issues, code, and users across JJHub
+description: Find repositories, issues, code, and users across Codeplane
 ---
 
 # Search
 
-JJHub provides full-text search across the platform. You can search for repositories, issues, code, and users from the CLI or via the API. Search results are paginated and can be filtered, sorted, and output as JSON for programmatic use.
+Codeplane provides full-text search across the platform. You can search for repositories, issues, code, and users from the CLI or via the API. Search results are paginated and can be filtered, sorted, and output as JSON for programmatic use.
 
 ## What You Can Search
 
 | Resource | CLI Command | API Endpoint | What's Indexed |
 |----------|-------------|--------------|----------------|
-| **Repositories** | `jjhub search repos` | `GET /api/search/repositories` | Name, description, topics |
-| **Issues** | `jjhub search issues` | `GET /api/search/issues` | Title, body, comments |
-| **Code** | `jjhub search code` | `GET /api/search/code` | File contents across all public repositories |
+| **Repositories** | `codeplane search repos` | `GET /api/search/repositories` | Name, description, topics |
+| **Issues** | `codeplane search issues` | `GET /api/search/issues` | Title, body, comments |
+| **Code** | `codeplane search code` | `GET /api/search/code` | File contents across all public repositories |
 | **Users** | *(API only)* | `GET /api/search/users` | Username, display name, email |
 
 ---
@@ -26,13 +26,13 @@ Find repositories by name, description, or topic.
 
 ```bash
 # Basic search
-jjhub search repos "jj native"
+codeplane search repos "jj native"
 
 # Limit results
-jjhub search repos "workflow engine" -L 10
+codeplane search repos "workflow engine" -L 10
 
 # JSON output for scripting
-jjhub search repos "jj native" --json
+codeplane search repos "jj native" --json
 ```
 
 | Flag | Description |
@@ -54,16 +54,16 @@ Search across issue titles and bodies.
 
 ```bash
 # Search for issues mentioning authentication
-jjhub search issues "authentication"
+codeplane search issues "authentication"
 
 # Filter by state
-jjhub search issues "landing request" -s open
+codeplane search issues "landing request" -s open
 
 # Only closed issues
-jjhub search issues "fix crash" -s closed
+codeplane search issues "fix crash" -s closed
 
 # Limit results
-jjhub search issues "bookmark" -L 5
+codeplane search issues "bookmark" -L 5
 ```
 
 | Flag | Description |
@@ -85,13 +85,13 @@ Search file contents across repositories.
 
 ```bash
 # Search for a function name
-jjhub search code "import_refs"
+codeplane search code "import_refs"
 
 # Search for a specific pattern
-jjhub search code "fn handle_landing_request"
+codeplane search code "fn handle_landing_request"
 
 # Limit results
-jjhub search code "BookmarkResolver" -L 10
+codeplane search code "BookmarkResolver" -L 10
 ```
 
 | Flag | Description |
@@ -111,7 +111,7 @@ acme/jj-server    internal/vcs/import.go:55    // import_refs synchronizes git r
 
 ## API Search Endpoints
 
-All search endpoints are under `/api/search/` and accept a `q` query parameter. Results are paginated using standard JJHub pagination (see [Pagination](/api-reference/pagination)).
+All search endpoints are under `/api/search/` and accept a `q` query parameter. Results are paginated using standard Codeplane pagination (see [Pagination](/api-reference/pagination)).
 
 <Note>
 Search endpoints have a stricter rate limit of **30 requests per minute**, separate from the general API rate limit of 5,000 requests per hour.
@@ -120,8 +120,8 @@ Search endpoints have a stricter rate limit of **30 requests per minute**, separ
 ### Search Repositories
 
 ```bash
-curl "https://api.jjhub.tech/api/search/repositories?q=jj+native" \
-  -H "Authorization: token jjhub_your_token"
+curl "https://api.codeplane.app/api/search/repositories?q=jj+native" \
+  -H "Authorization: token codeplane_your_token"
 ```
 
 **Query parameters:**
@@ -156,8 +156,8 @@ curl "https://api.jjhub.tech/api/search/repositories?q=jj+native" \
 ### Search Issues
 
 ```bash
-curl "https://api.jjhub.tech/api/search/issues?q=authentication&state=open" \
-  -H "Authorization: token jjhub_your_token"
+curl "https://api.codeplane.app/api/search/issues?q=authentication&state=open" \
+  -H "Authorization: token codeplane_your_token"
 ```
 
 **Query parameters:**
@@ -195,8 +195,8 @@ curl "https://api.jjhub.tech/api/search/issues?q=authentication&state=open" \
 ### Search Code
 
 ```bash
-curl "https://api.jjhub.tech/api/search/code?q=import_refs" \
-  -H "Authorization: token jjhub_your_token"
+curl "https://api.codeplane.app/api/search/code?q=import_refs" \
+  -H "Authorization: token codeplane_your_token"
 ```
 
 **Query parameters:**
@@ -228,8 +228,8 @@ curl "https://api.jjhub.tech/api/search/code?q=import_refs" \
 User search is available via the API only (no CLI command).
 
 ```bash
-curl "https://api.jjhub.tech/api/search/users?q=alice" \
-  -H "Authorization: token jjhub_your_token"
+curl "https://api.codeplane.app/api/search/users?q=alice" \
+  -H "Authorization: token codeplane_your_token"
 ```
 
 **Query parameters:**
@@ -248,7 +248,7 @@ curl "https://api.jjhub.tech/api/search/users?q=alice" \
     "id": 1,
     "login": "alice",
     "full_name": "Alice Smith",
-    "avatar_url": "https://api.jjhub.tech/avatars/alice",
+    "avatar_url": "https://api.codeplane.app/avatars/alice",
     "created_at": "2026-01-15T10:00:00Z"
   }
 ]
@@ -258,7 +258,7 @@ curl "https://api.jjhub.tech/api/search/users?q=alice" \
 
 ## Pagination
 
-Search results follow JJHub's standard cursor-based pagination model. Use the `cursor` and `limit` query parameters to navigate through results. The response includes:
+Search results follow Codeplane's standard cursor-based pagination model. Use the `cursor` and `limit` query parameters to navigate through results. The response includes:
 
 - **`next_cursor`** field in the response body for fetching the next page
 - **`Link` header** with `rel="next"` URL for navigating pages
@@ -266,14 +266,14 @@ Search results follow JJHub's standard cursor-based pagination model. Use the `c
 
 ```bash
 # Fetch results with a custom limit
-curl "https://api.jjhub.tech/api/search/repositories?q=jj&limit=10" \
-  -H "Authorization: token jjhub_your_token"
+curl "https://api.codeplane.app/api/search/repositories?q=jj&limit=10" \
+  -H "Authorization: token codeplane_your_token"
 ```
 
 In the CLI, use `--limit` to control the number of results returned in a single request:
 
 ```bash
-jjhub search repos "jj" -L 50
+codeplane search repos "jj" -L 50
 ```
 
 See the [Pagination guide](/api-reference/pagination) for full details on how pagination works across the API.
@@ -286,13 +286,13 @@ All CLI search commands support `--json` output for scripting and automation:
 
 ```bash
 # Get JSON output
-jjhub search repos "workflow" --json
+codeplane search repos "workflow" --json
 
 # Pipe to jq for filtering
-jjhub search repos "workflow" --json | jq '.[].full_name'
+codeplane search repos "workflow" --json | jq '.[].full_name'
 
 # Use in shell scripts
-for repo in $(jjhub search repos "jj" --json | jq -r '.[].full_name'); do
+for repo in $(codeplane search repos "jj" --json | jq -r '.[].full_name'); do
   echo "Found: $repo"
 done
 ```
@@ -300,7 +300,7 @@ done
 For AI and LLM pipelines, use `--toon` output (Token-Oriented Object Notation) which produces the same data in a format optimized for token efficiency:
 
 ```bash
-jjhub search repos "workflow" --toon
+codeplane search repos "workflow" --toon
 ```
 
 ---
@@ -312,8 +312,8 @@ jjhub search repos "workflow" --toon
 Wrap your query in double quotes to search for an exact phrase:
 
 ```bash
-jjhub search repos '"landing request"'
-jjhub search code '"fn resolve_conflicts"'
+codeplane search repos '"landing request"'
+codeplane search code '"fn resolve_conflicts"'
 ```
 
 ### Combining Terms
@@ -322,7 +322,7 @@ Multiple words are matched as an AND query by default -- all terms must be prese
 
 ```bash
 # Finds repos with both "jj" and "workflow" in their name/description
-jjhub search repos "jj workflow"
+codeplane search repos "jj workflow"
 ```
 
 ### Common Patterns
@@ -330,25 +330,25 @@ jjhub search repos "jj workflow"
 **Find all repositories by a user:**
 
 ```bash
-jjhub search repos "owner:alice"
+codeplane search repos "owner:alice"
 ```
 
 **Find open issues about a specific topic:**
 
 ```bash
-jjhub search issues "bookmark conflict" -s open
+codeplane search issues "bookmark conflict" -s open
 ```
 
 **Find code referencing a specific function:**
 
 ```bash
-jjhub search code "handle_landing_request"
+codeplane search code "handle_landing_request"
 ```
 
 **Find code in a specific language:**
 
 ```bash
-jjhub search code "import_refs language:rust"
+codeplane search code "import_refs language:rust"
 ```
 
 ---

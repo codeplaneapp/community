@@ -1,5 +1,5 @@
 /**
- * OAuth2 service for JJHub Community Edition.
+ * OAuth2 service for Codeplane Community Edition.
  *
  * Implements OAuth2 application CRUD, authorization code flow, token exchange,
  * refresh, and revoke. 1:1 port of Go's internal/services/oauth2.go.
@@ -116,9 +116,9 @@ function generateOAuth2ClientID(): string {
   return randomHex(20);
 }
 
-/** Generate an OAuth2 client secret with jjhub_oas_ prefix. */
+/** Generate an OAuth2 client secret with codeplane_oas_ prefix. */
 function generateOAuth2ClientSecret(): string {
-  return "jjhub_oas_" + randomHex(32);
+  return "codeplane_oas_" + randomHex(32);
 }
 
 /** Generate an authorization code (64 hex chars). */
@@ -644,7 +644,7 @@ export class OAuth2Service {
 
     // Generate access token
     const accessTokenValue = generateOAuth2Token();
-    const accessToken = "jjhub_oat_" + accessTokenValue;
+    const accessToken = "codeplane_oat_" + accessTokenValue;
     const accessTokenHash = await sha256Hex(accessToken);
 
     const createdAccessToken = await createOAuth2AccessToken(this.sql, {
@@ -660,7 +660,7 @@ export class OAuth2Service {
 
     // Generate refresh token
     const refreshTokenValue = generateOAuth2Token();
-    const newRefreshToken = "jjhub_ort_" + refreshTokenValue;
+    const newRefreshToken = "codeplane_ort_" + refreshTokenValue;
     const refreshTokenHash = await sha256Hex(newRefreshToken);
 
     const createdRefreshToken = await createOAuth2RefreshToken(this.sql, {

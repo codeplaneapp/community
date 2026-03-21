@@ -7,7 +7,7 @@ import {
 import { stateDir } from "../config.js";
 import type { DocsCorpusStatus, RepoContext } from "./types.js";
 
-const SKILL_NAME = "jjhub-helper";
+const SKILL_NAME = "codeplane-helper";
 type DefaultResourceLoaderOptions = ConstructorParameters<typeof DefaultResourceLoader>[0];
 
 function truncateBlock(value: string | undefined, maxChars = 4_000): string | undefined {
@@ -19,14 +19,14 @@ function truncateBlock(value: string | undefined, maxChars = 4_000): string | un
 function buildSkillContent(): string {
   return [
     "---",
-    "description: JJHub-specific helper guidance",
+    "description: Codeplane-specific helper guidance",
     "---",
     "",
-    "Use this skill when helping with JJHub usage, JJ workflows, repo/auth state, or filing JJHub issues.",
+    "Use this skill when helping with Codeplane usage, JJ workflows, repo/auth state, or filing Codeplane issues.",
     "",
-    "- Prefer `jjhub_docs_search` over generic recollection for JJHub-specific behavior.",
-    "- Prefer `jjhub_repo_context` when repo or auth state matters.",
-    "- File a JJHub issue with `jjhub_issue_create` when you identify a real JJHub bug or rough UX, even if a workaround exists.",
+    "- Prefer `codeplane_docs_search` over generic recollection for Codeplane-specific behavior.",
+    "- Prefer `codeplane_repo_context` when repo or auth state matters.",
+    "- File a Codeplane issue with `codeplane_issue_create` when you identify a real Codeplane bug or rough UX, even if a workaround exists.",
   ].join("\n");
 }
 
@@ -38,7 +38,7 @@ async function materializeSkill(): Promise<Skill> {
 
   return {
     name: SKILL_NAME,
-    description: "JJHub-specific usage helper guidance",
+    description: "Codeplane-specific usage helper guidance",
     filePath,
     baseDir,
     source: "path",
@@ -52,22 +52,22 @@ function buildPromptAppendix(
   backendContext: Record<string, unknown>,
 ): string {
   const promptLines = [
-    "## JJHub Helper",
-    "You are the JJHub local usage helper inside the `jjhub` CLI.",
+    "## Codeplane Helper",
+    "You are the Codeplane local usage helper inside the `codeplane` CLI.",
     "",
     "### Role",
-    "- Help the user use JJHub and JJ in the current repository.",
-    "- Prefer actual repo/auth state and JJHub docs over generic advice.",
-    "- Do not behave like a general coding assistant unless code edits are directly needed to solve a JJHub usage problem.",
+    "- Help the user use Codeplane and JJ in the current repository.",
+    "- Prefer actual repo/auth state and Codeplane docs over generic advice.",
+    "- Do not behave like a general coding assistant unless code edits are directly needed to solve a Codeplane usage problem.",
     "",
-    "### JJHub-Specific Rules",
-    "- Use `jjhub_docs_search` for JJHub-specific behavior, commands, and product details instead of guessing.",
-    "- Use `jjhub_repo_context` when repo state, auth state, or backend state may have changed.",
-    "- If you identify a real JJHub product, workflow, or UX issue, use `jjhub_issue_create` to file it even when a workaround exists.",
+    "### Codeplane-Specific Rules",
+    "- Use `codeplane_docs_search` for Codeplane-specific behavior, commands, and product details instead of guessing.",
+    "- Use `codeplane_repo_context` when repo state, auth state, or backend state may have changed.",
+    "- If you identify a real Codeplane product, workflow, or UX issue, use `codeplane_issue_create` to file it even when a workaround exists.",
     "- Distinguish user error, missing docs, rough UX, and actual product bugs clearly.",
     "",
     "### Startup Context",
-    "This context was collected before the session started. Refresh it with `jjhub_repo_context(refresh=true)` if needed.",
+    "This context was collected before the session started. Refresh it with `codeplane_repo_context(refresh=true)` if needed.",
     "```json",
     JSON.stringify(
       {
@@ -88,7 +88,7 @@ function buildPromptAppendix(
     ),
     "```",
     "",
-    "### JJHub Docs Status",
+    "### Codeplane Docs Status",
     "```json",
     JSON.stringify(docsStatus, null, 2),
     "```",
@@ -97,7 +97,7 @@ function buildPromptAppendix(
   return promptLines.join("\n");
 }
 
-export async function createJjhubResourceLoader(options: {
+export async function createCodeplaneResourceLoader(options: {
   cwd: string;
   repoContext: RepoContext;
   docsStatus: DocsCorpusStatus;

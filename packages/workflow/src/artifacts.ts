@@ -21,13 +21,13 @@ export type WorkflowArtifactClient = {
   download(name: string, path: string): Promise<WorkflowArtifactRecord>;
 };
 
-const workflowArtifactClientKey = Symbol.for("jjhub.workflow.artifacts.client");
+const workflowArtifactClientKey = Symbol.for("codeplane.workflow.artifacts.client");
 
 type GlobalWithWorkflowArtifacts = typeof globalThis & {
   [workflowArtifactClientKey]?: WorkflowArtifactClient;
 };
 
-export type JJHubWorkflowCtx<Schema = Record<string, unknown>> = SmithersCtx<Schema> & {
+export type CodeplaneWorkflowCtx<Schema = Record<string, unknown>> = SmithersCtx<Schema> & {
   artifacts: WorkflowArtifactClient;
 };
 

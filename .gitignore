@@ -1,2 +1,10 @@
 **/node_modules/
 dist/
+.nx/
+bin/codeplane.js
+bin/docs/images/exy.png
+
+# Smithers
+smithers.db*
+.smithers/
+.worktrees/

@@ -1,5 +1,17 @@
 {
-  "name": "codeplane",
+  "name": "codeplane-root",
   "private": true,
-  "packageManager": "pnpm@10.10.0"
+  "packageManager": "pnpm@10.10.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "specs",
+    "docs"
+  ],
+  "scripts": {
+    "codeplane": "nx build codeplane && bun apps/cli/src/main.ts"
+  },
+  "devDependencies": {
+    "nx": "^22.6.1"
+  }
 }

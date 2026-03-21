@@ -1,8 +1,8 @@
 /**
- * SyncService — ElectricSQL sync layer for JJHub's local-first daemon mode.
+ * SyncService — ElectricSQL sync layer for Codeplane's local-first daemon mode.
  *
  * Handles bidirectional sync between the local PGLite daemon and a remote
- * JJHub server using ElectricSQL shape subscriptions for downstream sync
+ * Codeplane server using ElectricSQL shape subscriptions for downstream sync
  * and a write queue for upstream sync.
  *
  * Downstream: ElectricSQL ShapeStream -> apply changes to local PGLite
@@ -39,7 +39,7 @@ export interface ShapeSubscription {
 }
 
 export interface SyncServiceConfig {
-  /** Remote JJHub server URL (e.g. "https://api.jjhub.tech"). */
+  /** Remote Codeplane server URL (e.g. "https://api.codeplane.app"). */
   remoteUrl: string;
   /** Auth token for the remote server. */
   token: string;

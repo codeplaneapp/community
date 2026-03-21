@@ -18,7 +18,7 @@ describe("CLI: Workflow Dispatch", () => {
       [
         "workflow", "register",
         "--name", "ci-pipeline",
-        "--path", ".jjhub/workflows/ci.ts",
+        "--path", ".codeplane/workflows/ci.ts",
         "--trigger", "push",
       ],
       { repo: repoSlug, json: true },
@@ -32,7 +32,7 @@ describe("CLI: Workflow Dispatch", () => {
     }>(result);
     expect(typeof body.id).toBe("number");
     expect(body.name).toBe("ci-pipeline");
-    expect(body.path).toBe(".jjhub/workflows/ci.ts");
+    expect(body.path).toBe(".codeplane/workflows/ci.ts");
     expect(body.triggers).toContain("push");
   });
 

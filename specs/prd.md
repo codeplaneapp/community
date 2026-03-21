@@ -1,6 +1,6 @@
-# JJHub Product Requirements Document
+# Codeplane Product Requirements Document
 
-This PRD is a code-backed product specification for the JJHub repository in its current form. It is intentionally grounded in the implemented server routes, clients, shared packages, and tests in this repo. It replaces the earlier aspirational framing with an explicit description of what exists now, what is scaffolded, and what is positioned as a cloud or future extension.
+This PRD is a code-backed product specification for the Codeplane repository in its current form. It is intentionally grounded in the implemented server routes, clients, shared packages, and tests in this repo. It replaces the earlier aspirational framing with an explicit description of what exists now, what is scaffolded, and what is positioned as a cloud or future extension.
 
 ## Status Model
 
@@ -13,7 +13,7 @@ This document uses four maturity labels:
 
 ## 1. Product Summary
 
-JJHub is a jj-native software forge. In this repository, it is implemented as a Bun/TypeScript monorepo that combines:
+Codeplane is a jj-native software forge. In this repository, it is implemented as a Bun/TypeScript monorepo that combines:
 
 - A Hono-based API server with SSH support.
 - A SolidJS web application.
@@ -23,7 +23,7 @@ JJHub is a jj-native software forge. In this repository, it is implemented as a 
 - VS Code and Neovim integrations.
 - Shared SDK, workflow, editor, and UI-core packages.
 
-JJHub’s core product promise is that repositories, jj-native collaboration, workflows, workspaces, and agent-assisted development should feel like one system instead of separate tools glued together.
+Codeplane’s core product promise is that repositories, jj-native collaboration, workflows, workspaces, and agent-assisted development should feel like one system instead of separate tools glued together.
 
 ## 2. Editions and Scope
 
@@ -47,7 +47,7 @@ The open-source codebase is the Community Edition. It supports:
 
 `Cloud-only / future`
 
-Cloud-specific capabilities are referenced in README/docs and should still be treated as part of JJHub’s broader product direction, but they are not implemented in this repository as shipped Community Edition behavior. These include:
+Cloud-specific capabilities are referenced in README/docs and should still be treated as part of Codeplane’s broader product direction, but they are not implemented in this repository as shipped Community Edition behavior. These include:
 
 - Firecracker-based isolation and sub-second snapshot resume.
 - Enterprise SSO / SAML.
@@ -56,7 +56,7 @@ Cloud-specific capabilities are referenced in README/docs and should still be tr
 
 ## 3. Problem Statement
 
-JJHub exists because traditional git-hosting products are weak fits for jj-native development and for agent-assisted engineering.
+Codeplane exists because traditional git-hosting products are weak fits for jj-native development and for agent-assisted engineering.
 
 The repository’s implemented product surfaces are optimized around these problems:
 
@@ -67,7 +67,7 @@ The repository’s implemented product surfaces are optimized around these probl
 
 ## 4. Product Principles
 
-JJHub in this repo is defined by the following principles:
+Codeplane in this repo is defined by the following principles:
 
 - `jj-native first`: jj concepts are first-class product concepts, not hidden behind git-only abstractions.
 - `API-centered`: the HTTP API is the main product contract consumed by web, CLI, TUI, desktop, and editor clients.
@@ -105,7 +105,7 @@ Users should be able to:
 - Run workflows and inspect workflow runs, logs, artifacts, and caches.
 - Create and access repository-scoped workspaces and preview environments.
 - Start and inspect agent sessions tied to repository context.
-- Operate JJHub as either a server-hosted application or a local-first daemon-backed experience.
+- Operate Codeplane as either a server-hosted application or a local-first daemon-backed experience.
 
 ## 7. Product Surfaces
 
@@ -250,7 +250,7 @@ The desktop app embeds the daemon in-process using PGLite and opens the web UI i
 
 `Implemented`
 
-VS Code and Neovim provide direct access to JJHub surfaces from the editor, including:
+VS Code and Neovim provide direct access to Codeplane surfaces from the editor, including:
 
 - issue browsing
 - landing request browsing
@@ -267,7 +267,7 @@ VS Code and Neovim provide direct access to JJHub surfaces from the editor, incl
 
 `Implemented`
 
-JJHub must:
+Codeplane must:
 
 - boot as a single Bun/Hono server process
 - initialize DB, services, feature flags, SSH, SSE, and cleanup jobs
@@ -278,7 +278,7 @@ JJHub must:
 
 `Implemented`, with some `Partial` service wiring
 
-JJHub must support:
+Codeplane must support:
 
 - GitHub OAuth sign-in
 - CLI-specific browser OAuth
@@ -297,7 +297,7 @@ Closed-alpha identity enforcement exists in the service layer and admin surfaces
 
 `Implemented`
 
-JJHub must support:
+Codeplane must support:
 
 - public user profile and repository views
 - current-user account and settings views
@@ -311,7 +311,7 @@ JJHub must support:
 
 `Implemented`
 
-JJHub must support:
+Codeplane must support:
 
 - repository CRUD, transfer, archive, unarchive, fork, star, watch, and topic updates
 - bookmark and change browsing
@@ -326,7 +326,7 @@ JJHub must support:
 
 `Implemented`
 
-JJHub must support:
+Codeplane must support:
 
 - issue list and detail
 - issue creation, editing, close/reopen
@@ -339,7 +339,7 @@ JJHub must support:
 
 `Implemented`, with some `Partial` and `Gated` surfaces
 
-JJHub must support:
+Codeplane must support:
 
 - landing request creation from jj change IDs
 - landing request list/detail/edit
@@ -356,7 +356,7 @@ The global landing queue surface exists as a gated placeholder view rather than 
 
 `Implemented`, with one `Partial` deploy-key mismatch
 
-JJHub must support:
+Codeplane must support:
 
 - label CRUD
 - milestone CRUD
@@ -374,7 +374,7 @@ Important current mismatch:
 
 `Implemented`
 
-JJHub must support:
+Codeplane must support:
 
 - repository, issue, user, and code search
 - inbox-style notification listing
@@ -386,7 +386,7 @@ JJHub must support:
 
 `Implemented`
 
-JJHub must support:
+Codeplane must support:
 
 - workflow definition discovery
 - workflow dispatch
@@ -403,7 +403,7 @@ JJHub must support:
 
 `Implemented`, with some `Partial` route-layer wiring
 
-JJHub must support:
+Codeplane must support:
 
 - workspace creation, listing, viewing, deletion
 - suspend/resume
@@ -422,7 +422,7 @@ Known current limitations:
 
 `Implemented`, with a `Partial` Community Edition stream path
 
-JJHub must support:
+Codeplane must support:
 
 - agent session CRUD
 - message append/list
@@ -438,7 +438,7 @@ Current limitation:
 
 `Implemented`, `Partial`, and `Gated`
 
-JJHub must support:
+Codeplane must support:
 
 - Linear OAuth and integration configuration
 - Linear repository mapping and sync trigger
@@ -453,7 +453,7 @@ Current limitations:
 
 `Implemented`, with mixed maturity
 
-JJHub must support:
+Codeplane must support:
 
 - admin user/org/repo/runner/health/audit views
 - closed-alpha waitlist and whitelist management
@@ -463,7 +463,7 @@ JJHub must support:
 
 ## 9. Non-Functional Requirements
 
-JJHub should meet the following qualities:
+Codeplane should meet the following qualities:
 
 - `Consistency`: API contracts should remain the shared source of truth across clients.
 - `Streaming support`: long-running workflow, notification, and workspace status paths should favor streaming rather than polling.
@@ -482,7 +482,7 @@ The Community Edition repository does not currently require:
 
 ## 11. Success Criteria
 
-JJHub is successful when:
+Codeplane is successful when:
 
 - jj-native repository operations feel first-class across API, web, CLI, TUI, and editor clients
 - users can move from issue to change to landing request to workflow to workspace without leaving the product
@@ -493,15 +493,15 @@ JJHub is successful when:
 
 This PRD should be maintained alongside:
 
-- [features.ts](/Users/williamcory/jjhub/specs/features.ts)
-- [design.md](/Users/williamcory/jjhub/specs/design.md)
-- [README.md](/Users/williamcory/jjhub/README.md)
+- [features.ts](/Users/williamcory/codeplane/specs/features.ts)
+- [design.md](/Users/williamcory/codeplane/specs/design.md)
+- [README.md](/Users/williamcory/codeplane/README.md)
 
-## 9. SuperSmithers Dev Harness (jjhubctl)
+## 9. SuperSmithers Dev Harness (codeplanectl)
 
-Building JJHub is orchestrated by the exact same tools that power the product. `jjhubctl` is the operator control plane and dev harness for managing the autonomous software lifecycle. 
+Building Codeplane is orchestrated by the exact same tools that power the product. `codeplanectl` is the operator control plane and dev harness for managing the autonomous software lifecycle. 
 
-- **Interactive Pi Extension**: When run interactively, `jjhubctl` launches a `pi` coding agent session loaded with custom JJHub skills.
+- **Interactive Pi Extension**: When run interactively, `codeplanectl` launches a `pi` coding agent session loaded with custom Codeplane skills.
 - **Unified Operator Dashboard**: The harness includes a UI (via Pi/TUI) to view all product specifications, read agent research, review implementation plans, and monitor running Smithers orchestrations.
-- **Production Monitoring & Runbooks**: `jjhubctl` acts as the command center to monitor live deployments, open Grafana metrics, and execute runbooks when alerts fire.
-- **Recursive Invalidation Engine**: Any edit made via `jjhubctl edit <doc>` recursively invalidates and intelligently regenerates the entire downstream artifact chain.
+- **Production Monitoring & Runbooks**: `codeplanectl` acts as the command center to monitor live deployments, open Grafana metrics, and execute runbooks when alerts fire.
+- **Recursive Invalidation Engine**: Any edit made via `codeplanectl edit <doc>` recursively invalidates and intelligently regenerates the entire downstream artifact chain.

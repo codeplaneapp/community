@@ -5,7 +5,7 @@ import {
   APIError,
   sseResponse,
   sseStreamWithInitial,
-} from "@jjhub/sdk";
+} from "@codeplane/sdk";
 import { getServices } from "../services";
 
 // ---------------------------------------------------------------------------

@@ -16,7 +16,7 @@ describe("CLI: Workflow Run Lifecycle", () => {
       [
         "workflow", "register",
         "--name", "build-pipeline",
-        "--path", ".jjhub/workflows/build.ts",
+        "--path", ".codeplane/workflows/build.ts",
         "--trigger", "push",
       ],
       { repo: repoSlug, json: true },

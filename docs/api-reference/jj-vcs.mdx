@@ -1,15 +1,15 @@
 ---
 title: jj VCS API
-description: jj-native version control operations - bookmarks, changes, diffs, and operation log via the JJHub API
+description: jj-native version control operations - bookmarks, changes, diffs, and operation log via the Codeplane API
 ---
 
 <Tip>
-  These endpoints expose jj-native VCS operations that have no direct GitHub equivalent. They are proxied through the JJHub API to the Rust repo-host which uses jj-lib natively.
+  These endpoints expose jj-native VCS operations that have no direct GitHub equivalent. They are proxied through the Codeplane API to the Rust repo-host which uses jj-lib natively.
 </Tip>
 
 # jj VCS API
 
-JJHub is a **jj-native** platform. All version control operations use jj concepts: Change IDs, Bookmarks, Operation Logs, and stacked changes. These endpoints provide direct access to jj VCS operations on repositories.
+Codeplane is a **jj-native** platform. All version control operations use jj concepts: Change IDs, Bookmarks, Operation Logs, and stacked changes. These endpoints provide direct access to jj VCS operations on repositories.
 
 ## Bookmarks
 
@@ -206,7 +206,7 @@ Pagination metadata is returned in the standard `Link` and `X-Total-Count` heade
 
 ## Stacked Changes
 
-JJHub's premiere feature is first-class support for **stacked changes** - a series of changes where each builds on the previous. This enables incremental review and is particularly powerful for AI-assisted development.
+Codeplane's premiere feature is first-class support for **stacked changes** - a series of changes where each builds on the previous. This enables incremental review and is particularly powerful for AI-assisted development.
 
 A stack looks like:
 ```
@@ -225,10 +225,10 @@ Landing requests can target any change in the stack. The landing queue ensures c
 
 ## Commit Statuses
 
-Commit statuses let external systems (CI/CD pipelines, code quality tools, security scanners) report the outcome of checks against a specific commit. Statuses are the mechanism by which JJHub knows whether a change has passed CI, failed a linter, or is still being validated.
+Commit statuses let external systems (CI/CD pipelines, code quality tools, security scanners) report the outcome of checks against a specific commit. Statuses are the mechanism by which Codeplane knows whether a change has passed CI, failed a linter, or is still being validated.
 
 Statuses are the foundation for two key features:
-- **`jjhub land checks`** -- shows the CI status of all changes in a landing request
+- **`codeplane land checks`** -- shows the CI status of all changes in a landing request
 - **Bookmark protection** -- the `--require-status-checks` rule gates landing until all statuses report `success`
 
 ### Status States
@@ -278,14 +278,14 @@ POST /api/repos/{owner}/{repo}/statuses/{sha}
 **Example:**
 
 ```bash
-curl -X POST https://api.jjhub.tech/api/repos/alice/my-project/statuses/abc123def456 \
-  -H "Authorization: token jjhub_xxxxx" \
+curl -X POST https://api.codeplane.app/api/repos/alice/my-project/statuses/abc123def456 \
+  -H "Authorization: token codeplane_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{
     "state": "success",
     "context": "ci/test",
     "description": "All 142 tests passed",
-    "target_url": "https://api.jjhub.tech/alice/my-project/runs/87"
+    "target_url": "https://api.codeplane.app/alice/my-project/runs/87"
   }'
 ```
 
@@ -297,7 +297,7 @@ curl -X POST https://api.jjhub.tech/api/repos/alice/my-project/statuses/abc123de
   "state": "success",
   "context": "ci/test",
   "description": "All 142 tests passed",
-  "target_url": "https://api.jjhub.tech/alice/my-project/runs/87",
+  "target_url": "https://api.codeplane.app/alice/my-project/runs/87",
   "creator": {
     "login": "alice",
     "id": 1
@@ -333,8 +333,8 @@ GET /api/repos/{owner}/{repo}/commits/{ref}/statuses
 **Example:**
 
 ```bash
-curl -H "Authorization: token jjhub_xxxxx" \
-  https://api.jjhub.tech/api/repos/alice/my-project/commits/abc123def456/statuses
+curl -H "Authorization: token codeplane_xxxxx" \
+  https://api.codeplane.app/api/repos/alice/my-project/commits/abc123def456/statuses
 ```
 
 **Response:**
@@ -346,7 +346,7 @@ curl -H "Authorization: token jjhub_xxxxx" \
     "state": "success",
     "context": "ci/test",
     "description": "All 142 tests passed",
-    "target_url": "https://api.jjhub.tech/alice/my-project/runs/87",
+    "target_url": "https://api.codeplane.app/alice/my-project/runs/87",
     "creator": { "login": "alice", "id": 1 },
     "created_at": "2025-01-15T10:35:00Z",
     "updated_at": "2025-01-15T10:35:00Z"
@@ -356,7 +356,7 @@ curl -H "Authorization: token jjhub_xxxxx" \
     "state": "pending",
     "context": "ci/build",
     "description": "Build in progress...",
-    "target_url": "https://api.jjhub.tech/alice/my-project/runs/88",
+    "target_url": "https://api.codeplane.app/alice/my-project/runs/88",
     "creator": { "login": "alice", "id": 1 },
     "created_at": "2025-01-15T10:34:00Z",
     "updated_at": "2025-01-15T10:34:00Z"
@@ -366,7 +366,7 @@ curl -H "Authorization: token jjhub_xxxxx" \
 
 ### Combined Status
 
-When multiple statuses exist on a commit, JJHub computes a **combined status** using these rules:
+When multiple statuses exist on a commit, Codeplane computes a **combined status** using these rules:
 
 | Condition | Combined Status |
 |-----------|----------------|
@@ -377,10 +377,10 @@ When multiple statuses exist on a commit, JJHub computes a **combined status** u
 
 The combined status is what bookmark protection evaluates. If `--require-status-checks` is enabled, the combined status of every commit in the landing request must be `success` for the merge to proceed.
 
-The `jjhub land checks` command displays both individual statuses and the combined status:
+The `codeplane land checks` command displays both individual statuses and the combined status:
 
 ```bash
-$ jjhub land checks 42
+$ codeplane land checks 42
 CHANGE     CONTEXT     STATE     DESCRIPTION
 wqnwkozp   ci/test     success   All 142 tests passed
 wqnwkozp   ci/build    success   Build completed
@@ -391,19 +391,19 @@ Combined: failure
 
 ### How Workflows Set Statuses Automatically
 
-When a JJHub workflow runs against a commit, the platform automatically manages commit statuses on behalf of the workflow:
+When a Codeplane workflow runs against a commit, the platform automatically manages commit statuses on behalf of the workflow:
 
-1. **Workflow starts** -- JJHub creates a `pending` status with `context` set to the workflow name (e.g., `ci/test`). The `target_url` points to the workflow run's log page.
-2. **Workflow completes successfully** -- JJHub updates the status to `success` with a description summarizing the result.
-3. **Workflow fails** -- JJHub updates the status to `failure` (if the workflow's steps failed) or `error` (if the runner itself had a problem).
+1. **Workflow starts** -- Codeplane creates a `pending` status with `context` set to the workflow name (e.g., `ci/test`). The `target_url` points to the workflow run's log page.
+2. **Workflow completes successfully** -- Codeplane updates the status to `success` with a description summarizing the result.
+3. **Workflow fails** -- Codeplane updates the status to `failure` (if the workflow's steps failed) or `error` (if the runner itself had a problem).
 
-This means most users never need to call the status API directly -- their workflows create and update statuses automatically. The API is available for external CI/CD systems, third-party integrations, and custom tooling that runs outside of JJHub's workflow system.
+This means most users never need to call the status API directly -- their workflows create and update statuses automatically. The API is available for external CI/CD systems, third-party integrations, and custom tooling that runs outside of Codeplane's workflow system.
 
 **Example workflow that implicitly sets a status:**
 
 ```tsx
-// .jjhub/workflows/ci.tsx
-import { Workflow, Task, on } from "@jjhub-ai/workflow";
+// .codeplane/workflows/ci.tsx
+import { Workflow, Task, on } from "@codeplane-ai/workflow";
 import { $ } from "bun";
 
 export default (ctx) => (
@@ -420,7 +420,7 @@ export default (ctx) => (
 );
 ```
 
-When this workflow triggers, JJHub creates a `pending` status with context `ci/test` on the triggering commit. When `bun test` succeeds, the status updates to `success`. If it fails, the status updates to `failure`.
+When this workflow triggers, Codeplane creates a `pending` status with context `ci/test` on the triggering commit. When `bun test` succeeds, the status updates to `success`. If it fails, the status updates to `failure`.
 
 ### How Statuses Gate Landing Requests
 
@@ -428,14 +428,14 @@ Statuses integrate with bookmark protection to enforce quality gates:
 
 1. **Enable status checks on a bookmark:**
    ```bash
-   jjhub bookmark protect main --require-status-checks
+   codeplane bookmark protect main --require-status-checks
    ```
 
-2. **Attempt to land a change:** When `jjhub land land` is called, JJHub checks the combined status of every commit in the landing request's change stack.
+2. **Attempt to land a change:** When `codeplane land land` is called, Codeplane checks the combined status of every commit in the landing request's change stack.
 
 3. **If any commit has a non-success combined status,** the landing is blocked:
    ```bash
-   $ jjhub land land 42
+   $ codeplane land land 42
    Error: Landing request #42 cannot be landed into protected bookmark "main":
      - Required status checks: ci/test (pending), ci/lint (failure)
    ```
@@ -450,22 +450,22 @@ List and set commit statuses from the command line:
 
 ```bash
 # List statuses for a ref (SHA, bookmark, or change ID)
-jjhub status list abc123def456
-jjhub status list main
-jjhub status list wqnwkozp
+codeplane status list abc123def456
+codeplane status list main
+codeplane status list wqnwkozp
 
 # Set a status on a specific commit SHA
-jjhub status set abc123def456 --state success --context ci/test
-jjhub status set abc123def456 --state failure --context ci/lint --description "3 errors"
-jjhub status set abc123def456 --state pending --context ci/build --target-url "https://..."
+codeplane status set abc123def456 --state success --context ci/test
+codeplane status set abc123def456 --state failure --context ci/lint --description "3 errors"
+codeplane status set abc123def456 --state pending --context ci/build --target-url "https://..."
 
 # View checks for a landing request (shorthand)
-jjhub land checks 42
+codeplane land checks 42
 ```
 
 ### Webhook Events
 
-When a commit status changes, JJHub fires a `status` webhook event. This lets external systems react to CI outcomes -- for example, sending a notification when a previously-failing check turns green.
+When a commit status changes, Codeplane fires a `status` webhook event. This lets external systems react to CI outcomes -- for example, sending a notification when a previously-failing check turns green.
 
 The webhook payload includes the status details, the commit SHA, and the repository context. See the [Webhooks API](/api-reference/webhooks) for delivery and signature details.
 

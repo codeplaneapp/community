@@ -1,7 +1,7 @@
 /**
- * Local filesystem blob storage adapter for JJHub Community Edition.
+ * Local filesystem blob storage adapter for Codeplane Community Edition.
  *
- * Replaces GCS in the OSS version. Stores blobs under JJHUB_DATA_DIR/blobs/
+ * Replaces GCS in the OSS version. Stores blobs under CODEPLANE_DATA_DIR/blobs/
  * (default: ./data/blobs/). Implements the same interface as Go's blob.Store:
  *   put, get, delete, exists, signedUploadURL, signedDownloadURL, stat
  *
@@ -67,11 +67,11 @@ export class LocalBlobStore implements BlobStore {
   constructor(baseDir?: string, signingSecret?: string) {
     this.baseDir =
       baseDir ??
-      join(process.env.JJHUB_DATA_DIR ?? "./data", "blobs");
+      join(process.env.CODEPLANE_DATA_DIR ?? "./data", "blobs");
     this.signingSecret =
       signingSecret ??
-      process.env.JJHUB_BLOB_SIGNING_SECRET ??
-      "jjhub-local-dev-secret";
+      process.env.CODEPLANE_BLOB_SIGNING_SECRET ??
+      "codeplane-local-dev-secret";
   }
 
   private resolvePath(key: string): string {
