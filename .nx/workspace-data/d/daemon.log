@@ -3326,3 +3326,211 @@ Time taken for 'build typescript dependencies' 0.0741249999999809ms
 [NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.195Z - [WATCHER]: 0 file(s) created or restored, 0 file(s) modified, 0 file(s) deleted
 [NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.195Z - [WATCHER]: Processing file changes in outputs
 [NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.256Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.424Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.449Z - [REQUEST]: Updated workspace context based on watched changes, recomputing project graph...
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.449Z - [REQUEST]: specs/tui/design.md
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.449Z - [REQUEST]: 
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.453Z - Time taken for 'hash changed files from watcher' 1.1787080000012793ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.529Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.553Z - [WATCHER]: 0 file(s) created or restored, 0 file(s) modified, 0 file(s) deleted
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.582Z - [WATCHER]: Processing file changes in outputs
+Time taken for 'plugin worker 57086 code loading' 117.671ms
+Time taken for 'plugin worker 57087 code loading' 117.684958ms
+Time taken for 'plugin worker 57085 code loading' 118.22520800000001ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.599Z - Time taken for 'start-plugin-worker:nx/js/dependencies-and-lockfile' 148.82362499999908ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.599Z - Time taken for 'start-plugin-worker:nx/core/package-json' 147.42795800000022ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.599Z - Time taken for 'start-plugin-worker:nx/core/project-json' 146.85912500000086ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.607Z - [WATCHER]: 0 file(s) created or restored, 0 file(s) modified, 0 file(s) deleted
+Time taken for 'nx/js/dependencies-and-lockfile:createNodes' 4.370292000000006ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.622Z - Time taken for 'build-project-configs' 166.25908300000083ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.622Z - Time taken for 'createNodes:merge' 0.5806250000005093ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.622Z - Time taken for 'get-all-workspace-files' 0.5801250000004075ms
+Time taken for 'build typescript dependencies' 1.641666000000015ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.636Z - [SYNC]: collect registered sync generators
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.636Z - [SYNC]: project graph hash is the same, not collecting task sync generators
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.636Z - [SYNC]: nx.json hash is the same, not collecting global sync generators
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.636Z - Time taken for 'total execution time for createProjectGraph()' 16.78887500000019ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.636Z - Time taken for 'createDependencies' 14.050999999999476ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.636Z - Time taken for 'nx/js/dependencies-and-lockfile:createDependencies' 13.999875000001339ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.636Z - Time taken for 'createMetadata' 0.014666000000943313ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.636Z - Time taken for 'serialize graph' 1.398457999999664ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.637Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.688Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.754Z - [REQUEST]: Updated workspace context based on watched changes, recomputing project graph...
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.757Z - [REQUEST]: 
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.757Z - [REQUEST]: 
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.761Z - Time taken for 'hash changed files from watcher' 1.063625000000684ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.786Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.891Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.894Z - Time taken for 'start-plugin-worker:nx/js/dependencies-and-lockfile' 135.24712499999987ms
+Time taken for 'plugin worker 57088 code loading' 106.40066700000001ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.895Z - Time taken for 'start-plugin-worker:nx/core/package-json' 134.8529579999995ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.895Z - Time taken for 'start-plugin-worker:nx/core/project-json' 134.37374999999884ms
+Time taken for 'plugin worker 57090 code loading' 106.997375ms
+Time taken for 'plugin worker 57089 code loading' 107.057542ms
+Time taken for 'nx/js/dependencies-and-lockfile:createNodes' 4.369540999999998ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.915Z - Time taken for 'build-project-configs' 151.73620899999878ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.915Z - Time taken for 'createNodes:merge' 0.5655000000006112ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.915Z - Time taken for 'get-all-workspace-files' 0.526917000001049ms
+Time taken for 'build typescript dependencies' 0.08770800000002055ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.928Z - [SYNC]: collect registered sync generators
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.928Z - [SYNC]: project graph hash is the same, not collecting task sync generators
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.929Z - [SYNC]: nx.json hash is the same, not collecting global sync generators
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.929Z - Time taken for 'total execution time for createProjectGraph()' 15.198249999999462ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.929Z - Time taken for 'createDependencies' 12.82787499999904ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.929Z - Time taken for 'nx/js/dependencies-and-lockfile:createDependencies' 12.783958999998504ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.929Z - Time taken for 'createMetadata' 0.013958999999886146ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.929Z - Time taken for 'serialize graph' 1.4112919999988662ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.980Z - [WATCHER]: 0 file(s) created or restored, 0 file(s) modified, 0 file(s) deleted
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:37.981Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.047Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.143Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.295Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.354Z - [WATCHER]: 0 file(s) created or restored, 0 file(s) modified, 0 file(s) deleted
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.354Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.382Z - [REQUEST]: Updated workspace context based on watched changes, recomputing project graph...
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.382Z - [REQUEST]: 
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.382Z - [REQUEST]: 
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.386Z - Time taken for 'hash changed files from watcher' 1.0541670000002341ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.410Z - [WATCHER]: Processing file changes in outputs
+Time taken for 'plugin worker 57244 code loading' 106.034792ms
+Time taken for 'plugin worker 57245 code loading' 106.02675ms
+Time taken for 'plugin worker 57246 code loading' 106.386083ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.520Z - Time taken for 'start-plugin-worker:nx/js/dependencies-and-lockfile' 136.89437499999985ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.521Z - Time taken for 'start-plugin-worker:nx/core/package-json' 135.67270800000006ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.521Z - Time taken for 'start-plugin-worker:nx/core/project-json' 135.18395899999996ms
+Time taken for 'nx/js/dependencies-and-lockfile:createNodes' 4.465625000000017ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.541Z - Time taken for 'build-project-configs' 152.61949999999888ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.541Z - Time taken for 'createNodes:merge' 0.578165999999328ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.541Z - Time taken for 'get-all-workspace-files' 0.5360000000000582ms
+Time taken for 'build typescript dependencies' 0.08354199999999423ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.553Z - [SYNC]: collect registered sync generators
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.553Z - [SYNC]: project graph hash is the same, not collecting task sync generators
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.553Z - [SYNC]: nx.json hash is the same, not collecting global sync generators
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.553Z - Time taken for 'total execution time for createProjectGraph()' 14.352124999999432ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.553Z - Time taken for 'createDependencies' 11.84008300000096ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.554Z - Time taken for 'nx/js/dependencies-and-lockfile:createDependencies' 11.783165999999255ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.554Z - Time taken for 'createMetadata' 0.014957999999751337ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.554Z - Time taken for 'serialize graph' 1.3902499999985594ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.554Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.706Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.732Z - [WATCHER]: 0 file(s) created or restored, 0 file(s) modified, 0 file(s) deleted
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.760Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:38.939Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.078Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.079Z - [WATCHER]: 0 file(s) created or restored, 0 file(s) modified, 0 file(s) deleted
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.139Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.323Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.429Z - [WATCHER]: 0 file(s) created or restored, 0 file(s) modified, 0 file(s) deleted
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.430Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.492Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.534Z - [REQUEST]: Updated workspace context based on watched changes, recomputing project graph...
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.534Z - [REQUEST]: 
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.534Z - [REQUEST]: 
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.538Z - Time taken for 'hash changed files from watcher' 1.0939999999991414ms
+Time taken for 'plugin worker 57251 code loading' 107.84216599999999ms
+Time taken for 'plugin worker 57252 code loading' 107.962167ms
+Time taken for 'plugin worker 57250 code loading' 108.595792ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.676Z - Time taken for 'start-plugin-worker:nx/js/dependencies-and-lockfile' 140.2207500000004ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.676Z - Time taken for 'start-plugin-worker:nx/core/package-json' 138.88062499999978ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.676Z - Time taken for 'start-plugin-worker:nx/core/project-json' 138.13783299999886ms
+Time taken for 'nx/js/dependencies-and-lockfile:createNodes' 4.5012920000000065ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.697Z - Time taken for 'build-project-configs' 156.23149999999987ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.697Z - Time taken for 'createNodes:merge' 0.6333329999997659ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.697Z - Time taken for 'get-all-workspace-files' 0.5322920000016893ms
+Time taken for 'build typescript dependencies' 0.07829200000000469ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.709Z - [SYNC]: collect registered sync generators
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.710Z - [SYNC]: project graph hash is the same, not collecting task sync generators
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.710Z - [SYNC]: nx.json hash is the same, not collecting global sync generators
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.710Z - Time taken for 'total execution time for createProjectGraph()' 15.06379200000083ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.710Z - Time taken for 'createDependencies' 12.482708999999886ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.710Z - Time taken for 'nx/js/dependencies-and-lockfile:createDependencies' 12.428917000001093ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.710Z - Time taken for 'createMetadata' 0.01954200000000128ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.710Z - Time taken for 'serialize graph' 1.416917000000467ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.711Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.795Z - [WATCHER]: 0 file(s) created or restored, 0 file(s) modified, 0 file(s) deleted
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.795Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.864Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.916Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:39.971Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:40.156Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:40.180Z - [WATCHER]: specs/tui/features.ts was created or restored
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:40.180Z - [SYNC]: clearing sync generators cache due to file changes
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:40.208Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:40.234Z - [WATCHER]: 0 file(s) created or restored, 0 file(s) modified, 0 file(s) deleted
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:40.262Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:40.417Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:40.569Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:40.583Z - [WATCHER]: 0 file(s) created or restored, 0 file(s) modified, 0 file(s) deleted
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:40.622Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:40.809Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:40.945Z - [WATCHER]: 0 file(s) created or restored, 0 file(s) modified, 0 file(s) deleted
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:40.945Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:40.998Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.212Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.317Z - [WATCHER]: 0 file(s) created or restored, 0 file(s) modified, 0 file(s) deleted
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.317Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.388Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.396Z - [REQUEST]: Updated workspace context based on watched changes, recomputing project graph...
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.396Z - [REQUEST]: specs/tui/features.ts
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.396Z - [REQUEST]: 
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.400Z - Time taken for 'hash changed files from watcher' 1.1215839999986201ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.449Z - [WATCHER]: Processing file changes in outputs
+Time taken for 'plugin worker 57411 code loading' 109.57125ms
+Time taken for 'plugin worker 57410 code loading' 110.12270900000001ms
+Time taken for 'plugin worker 57409 code loading' 110.174333ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.547Z - Time taken for 'start-plugin-worker:nx/js/dependencies-and-lockfile' 149.1129579999997ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.547Z - Time taken for 'start-plugin-worker:nx/core/package-json' 147.87033300000076ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.547Z - Time taken for 'start-plugin-worker:nx/core/project-json' 147.24274999999943ms
+Time taken for 'nx/js/dependencies-and-lockfile:createNodes' 4.298624999999987ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.568Z - Time taken for 'build-project-configs' 165.6146659999995ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.568Z - Time taken for 'createNodes:merge' 0.5413749999988795ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.568Z - Time taken for 'get-all-workspace-files' 0.5272079999995185ms
+Time taken for 'build typescript dependencies' 1.65379200000001ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.583Z - [SYNC]: collect registered sync generators
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.584Z - [SYNC]: project graph hash is the same, not collecting task sync generators
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.584Z - [SYNC]: nx.json hash is the same, not collecting global sync generators
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.584Z - Time taken for 'total execution time for createProjectGraph()' 17.748499999999694ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.584Z - Time taken for 'createDependencies' 15.240125000000262ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.584Z - Time taken for 'nx/js/dependencies-and-lockfile:createDependencies' 15.176249999998618ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.584Z - Time taken for 'createMetadata' 0.011666000000332133ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.584Z - Time taken for 'serialize graph' 1.418958999998722ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.624Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.706Z - [WATCHER]: 0 file(s) created or restored, 0 file(s) modified, 0 file(s) deleted
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.707Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.766Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.881Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.908Z - [REQUEST]: Updated workspace context based on watched changes, recomputing project graph...
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.908Z - [REQUEST]: 
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.908Z - [REQUEST]: 
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:41.912Z - Time taken for 'hash changed files from watcher' 1.034125000000131ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.038Z - [WATCHER]: Processing file changes in outputs
+Time taken for 'plugin worker 57414 code loading' 115.00312499999998ms
+Time taken for 'plugin worker 57412 code loading' 115.318792ms
+Time taken for 'plugin worker 57413 code loading' 116.135375ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.062Z - Time taken for 'start-plugin-worker:nx/js/dependencies-and-lockfile' 152.9018329999999ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.063Z - Time taken for 'start-plugin-worker:nx/core/package-json' 151.58549999999923ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.063Z - Time taken for 'start-plugin-worker:nx/core/project-json' 151.04066599999896ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.076Z - [WATCHER]: 0 file(s) created or restored, 0 file(s) modified, 0 file(s) deleted
+Time taken for 'nx/js/dependencies-and-lockfile:createNodes' 4.5955000000000155ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.084Z - Time taken for 'build-project-configs' 169.8770000000004ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.084Z - Time taken for 'createNodes:merge' 0.5634169999993901ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.084Z - Time taken for 'get-all-workspace-files' 0.5720000000001164ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.089Z - [WATCHER]: Processing file changes in outputs
+Time taken for 'build typescript dependencies' 0.09320800000000418ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.097Z - [SYNC]: collect registered sync generators
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.098Z - [SYNC]: project graph hash is the same, not collecting task sync generators
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.098Z - [SYNC]: nx.json hash is the same, not collecting global sync generators
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.098Z - Time taken for 'total execution time for createProjectGraph()' 15.135833000000275ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.098Z - Time taken for 'createDependencies' 12.772000000000844ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.098Z - Time taken for 'nx/js/dependencies-and-lockfile:createDependencies' 12.702457999999751ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.098Z - Time taken for 'createMetadata' 0.011334000000715605ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.098Z - Time taken for 'serialize graph' 1.4507090000006428ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.283Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.438Z - [WATCHER]: 0 file(s) created or restored, 0 file(s) modified, 0 file(s) deleted
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.438Z - [WATCHER]: Processing file changes in outputs
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.478Z - [REQUEST]: Updated workspace context based on watched changes, recomputing project graph...
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.478Z - [REQUEST]: 
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.478Z - [REQUEST]: 
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.482Z - Time taken for 'hash changed files from watcher' 1.0473340000007738ms
+[NX v22.6.1 Daemon Server] - 2026-03-21T19:21:42.508Z - [WATCHER]: Processing file changes in outputs
