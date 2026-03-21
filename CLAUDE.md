@@ -2,7 +2,8 @@
 
 - do your change
 - use jj to checkmark as you go
-- use jj bookmark to create an atomic emoji conventional commit
+- use jj bookmark to create an atomic emoji conventional commit (e.g., `jj bookmark create docs/user-docs`)
+- Always make atomic commits with clear scopes, especially for `docs/` and `e2e/` (e.g. `📝 docs: ...` or `✅ test(e2e): ...`)
 - Use git notes to add prompt as a git note
 
 ## Self improving repo
