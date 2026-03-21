@@ -13,6 +13,7 @@ export const up = {
         "--input",
         "{}",
         "--allow-network",
+        "--hot",
       ],
       { stdio: "inherit" },
     );
