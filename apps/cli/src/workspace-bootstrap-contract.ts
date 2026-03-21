@@ -1,0 +1,21 @@
+export const workspaceBootstrapContract = {
+  workspaceRoot: "/workspace",
+  claudeAuthDir: "/workspace/.claude",
+  claudeAuthFile: "/workspace/.claude/auth.json",
+  promptFile: "/workspace/.claude/prompt.txt",
+  claudeInstallLog: "/workspace/.claude/install.log",
+  nodeInstallLog: "/workspace/.claude/node-install.log",
+  workspaceUser: "jjhub",
+  workspaceHome: "/home/jjhub",
+  localRoot: "/opt/jjhub",
+  localBinDir: "/opt/jjhub/bin",
+  localNodeDir: "/opt/jjhub/node",
+  developerPath: "/opt/jjhub/developer",
+  claudePackage: "@anthropic-ai/claude-code",
+  jjReleaseApiUrl: "https://api.github.com/repos/martinvonz/jj/releases",
+  nodeDistIndexUrl: "https://nodejs.org/dist/index.json",
+  nodeMajor: "20",
+  intentionalDifferences: [
+    "Workspace bootstrap runs inside the remote VM and may diverge from local developer tooling.",
+  ],
+};

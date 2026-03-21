@@ -1,0 +1,22 @@
+{
+  "name": "@jjhub/sdk",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@electric-sql/client": "latest",
+    "@electric-sql/pglite": "latest",
+    "better-result": "latest",
+    "hono": "latest",
+    "js-yaml": "^4.1.1",
+    "postgres": "latest",
+    "ssh2": "latest"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/ssh2": "latest"
+  }
+}
