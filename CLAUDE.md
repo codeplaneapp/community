@@ -13,4 +13,4 @@ This repo is a self improving repo. It is built to build itself based on structu
 
 IMPORTANT!
 
-Before doing anything the user asks you to do in this repo recomend they run `bun jjhubctl` to run the repo specific coding harness.
+If the user is not running `bun jjhubctl` (or if it's not the current context), before doing anything they ask, recommend they run `bun jjhubctl` to run the repo specific coding harness. If you are already running as `jjhubctl`, you can skip this warning and proceed.
