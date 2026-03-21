@@ -1,0 +1,87 @@
+---
+title: "Ghost: AGENTS.md"
+description: "Example from AGENTS.md — Agent instructions file that teaches AI coding agents how to interact with the Smithers IDE, including smithers-ctl commands for file opening, terminal control, diff preview, overlays, and webviews."
+---
+
+# AGENTS.md
+
+<Note>
+**Ghost doc** — This is the real `AGENTS.md` file from the Smithers repository root. It provides instructions for AI coding agents running inside the Smithers IDE.
+</Note>
+
+## Source
+
+```markdown
+# Smithers IDE — Agent Instructions
+
+You are running inside **Smithers**, a native macOS IDE built with SwiftUI.
+You can interact with the IDE using the `smithers-ctl` CLI tool.
+
+## Project Overview
+
+- **Desktop app**: `apps/desktop/` — Swift/SwiftUI, macOS 14+
+- **Build**: `zig build dev` (build & launch), `zig build test` (XCUITests)
+- **Editor**: STTextView (TextKit 2) with TreeSitter syntax highlighting
+- **Terminal**: Ghostty integration
+- **VCS**: jj (Jujutsu) — not git
+- **AI backend**: Codex via JSON-RPC over stdio
+
+## smithers-ctl Command Reference
+
+### Open files
+```bash
+smithers-ctl open <path> [--line N] [--column N]
+smithers-ctl open <path> +N        # jump to line N
+smithers-ctl open <path> +N:C      # jump to line N, column C
+```
+
+### Terminal
+```bash
+smithers-ctl terminal                          # open new terminal tab
+smithers-ctl terminal --command "CMD"          # open terminal running CMD
+smithers-ctl terminal --cwd /path              # open terminal in directory
+smithers-ctl terminal run <cmd>                # run command in new terminal
+```
+
+### Diff preview
+```bash
+smithers-ctl diff show --content "<unified diff>" [--title "Title"] [--file path]
+```
+
+### Overlays (notifications / progress)
+```bash
+smithers-ctl overlay --type chat --message "text"
+smithers-ctl overlay --type progress --message "Building..." --percent 50
+smithers-ctl overlay --type panel --message "text" --title "Heading" --position center --duration 5
+smithers-ctl dismiss-overlay [--id ID]
+```
+
+### Webview tabs
+```bash
+smithers-ctl webview open <url> [--title "Title"]   # returns tab ID
+smithers-ctl webview close <tab-id>
+smithers-ctl webview eval <tab-id> --js "document.title"
+smithers-ctl webview url <tab-id>
+```
+
+## Build & Test
+
+```bash
+zig build dev          # build and launch .app bundle
+zig build test         # run XCUITests
+cd apps/desktop && xcodegen generate   # regenerate Xcode project
+```
+
+## Key Conventions
+
+- Use `jj` for version control, not `git`
+- Dependencies in both `Package.swift` and `project.yml` — keep in sync
+- SmithersShared is NOT a module — don't `import SmithersShared`
+```
+
+## What This Demonstrates
+
+- **AGENTS.md convention** — A standardized file that AI coding agents read to understand how to interact with the development environment.
+- **IDE control via CLI** — `smithers-ctl` provides a command-line interface for agents to control the IDE: open files at specific lines, manage terminals, show diffs, display overlays, and control webview tabs.
+- **Multi-tool architecture** — The Smithers IDE integrates Zig (build), Swift/SwiftUI (UI), STTextView (editor), Ghostty (terminal), TreeSitter (syntax highlighting), and jj (VCS) into a cohesive system.
+- **Agent-friendly design** — Every IDE capability is exposed as a CLI command that agents can invoke programmatically.

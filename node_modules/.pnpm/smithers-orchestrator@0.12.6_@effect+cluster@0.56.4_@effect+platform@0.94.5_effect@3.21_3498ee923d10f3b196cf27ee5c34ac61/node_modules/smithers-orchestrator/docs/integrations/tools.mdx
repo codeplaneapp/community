@@ -1,0 +1,323 @@
+---
+title: Built-in Tools
+description: Sandboxed file and shell tools for AI agent tasks, with exact input schemas, security policies, and usage examples.
+---
+
+Smithers provides five built-in tools that are compatible with the AI SDK `tool` interface. These tools give AI agents the ability to read, write, search, and modify files, as well as execute shell commands -- all within a security sandbox.
+
+## Import
+
+```ts
+import { tools, read, write, edit, grep, bash } from "smithers-orchestrator";
+```
+
+The `tools` object is a convenience bundle containing all five tools keyed by name:
+
+```ts
+const { read, write, edit, grep, bash } = tools;
+```
+
+## Sandboxing
+
+All tools are sandboxed to `rootDir`, which defaults to the workflow directory. Every file path provided to a tool is resolved relative to this root, and any attempt to escape it (including via symlinks) is rejected with an error.
+
+The sandbox enforces:
+
+- **Path resolution.** Relative paths are resolved against `rootDir`. Absolute paths are validated to ensure they fall within the root.
+- **Symlink traversal.** Symlinks that resolve outside the sandbox root are rejected.
+- **Output size limits.** All tool outputs are truncated to `maxOutputBytes` (default: 200KB / 200,000 bytes). Files and command outputs exceeding this limit are either truncated or rejected.
+- **Timeouts.** Shell commands (`bash`, `grep`) have a default timeout of 60 seconds. Processes that exceed the timeout are killed with `SIGKILL`.
+- **Network blocking.** The `bash` tool blocks network-accessing executables by default. See the [bash tool](#bash) section for details.
+
+## Tool Call Logging
+
+Every tool invocation is logged to the `_smithers_tool_calls` database table with the following fields:
+
+| Field | Description |
+|---|---|
+| `runId` | The current workflow run ID |
+| `nodeId` | The task node that invoked the tool |
+| `iteration` | The loop iteration |
+| `attempt` | The retry attempt number |
+| `seq` | Sequential tool call counter within the task |
+| `toolName` | Name of the tool (`read`, `write`, `edit`, `grep`, `bash`) |
+| `inputJson` | Serialized input arguments |
+| `outputJson` | Serialized output (truncated if over `maxOutputBytes`) |
+| `startedAtMs` | Timestamp when the tool call began |
+| `finishedAtMs` | Timestamp when the tool call completed |
+| `status` | `"success"` or `"error"` |
+| `errorJson` | Serialized error details (if status is `"error"`) |
+
+---
+
+## read
+
+Read a file from the filesystem.
+
+**Input schema:**
+
+```ts
+{
+  path: string   // File path, relative to rootDir or absolute
+}
+```
+
+**Returns:** The file contents as a UTF-8 string.
+
+**Behavior:**
+- The file is resolved against the sandbox root and validated against symlink escapes.
+- If the file size exceeds `maxOutputBytes` (default 200KB), the tool throws `"File too large"`.
+- Output is truncated to `maxOutputBytes` if needed.
+
+**Example:**
+
+```ts
+import { ToolLoopAgent as Agent } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { read, grep } from "smithers-orchestrator";
+
+const codeAgent = new Agent({
+  model: anthropic("claude-sonnet-4-20250514"),
+  tools: { read, grep },
+});
+```
+
+```tsx
+{/* outputs comes from createSmithers() */}
+<Task id="review" output={outputs.review} agent={codeAgent}>
+  Read the file src/auth.ts and identify any security vulnerabilities.
+</Task>
+```
+
+---
+
+## write
+
+Write content to a file, creating parent directories as needed.
+
+**Input schema:**
+
+```ts
+{
+  path: string      // File path, relative to rootDir or absolute
+  content: string   // Content to write
+}
+```
+
+**Returns:** `"ok"`
+
+**Behavior:**
+- Parent directories are created recursively if they do not exist.
+- If the content byte size exceeds `maxOutputBytes` (default 200KB), the tool throws `"Content too large"`.
+- The content hash (SHA-256) and byte size are logged, but the full content is not stored in the tool call log to conserve space.
+
+**Example:**
+
+```ts
+import { ToolLoopAgent as Agent } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { write, read } from "smithers-orchestrator";
+
+const writerAgent = new Agent({
+  model: anthropic("claude-sonnet-4-20250514"),
+  tools: { write, read },
+});
+```
+
+---
+
+## edit
+
+Apply a unified diff patch to an existing file.
+
+**Input schema:**
+
+```ts
+{
+  path: string    // File path to patch
+  patch: string   // Unified diff format patch
+}
+```
+
+**Returns:** `"ok"`
+
+**Behavior:**
+- The file must already exist. The current contents are read, the patch is applied using the `diff` library's `applyPatch` function, and the result is written back.
+- If the patch byte size exceeds `maxOutputBytes`, the tool throws `"Patch too large"`.
+- If the file size exceeds `maxOutputBytes`, the tool throws `"File too large"`.
+- If the patch cannot be applied (e.g., context lines do not match), the tool throws `"Failed to apply patch"`.
+- The patch hash (SHA-256) and byte size are logged.
+
+**Example unified diff format:**
+
+```
+--- a/src/auth.ts
++++ b/src/auth.ts
+@@ -10,3 +10,4 @@
+   const token = jwt.sign(payload, secret);
++  logger.info("Token issued", { userId: payload.sub });
+   return token;
+```
+
+---
+
+## grep
+
+Search for a regex pattern in files using `ripgrep` (`rg`).
+
+**Input schema:**
+
+```ts
+{
+  pattern: string    // Regex pattern to search for
+  path?: string      // Directory or file to search (default: rootDir)
+}
+```
+
+**Returns:** Matching lines with file paths and line numbers, as produced by `rg -n`.
+
+**Behavior:**
+- The search path is resolved and sandboxed to `rootDir`.
+- Uses `ripgrep` (`rg`) under the hood with the `-n` flag for line numbers.
+- Output is truncated to `maxOutputBytes` (default 200KB).
+- If the command times out (default 60s), the process is killed and an error is thrown.
+- If `rg` exits with code 2 (error), the stderr output is thrown as an error.
+- Exit code 1 (no matches) returns an empty string, not an error.
+
+**Prerequisite:** `ripgrep` must be installed and available in the system PATH.
+
+**Example output:**
+
+```
+src/auth.ts:15:  if (token.expired()) {
+src/auth.ts:42:  validateToken(token);
+tests/auth.test.ts:8:  const token = createTestToken();
+```
+
+---
+
+## bash
+
+Execute a shell command.
+
+**Input schema:**
+
+```ts
+{
+  cmd: string                     // Executable name or command
+  args?: string[]                 // Command arguments
+  opts?: { cwd?: string }         // Working directory (sandboxed to rootDir)
+}
+```
+
+**Returns:** Combined stdout and stderr as a string.
+
+**Behavior:**
+- The working directory defaults to `rootDir` and is sandboxed. If `opts.cwd` is provided, it is resolved and validated against the sandbox.
+- Stdout and stderr are captured separately and combined in the output.
+- Output is truncated to `maxOutputBytes` (default 200KB).
+- Default timeout is 60 seconds. Processes exceeding the timeout are killed with `SIGKILL` via process group.
+- Non-zero exit codes throw an error with the exit code or signal name.
+
+### Network Blocking
+
+By default, the `bash` tool blocks commands that access the network. This is controlled by the `allowNetwork` option in `RunOptions`, the CLI (`--allow-network`), or the server configuration.
+
+When `allowNetwork` is `false` (the default), the tool checks whether the command string (executable + arguments joined together) contains any blocked fragment. If a match is found, the command is rejected with an error.
+
+**Blocked fragments:**
+
+| Category | Blocked strings |
+|---|---|
+| HTTP clients | `curl`, `wget` |
+| URL prefixes | `http://`, `https://` |
+| Package managers | `npm`, `bun`, `pip` |
+| Version control (remote ops) | `git push`, `git pull`, `git fetch`, `git clone`, `git remote` |
+
+Git remote operations are only checked when `git` appears in the command string. Local `git` commands (e.g., `git status`, `git diff`, `git log`) are allowed even when network access is disabled.
+
+> **Note:** The current blocked list is intentionally minimal. Additional commands and detection patterns (e.g., remote shells, network utilities, proxy arguments) may be blocked in future versions.
+
+**Example:**
+
+```ts
+import { ToolLoopAgent as Agent } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { bash } from "smithers-orchestrator";
+
+const devAgent = new Agent({
+  model: anthropic("claude-sonnet-4-20250514"),
+  tools: { bash },
+});
+```
+
+```tsx
+{/* outputs comes from createSmithers() */}
+<Task id="lint" output={outputs.lint} agent={devAgent}>
+  Run the linter on src/ and report any issues.
+</Task>
+```
+
+---
+
+## Using Tools with Agents
+
+The standard pattern is to pass tools to an AI SDK agent, then assign that agent to a `<Task>`:
+
+```tsx
+import { ToolLoopAgent as Agent } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { read, write, edit, grep, bash } from "smithers-orchestrator";
+
+const codeAgent = new Agent({
+  model: anthropic("claude-sonnet-4-20250514"),
+  tools: { read, write, edit, grep, bash },
+  instructions: "You are a senior engineer. Use the available tools to complete tasks.",
+});
+
+const { Workflow, smithers, outputs } = createSmithers({
+  result: z.object({ summary: z.string() }),
+});
+
+export default smithers((ctx) => (
+  <Workflow name="refactor">
+    <Task id="refactor" output={outputs.result} agent={codeAgent}>
+      {`Refactor the function in ${ctx.input.file} to improve readability.`}
+    </Task>
+  </Workflow>
+));
+```
+
+You can also pass the entire `tools` bundle:
+
+```ts
+import { ToolLoopAgent as Agent } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { tools } from "smithers-orchestrator";
+
+const fullAgent = new Agent({
+  model: anthropic("claude-sonnet-4-20250514"),
+  tools,
+});
+```
+
+## Configuration
+
+Tool behavior is configured through `RunOptions` when calling `runWorkflow` or through the server/CLI:
+
+| Option | Default | Description |
+|---|---|---|
+| `rootDir` | Workflow directory | Sandbox root for all file operations |
+| `allowNetwork` | `false` | Allow network-accessing executables in `bash` |
+| `maxOutputBytes` | `200000` (200KB) | Maximum output size for all tools |
+| `toolTimeoutMs` | `60000` (60s) | Timeout for `bash` and `grep` commands |
+
+```ts
+const result = await runWorkflow(workflow, {
+  input: { file: "src/auth.ts" },
+  rootDir: "/home/project",
+  allowNetwork: false,
+  maxOutputBytes: 500_000,
+  toolTimeoutMs: 120_000,
+});
+```

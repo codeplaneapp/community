@@ -1,0 +1,279 @@
+---
+title: Approvals
+description: Model human review as an explicit durable gate in the workflow graph.
+---
+
+Approvals should be explicit workflow nodes, not a boolean flag on an otherwise normal step.
+
+From first principles, an approval is:
+
+- a durable request for a human decision
+- a suspended execution state
+- an audited decision record
+- a dependency that downstream work can wait on
+
+That makes approvals a workflow primitive in their own right.
+
+## Approval as a Node
+
+Instead of:
+
+```ts
+// Old shape
+needsApproval: true
+```
+
+approvals are explicit nodes in JSX and TOON.
+
+**In JSX:**
+
+```tsx
+import {
+  Approval,
+  Sequence,
+  Task,
+  Workflow,
+  approvalDecisionSchema,
+  createSmithers,
+} from "smithers-orchestrator";
+import { z } from "zod";
+
+const { smithers, outputs } = createSmithers({
+  approval: approvalDecisionSchema,
+  published: z.object({ status: z.string() }),
+});
+
+export default smithers((ctx) => {
+  const approval = ctx.outputMaybe("approval", { nodeId: "approve-deploy" });
+
+  return (
+    <Workflow name="deploy">
+      <Sequence>
+        <Approval
+          id="approve-deploy"
+          output={outputs.approval}
+          request={{
+            title: "Deploy to production?",
+            summary: "Human review required before release.",
+          }}
+          onDeny="continue"
+        />
+
+        {approval ? (
+          <Task id="record" output={outputs.published}>
+            {{ status: approval.approved ? "approved" : "rejected" }}
+          </Task>
+        ) : null}
+      </Sequence>
+    </Workflow>
+  );
+});
+```
+
+**In TOON:**
+
+```toon
+steps[3]:
+  - id: build
+    prompt: Build the deployment package.
+    output:
+      version: string
+      commitSha: string
+
+  - kind: approval
+    id: approve-deploy
+    needs[1]: build
+    request:
+      title: "Deploy {build.version}?"
+      summary: "Commit {build.commitSha} passed all checks."
+    onDeny: fail
+
+  - id: deploy
+    needs[2]: build,approve-deploy
+    prompt: Deploy version {build.version}.
+    output:
+      url: string
+```
+
+
+This is better for three reasons:
+
+1. the approval is visible in the graph
+2. the execution can suspend on a first-class durable node
+3. the decision can be reused or branched on explicitly
+
+## What an Approval Produces
+
+An approval gate should resolve to a typed decision object:
+
+```ts
+type ApprovalDecision = {
+  readonly approved: boolean;
+  readonly note: string | null;
+  readonly decidedBy: string | null;
+  readonly decidedAt: string | null;
+};
+```
+
+That lets downstream nodes depend on the decision as data, not only as scheduler side effects.
+
+## Lifecycle
+
+An approval node should move through a durable lifecycle:
+
+```txt
+pending
+  -> requested
+  -> waiting-approval
+  -> approved | denied
+  -> completed | failed | routed
+```
+
+More concretely:
+
+1. Smithers reaches the approval node.
+2. It persists an approval request record.
+3. The execution suspends in a durable waiting state.
+4. A human approves or denies the request.
+5. The node resolves according to its policy.
+6. Downstream nodes become eligible to run.
+
+If the process restarts while waiting, the approval request still exists and the execution can resume later.
+
+## Request Shape
+
+The `request` function should be pure and derived from already-computed workflow data:
+
+```ts
+request: ({ build }) => ({
+  title: `Deploy ${build.version}?`,
+  summary: build.plan,
+  metadata: {
+    risk: build.risk,
+    commitSha: build.commitSha,
+  },
+})
+```
+
+That request is what Smithers persists, displays in UIs, and exposes through CLI or API tooling.
+
+## Denial Policies
+
+An approval gate should make denial behavior explicit.
+
+### `onDeny: "fail"`
+
+The workflow fails when the gate is denied.
+
+This is appropriate for destructive or compliance-sensitive actions.
+
+### `onDeny: "continue"`
+
+The gate resolves to a denial decision and the workflow continues. Downstream logic can branch on that value.
+
+### `onDeny: "skip"`
+
+The protected branch is skipped, but the rest of the workflow continues.
+
+The important part is that denial handling is declared in the workflow, not buried inside scheduler heuristics.
+
+## Branching on Approval
+
+Because approvals are values, not only control flags, you can route explicitly:
+
+```ts
+const approval = $.approval("approve-release", {
+  needs: { report },
+  request: ({ report }) => ({
+    title: `Publish ${report.title}?`,
+    summary: report.body,
+  }),
+  onDeny: "continue",
+});
+
+return $.match(approval, {
+  when: (decision) => decision.approved,
+  then: () => $.step("publish", { output: Published, run: ... }),
+  else: () => $.step("record-rejection", { output: Rejection, run: ... }),
+});
+```
+
+This is a better fit for builder-based workflows than implicit hidden states.
+
+## Storage Model
+
+Approval state belongs to Smithers-managed workflow metadata, not to domain models.
+
+Smithers should persist at least:
+
+- approval node id
+- execution id
+- current status
+- request payload
+- decision payload
+- timestamps
+- actor identity
+
+That gives you:
+
+- resumability
+- auditability
+- UI/API query support
+- explicit graph semantics
+
+## Approvals and Effect Primitives
+
+Approvals map naturally onto durable Effect concepts:
+
+- a request record is persisted metadata
+- the waiting state is a durable suspension point
+- the decision behaves like a durable deferred value
+
+Smithers should compile approval nodes onto durable primitives rather than inventing bespoke in-memory waiting logic.
+
+## Notifications and Automation
+
+Approval creation should emit a durable event so other systems can react:
+
+- send Slack messages
+- open a review UI
+- create a Linear issue
+- notify on-call engineers
+
+The important boundary is:
+
+- Smithers records the approval request durably
+- external systems subscribe and notify
+- the human decision flows back into the same durable gate
+
+## CLI and API Shape
+
+The control plane should target approval nodes directly.
+
+For example:
+
+```bash
+smithers approve workflow.ts --run-id <id> --node-id approve-deploy --note "Ship it"
+smithers deny workflow.ts --run-id <id> --node-id approve-deploy --note "Blocked by QA"
+```
+
+The exact transport can vary, but the key should be `(runId, nodeId)`, not a hidden internal row id.
+
+## Why Explicit Gates Matter
+
+An explicit approval node is easier to reason about than a property on a task because it makes the workflow honest.
+
+You can see:
+
+- where human intervention is required
+- what exactly is being approved
+- how denial changes the graph
+- what downstream work depends on the decision
+
+That is the right abstraction for a durable workflow system.
+
+## Next Steps
+
+- [Caching](/concepts/caching) -- See how reusable outputs and approval-gated work interact.
+- [Execution Model](/concepts/execution-model) -- Understand how suspended approval nodes fit into durable execution.
+- [Runtime Events](/runtime/events) -- This page will need to describe approval events in the new model.

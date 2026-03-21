@@ -1,0 +1,117 @@
+---
+title: SDK Agents
+description: Provider-backed AI SDK agent wrappers for Anthropic and OpenAI that work like first-class Smithers agents.
+---
+
+Smithers ships direct SDK agent classes for the API-billed path:
+
+- `AnthropicAgent`
+- `OpenAIAgent`
+
+They are thin wrappers around the AI SDK `ToolLoopAgent`, but they let you configure agents with the same class-style ergonomics as the CLI-backed agents.
+
+## Import
+
+```ts
+import {
+  AnthropicAgent,
+  OpenAIAgent,
+  tools,
+} from "smithers-orchestrator";
+import { stepCountIs } from "ai";
+```
+
+## Quick Start
+
+```ts
+const claude = new AnthropicAgent({
+  model: "claude-opus-4-6",
+  tools,
+  instructions: "You are a careful planner.",
+  stopWhen: stepCountIs(40),
+});
+
+const codex = new OpenAIAgent({
+  model: "gpt-5.3-codex",
+  tools,
+  instructions: "You are a precise implementation agent.",
+  stopWhen: stepCountIs(40),
+});
+```
+
+Use them anywhere Smithers accepts an `agent`:
+
+```tsx
+{/* outputs comes from createSmithers() */}
+<Task id="plan" output={outputs.plan} agent={claude}>
+  Analyze the repository and propose a migration plan.
+</Task>
+```
+
+## Model Input
+
+Both classes accept either:
+
+- a model id string, such as `"claude-opus-4-6"` or `"gpt-5.3-codex"`
+- a prebuilt AI SDK language model instance for advanced setups
+
+That means you can stay with the simple string form in application code, but still inject a custom model object in tests.
+
+## Options
+
+The constructors forward the normal AI SDK `ToolLoopAgent` settings, including:
+
+- `instructions`
+- `tools`
+- `stopWhen`
+- `maxOutputTokens`
+- `temperature`
+- `providerOptions`
+- `prepareCall`
+
+The only Smithers-specific difference is the `model` prop: the wrapper resolves model-id strings for you.
+
+## TOON Support
+
+TOON agent configs can now use direct SDK agent types directly:
+
+```toon
+agents:
+  planner:
+    type: anthropic
+    model: claude-opus-4-6
+    instructions: You are a careful planner.
+
+  implementer:
+    type: openai
+    model: gpt-5.3-codex
+    instructions: You are a precise implementation agent.
+```
+
+The older `type: api` shape with `provider` + `model` still works.
+
+## CLI vs SDK
+
+- Use [CLI Agents](/integrations/cli-agents) when you want the provider's native CLI tool ecosystem and subscription billing.
+- Use SDK agents when you want API billing, provider options, or Smithers' own tool sandbox via `tools`.
+- You can still pass a raw `ToolLoopAgent` instance if you prefer. The wrappers are convenience, not a separate runtime.
+
+## Example Dual Setup
+
+```ts
+const useCli = process.env.USE_CLI_AGENTS === "1";
+
+export const claude = useCli
+  ? new ClaudeCodeAgent({
+      model: "claude-opus-4-6",
+      dangerouslySkipPermissions: true,
+    })
+  : new AnthropicAgent({
+      model: "claude-opus-4-6",
+      tools,
+      instructions: "You are a careful planner.",
+      stopWhen: stepCountIs(40),
+    });
+```
+
+For a broader comparison, see [Model Selection](/guides/model-selection).

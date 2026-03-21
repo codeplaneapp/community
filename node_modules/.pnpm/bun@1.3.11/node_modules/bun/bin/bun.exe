@@ -1,0 +1,10 @@
+echo "Error: Bun's postinstall script was not run." >&2
+echo "" >&2
+echo "This occurs when using --ignore-scripts during installation, or when using a" >&2
+echo "package manager like pnpm that does not run postinstall scripts by default." >&2
+echo "" >&2
+echo "To fix this, run the postinstall script manually:" >&2
+echo "  cd node_modules/bun && node install.js" >&2
+echo "" >&2
+echo "Or reinstall bun without the --ignore-scripts flag." >&2
+exit 1

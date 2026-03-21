@@ -1,0 +1,69 @@
+---
+title: <MergeQueue>
+description: Queue tasks so at most maxConcurrency run; defaults to 1.
+---
+
+<Warning>
+  **JSX API** — This page documents the JSX-based API. For the declarative alternative, see [TOON](/toon/overview).
+</Warning>
+
+## Import
+
+```tsx
+import { MergeQueue } from "smithers";
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | auto-generated | Optional stable id for the queue group. |
+| `maxConcurrency` | `number` | `1` | Maximum number of child tasks within the queue that may run simultaneously. |
+| `skipIf` | `boolean` | `false` | Skip the entire queue subtree when true. |
+| `children` | `ReactNode` | — | Child tasks/control-flow nodes. |
+
+## Examples
+
+### Default single-lane
+```tsx
+<MergeQueue>
+  <Task id="lint" output={outputs.outputC}>{{ value: 1 }}</Task>
+  <Task id="build" output={outputs.outputC}>{{ value: 2 }}</Task>
+  <Task id="test" output={outputs.outputC}>{{ value: 3 }}</Task>
+</MergeQueue>
+```
+
+### Custom concurrency
+```tsx
+<MergeQueue maxConcurrency={2}>
+  {items.map((it, i) => (
+    <Task key={i} id={`t${i}`} output={outputs.outputC}>{{ value: i }}</Task>
+  ))}
+</MergeQueue>
+```
+
+### Nesting with Parallel
+```tsx
+<Parallel maxConcurrency={3}>
+  <MergeQueue>
+    {items.map((it, i) => (
+      <Task key={i} id={`q${i}`} output={outputs.outputC}>{{ value: i }}</Task>
+    ))}
+  </MergeQueue>
+  <Task id="other" output={outputs.outputC}>{{ value: 99 }}</Task>
+</Parallel>
+```
+
+- The inner `<MergeQueue>` constrains its children to 1-at-a-time.
+- The outer `<Parallel>` may still run other, unrelated siblings (outside the queue) concurrently up to its limit.
+
+## Rendering
+
+Internally, `<MergeQueue>` renders as a `<smithers:merge-queue>` host element (or `null` when skipped). Each child task inside the queue receives `parallelGroupId` and `parallelMaxConcurrency` in its task descriptor. The engine enforces that no more than `parallelMaxConcurrency` tasks sharing the same `parallelGroupId` run at once.
+
+## Notes
+
+- Defaults to a single-lane queue (`maxConcurrency = 1`).
+- Designed as a convenient merge-queue primitive for sequentializing task application (e.g., applying patches one-at-a-time).
+- Nesting with `<Parallel>` is supported; the innermost group determines the effective cap for its descendants.
+- Tasks outside the queue are unaffected by the queue’s limit.

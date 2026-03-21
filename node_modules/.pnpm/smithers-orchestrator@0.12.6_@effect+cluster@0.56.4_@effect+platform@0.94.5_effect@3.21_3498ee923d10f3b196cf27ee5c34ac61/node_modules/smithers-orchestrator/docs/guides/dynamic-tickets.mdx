@@ -1,0 +1,224 @@
+---
+title: Dynamic Tickets
+description: How to use agent-driven ticket discovery for large projects instead of hardcoding task lists.
+---
+
+For large projects with more than about 20 tasks, hardcoding a list of tasks is fragile. The codebase evolves as tickets are completed, and a static list cannot account for emergent requirements, shifting priorities, or work discovered during implementation.
+
+Smithers solves this with **dynamic ticket discovery** -- an agent explores the codebase, compares current state to specs, and generates the next batch of tickets at runtime. When all tickets complete, the workflow re-renders, the Discover agent runs again, and finds the next batch.
+
+## When to Use Dynamic vs Hardcoded
+
+| Approach | Best for | Example |
+| --- | --- | --- |
+| **Dynamic discovery** | Large, evolving projects (more than 20 tasks) | Building a full application from a PRD |
+| **Hardcoded tasks** | Focused features (fewer than 20 tasks) | Adding auth, fixing a bug, a specific refactor |
+
+## Dynamic Discovery Pattern
+
+The workflow has three key parts:
+
+1. **Discover** -- An agent generates the next 3-5 tickets by analyzing the codebase.
+2. **TicketPipeline** -- Each ticket goes through research, planning, implementation, review, and reporting.
+3. **Re-render loop** -- When all tickets complete, Discover runs again to find the next batch.
+
+```tsx
+// workflow.tsx
+import { Sequence, Branch } from "smithers-orchestrator";
+import { Discover, TicketPipeline } from "./components";
+import { Ticket } from "./components/Discover.schema";
+import { Workflow, smithers, tables, outputs } from "./smithers";
+
+export default smithers((ctx) => {
+  const discoverOutput = ctx.latest(tables.discover, "discover-codex");
+  const unfinishedTickets = ctx
+    .latestArray(discoverOutput?.tickets, Ticket)
+    .filter((t) => !ctx.latest(tables.report, `${t.id}:report`)) as Ticket[];
+
+  return (
+    <Workflow name="my-project">
+      <Sequence>
+        <Branch if={unfinishedTickets.length === 0} then={<Discover />} />
+        {unfinishedTickets.map((ticket) => (
+          <TicketPipeline key={ticket.id} ticket={ticket} />
+        ))}
+      </Sequence>
+    </Workflow>
+  );
+});
+```
+
+### How it works
+
+1. On first render, `discoverOutput` is `undefined`, so `unfinishedTickets` is empty.
+2. The `Branch` condition is true, so `<Discover />` mounts and runs.
+3. Discover generates tickets as structured JSON and persists them to the `discover` table.
+4. The workflow re-renders. Now `unfinishedTickets` has entries, so the Branch is false (Discover is skipped).
+5. Each ticket maps to a `<TicketPipeline>` that runs research, planning, implementation, and review.
+6. As each ticket completes, its `<Report>` writes to the `report` table.
+7. When all tickets have reports, `unfinishedTickets` is empty again, and Discover runs to find the next batch.
+
+## The Discover Component
+
+Discover uses an agent to analyze the codebase and produce structured tickets:
+
+```tsx
+// components/Discover.tsx
+import { codex } from "../agents";
+import DiscoverPrompt from "./Discover.mdx";
+import { Task, useCtx, tables, outputs } from "../smithers";
+import { Ticket } from "./Discover.schema";
+
+export function Discover() {
+  const ctx = useCtx();
+
+  const discoverOutput = ctx.latest(tables.discover, "discover-codex");
+  const allTickets = ctx.latestArray(discoverOutput?.tickets, Ticket);
+  const completedIds = allTickets
+    .filter((t) => !!ctx.latest(tables.report, `${t.id}:report`))
+    .map((t) => t.id);
+
+  const previousRun = completedIds.length > 0
+    ? { summary: `Tickets completed: ${completedIds.join(", ")}`, ticketsCompleted: completedIds }
+    : null;
+
+  return (
+    <Task id="discover-codex" output={outputs.discover} agent={codex}>
+      <DiscoverPrompt previousRun={previousRun} />
+    </Task>
+  );
+}
+```
+
+## Ticket Schema
+
+Tickets are structured with kebab-case IDs, descriptions, acceptance criteria, and dependency information:
+
+```ts
+// components/Discover.schema.ts
+import { z } from "zod";
+
+export const Ticket = z.object({
+  id: z.string().describe("Unique slug identifier (lowercase kebab-case, e.g. 'add-auth-middleware')"),
+  title: z.string().describe("Short imperative title"),
+  description: z.string().describe("Detailed description of what needs to be implemented"),
+  acceptanceCriteria: z.array(z.string()).describe("List of acceptance criteria"),
+  dependencies: z.array(z.string()).nullable().describe("IDs of tickets this depends on"),
+});
+export type Ticket = z.infer<typeof Ticket>;
+
+export const DiscoverOutput = z.object({
+  tickets: z.array(Ticket).max(5).describe("The next 0-5 tickets to implement"),
+  reasoning: z.string().describe("Why these tickets were chosen and in this order"),
+});
+export type DiscoverOutput = z.infer<typeof DiscoverOutput>;
+```
+
+### Ticket ID rules
+
+- IDs **must** be lowercase kebab-case slugs derived from the title (e.g. `sqlite-wal-init`, `add-auth-middleware`).
+- **Never** use numeric IDs like `T-001` -- they collide across discovery runs.
+- Keep slugs short but descriptive (2-5 words).
+
+## The TicketPipeline
+
+Each ticket flows through a pipeline of steps. Use `skipIf` to skip completed tickets on resume:
+
+```tsx
+// components/TicketPipeline.tsx
+import { Sequence } from "smithers-orchestrator";
+import { Research } from "./Research";
+import { Plan } from "./Plan";
+import { ValidationLoop } from "./ValidationLoop";
+import { Report } from "./Report";
+import { useCtx, tables } from "../smithers";
+import type { Ticket } from "./Discover.schema";
+
+export function TicketPipeline({ ticket }: { ticket: Ticket }) {
+  const ctx = useCtx();
+  const latestReport = ctx.latest(tables.report, `${ticket.id}:report`);
+  const ticketComplete = latestReport != null;
+
+  return (
+    <Sequence key={ticket.id} skipIf={ticketComplete}>
+      <Research ticket={ticket} />
+      <Plan ticket={ticket} />
+      <ValidationLoop ticket={ticket} />
+      <Report ticket={ticket} />
+    </Sequence>
+  );
+}
+```
+
+## Discover Prompt Tips
+
+The Discover prompt should instruct the agent to:
+
+1. **Compare specs vs reality** -- Read the project's requirements docs and compare to what actually exists in the codebase.
+2. **Prioritize foundational work** -- Infrastructure and types before features that depend on them.
+3. **Keep tickets small** -- Each ticket should be the smallest independently testable unit.
+4. **Include previous context** -- Pass completed ticket IDs so the agent does not re-discover finished work.
+5. **Limit batch size** -- Generate 3-5 tickets at a time, not the full project backlog. This lets each batch benefit from the context of what was just implemented.
+
+## Hardcoded Tasks (For Smaller Projects)
+
+For projects with fewer than 20 well-defined tasks, hardcoding is simpler and more predictable:
+
+```tsx
+const tasks = [
+  { id: "auth-types", name: "Add auth types", description: "Define User, Session, Token types" },
+  { id: "auth-middleware", name: "Add auth middleware", description: "JWT validation middleware" },
+  { id: "auth-routes", name: "Add auth routes", description: "Login, logout, refresh endpoints" },
+  { id: "auth-tests", name: "Add auth tests", description: "Unit and integration tests" },
+];
+
+export default smithers((ctx) => (
+  <Workflow name="add-auth">
+    <Sequence>
+      {tasks.map(({ id, name, description }) => (
+        <Sequence key={id}>
+          <Task id={`${id}:implement`} output={outputs.implement} agent={codex}>
+            {`Implement: ${name}\n\n${description}`}
+          </Task>
+          <Task id={`${id}:validate`} output={outputs.validate} agent={codex}>
+            {`Run tests for: ${name}`}
+          </Task>
+        </Sequence>
+      ))}
+    </Sequence>
+  </Workflow>
+));
+```
+
+You can still wrap each task in a [review loop](/guides/review-loop) for quality assurance.
+
+## Sprint-Based Discovery
+
+For very large projects, wrap the entire workflow in a `<Loop>` with a sprint tracker. Each sprint discovers work, implements it, and advances a counter:
+
+```tsx
+export default smithers((ctx) => {
+  const tracker = ctx.latest(tables.output, "sprint-tracker") as { sprintsCompleted?: number } | undefined;
+  const currentSprint = tracker?.sprintsCompleted ?? 0;
+
+  return (
+    <Workflow name="large-project">
+      <Loop until={currentSprint >= 25} maxIterations={25} onMaxReached="return-last">
+        <Sequence>
+          <Discover />
+          {/* ... ticket pipelines ... */}
+          <Task id="sprint-tracker" output={outputs.output}>
+            {{ sprintsCompleted: currentSprint + 1 }}
+          </Task>
+        </Sequence>
+      </Loop>
+    </Workflow>
+  );
+});
+```
+
+## Next Steps
+
+- [Implement-Review Loop](/guides/review-loop) -- The recommended review loop pattern.
+- [Model Selection](/guides/model-selection) -- Which models to use for discovery vs implementation.
+- [Best Practices](/guides/best-practices) -- General workflow design guidelines.
