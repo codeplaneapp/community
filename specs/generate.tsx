@@ -691,6 +691,8 @@ Requirements:
 5. Provide clear Acceptance Criteria including unit and integration tests that provide 100% certainty.
 6. Test specifications must think through corner cases, boundary inputs, and error states.
 7. Follow the architecture rules: No mocking of implementation details (only stable boundaries if absolutely necessary).
+8. If this ticket affects user-facing behavior, specify how the `docs/` folder documentation must be updated.
+9. If this ticket affects CLI or API behavior, specify what E2E tests in `e2e/` must be created or updated.
 
 If an existing engineering spec is provided, update and improve it. Otherwise, build from scratch.
 
@@ -850,6 +852,7 @@ ${ctx.iteration > 0 ? `REVIEW FEEDBACK FROM PREVIOUS ATTEMPT:\n${ctx.outputMaybe
 Your job is to come up with a clear, step-by-step implementation plan based on the research.
 Specify exactly which files will be modified, what new files will be created, and the logic to be added.
 Be mindful of corner cases.
+CRITICAL: Include explicit steps in your plan to update or create the relevant E2E tests in `e2e/` and User Documentation in `docs/` if this feature affects them. Ensure any documentation or test changes are tracked under proper `jj bookmark` scope.
 
 Return a JSON object with a "document" string containing your markdown plan.`}
                                 </Task>
@@ -950,6 +953,9 @@ ${(() => { try { return fsSync.readFileSync(path.join(process.cwd(), "specs", "p
 ${ctx.iteration > 0 ? `REVIEW FEEDBACK FROM PREVIOUS ATTEMPT:\n${ctx.outputMaybe(outputs.review, { nodeId: `review-impl-${ticket.id}` })?.feedback}` : ""}
 
 Use your tools to write the code, modify files, and ensure tests pass. Follow the plan exactly.
+Ensure you also write or update the necessary E2E tests in `e2e/` and User Documentation in `docs/` as outlined in the plan.
+If you update any E2E tests or User Documentation, make sure you use `jj bookmark create` to create scoped, atomic emoji conventional commits for those specific changes.
+
 Return a JSON object with:
 - summary: string explaining what you did
 - filesChanged: string array of file paths you modified/created`}
