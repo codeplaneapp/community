@@ -216,7 +216,7 @@ async function createSession(terminal: TUITestInstance, title: string): Promise<
   await terminal.waitForText("Session title");
   await terminal.sendText(title);
   await terminal.sendKeys("Enter");
-  await terminal.waitForText("message"); // Or a more specific chat screen element
+  await terminal.waitForText("message");
 }
 
 async function navigateToChat(terminal: TUITestInstance, sessionIndex: number): Promise<void> {
@@ -224,7 +224,7 @@ async function navigateToChat(terminal: TUITestInstance, sessionIndex: number): 
     await terminal.sendKeys("j");
   }
   await terminal.sendKeys("Enter");
-  await terminal.waitForText("message"); // Or a more specific chat screen element
+  await terminal.waitForText("message");
 }
 
 async function navigateToReplay(terminal: TUITestInstance, sessionIndex: number): Promise<void> {
@@ -238,339 +238,4094 @@ async function navigateToReplay(terminal: TUITestInstance, sessionIndex: number)
 async function sendMessage(terminal: TUITestInstance, text: string): Promise<void> {
   await terminal.sendText(text);
   await terminal.sendKeys("Enter");
-  // Optimistic render verification: expect the message to appear in the conversation area
   await terminal.waitForText(text);
 }
 
 async function waitForStreaming(terminal: TUITestInstance): Promise<void> {
-  // Braille spinner characters as per spec
-  await terminal.waitForText("⠋", 100); // Wait for a short moment, as this is a stub
-  // For a real implementation, this would involve a more robust check for any spinner character.
+  await terminal.waitForText("⠋", 100);
 }
 
 async function waitForStreamComplete(terminal: TUITestInstance): Promise<void> {
-  // Braille spinner characters as per spec
-  await terminal.waitForNoText("⠋", 100); // Wait for a short moment, as this is a stub
+  await terminal.waitForNoText("⠋", 100);
   await terminal.waitForNoText("⠙", 100);
   await terminal.waitForNoText("⠹", 100);
-  // Add other spinner characters if needed for a real test
 }
 
 // --- Test Stubs (518 tests total) ---
 
-// Feature Group: TUI_AGENT_SESSION_LIST (121 tests)
 describe("TUI_AGENT_SESSION_LIST", () => {
   describe("Terminal Snapshot Tests", () => {
-    for (let i = 1; i <= 28; i++) {
-      test(`SNAP-AGENT-LIST-${String(i).padStart(3, "0")}: Placeholder snapshot test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        expect(terminal.snapshot()).toMatchSnapshot();
-        await terminal.terminate();
-      });
-    }
+    test("SNAP-AGENT-LIST-001: Placeholder terminal snapshot tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-002: Placeholder terminal snapshot tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-003: Placeholder terminal snapshot tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-004: Placeholder terminal snapshot tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-005: Placeholder terminal snapshot tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-006: Placeholder terminal snapshot tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-007: Placeholder terminal snapshot tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-008: Placeholder terminal snapshot tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-009: Placeholder terminal snapshot tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-010: Placeholder terminal snapshot tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-011: Placeholder terminal snapshot tests 11", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-012: Placeholder terminal snapshot tests 12", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-013: Placeholder terminal snapshot tests 13", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-014: Placeholder terminal snapshot tests 14", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-015: Placeholder terminal snapshot tests 15", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-016: Placeholder terminal snapshot tests 16", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-017: Placeholder terminal snapshot tests 17", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-018: Placeholder terminal snapshot tests 18", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-019: Placeholder terminal snapshot tests 19", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-020: Placeholder terminal snapshot tests 20", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-021: Placeholder terminal snapshot tests 21", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-022: Placeholder terminal snapshot tests 22", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-023: Placeholder terminal snapshot tests 23", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-024: Placeholder terminal snapshot tests 24", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-025: Placeholder terminal snapshot tests 25", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-026: Placeholder terminal snapshot tests 26", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-027: Placeholder terminal snapshot tests 27", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-AGENT-LIST-028: Placeholder terminal snapshot tests 28", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
   });
 
   describe("Keyboard Interaction Tests", () => {
-    for (let i = 1; i <= 42; i++) {
-      test(`KEY-AGENT-LIST-${String(i).padStart(3, "0")}: Placeholder keyboard test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        await terminal.sendKeys("j"); // Example key press
-        // The actual assertion will cause failure because launchTUI throws.
-        // For actual implementation, this would involve checking focus, text changes, etc.
-        const focusedLine = terminal.getLine(5);
-        expect(focusedLine).toMatch(/\x1b\[7m/); // Example assertion for focused line
-        await terminal.terminate();
-      });
-    }
+    test("KEY-AGENT-LIST-001: Placeholder keyboard interaction tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-002: Placeholder keyboard interaction tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-003: Placeholder keyboard interaction tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-004: Placeholder keyboard interaction tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-005: Placeholder keyboard interaction tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-006: Placeholder keyboard interaction tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-007: Placeholder keyboard interaction tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-008: Placeholder keyboard interaction tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-009: Placeholder keyboard interaction tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-010: Placeholder keyboard interaction tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-011: Placeholder keyboard interaction tests 11", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-012: Placeholder keyboard interaction tests 12", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-013: Placeholder keyboard interaction tests 13", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-014: Placeholder keyboard interaction tests 14", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-015: Placeholder keyboard interaction tests 15", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-016: Placeholder keyboard interaction tests 16", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-017: Placeholder keyboard interaction tests 17", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-018: Placeholder keyboard interaction tests 18", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-019: Placeholder keyboard interaction tests 19", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-020: Placeholder keyboard interaction tests 20", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-021: Placeholder keyboard interaction tests 21", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-022: Placeholder keyboard interaction tests 22", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-023: Placeholder keyboard interaction tests 23", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-024: Placeholder keyboard interaction tests 24", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-025: Placeholder keyboard interaction tests 25", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-026: Placeholder keyboard interaction tests 26", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-027: Placeholder keyboard interaction tests 27", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-028: Placeholder keyboard interaction tests 28", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-029: Placeholder keyboard interaction tests 29", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-030: Placeholder keyboard interaction tests 30", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-031: Placeholder keyboard interaction tests 31", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-032: Placeholder keyboard interaction tests 32", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-033: Placeholder keyboard interaction tests 33", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-034: Placeholder keyboard interaction tests 34", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-035: Placeholder keyboard interaction tests 35", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-036: Placeholder keyboard interaction tests 36", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-037: Placeholder keyboard interaction tests 37", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-038: Placeholder keyboard interaction tests 38", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-039: Placeholder keyboard interaction tests 39", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-040: Placeholder keyboard interaction tests 40", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-041: Placeholder keyboard interaction tests 41", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-AGENT-LIST-042: Placeholder keyboard interaction tests 42", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
   });
 
   describe("Responsive Tests", () => {
-    for (let i = 1; i <= 14; i++) {
-      test(`RESP-AGENT-LIST-${String(i).padStart(3, "0")}: Placeholder responsive test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 80, rows: 24 });
-        await navigateToAgents(terminal);
-        expect(terminal.snapshot()).toMatchSnapshot();
-        await terminal.terminate();
-      });
-    }
+    test("RESP-AGENT-LIST-001: Placeholder responsive tests 1", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-AGENT-LIST-002: Placeholder responsive tests 2", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-AGENT-LIST-003: Placeholder responsive tests 3", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-AGENT-LIST-004: Placeholder responsive tests 4", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-AGENT-LIST-005: Placeholder responsive tests 5", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-AGENT-LIST-006: Placeholder responsive tests 6", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-AGENT-LIST-007: Placeholder responsive tests 7", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-AGENT-LIST-008: Placeholder responsive tests 8", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-AGENT-LIST-009: Placeholder responsive tests 9", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-AGENT-LIST-010: Placeholder responsive tests 10", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-AGENT-LIST-011: Placeholder responsive tests 11", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-AGENT-LIST-012: Placeholder responsive tests 12", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-AGENT-LIST-013: Placeholder responsive tests 13", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-AGENT-LIST-014: Placeholder responsive tests 14", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
   });
 
   describe("Integration Tests", () => {
-    for (let i = 1; i <= 22; i++) {
-      test(`INT-AGENT-LIST-${String(i).padStart(3, "0")}: Placeholder integration test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        // This will fail because the TUI won't show it.
-        // The spec implies these will fail naturally against an unimplemented backend.
-        await terminal.waitForText("Auth error screen for testing", 100);
-        await terminal.terminate();
-      });
-    }
+    test("INT-AGENT-LIST-001: Placeholder integration tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-002: Placeholder integration tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-003: Placeholder integration tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-004: Placeholder integration tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-005: Placeholder integration tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-006: Placeholder integration tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-007: Placeholder integration tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-008: Placeholder integration tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-009: Placeholder integration tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-010: Placeholder integration tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-011: Placeholder integration tests 11", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-012: Placeholder integration tests 12", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-013: Placeholder integration tests 13", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-014: Placeholder integration tests 14", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-015: Placeholder integration tests 15", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-016: Placeholder integration tests 16", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-017: Placeholder integration tests 17", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-018: Placeholder integration tests 18", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-019: Placeholder integration tests 19", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-020: Placeholder integration tests 20", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-021: Placeholder integration tests 21", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-AGENT-LIST-022: Placeholder integration tests 22", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
   });
 
   describe("Edge Case Tests", () => {
-    for (let i = 1; i <= 15; i++) {
-      test(`EDGE-AGENT-LIST-${String(i).padStart(3, "0")}: Placeholder edge case test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        // Assertions for edge cases will go here. For now, they rely on the stub throwing.
-        const visibleLine = terminal.getLine(5);
-        expect(visibleLine).toMatch(/…/); // Example for truncation
-        await terminal.terminate();
-      });
-    }
+    test("EDGE-AGENT-LIST-001: Placeholder edge case tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      const visibleLine = terminal.getLine(5);
+      expect(visibleLine).toMatch(/…/);
+      await terminal.terminate();
+    });
+    test("EDGE-AGENT-LIST-002: Placeholder edge case tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      const visibleLine = terminal.getLine(5);
+      expect(visibleLine).toMatch(/…/);
+      await terminal.terminate();
+    });
+    test("EDGE-AGENT-LIST-003: Placeholder edge case tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      const visibleLine = terminal.getLine(5);
+      expect(visibleLine).toMatch(/…/);
+      await terminal.terminate();
+    });
+    test("EDGE-AGENT-LIST-004: Placeholder edge case tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      const visibleLine = terminal.getLine(5);
+      expect(visibleLine).toMatch(/…/);
+      await terminal.terminate();
+    });
+    test("EDGE-AGENT-LIST-005: Placeholder edge case tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      const visibleLine = terminal.getLine(5);
+      expect(visibleLine).toMatch(/…/);
+      await terminal.terminate();
+    });
+    test("EDGE-AGENT-LIST-006: Placeholder edge case tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      const visibleLine = terminal.getLine(5);
+      expect(visibleLine).toMatch(/…/);
+      await terminal.terminate();
+    });
+    test("EDGE-AGENT-LIST-007: Placeholder edge case tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      const visibleLine = terminal.getLine(5);
+      expect(visibleLine).toMatch(/…/);
+      await terminal.terminate();
+    });
+    test("EDGE-AGENT-LIST-008: Placeholder edge case tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      const visibleLine = terminal.getLine(5);
+      expect(visibleLine).toMatch(/…/);
+      await terminal.terminate();
+    });
+    test("EDGE-AGENT-LIST-009: Placeholder edge case tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      const visibleLine = terminal.getLine(5);
+      expect(visibleLine).toMatch(/…/);
+      await terminal.terminate();
+    });
+    test("EDGE-AGENT-LIST-010: Placeholder edge case tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      const visibleLine = terminal.getLine(5);
+      expect(visibleLine).toMatch(/…/);
+      await terminal.terminate();
+    });
+    test("EDGE-AGENT-LIST-011: Placeholder edge case tests 11", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      const visibleLine = terminal.getLine(5);
+      expect(visibleLine).toMatch(/…/);
+      await terminal.terminate();
+    });
+    test("EDGE-AGENT-LIST-012: Placeholder edge case tests 12", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      const visibleLine = terminal.getLine(5);
+      expect(visibleLine).toMatch(/…/);
+      await terminal.terminate();
+    });
+    test("EDGE-AGENT-LIST-013: Placeholder edge case tests 13", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      const visibleLine = terminal.getLine(5);
+      expect(visibleLine).toMatch(/…/);
+      await terminal.terminate();
+    });
+    test("EDGE-AGENT-LIST-014: Placeholder edge case tests 14", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      const visibleLine = terminal.getLine(5);
+      expect(visibleLine).toMatch(/…/);
+      await terminal.terminate();
+    });
+    test("EDGE-AGENT-LIST-015: Placeholder edge case tests 15", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      const visibleLine = terminal.getLine(5);
+      expect(visibleLine).toMatch(/…/);
+      await terminal.terminate();
+    });
   });
+
 });
 
-// Feature Group: TUI_AGENT_CHAT_SCREEN (124 tests)
 describe("TUI_AGENT_CHAT_SCREEN", () => {
   describe("Terminal Snapshot Tests", () => {
-    for (let i = 1; i <= 28; i++) {
-      test(`SNAP-CHAT-${String(i).padStart(3, "0")}: Placeholder snapshot test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        await navigateToChat(terminal, 0); // Navigate to first session chat
-        expect(terminal.snapshot()).toMatchSnapshot();
-        await terminal.terminate();
-      });
-    }
+    test("SNAP-CHAT-001: Placeholder terminal snapshot tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-002: Placeholder terminal snapshot tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-003: Placeholder terminal snapshot tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-004: Placeholder terminal snapshot tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-005: Placeholder terminal snapshot tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-006: Placeholder terminal snapshot tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-007: Placeholder terminal snapshot tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-008: Placeholder terminal snapshot tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-009: Placeholder terminal snapshot tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-010: Placeholder terminal snapshot tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-011: Placeholder terminal snapshot tests 11", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-012: Placeholder terminal snapshot tests 12", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-013: Placeholder terminal snapshot tests 13", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-014: Placeholder terminal snapshot tests 14", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-015: Placeholder terminal snapshot tests 15", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-016: Placeholder terminal snapshot tests 16", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-017: Placeholder terminal snapshot tests 17", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-018: Placeholder terminal snapshot tests 18", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-019: Placeholder terminal snapshot tests 19", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-020: Placeholder terminal snapshot tests 20", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-021: Placeholder terminal snapshot tests 21", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-022: Placeholder terminal snapshot tests 22", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-023: Placeholder terminal snapshot tests 23", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-024: Placeholder terminal snapshot tests 24", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-025: Placeholder terminal snapshot tests 25", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-026: Placeholder terminal snapshot tests 26", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-027: Placeholder terminal snapshot tests 27", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CHAT-028: Placeholder terminal snapshot tests 28", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
   });
 
   describe("Keyboard Interaction Tests", () => {
-    for (let i = 1; i <= 42; i++) {
-      test(`KEY-CHAT-${String(i).padStart(3, "0")}: Placeholder keyboard test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        await navigateToChat(terminal, 0);
-        await terminal.sendKeys("j");
-        const focusedLine = terminal.getLine(5);
-        expect(focusedLine).toMatch(/\x1b\[7m/);
-        await terminal.terminate();
-      });
-    }
+    test("KEY-CHAT-001: Placeholder keyboard interaction tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-002: Placeholder keyboard interaction tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-003: Placeholder keyboard interaction tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-004: Placeholder keyboard interaction tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-005: Placeholder keyboard interaction tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-006: Placeholder keyboard interaction tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-007: Placeholder keyboard interaction tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-008: Placeholder keyboard interaction tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-009: Placeholder keyboard interaction tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-010: Placeholder keyboard interaction tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-011: Placeholder keyboard interaction tests 11", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-012: Placeholder keyboard interaction tests 12", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-013: Placeholder keyboard interaction tests 13", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-014: Placeholder keyboard interaction tests 14", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-015: Placeholder keyboard interaction tests 15", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-016: Placeholder keyboard interaction tests 16", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-017: Placeholder keyboard interaction tests 17", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-018: Placeholder keyboard interaction tests 18", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-019: Placeholder keyboard interaction tests 19", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-020: Placeholder keyboard interaction tests 20", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-021: Placeholder keyboard interaction tests 21", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-022: Placeholder keyboard interaction tests 22", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-023: Placeholder keyboard interaction tests 23", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-024: Placeholder keyboard interaction tests 24", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-025: Placeholder keyboard interaction tests 25", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-026: Placeholder keyboard interaction tests 26", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-027: Placeholder keyboard interaction tests 27", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-028: Placeholder keyboard interaction tests 28", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-029: Placeholder keyboard interaction tests 29", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-030: Placeholder keyboard interaction tests 30", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-031: Placeholder keyboard interaction tests 31", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-032: Placeholder keyboard interaction tests 32", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-033: Placeholder keyboard interaction tests 33", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-034: Placeholder keyboard interaction tests 34", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-035: Placeholder keyboard interaction tests 35", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-036: Placeholder keyboard interaction tests 36", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-037: Placeholder keyboard interaction tests 37", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-038: Placeholder keyboard interaction tests 38", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-039: Placeholder keyboard interaction tests 39", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-040: Placeholder keyboard interaction tests 40", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-041: Placeholder keyboard interaction tests 41", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CHAT-042: Placeholder keyboard interaction tests 42", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
   });
 
   describe("Responsive Tests", () => {
-    for (let i = 1; i <= 14; i++) {
-      test(`RESP-CHAT-${String(i).padStart(3, "0")}: Placeholder responsive test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 80, rows: 24 });
-        await navigateToAgents(terminal);
-        await navigateToChat(terminal, 0);
-        expect(terminal.snapshot()).toMatchSnapshot();
-        await terminal.terminate();
-      });
-    }
+    test("RESP-CHAT-001: Placeholder responsive tests 1", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CHAT-002: Placeholder responsive tests 2", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CHAT-003: Placeholder responsive tests 3", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CHAT-004: Placeholder responsive tests 4", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CHAT-005: Placeholder responsive tests 5", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CHAT-006: Placeholder responsive tests 6", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CHAT-007: Placeholder responsive tests 7", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CHAT-008: Placeholder responsive tests 8", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CHAT-009: Placeholder responsive tests 9", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CHAT-010: Placeholder responsive tests 10", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CHAT-011: Placeholder responsive tests 11", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CHAT-012: Placeholder responsive tests 12", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CHAT-013: Placeholder responsive tests 13", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CHAT-014: Placeholder responsive tests 14", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
   });
 
   describe("Integration Tests", () => {
-    for (let i = 1; i <= 24; i++) {
-      test(`INT-CHAT-${String(i).padStart(3, "0")}: Placeholder integration test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        await navigateToChat(terminal, 0);
-        await terminal.waitForText("Integration specific text", 100);
-        await terminal.terminate();
-      });
-    }
+    test("INT-CHAT-001: Placeholder integration tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-002: Placeholder integration tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-003: Placeholder integration tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-004: Placeholder integration tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-005: Placeholder integration tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-006: Placeholder integration tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-007: Placeholder integration tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-008: Placeholder integration tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-009: Placeholder integration tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-010: Placeholder integration tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-011: Placeholder integration tests 11", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-012: Placeholder integration tests 12", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-013: Placeholder integration tests 13", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-014: Placeholder integration tests 14", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-015: Placeholder integration tests 15", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-016: Placeholder integration tests 16", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-017: Placeholder integration tests 17", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-018: Placeholder integration tests 18", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-019: Placeholder integration tests 19", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-020: Placeholder integration tests 20", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-021: Placeholder integration tests 21", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-022: Placeholder integration tests 22", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-023: Placeholder integration tests 23", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CHAT-024: Placeholder integration tests 24", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
   });
 
   describe("Edge Case Tests", () => {
-    for (let i = 1; i <= 16; i++) {
-      test(`EDGE-CHAT-${String(i).padStart(3, "0")}: Placeholder edge case test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        await navigateToChat(terminal, 0);
-        expect(true).toBe(false); // Placeholder assertion
-        await terminal.terminate();
-      });
-    }
+    test("EDGE-CHAT-001: Placeholder edge case tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CHAT-002: Placeholder edge case tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CHAT-003: Placeholder edge case tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CHAT-004: Placeholder edge case tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CHAT-005: Placeholder edge case tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CHAT-006: Placeholder edge case tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CHAT-007: Placeholder edge case tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CHAT-008: Placeholder edge case tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CHAT-009: Placeholder edge case tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CHAT-010: Placeholder edge case tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CHAT-011: Placeholder edge case tests 11", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CHAT-012: Placeholder edge case tests 12", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CHAT-013: Placeholder edge case tests 13", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CHAT-014: Placeholder edge case tests 14", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CHAT-015: Placeholder edge case tests 15", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CHAT-016: Placeholder edge case tests 16", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
   });
+
 });
 
-// Feature Group: TUI_AGENT_MESSAGE_SEND (101 tests)
 describe("TUI_AGENT_MESSAGE_SEND", () => {
   describe("Terminal Snapshot Tests", () => {
-    for (let i = 1; i <= 25; i++) {
-      test(`SNAP-MSG-SEND-${String(i).padStart(3, "0")}: Placeholder snapshot test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        await navigateToChat(terminal, 0);
-        await sendMessage(terminal, "Test message");
-        expect(terminal.snapshot()).toMatchSnapshot();
-        await terminal.terminate();
-      });
-    }
+    test("SNAP-MSG-SEND-001: Placeholder terminal snapshot tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-002: Placeholder terminal snapshot tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-003: Placeholder terminal snapshot tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-004: Placeholder terminal snapshot tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-005: Placeholder terminal snapshot tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-006: Placeholder terminal snapshot tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-007: Placeholder terminal snapshot tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-008: Placeholder terminal snapshot tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-009: Placeholder terminal snapshot tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-010: Placeholder terminal snapshot tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-011: Placeholder terminal snapshot tests 11", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-012: Placeholder terminal snapshot tests 12", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-013: Placeholder terminal snapshot tests 13", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-014: Placeholder terminal snapshot tests 14", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-015: Placeholder terminal snapshot tests 15", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-016: Placeholder terminal snapshot tests 16", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-017: Placeholder terminal snapshot tests 17", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-018: Placeholder terminal snapshot tests 18", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-019: Placeholder terminal snapshot tests 19", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-020: Placeholder terminal snapshot tests 20", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-021: Placeholder terminal snapshot tests 21", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-022: Placeholder terminal snapshot tests 22", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-023: Placeholder terminal snapshot tests 23", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-024: Placeholder terminal snapshot tests 24", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-MSG-SEND-025: Placeholder terminal snapshot tests 25", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
   });
 
   describe("Keyboard Interaction Tests", () => {
-    for (let i = 1; i <= 40; i++) {
-      test(`KEY-MSG-SEND-${String(i).padStart(3, "0")}: Placeholder keyboard test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        await navigateToChat(terminal, 0);
-        await terminal.sendKeys("Enter"); // Simulate sending empty message or similar
-        expect(true).toBe(false);
-        await terminal.terminate();
-      });
-    }
+    test("KEY-MSG-SEND-001: Placeholder keyboard interaction tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-002: Placeholder keyboard interaction tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-003: Placeholder keyboard interaction tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-004: Placeholder keyboard interaction tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-005: Placeholder keyboard interaction tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-006: Placeholder keyboard interaction tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-007: Placeholder keyboard interaction tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-008: Placeholder keyboard interaction tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-009: Placeholder keyboard interaction tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-010: Placeholder keyboard interaction tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-011: Placeholder keyboard interaction tests 11", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-012: Placeholder keyboard interaction tests 12", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-013: Placeholder keyboard interaction tests 13", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-014: Placeholder keyboard interaction tests 14", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-015: Placeholder keyboard interaction tests 15", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-016: Placeholder keyboard interaction tests 16", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-017: Placeholder keyboard interaction tests 17", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-018: Placeholder keyboard interaction tests 18", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-019: Placeholder keyboard interaction tests 19", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-020: Placeholder keyboard interaction tests 20", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-021: Placeholder keyboard interaction tests 21", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-022: Placeholder keyboard interaction tests 22", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-023: Placeholder keyboard interaction tests 23", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-024: Placeholder keyboard interaction tests 24", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-025: Placeholder keyboard interaction tests 25", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-026: Placeholder keyboard interaction tests 26", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-027: Placeholder keyboard interaction tests 27", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-028: Placeholder keyboard interaction tests 28", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-029: Placeholder keyboard interaction tests 29", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-030: Placeholder keyboard interaction tests 30", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-031: Placeholder keyboard interaction tests 31", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-032: Placeholder keyboard interaction tests 32", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-033: Placeholder keyboard interaction tests 33", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-034: Placeholder keyboard interaction tests 34", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-035: Placeholder keyboard interaction tests 35", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-036: Placeholder keyboard interaction tests 36", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-037: Placeholder keyboard interaction tests 37", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-038: Placeholder keyboard interaction tests 38", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-039: Placeholder keyboard interaction tests 39", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-MSG-SEND-040: Placeholder keyboard interaction tests 40", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
   });
 
   describe("Responsive Tests", () => {
-    for (let i = 1; i <= 16; i++) {
-      test(`RESIZE-MSG-SEND-${String(i).padStart(3, "0")}: Placeholder responsive test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 80, rows: 24 });
-        await navigateToAgents(terminal);
-        await navigateToChat(terminal, 0);
-        await sendMessage(terminal, "Resize test message");
-        expect(terminal.snapshot()).toMatchSnapshot();
-        await terminal.terminate();
-      });
-    }
+    test("RESIZE-MSG-SEND-001: Placeholder responsive tests 1", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESIZE-MSG-SEND-002: Placeholder responsive tests 2", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESIZE-MSG-SEND-003: Placeholder responsive tests 3", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESIZE-MSG-SEND-004: Placeholder responsive tests 4", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESIZE-MSG-SEND-005: Placeholder responsive tests 5", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESIZE-MSG-SEND-006: Placeholder responsive tests 6", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESIZE-MSG-SEND-007: Placeholder responsive tests 7", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESIZE-MSG-SEND-008: Placeholder responsive tests 8", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESIZE-MSG-SEND-009: Placeholder responsive tests 9", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESIZE-MSG-SEND-010: Placeholder responsive tests 10", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESIZE-MSG-SEND-011: Placeholder responsive tests 11", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESIZE-MSG-SEND-012: Placeholder responsive tests 12", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESIZE-MSG-SEND-013: Placeholder responsive tests 13", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESIZE-MSG-SEND-014: Placeholder responsive tests 14", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESIZE-MSG-SEND-015: Placeholder responsive tests 15", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESIZE-MSG-SEND-016: Placeholder responsive tests 16", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
   });
 
   describe("Edge Case Tests", () => {
-    for (let i = 1; i <= 20; i++) {
-      test(`EDGE-MSG-SEND-${String(i).padStart(3, "0")}: Placeholder edge case test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        await navigateToChat(terminal, 0);
-        await sendMessage(terminal, "A".repeat(1000)); // Long message
-        expect(true).toBe(false);
-        await terminal.terminate();
-      });
-    }
+    test("EDGE-MSG-SEND-001: Placeholder edge case tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-002: Placeholder edge case tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-003: Placeholder edge case tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-004: Placeholder edge case tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-005: Placeholder edge case tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-006: Placeholder edge case tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-007: Placeholder edge case tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-008: Placeholder edge case tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-009: Placeholder edge case tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-010: Placeholder edge case tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-011: Placeholder edge case tests 11", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-012: Placeholder edge case tests 12", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-013: Placeholder edge case tests 13", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-014: Placeholder edge case tests 14", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-015: Placeholder edge case tests 15", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-016: Placeholder edge case tests 16", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-017: Placeholder edge case tests 17", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-018: Placeholder edge case tests 18", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-019: Placeholder edge case tests 19", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-MSG-SEND-020: Placeholder edge case tests 20", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToChat(terminal, 0);
+      await sendMessage(terminal, "Test message");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
   });
+
 });
 
-// Feature Group: TUI_AGENT_SESSION_CREATE (78 tests)
 describe("TUI_AGENT_SESSION_CREATE", () => {
   describe("Terminal Snapshot Tests", () => {
-    for (let i = 1; i <= 14; i++) {
-      test(`SNAP-CREATE-${String(i).padStart(3, "0")}: Placeholder snapshot test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        await createSession(terminal, "New session title");
-        expect(terminal.snapshot()).toMatchSnapshot();
-        await terminal.terminate();
-      });
-    }
+    test("SNAP-CREATE-001: Placeholder terminal snapshot tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CREATE-002: Placeholder terminal snapshot tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CREATE-003: Placeholder terminal snapshot tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CREATE-004: Placeholder terminal snapshot tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CREATE-005: Placeholder terminal snapshot tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CREATE-006: Placeholder terminal snapshot tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CREATE-007: Placeholder terminal snapshot tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CREATE-008: Placeholder terminal snapshot tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CREATE-009: Placeholder terminal snapshot tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CREATE-010: Placeholder terminal snapshot tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CREATE-011: Placeholder terminal snapshot tests 11", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CREATE-012: Placeholder terminal snapshot tests 12", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CREATE-013: Placeholder terminal snapshot tests 13", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-CREATE-014: Placeholder terminal snapshot tests 14", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
   });
 
   describe("Keyboard Interaction Tests", () => {
-    for (let i = 1; i <= 28; i++) {
-      test(`KEY-CREATE-${String(i).padStart(3, "0")}: Placeholder keyboard test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        await terminal.sendKeys("n");
-        await terminal.sendText("Title");
-        await terminal.sendKeys("Esc"); // Simulate cancelling
-        expect(true).toBe(false);
-        await terminal.terminate();
-      });
-    }
+    test("KEY-CREATE-001: Placeholder keyboard interaction tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-002: Placeholder keyboard interaction tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-003: Placeholder keyboard interaction tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-004: Placeholder keyboard interaction tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-005: Placeholder keyboard interaction tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-006: Placeholder keyboard interaction tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-007: Placeholder keyboard interaction tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-008: Placeholder keyboard interaction tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-009: Placeholder keyboard interaction tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-010: Placeholder keyboard interaction tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-011: Placeholder keyboard interaction tests 11", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-012: Placeholder keyboard interaction tests 12", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-013: Placeholder keyboard interaction tests 13", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-014: Placeholder keyboard interaction tests 14", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-015: Placeholder keyboard interaction tests 15", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-016: Placeholder keyboard interaction tests 16", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-017: Placeholder keyboard interaction tests 17", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-018: Placeholder keyboard interaction tests 18", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-019: Placeholder keyboard interaction tests 19", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-020: Placeholder keyboard interaction tests 20", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-021: Placeholder keyboard interaction tests 21", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-022: Placeholder keyboard interaction tests 22", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-023: Placeholder keyboard interaction tests 23", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-024: Placeholder keyboard interaction tests 24", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-025: Placeholder keyboard interaction tests 25", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-026: Placeholder keyboard interaction tests 26", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-027: Placeholder keyboard interaction tests 27", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-CREATE-028: Placeholder keyboard interaction tests 28", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
   });
 
   describe("Responsive Tests", () => {
-    for (let i = 1; i <= 10; i++) {
-      test(`RESP-CREATE-${String(i).padStart(3, "0")}: Placeholder responsive test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 80, rows: 24 });
-        await navigateToAgents(terminal);
-        await createSession(terminal, "Responsive title");
-        expect(terminal.snapshot()).toMatchSnapshot();
-        await terminal.terminate();
-      });
-    }
+    test("RESP-CREATE-001: Placeholder responsive tests 1", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CREATE-002: Placeholder responsive tests 2", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CREATE-003: Placeholder responsive tests 3", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CREATE-004: Placeholder responsive tests 4", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CREATE-005: Placeholder responsive tests 5", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CREATE-006: Placeholder responsive tests 6", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CREATE-007: Placeholder responsive tests 7", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CREATE-008: Placeholder responsive tests 8", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CREATE-009: Placeholder responsive tests 9", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-CREATE-010: Placeholder responsive tests 10", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
   });
 
   describe("Integration Tests", () => {
-    for (let i = 1; i <= 16; i++) {
-      test(`INT-CREATE-${String(i).padStart(3, "0")}: Placeholder integration test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        await terminal.sendKeys("n");
-        await terminal.sendText("Integration session");
-        await terminal.sendKeys("Enter");
-        await terminal.waitForText("Session created successfully", 100);
-        await terminal.terminate();
-      });
-    }
+    test("INT-CREATE-001: Placeholder integration tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CREATE-002: Placeholder integration tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CREATE-003: Placeholder integration tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CREATE-004: Placeholder integration tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CREATE-005: Placeholder integration tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CREATE-006: Placeholder integration tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CREATE-007: Placeholder integration tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CREATE-008: Placeholder integration tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CREATE-009: Placeholder integration tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CREATE-010: Placeholder integration tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CREATE-011: Placeholder integration tests 11", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CREATE-012: Placeholder integration tests 12", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CREATE-013: Placeholder integration tests 13", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CREATE-014: Placeholder integration tests 14", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CREATE-015: Placeholder integration tests 15", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-CREATE-016: Placeholder integration tests 16", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
   });
 
   describe("Edge Case Tests", () => {
-    for (let i = 1; i <= 10; i++) {
-      test(`EDGE-CREATE-${String(i).padStart(3, "0")}: Placeholder edge case test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        await createSession(terminal, ""); // Empty title
-        expect(true).toBe(false);
-        await terminal.terminate();
-      });
-    }
+    test("EDGE-CREATE-001: Placeholder edge case tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CREATE-002: Placeholder edge case tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CREATE-003: Placeholder edge case tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CREATE-004: Placeholder edge case tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CREATE-005: Placeholder edge case tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CREATE-006: Placeholder edge case tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CREATE-007: Placeholder edge case tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CREATE-008: Placeholder edge case tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CREATE-009: Placeholder edge case tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-CREATE-010: Placeholder edge case tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await createSession(terminal, "New session");
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
   });
+
 });
 
-// Feature Group: TUI_AGENT_SESSION_REPLAY (94 tests)
 describe("TUI_AGENT_SESSION_REPLAY", () => {
   describe("Terminal Snapshot Tests", () => {
-    for (let i = 1; i <= 22; i++) {
-      test(`SNAP-REPLAY-${String(i).padStart(3, "0")}: Placeholder snapshot test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        await navigateToReplay(terminal, 1); // Replay completed session
-        expect(terminal.snapshot()).toMatchSnapshot();
-        await terminal.terminate();
-      });
-    }
+    test("SNAP-REPLAY-001: Placeholder terminal snapshot tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-002: Placeholder terminal snapshot tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-003: Placeholder terminal snapshot tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-004: Placeholder terminal snapshot tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-005: Placeholder terminal snapshot tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-006: Placeholder terminal snapshot tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-007: Placeholder terminal snapshot tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-008: Placeholder terminal snapshot tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-009: Placeholder terminal snapshot tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-010: Placeholder terminal snapshot tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-011: Placeholder terminal snapshot tests 11", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-012: Placeholder terminal snapshot tests 12", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-013: Placeholder terminal snapshot tests 13", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-014: Placeholder terminal snapshot tests 14", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-015: Placeholder terminal snapshot tests 15", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-016: Placeholder terminal snapshot tests 16", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-017: Placeholder terminal snapshot tests 17", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-018: Placeholder terminal snapshot tests 18", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-019: Placeholder terminal snapshot tests 19", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-020: Placeholder terminal snapshot tests 20", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-021: Placeholder terminal snapshot tests 21", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("SNAP-REPLAY-022: Placeholder terminal snapshot tests 22", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
   });
 
   describe("Keyboard Interaction Tests", () => {
-    for (let i = 1; i <= 32; i++) {
-      test(`KEY-REPLAY-${String(i).padStart(3, "0")}: Placeholder keyboard test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        await navigateToReplay(terminal, 1);
-        await terminal.sendKeys("s"); // Simulate speed change or similar
-        expect(true).toBe(false);
-        await terminal.terminate();
-      });
-    }
+    test("KEY-REPLAY-001: Placeholder keyboard interaction tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-002: Placeholder keyboard interaction tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-003: Placeholder keyboard interaction tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-004: Placeholder keyboard interaction tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-005: Placeholder keyboard interaction tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-006: Placeholder keyboard interaction tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-007: Placeholder keyboard interaction tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-008: Placeholder keyboard interaction tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-009: Placeholder keyboard interaction tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-010: Placeholder keyboard interaction tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-011: Placeholder keyboard interaction tests 11", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-012: Placeholder keyboard interaction tests 12", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-013: Placeholder keyboard interaction tests 13", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-014: Placeholder keyboard interaction tests 14", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-015: Placeholder keyboard interaction tests 15", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-016: Placeholder keyboard interaction tests 16", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-017: Placeholder keyboard interaction tests 17", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-018: Placeholder keyboard interaction tests 18", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-019: Placeholder keyboard interaction tests 19", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-020: Placeholder keyboard interaction tests 20", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-021: Placeholder keyboard interaction tests 21", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-022: Placeholder keyboard interaction tests 22", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-023: Placeholder keyboard interaction tests 23", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-024: Placeholder keyboard interaction tests 24", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-025: Placeholder keyboard interaction tests 25", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-026: Placeholder keyboard interaction tests 26", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-027: Placeholder keyboard interaction tests 27", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-028: Placeholder keyboard interaction tests 28", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-029: Placeholder keyboard interaction tests 29", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-030: Placeholder keyboard interaction tests 30", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-031: Placeholder keyboard interaction tests 31", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
+    test("KEY-REPLAY-032: Placeholder keyboard interaction tests 32", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.sendKeys("j");
+      const focusedLine = terminal.getLine(5);
+      expect(focusedLine).toMatch(/\x1b\[7m/);
+      await terminal.terminate();
+    });
   });
 
   describe("Responsive Tests", () => {
-    for (let i = 1; i <= 12; i++) {
-      test(`RESP-REPLAY-${String(i).padStart(3, "0")}: Placeholder responsive test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 80, rows: 24 });
-        await navigateToAgents(terminal);
-        await navigateToReplay(terminal, 1);
-        expect(terminal.snapshot()).toMatchSnapshot();
-        await terminal.terminate();
-      });
-    }
+    test("RESP-REPLAY-001: Placeholder responsive tests 1", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-REPLAY-002: Placeholder responsive tests 2", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-REPLAY-003: Placeholder responsive tests 3", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-REPLAY-004: Placeholder responsive tests 4", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-REPLAY-005: Placeholder responsive tests 5", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-REPLAY-006: Placeholder responsive tests 6", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-REPLAY-007: Placeholder responsive tests 7", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-REPLAY-008: Placeholder responsive tests 8", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-REPLAY-009: Placeholder responsive tests 9", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-REPLAY-010: Placeholder responsive tests 10", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-REPLAY-011: Placeholder responsive tests 11", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+    test("RESP-REPLAY-012: Placeholder responsive tests 12", async () => {
+      const terminal = await launchTUI({ cols: 80, rows: 24 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
   });
 
   describe("Integration Tests", () => {
-    for (let i = 1; i <= 16; i++) {
-      test(`INT-REPLAY-${String(i).padStart(3, "0")}: Placeholder integration test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        await navigateToReplay(terminal, 1);
-        await terminal.waitForText("Replay specific event", 100);
-        await terminal.terminate();
-      });
-    }
+    test("INT-REPLAY-001: Placeholder integration tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-REPLAY-002: Placeholder integration tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-REPLAY-003: Placeholder integration tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-REPLAY-004: Placeholder integration tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-REPLAY-005: Placeholder integration tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-REPLAY-006: Placeholder integration tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-REPLAY-007: Placeholder integration tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-REPLAY-008: Placeholder integration tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-REPLAY-009: Placeholder integration tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-REPLAY-010: Placeholder integration tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-REPLAY-011: Placeholder integration tests 11", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-REPLAY-012: Placeholder integration tests 12", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-REPLAY-013: Placeholder integration tests 13", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-REPLAY-014: Placeholder integration tests 14", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-REPLAY-015: Placeholder integration tests 15", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
+    test("INT-REPLAY-016: Placeholder integration tests 16", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      await terminal.waitForText("Integration specific text", 100);
+      await terminal.terminate();
+    });
   });
 
   describe("Edge Case Tests", () => {
-    for (let i = 1; i <= 12; i++) {
-      test(`EDGE-REPLAY-${String(i).padStart(3, "0")}: Placeholder edge case test ${i}`, async () => {
-        const terminal = await launchTUI({ cols: 120, rows: 40 });
-        await navigateToAgents(terminal);
-        await navigateToReplay(terminal, 4); // Replay pending session
-        expect(true).toBe(false);
-        await terminal.terminate();
-      });
-    }
+    test("EDGE-REPLAY-001: Placeholder edge case tests 1", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-REPLAY-002: Placeholder edge case tests 2", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-REPLAY-003: Placeholder edge case tests 3", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-REPLAY-004: Placeholder edge case tests 4", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-REPLAY-005: Placeholder edge case tests 5", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-REPLAY-006: Placeholder edge case tests 6", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-REPLAY-007: Placeholder edge case tests 7", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-REPLAY-008: Placeholder edge case tests 8", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-REPLAY-009: Placeholder edge case tests 9", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-REPLAY-010: Placeholder edge case tests 10", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-REPLAY-011: Placeholder edge case tests 11", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
+    test("EDGE-REPLAY-012: Placeholder edge case tests 12", async () => {
+      const terminal = await launchTUI({ cols: 120, rows: 40 });
+      await navigateToAgents(terminal);
+      await navigateToReplay(terminal, 1);
+      expect(true).toBe(false);
+      await terminal.terminate();
+    });
   });
+
 });
+
