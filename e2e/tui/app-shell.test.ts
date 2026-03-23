@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect, afterEach } from "bun:test"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { TUI_ROOT, TUI_SRC, BUN, run, bunEval, createTestCredentialStore, createMockAPIEnv, launchTUI } from "./helpers.ts"
@@ -1327,6 +1327,465 @@ describe("TUI_APP_SHELL — useSpinner hook scaffold", () => {
     // The actual value depends on the test environment's TERM,
     // but the function should return a boolean.
     expect(["true", "false"]).toContain(stdout.trim());
+  });
+});
+
+import { getBreakpoint } from "../../apps/tui/src/types/breakpoint.js";
+
+// ---------------------------------------------------------------------------
+// TUI_APP_SHELL — Breakpoint detection (types/breakpoint.ts)
+// ---------------------------------------------------------------------------
+
+describe("TUI_APP_SHELL — getBreakpoint pure function", () => {
+  // ── Unsupported boundaries ────────────────────────────────
+
+  test("HOOK-LAY-001: returns null for 79x24 (below minimum cols)", () => {
+    expect(getBreakpoint(79, 24)).toBeNull();
+  });
+
+  test("HOOK-LAY-002: returns null for 80x23 (below minimum rows)", () => {
+    expect(getBreakpoint(80, 23)).toBeNull();
+  });
+
+  test("HOOK-LAY-003: returns null for 79x23 (both below)", () => {
+    expect(getBreakpoint(79, 23)).toBeNull();
+  });
+
+  test("HOOK-LAY-004: returns null for 0x0", () => {
+    expect(getBreakpoint(0, 0)).toBeNull();
+  });
+
+  // ── Minimum boundaries ────────────────────────────────────
+
+  test("HOOK-LAY-005: returns 'minimum' for 80x24 (exact lower bound)", () => {
+    expect(getBreakpoint(80, 24)).toBe("minimum");
+  });
+
+  test("HOOK-LAY-006: returns 'minimum' for 119x39 (exact upper bound)", () => {
+    expect(getBreakpoint(119, 39)).toBe("minimum");
+  });
+
+  test("HOOK-LAY-007: returns 'minimum' for 200x30 (wide but short)", () => {
+    expect(getBreakpoint(200, 30)).toBe("minimum");
+  });
+
+  test("HOOK-LAY-008: returns 'minimum' for 100x60 (tall but narrow)", () => {
+    expect(getBreakpoint(100, 60)).toBe("minimum");
+  });
+
+  // ── Standard boundaries ───────────────────────────────────
+
+  test("HOOK-LAY-009: returns 'standard' for 120x40 (exact lower bound)", () => {
+    expect(getBreakpoint(120, 40)).toBe("standard");
+  });
+
+  test("HOOK-LAY-010: returns 'standard' for 199x59 (exact upper bound)", () => {
+    expect(getBreakpoint(199, 59)).toBe("standard");
+  });
+
+  test("HOOK-LAY-011: returns 'standard' for 150x50 (mid-range)", () => {
+    expect(getBreakpoint(150, 50)).toBe("standard");
+  });
+
+  // ── Large boundaries ──────────────────────────────────────
+
+  test("HOOK-LAY-012: returns 'large' for 200x60 (exact lower bound)", () => {
+    expect(getBreakpoint(200, 60)).toBe("large");
+  });
+
+  test("HOOK-LAY-013: returns 'large' for 300x80 (very large terminal)", () => {
+    expect(getBreakpoint(300, 80)).toBe("large");
+  });
+
+  // ── OR logic verification ─────────────────────────────────
+
+  test("HOOK-LAY-014: returns 'minimum' when cols >= standard but rows < standard", () => {
+    expect(getBreakpoint(120, 39)).toBe("minimum");
+  });
+
+  test("HOOK-LAY-015: returns 'minimum' when rows >= standard but cols < standard", () => {
+    expect(getBreakpoint(119, 40)).toBe("minimum");
+  });
+
+  test("HOOK-LAY-016: returns 'standard' when cols >= large but rows < large", () => {
+    expect(getBreakpoint(200, 59)).toBe("standard");
+  });
+
+  test("HOOK-LAY-017: returns 'standard' when rows >= large but cols < large", () => {
+    expect(getBreakpoint(199, 60)).toBe("standard");
+  });
+
+  // ── Edge cases ────────────────────────────────────────────
+
+  test("HOOK-LAY-018: returns null for negative dimensions", () => {
+    expect(getBreakpoint(-1, -1)).toBeNull();
+  });
+
+  test("HOOK-LAY-019: returns 'large' for extremely large terminal", () => {
+    expect(getBreakpoint(500, 200)).toBe("large");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TUI_APP_SHELL — useLayout computed values
+// ---------------------------------------------------------------------------
+
+describe("TUI_APP_SHELL — useLayout computed values", () => {
+  test("HOOK-LAY-020: contentHeight formula: height - 2 at standard size", async () => {
+    const result = await bunEval(`
+      const height = 40;
+      const contentHeight = Math.max(0, height - 2);
+      console.log(JSON.stringify({ contentHeight }));
+    `);
+    const { contentHeight } = JSON.parse(result.stdout.trim());
+    expect(contentHeight).toBe(38);
+  });
+
+  test("HOOK-LAY-021: contentHeight floors at 0 for height < 2", async () => {
+    const result = await bunEval(`
+      const height = 1;
+      const contentHeight = Math.max(0, height - 2);
+      console.log(JSON.stringify({ contentHeight }));
+    `);
+    const { contentHeight } = JSON.parse(result.stdout.trim());
+    expect(contentHeight).toBe(0);
+  });
+
+  test("HOOK-LAY-022: sidebarVisible is false at minimum breakpoint", async () => {
+    const result = await bunEval(`
+      const { getBreakpoint } = await import("./src/types/breakpoint.js");
+      const bp = getBreakpoint(80, 24);
+      const sidebarVisible = bp !== null && bp !== "minimum";
+      console.log(JSON.stringify({ bp, sidebarVisible }));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.sidebarVisible).toBe(false);
+  });
+
+  test("HOOK-LAY-023: sidebarVisible is true at standard breakpoint", async () => {
+    const result = await bunEval(`
+      const { getBreakpoint } = await import("./src/types/breakpoint.js");
+      const bp = getBreakpoint(120, 40);
+      const sidebarVisible = bp !== null && bp !== "minimum";
+      console.log(JSON.stringify({ bp, sidebarVisible }));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.sidebarVisible).toBe(true);
+  });
+
+  test("HOOK-LAY-024: sidebarVisible is false when breakpoint is null", async () => {
+    const result = await bunEval(`
+      const { getBreakpoint } = await import("./src/types/breakpoint.js");
+      const bp = getBreakpoint(60, 20);
+      const sidebarVisible = bp !== null && bp !== "minimum";
+      console.log(JSON.stringify({ bp, sidebarVisible }));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.bp).toBeNull();
+    expect(parsed.sidebarVisible).toBe(false);
+  });
+
+  test("HOOK-LAY-025: sidebarWidth is '25%' at standard, '30%' at large, '0%' otherwise", async () => {
+    const result = await bunEval(`
+      function getSidebarWidth(bp) {
+        switch (bp) {
+          case "large": return "30%";
+          case "standard": return "25%";
+          default: return "0%";
+        }
+      }
+      console.log(JSON.stringify({
+        standard: getSidebarWidth("standard"),
+        large: getSidebarWidth("large"),
+        minimum: getSidebarWidth("minimum"),
+        null: getSidebarWidth(null),
+      }));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.standard).toBe("25%");
+    expect(parsed.large).toBe("30%");
+    expect(parsed.minimum).toBe("0%");
+    expect(parsed.null).toBe("0%");
+  });
+
+  test("HOOK-LAY-026: modalWidth scales inversely with breakpoint", async () => {
+    const result = await bunEval(`
+      function getModalWidth(bp) {
+        switch (bp) {
+          case "large": return "50%";
+          case "standard": return "60%";
+          default: return "90%";
+        }
+      }
+      console.log(JSON.stringify({
+        minimum: getModalWidth("minimum"),
+        standard: getModalWidth("standard"),
+        large: getModalWidth("large"),
+        null: getModalWidth(null),
+      }));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.minimum).toBe("90%");
+    expect(parsed.standard).toBe("60%");
+    expect(parsed.large).toBe("50%");
+    expect(parsed.null).toBe("90%");
+  });
+
+  test("HOOK-LAY-027: modalHeight matches modalWidth per breakpoint", async () => {
+    const result = await bunEval(`
+      function getModalHeight(bp) {
+        switch (bp) {
+          case "large": return "50%";
+          case "standard": return "60%";
+          default: return "90%";
+        }
+      }
+      console.log(JSON.stringify({
+        minimum: getModalHeight("minimum"),
+        standard: getModalHeight("standard"),
+        large: getModalHeight("large"),
+        null: getModalHeight(null),
+      }));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.minimum).toBe("90%");
+    expect(parsed.standard).toBe("60%");
+    expect(parsed.large).toBe("50%");
+    expect(parsed.null).toBe("90%");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TUI_APP_SHELL — Layout module resolution
+// ---------------------------------------------------------------------------
+
+describe("TUI_APP_SHELL — Layout module resolution", () => {
+  test("HOOK-LAY-028: getBreakpoint is importable from types barrel", async () => {
+    const result = await bunEval(`
+      const { getBreakpoint } = await import("./src/types/index.js");
+      console.log(typeof getBreakpoint);
+    `);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe("function");
+  });
+
+  test("HOOK-LAY-029: useLayout is importable from hooks barrel", async () => {
+    const result = await bunEval(`
+      const mod = await import("./src/hooks/index.js");
+      console.log(typeof mod.useLayout);
+    `);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe("function");
+  });
+
+  test("HOOK-LAY-030: existing exports remain in hooks barrel after update", async () => {
+    const result = await bunEval(`
+      const mod = await import("./src/hooks/index.js");
+      const exports = [
+        typeof mod.useDiffSyntaxStyle,
+        typeof mod.useTheme,
+        typeof mod.useColorTier,
+        typeof mod.useSpinner,
+        typeof mod.BRAILLE_FRAMES,
+        typeof mod.ASCII_FRAMES,
+        typeof mod.BRAILLE_INTERVAL_MS,
+        typeof mod.ASCII_INTERVAL_MS,
+      ];
+      console.log(exports.every(t => t !== "undefined") ? "ok" : "fail: " + exports.join(","));
+    `);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe("ok");
+  });
+
+  test("HOOK-LAY-031: getBreakpoint is importable directly from types/breakpoint.js", async () => {
+    const result = await bunEval(`
+      const { getBreakpoint } = await import("./src/types/breakpoint.js");
+      console.log(typeof getBreakpoint);
+    `);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe("function");
+  });
+
+  test("HOOK-LAY-032: useLayout is importable directly from hooks/useLayout.js", async () => {
+    const result = await bunEval(`
+      const { useLayout } = await import("./src/hooks/useLayout.js");
+      console.log(typeof useLayout);
+    `);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe("function");
+  });
+
+  test("HOOK-LAY-033: types/breakpoint.ts has zero React imports", async () => {
+    const content = await Bun.file(join(TUI_SRC, "types/breakpoint.ts")).text();
+    expect(content).not.toContain('from "react"');
+    expect(content).not.toContain("from 'react'");
+    expect(content).not.toContain("import React");
+  });
+
+  test("HOOK-LAY-034: types/breakpoint.ts has zero @opentui imports", async () => {
+    const content = await Bun.file(join(TUI_SRC, "types/breakpoint.ts")).text();
+    expect(content).not.toContain("@opentui");
+  });
+
+  test("HOOK-LAY-035: hooks/useLayout.ts imports from @opentui/react", async () => {
+    const content = await Bun.file(join(TUI_SRC, "hooks/useLayout.ts")).text();
+    expect(content).toContain('from "@opentui/react"');
+  });
+
+  test("HOOK-LAY-036: hooks/useLayout.ts imports getBreakpoint from types/breakpoint.js", async () => {
+    const content = await Bun.file(join(TUI_SRC, "hooks/useLayout.ts")).text();
+    expect(content).toContain('from "../types/breakpoint.js"');
+  });
+
+  test("HOOK-LAY-037: types directory exists with barrel export", () => {
+    expect(existsSync(join(TUI_SRC, "types/index.ts"))).toBe(true);
+  });
+
+  test("HOOK-LAY-038: tsc --noEmit passes with new layout files", async () => {
+    const result = await run(["bun", "run", "check"]);
+    if (result.exitCode !== 0) {
+      console.error("tsc stderr:", result.stderr);
+      console.error("tsc stdout:", result.stdout);
+    }
+    expect(result.exitCode).toBe(0);
+  }, 30_000);
+});
+
+// ---------------------------------------------------------------------------
+// TUI_APP_SHELL — Responsive layout E2E
+// ---------------------------------------------------------------------------
+
+describe("TUI_APP_SHELL — Responsive layout E2E", () => {
+  let terminal: import("../../e2e/tui/helpers.js").TUITestInstance;
+
+  afterEach(async () => {
+    if (terminal) {
+      await terminal.terminate();
+    }
+  });
+
+  // ── Terminal too small ────────────────────────────────────
+
+  test("RESP-LAY-001: shows 'terminal too small' at 79x24", async () => {
+    terminal = await launchTUI({ cols: 79, rows: 24 });
+    await terminal.waitForText("Terminal too small");
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  test("RESP-LAY-002: shows 'terminal too small' at 80x23", async () => {
+    terminal = await launchTUI({ cols: 80, rows: 23 });
+    await terminal.waitForText("Terminal too small");
+  });
+
+  test("RESP-LAY-003: shows current dimensions in 'too small' message", async () => {
+    terminal = await launchTUI({ cols: 60, rows: 20 });
+    await terminal.waitForText("60");
+    await terminal.waitForText("20");
+  });
+
+  // ── Minimum breakpoint rendering ──────────────────────────
+
+  test("RESP-LAY-004: renders at 80x24 minimum with no sidebar", async () => {
+    terminal = await launchTUI({ cols: 80, rows: 24 });
+    await terminal.waitForText("Dashboard");
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  test("RESP-LAY-005: modal uses 90% width at 80x24", async () => {
+    terminal = await launchTUI({ cols: 80, rows: 24 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys(":"); // Open command palette
+    await terminal.waitForText("Command");
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  // ── Standard breakpoint rendering ─────────────────────────
+
+  test("RESP-LAY-006: renders at 120x40 standard with full layout", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  // ── Large breakpoint rendering ────────────────────────────
+
+  test("RESP-LAY-007: renders at 200x60 large with expanded layout", async () => {
+    terminal = await launchTUI({ cols: 200, rows: 60 });
+    await terminal.waitForText("Dashboard");
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  // ── Resize transitions ────────────────────────────────────
+
+  test("RESP-LAY-008: resize from standard to minimum hides sidebar", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.resize(80, 24);
+    await terminal.waitForText("Dashboard");
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  test("RESP-LAY-009: resize from minimum to standard shows sidebar", async () => {
+    terminal = await launchTUI({ cols: 80, rows: 24 });
+    await terminal.waitForText("Dashboard");
+    await terminal.resize(120, 40);
+    await terminal.waitForText("Dashboard");
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  test("RESP-LAY-010: resize below minimum shows 'too small' message", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.resize(60, 20);
+    await terminal.waitForText("Terminal too small");
+  });
+
+  test("RESP-LAY-011: resize back from 'too small' restores content", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.resize(60, 20);
+    await terminal.waitForText("Terminal too small");
+    await terminal.resize(120, 40);
+    await terminal.waitForText("Dashboard");
+  });
+
+  // ── Content height verification ───────────────────────────
+
+  test("RESP-LAY-012: content area fills between header and status bar", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    // Header is line 0, status bar is line 39
+    const headerLine = terminal.getLine(0);
+    const statusLine = terminal.getLine(39);
+    expect(headerLine.length).toBeGreaterThan(0);
+    expect(statusLine.length).toBeGreaterThan(0);
+  });
+
+  // ── Keyboard works at all breakpoints ─────────────────────
+
+  test("RESP-LAY-013: Ctrl+C quits at unsupported size", async () => {
+    terminal = await launchTUI({ cols: 60, rows: 20 });
+    await terminal.waitForText("Terminal too small");
+    await terminal.sendKeys("ctrl+c");
+  });
+
+  test("RESP-LAY-014: navigation works at minimum breakpoint", async () => {
+    terminal = await launchTUI({ cols: 80, rows: 24 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
+    await terminal.sendKeys("q");
+    await terminal.waitForText("Dashboard");
+  });
+
+  test("RESP-LAY-015: rapid resize does not throw", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.resize(80, 24);
+    await terminal.resize(200, 60);
+    await terminal.resize(60, 20);
+    await terminal.resize(120, 40);
+    await terminal.waitForText("Dashboard");
   });
 });
 

@@ -11,3 +11,5 @@ export {
   BRAILLE_INTERVAL_MS,
   ASCII_INTERVAL_MS,
 } from "./useSpinner.js";
+export { useLayout } from "./useLayout.js";
+export type { LayoutContext } from "./useLayout.js";
