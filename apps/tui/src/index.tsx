@@ -23,7 +23,7 @@ import { GlobalKeybindings } from "./components/GlobalKeybindings.js";
 import { AppShell } from "./components/AppShell.js";
 import { ScreenRouter } from "./router/ScreenRouter.js";
 import { registerSignalHandlers } from "./lib/signals.js";
-import { resolveDeepLink } from "./navigation/deepLinks.js";
+import { buildInitialStack } from "./navigation/deepLinks.js";
 
 const renderer = await createCliRenderer({
   exitOnCtrlC: false,
@@ -31,10 +31,11 @@ const renderer = await createCliRenderer({
 
 registerSignalHandlers(renderer);
 
-const initialStack = resolveDeepLink({
+const deepLinkResult = buildInitialStack({
   screen: launchOptions.screen,
   repo: launchOptions.repo,
 });
+const initialStack = deepLinkResult.stack;
 
 const root = createRoot(renderer);
 
@@ -65,9 +66,6 @@ function App() {
               <NavigationProvider
                 key={navResetKey}
                 initialStack={initialStack}
-                onNavigate={(entry) => {
-                  screenRef.current = entry.screen;
-                }}
               >
                 <LoadingProvider>
                   <GlobalKeybindings>

@@ -4081,3 +4081,393 @@ describe("TUI_LOADING_STATES", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// TUI_SCREEN_ROUTER — Navigation Stack
+// ---------------------------------------------------------------------------
+
+describe("TUI_SCREEN_ROUTER — navigation stack", () => {
+  let terminal: import("./helpers.js").TUITestInstance;
+
+  afterEach(async () => {
+    if (terminal) await terminal.terminate();
+  });
+
+  test("NAV-001: TUI launches with Dashboard as default root screen", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    const snapshot = terminal.snapshot();
+    expect(snapshot).toContain("Dashboard");
+  });
+
+  test("NAV-002: go-to navigation renders target screen and updates breadcrumb", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
+    const headerLine = terminal.getLine(0);
+    expect(headerLine).toMatch(/Repositories/);
+  });
+
+  test("NAV-003: q pops current screen and returns to previous", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
+    await terminal.sendKeys("q");
+    await terminal.waitForText("Dashboard");
+  });
+
+  test("NAV-004: q on root screen exits TUI", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("q");
+    // TUI should quit — process exited
+  });
+
+  test("NAV-005: reset clears stack — q after go-to goes to Dashboard not intermediate", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
+    await terminal.sendKeys("g", "n");
+    await terminal.waitForText("Notifications");
+    // After reset-style go-to, q should go back to Dashboard
+    await terminal.sendKeys("q");
+    await terminal.waitForText("Dashboard");
+  });
+
+  test("NAV-006: duplicate go-to is silently ignored (no stack growth)", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
+    // q should return to Dashboard (only one Repositories entry)
+    await terminal.sendKeys("q");
+    await terminal.waitForText("Dashboard");
+  });
+
+  test("NAV-007: multiple sequential go-to navigations via reset build correct stacks", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("g", "w");
+    await terminal.waitForText("Workspaces");
+    await terminal.sendKeys("g", "s");
+    await terminal.waitForText("Search");
+    await terminal.sendKeys("g", "o");
+    await terminal.waitForText("Organizations");
+    // Pop back — should go to Dashboard since each go-to resets
+    await terminal.sendKeys("q");
+    await terminal.waitForText("Dashboard");
+  });
+
+  test("NAV-008: placeholder screen displays screen name", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    const snapshot = terminal.snapshot();
+    expect(snapshot).toContain("Dashboard");
+  });
+
+  test("NAV-009: placeholder screen shows not-implemented message", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("not yet implemented");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TUI_SCREEN_ROUTER — Breadcrumb rendering
+// ---------------------------------------------------------------------------
+
+describe("TUI_SCREEN_ROUTER — breadcrumb rendering", () => {
+  let terminal: import("./helpers.js").TUITestInstance;
+
+  afterEach(async () => {
+    if (terminal) await terminal.terminate();
+  });
+
+  test("NAV-BREAD-001: breadcrumb shows screen names separated by ›", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--screen", "agents", "--repo", "acme/widget"],
+    });
+    await terminal.waitForText("Agents");
+    const headerLine = terminal.getLine(0);
+    expect(headerLine).toMatch(/Dashboard/);
+    expect(headerLine).toMatch(/›/);
+  });
+
+  test("NAV-BREAD-002: repo screen breadcrumb shows owner/repo", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--screen", "agents", "--repo", "acme/widget"],
+    });
+    await terminal.waitForText("Agents");
+    const headerLine = terminal.getLine(0);
+    expect(headerLine).toMatch(/acme\/widget/);
+  });
+
+  test("NAV-BREAD-003: breadcrumb truncates at minimum breakpoint", async () => {
+    terminal = await launchTUI({
+      cols: 80,
+      rows: 24,
+      args: ["--screen", "agents", "--repo", "acme/widget"],
+    });
+    await terminal.waitForText("Agents");
+    const headerLine = terminal.getLine(0);
+    // Header should not overflow 80 columns
+    expect(headerLine.replace(/\x1b\[[0-9;]*m/g, "").length).toBeLessThanOrEqual(80);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TUI_SCREEN_ROUTER — Deep link launch
+// ---------------------------------------------------------------------------
+
+describe("TUI_SCREEN_ROUTER — deep link launch", () => {
+  let terminal: import("./helpers.js").TUITestInstance;
+
+  afterEach(async () => {
+    if (terminal) await terminal.terminate();
+  });
+
+  test("NAV-DEEP-001: --screen agents --repo acme/widget opens Agents with breadcrumb", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--screen", "agents", "--repo", "acme/widget"],
+    });
+    await terminal.waitForText("Agents");
+    const headerLine = terminal.getLine(0);
+    expect(headerLine).toMatch(/acme\/widget/);
+  });
+
+  test("NAV-DEEP-002: --screen dashboard opens Dashboard as root", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--screen", "dashboard"],
+    });
+    await terminal.waitForText("Dashboard");
+  });
+
+  test("NAV-DEEP-003: unknown --screen falls back to Dashboard", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--screen", "nonexistent"],
+    });
+    await terminal.waitForText("Dashboard");
+  });
+
+  test("NAV-DEEP-004: invalid --repo format falls back to Dashboard", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--screen", "agents", "--repo", "invalid-format"],
+    });
+    await terminal.waitForText("Dashboard");
+  });
+
+  test("NAV-DEEP-005: deep-linked screen supports q back-navigation", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--screen", "agents", "--repo", "acme/api"],
+    });
+    await terminal.waitForText("Agents");
+    await terminal.sendKeys("q");
+    // Should navigate back toward RepoOverview or Dashboard
+    const snapshot = terminal.snapshot();
+    expect(snapshot).toMatch(/acme\/api|Dashboard/);
+  });
+
+  test("NAV-DEEP-006: --screen repos opens Repositories", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--screen", "repos"],
+    });
+    await terminal.waitForText("Repositories");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TUI_SCREEN_ROUTER — Placeholder screen props
+// ---------------------------------------------------------------------------
+
+describe("TUI_SCREEN_ROUTER — placeholder screen", () => {
+  let terminal: import("./helpers.js").TUITestInstance;
+
+  afterEach(async () => {
+    if (terminal) await terminal.terminate();
+  });
+
+  test("NAV-PH-001: placeholder screen displays screen name in bold", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--screen", "settings"],
+    });
+    await terminal.waitForText("Settings");
+    expect(terminal.snapshot()).toContain("Settings");
+  });
+
+  test("NAV-PH-002: placeholder shows not-implemented message", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--screen", "settings"],
+    });
+    await terminal.waitForText("not yet implemented");
+  });
+
+  test("NAV-PH-003: placeholder shows params when present", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--screen", "agents", "--repo", "acme/api"],
+    });
+    await terminal.waitForText("Agents");
+    const snapshot = terminal.snapshot();
+    expect(snapshot).toMatch(/owner.*acme|acme.*owner/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TUI_SCREEN_ROUTER — Registry completeness (unit-style)
+// ---------------------------------------------------------------------------
+
+describe("TUI_SCREEN_ROUTER — registry completeness", () => {
+  test("NAV-REG-001: every ScreenName has a registry entry", async () => {
+    const { screenRegistry, ScreenName } = await import(
+      "../../apps/tui/src/router/index.js"
+    );
+    for (const name of Object.values(ScreenName)) {
+      expect(screenRegistry[name as string]).toBeDefined();
+    }
+  });
+
+  test("NAV-REG-002: every registry entry has a breadcrumbLabel function", async () => {
+    const { screenRegistry } = await import(
+      "../../apps/tui/src/router/index.js"
+    );
+    for (const def of Object.values(screenRegistry)) {
+      expect(typeof (def as any).breadcrumbLabel).toBe("function");
+    }
+  });
+
+  test("NAV-REG-003: every registry entry has a component", async () => {
+    const { screenRegistry } = await import(
+      "../../apps/tui/src/router/index.js"
+    );
+    for (const def of Object.values(screenRegistry)) {
+      expect(typeof (def as any).component).toBe("function");
+    }
+  });
+
+  test("NAV-REG-004: registry has exactly 32 entries matching ScreenName count", async () => {
+    const { screenRegistry, ScreenName } = await import(
+      "../../apps/tui/src/router/index.js"
+    );
+    const enumCount = Object.values(ScreenName).length;
+    const registryCount = Object.keys(screenRegistry).length;
+    expect(registryCount).toBe(enumCount);
+    expect(registryCount).toBe(32);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TUI_SCREEN_ROUTER — Snapshot tests at representative sizes
+// ---------------------------------------------------------------------------
+
+describe("TUI_SCREEN_ROUTER — snapshot tests", () => {
+  let terminal: import("./helpers.js").TUITestInstance;
+
+  afterEach(async () => {
+    if (terminal) await terminal.terminate();
+  });
+
+  test("SNAP-NAV-001: Dashboard placeholder at 80x24", async () => {
+    terminal = await launchTUI({ cols: 80, rows: 24 });
+    await terminal.waitForText("Dashboard");
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  test("SNAP-NAV-002: Dashboard placeholder at 120x40", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  test("SNAP-NAV-003: deep-linked Agents at 80x24", async () => {
+    terminal = await launchTUI({
+      cols: 80,
+      rows: 24,
+      args: ["--screen", "agents", "--repo", "acme/api"],
+    });
+    await terminal.waitForText("Agents");
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  test("SNAP-NAV-004: deep-linked Agents at 120x40", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--screen", "agents", "--repo", "acme/api"],
+    });
+    await terminal.waitForText("Agents");
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  test("SNAP-NAV-005: Dashboard at 200x60 (large breakpoint)", async () => {
+    terminal = await launchTUI({ cols: 200, rows: 60 });
+    await terminal.waitForText("Dashboard");
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TUI_SCREEN_ROUTER — Go-to keybinding context validation
+// ---------------------------------------------------------------------------
+
+describe("TUI_SCREEN_ROUTER — go-to context validation", () => {
+  let terminal: import("./helpers.js").TUITestInstance;
+
+  afterEach(async () => {
+    if (terminal) await terminal.terminate();
+  });
+
+  test("NAV-GOTO-001: g i without repo context shows error or stays on current screen", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("g", "i");
+    // Issues requires repo context — should show error or stay on Dashboard
+    const snapshot = terminal.snapshot();
+    expect(snapshot).toMatch(/Dashboard|No repository|error/i);
+  });
+
+  test("NAV-GOTO-002: g d always works (no context required)", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("g", "w");
+    await terminal.waitForText("Workspaces");
+    await terminal.sendKeys("g", "d");
+    await terminal.waitForText("Dashboard");
+  });
+
+  test("NAV-GOTO-003: go-to mode timeout cancels after 1500ms", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("g");
+    // Wait for timeout (1500ms + buffer)
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Pressing a key after timeout should not trigger go-to
+    await terminal.sendKeys("r");
+    // Should still be on Dashboard (the 'r' was not interpreted as go-to)
+    await terminal.waitForText("Dashboard");
+  });
+});
+

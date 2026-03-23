@@ -1,16 +1,27 @@
-import { useNavigation } from "../hooks/useNavigation.js";
-import { screenRegistry, ScreenName } from "../navigation/screenRegistry.js";
-import { PlaceholderScreen } from "../screens/PlaceholderScreen.js";
+import { useNavigation } from "../providers/NavigationProvider.js";
+import { screenRegistry } from "./registry.js";
+import type { ScreenComponentProps } from "./types.js";
 
 export function ScreenRouter() {
-  const nav = useNavigation();
-  const current = nav.current;
+  const { currentScreen } = useNavigation();
 
-  const def = screenRegistry[current.screen as ScreenName];
-  if (!def) {
-    return <PlaceholderScreen />;
+  const definition = screenRegistry[currentScreen.screen];
+  if (!definition) {
+    return (
+      <box flexDirection="column" padding={1}>
+        <text color="red" bold>
+          Unknown screen: {currentScreen.screen}
+        </text>
+        <text color="gray">Press q to go back.</text>
+      </box>
+    );
   }
 
-  const ScreenComponent = def.component;
-  return <ScreenComponent />;
+  const Component = definition.component;
+  const props: ScreenComponentProps = {
+    entry: currentScreen,
+    params: currentScreen.params,
+  };
+
+  return <Component {...props} />;
 }

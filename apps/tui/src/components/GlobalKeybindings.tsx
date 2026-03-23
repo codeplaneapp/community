@@ -1,6 +1,6 @@
 import { useKeyboard } from "@opentui/react";
-import { useNavigation } from "../hooks/useNavigation.js";
-import { goToBindings } from "../navigation/goToBindings.js";
+import { useNavigation } from "../providers/NavigationProvider.js";
+import { goToBindings, executeGoTo } from "../navigation/goToBindings.js";
 import { useState, useRef, useCallback } from "react";
 import { useLoading } from "../hooks/useLoading.js";
 
@@ -32,10 +32,12 @@ export function GlobalKeybindings({ children }: { children: React.ReactNode }) {
     if (goToMode) {
       setGoToMode(false);
       if (goToTimeout.current) clearTimeout(goToTimeout.current);
-      const binding = goToBindings[event.name as keyof typeof goToBindings];
+      const binding = goToBindings.find(b => b.key === event.name);
       if (binding) {
-        const params = nav.current.params;
-        nav.reset(binding.screen, binding.requiresRepo ? params : undefined);
+        const result = executeGoTo(nav, binding, nav.repoContext);
+        if (result.error) {
+          // Could show error in status bar, for now ignored
+        }
       }
       return;
     }
@@ -47,7 +49,7 @@ export function GlobalKeybindings({ children }: { children: React.ReactNode }) {
     }
 
     if (event.name === "q") {
-      if (nav.canPop()) {
+      if (nav.canGoBack) {
         nav.pop();
       } else {
         process.exit(0);
@@ -56,14 +58,14 @@ export function GlobalKeybindings({ children }: { children: React.ReactNode }) {
     }
 
     if (event.name === "escape") {
-      if (nav.canPop()) {
+      if (nav.canGoBack) {
         nav.pop();
       } else {
         process.exit(0);
       }
       return;
     }
-  }, [goToMode, nav]);
+  }, [goToMode, nav, retryCallback]);
 
   useKeyboard(handleKey);
 

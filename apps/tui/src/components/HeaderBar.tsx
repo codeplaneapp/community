@@ -1,8 +1,7 @@
 import { useMemo } from "react";
 import { useLayout } from "../hooks/useLayout.js";
 import { useTheme } from "../hooks/useTheme.js";
-import { useNavigation } from "../hooks/useNavigation.js";
-import { screenRegistry } from "../navigation/screenRegistry.js";
+import { useNavigation } from "../providers/NavigationProvider.js";
 import { truncateBreadcrumb } from "../util/text.js";
 import { statusToToken, TextAttributes } from "../theme/tokens.js";
 
@@ -16,14 +15,7 @@ export function HeaderBar() {
   const unreadCount = 0; // placeholder
 
   const breadcrumbSegments = useMemo(() => {
-    return nav.stack.map((entry) => {
-      const def = screenRegistry[entry.screen as keyof typeof screenRegistry];
-      if (!def) return entry.screen;
-      if (typeof def.breadcrumb === "function") {
-        return def.breadcrumb(entry.params ?? {});
-      }
-      return def.breadcrumb;
-    });
+    return nav.stack.map((entry) => entry.breadcrumb);
   }, [nav.stack]);
 
   const rightWidth = 12;
@@ -34,8 +26,8 @@ export function HeaderBar() {
   const currentSegment = parts.pop() || "";
   const breadcrumbPrefix = parts.length > 0 ? parts.join(" › ") + " › " : "";
 
-  const repoContext = nav.current.params?.owner && nav.current.params?.repo
-    ? `${nav.current.params.owner}/${nav.current.params.repo}`
+  const repoContext = nav.repoContext
+    ? `${nav.repoContext.owner}/${nav.repoContext.repo}`
     : "";
 
   return (
