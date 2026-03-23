@@ -1,15 +1,6 @@
 #!/usr/bin/env bun
 /**
  * Codeplane TUI — Entry point
- *
- * Bootstrap sequence:
- *   1. TTY assertion (< 5ms)
- *   2. CLI arg parsing (< 1ms)
- *   3. Terminal setup via createCliRenderer() (< 50ms)
- *   4. React root creation via createRoot() (< 10ms)
- *   5. Provider stack mount + render (< 50ms)
- *   6. Signal handler registration (< 1ms)
- *   7. First meaningful paint target: < 200ms total
  */
 
 import { assertTTY, parseCLIArgs } from "./lib/terminal.js";
@@ -22,12 +13,13 @@ import { createRoot } from "@opentui/react";
 import React, { useState, useCallback, useRef } from "react";
 
 import { ErrorBoundary } from "./components/ErrorBoundary.js";
-import { AuthProvider } from "./providers/AuthProvider.js";
 import { ThemeProvider } from "./providers/ThemeProvider.js";
-import { NavigationProvider } from "./providers/NavigationProvider.js";
+import { AuthProvider } from "./providers/AuthProvider.js";
+import { APIClientProvider } from "./providers/APIClientProvider.js";
 import { SSEProvider } from "./providers/SSEProvider.js";
-import { AppShell } from "./components/AppShell.js";
+import { NavigationProvider } from "./providers/NavigationProvider.js";
 import { GlobalKeybindings } from "./components/GlobalKeybindings.js";
+import { AppShell } from "./components/AppShell.js";
 import { ScreenRouter } from "./router/ScreenRouter.js";
 import { registerSignalHandlers } from "./lib/signals.js";
 import { resolveDeepLink } from "./navigation/deepLinks.js";
@@ -59,32 +51,34 @@ function App() {
   }, []);
 
   return (
-    <ThemeProvider>
-      <AuthProvider token={launchOptions.token} apiUrl={launchOptions.apiUrl}>
-        <NavigationProvider
-          key={navResetKey}
-          initialStack={initialStack}
-          onNavigate={(entry) => {
-            screenRef.current = entry.screen;
-          }}
-        >
-          <GlobalKeybindings>
-            <AppShell>
-              <ErrorBoundary
-                onReset={handleReset}
-                onQuit={handleQuit}
-                currentScreen={screenRef.current}
-                noColor={noColor}
+    <ErrorBoundary
+      onReset={handleReset}
+      onQuit={handleQuit}
+      currentScreen={screenRef.current}
+      noColor={noColor}
+    >
+      <ThemeProvider>
+        <AuthProvider token={launchOptions.token} apiUrl={launchOptions.apiUrl}>
+          <APIClientProvider>
+            <SSEProvider>
+              <NavigationProvider
+                key={navResetKey}
+                initialStack={initialStack}
+                onNavigate={(entry) => {
+                  screenRef.current = entry.screen;
+                }}
               >
-                <SSEProvider>
-                  <ScreenRouter />
-                </SSEProvider>
-              </ErrorBoundary>
-            </AppShell>
-          </GlobalKeybindings>
-        </NavigationProvider>
-      </AuthProvider>
-    </ThemeProvider>
+                <GlobalKeybindings>
+                  <AppShell>
+                    <ScreenRouter />
+                  </AppShell>
+                </GlobalKeybindings>
+              </NavigationProvider>
+            </SSEProvider>
+          </APIClientProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

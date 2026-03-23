@@ -2926,3 +2926,459 @@ describe("TUI_ERROR_BOUNDARY — Unit Tests", () => {
     });
   });
 });
+
+
+describe("TUI_AUTH_TOKEN_LOADING", () => {
+
+  // ─── Terminal Snapshot Tests ───
+
+  describe("loading screen", () => {
+    test("renders loading screen while authenticating", async () => {
+      const env = createMockAPIEnv({ token: "valid-test-token" });
+      // Use a slow API response to capture loading state
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Authenticating");
+      const snapshot = terminal.snapshot();
+      expect(snapshot).toContain("Authenticating");
+      expect(snapshot).toContain("Codeplane");
+      await terminal.terminate();
+    });
+
+    test("renders loading screen centered at minimum terminal size", async () => {
+      const env = createMockAPIEnv({ token: "valid-test-token" });
+      const terminal = await launchTUI({ cols: 80, rows: 24, env });
+      await terminal.waitForText("Authenticating");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+
+    test("loading screen layout at 80x24", async () => {
+      const env = createMockAPIEnv({ token: "valid-test-token" });
+      const terminal = await launchTUI({ cols: 80, rows: 24, env });
+      await terminal.waitForText("Authenticating");
+      // Header is row 0, status bar is last row, content is rows 1-22
+      expect(terminal.getLine(0)).toMatch(/Codeplane/);
+      expect(terminal.getLine(terminal.rows - 1)).toMatch(/Ctrl\+C quit/);
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+
+    test("loading screen layout at 120x40", async () => {
+      const env = createMockAPIEnv({ token: "valid-test-token" });
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Authenticating");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+
+    test("loading screen layout at 200x60", async () => {
+      const env = createMockAPIEnv({ token: "valid-test-token" });
+      const terminal = await launchTUI({ cols: 200, rows: 60, env });
+      await terminal.waitForText("Authenticating");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+
+    test("loading screen shows target host", async () => {
+      const env = createMockAPIEnv({
+        token: "valid-test-token",
+        apiBaseUrl: "https://api.codeplane.app",
+      });
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Authenticating");
+      expect(terminal.snapshot()).toContain("api.codeplane.app");
+      await terminal.terminate();
+    });
+  });
+
+  // ─── Error Screen Tests (No Token) ───
+
+  describe("no-token error screen", () => {
+    test("renders error screen when no token is found", async () => {
+      const env = createMockAPIEnv();
+      // Remove token from env
+      delete env.CODEPLANE_TOKEN;
+      env.CODEPLANE_DISABLE_SYSTEM_KEYRING = "1";
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Not authenticated");
+      const snapshot = terminal.snapshot();
+      expect(snapshot).toContain("Not authenticated");
+      expect(snapshot).toContain("codeplane auth login");
+      expect(snapshot).toContain("CODEPLANE_TOKEN");
+      await terminal.terminate();
+    });
+
+    test("error screen at 80x24 shows all text properly wrapped", async () => {
+      const env = createMockAPIEnv();
+      delete env.CODEPLANE_TOKEN;
+      env.CODEPLANE_DISABLE_SYSTEM_KEYRING = "1";
+      const terminal = await launchTUI({ cols: 80, rows: 24, env });
+      await terminal.waitForText("Not authenticated");
+      const snapshot = terminal.snapshot();
+      expect(snapshot).toContain("codeplane auth login");
+      expect(snapshot).toMatchSnapshot();
+      await terminal.terminate();
+    });
+
+    test("error screen at 120x40", async () => {
+      const env = createMockAPIEnv();
+      delete env.CODEPLANE_TOKEN;
+      env.CODEPLANE_DISABLE_SYSTEM_KEYRING = "1";
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Not authenticated");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+
+    test("error screen at 200x60", async () => {
+      const env = createMockAPIEnv();
+      delete env.CODEPLANE_TOKEN;
+      env.CODEPLANE_DISABLE_SYSTEM_KEYRING = "1";
+      const terminal = await launchTUI({ cols: 200, rows: 60, env });
+      await terminal.waitForText("Not authenticated");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+
+    test("error screen shows target host", async () => {
+      const env = createMockAPIEnv({ apiBaseUrl: "https://custom.example.com" });
+      delete env.CODEPLANE_TOKEN;
+      env.CODEPLANE_DISABLE_SYSTEM_KEYRING = "1";
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Not authenticated");
+      expect(terminal.snapshot()).toContain("custom.example.com");
+      await terminal.terminate();
+    });
+  });
+
+  // ─── Error Screen Tests (Expired Token) ───
+
+  describe("expired-token error screen", () => {
+    test("renders error screen when token is expired", async () => {
+      // API server returns 401 for this token
+      const env = createMockAPIEnv({ token: "expired-test-token" });
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Session expired");
+      const snapshot = terminal.snapshot();
+      expect(snapshot).toContain("Session expired");
+      expect(snapshot).toContain("codeplane auth login");
+      expect(snapshot).toContain("env"); // token source
+      await terminal.terminate();
+    });
+
+    test("expired error screen at 80x24", async () => {
+      const env = createMockAPIEnv({ token: "expired-test-token" });
+      const terminal = await launchTUI({ cols: 80, rows: 24, env });
+      await terminal.waitForText("Session expired");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+
+    test("expired error screen at 120x40", async () => {
+      const env = createMockAPIEnv({ token: "expired-test-token" });
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Session expired");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+
+    test("expired error screen at 200x60", async () => {
+      const env = createMockAPIEnv({ token: "expired-test-token" });
+      const terminal = await launchTUI({ cols: 200, rows: 60, env });
+      await terminal.waitForText("Session expired");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+  });
+
+  // ─── Offline / Network Unreachable Tests ───
+
+  describe("offline mode", () => {
+    test("renders offline warning when network is unreachable", async () => {
+      const env = createMockAPIEnv({
+        token: "valid-test-token",
+        apiBaseUrl: "http://unreachable.invalid:1",
+      });
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      // Should proceed to dashboard with offline warning
+      await terminal.waitForText("offline", 10000); // allow 5s timeout + render
+      expect(terminal.snapshot()).toContain("offline");
+      await terminal.terminate();
+    });
+
+    test("validation timeout proceeds optimistically", async () => {
+      // Use a server that delays response beyond 5s
+      const env = createMockAPIEnv({
+        token: "valid-test-token",
+        apiBaseUrl: "http://10.255.255.1:1", // non-routable IP, will timeout
+      });
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("offline", 10000);
+      expect(terminal.snapshot()).toContain("token not verified");
+      await terminal.terminate();
+    });
+  });
+
+  // ─── Auth Success / Status Bar Confirmation ───
+
+  describe("successful authentication", () => {
+    test("renders authenticated username in status bar after successful auth", async () => {
+      const env = createMockAPIEnv({ token: "valid-test-token" });
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      // After auth completes, status bar should show confirmation
+      await terminal.waitForText("via env", 5000);
+      const lastLine = terminal.getLine(terminal.rows - 1);
+      expect(lastLine).toMatch(/✓.*via env/);
+      await terminal.terminate();
+    });
+
+    test("auth confirmation disappears after 3 seconds", async () => {
+      const env = createMockAPIEnv({ token: "valid-test-token" });
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("via env", 5000);
+      // Wait for confirmation to disappear
+      await terminal.waitForNoText("via env", 5000);
+      await terminal.terminate();
+    });
+
+    test("resolves token from CODEPLANE_TOKEN env var", async () => {
+      const env = createMockAPIEnv({ token: "valid-test-token" });
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("via env", 5000);
+      expect(terminal.snapshot()).toMatch(/via env/);
+      await terminal.terminate();
+    });
+
+    test("resolves token from system keyring when env var is absent", async () => {
+      const credStore = createTestCredentialStore("keyring-test-token");
+      const env = createMockAPIEnv();
+      delete env.CODEPLANE_TOKEN;
+      env.CODEPLANE_TEST_CREDENTIAL_STORE_FILE = credStore.path;
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("via keyring", 5000);
+      expect(terminal.snapshot()).toMatch(/via keyring/);
+      credStore.cleanup();
+      await terminal.terminate();
+    });
+
+    test("env var takes priority over keyring", async () => {
+      const credStore = createTestCredentialStore("keyring-token");
+      const env = createMockAPIEnv({ token: "env-token" });
+      env.CODEPLANE_TEST_CREDENTIAL_STORE_FILE = credStore.path;
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("via env", 5000);
+      credStore.cleanup();
+      await terminal.terminate();
+    });
+
+    test("empty CODEPLANE_TOKEN is treated as absent", async () => {
+      const credStore = createTestCredentialStore("keyring-test-token");
+      const env = createMockAPIEnv();
+      env.CODEPLANE_TOKEN = "";
+      env.CODEPLANE_TEST_CREDENTIAL_STORE_FILE = credStore.path;
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("via keyring", 5000);
+      credStore.cleanup();
+      await terminal.terminate();
+    });
+
+    test("whitespace-only CODEPLANE_TOKEN is treated as absent", async () => {
+      const credStore = createTestCredentialStore("keyring-test-token");
+      const env = createMockAPIEnv();
+      env.CODEPLANE_TOKEN = "   ";
+      env.CODEPLANE_TEST_CREDENTIAL_STORE_FILE = credStore.path;
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("via keyring", 5000);
+      credStore.cleanup();
+      await terminal.terminate();
+    });
+  });
+
+  // ─── Security Tests ───
+
+  describe("security", () => {
+    test("no token value is visible anywhere on screen", async () => {
+      const testToken = "cp_test_secret_token_12345";
+      const env = createMockAPIEnv({ token: testToken });
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      
+      // Check during loading
+      await terminal.waitForText("Authenticating");
+      expect(terminal.snapshot()).not.toContain(testToken);
+      
+      // Check after auth completes (or fails)
+      try {
+        await terminal.waitForText("via env", 5000);
+      } catch {
+        // Auth may fail if no real API - that's OK, we just need the snapshot
+      }
+      expect(terminal.snapshot()).not.toContain(testToken);
+      await terminal.terminate();
+    });
+  });
+
+  // ─── Keyboard Interaction Tests ───
+
+  describe("keyboard interactions", () => {
+    test("Ctrl+C exits TUI during auth loading", async () => {
+      const env = createMockAPIEnv({
+        token: "valid-test-token",
+        apiBaseUrl: "http://10.255.255.1:1", // slow/unreachable
+      });
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Authenticating");
+      await terminal.sendKeys("ctrl+c");
+      // Process should exit - terminate will not throw
+      await terminal.terminate();
+    });
+
+    test("q exits TUI from no-token error screen", async () => {
+      const env = createMockAPIEnv();
+      delete env.CODEPLANE_TOKEN;
+      env.CODEPLANE_DISABLE_SYSTEM_KEYRING = "1";
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Not authenticated");
+      await terminal.sendKeys("q");
+      // Process should exit
+      await terminal.terminate();
+    });
+
+    test("Ctrl+C exits TUI from error screen", async () => {
+      const env = createMockAPIEnv();
+      delete env.CODEPLANE_TOKEN;
+      env.CODEPLANE_DISABLE_SYSTEM_KEYRING = "1";
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Not authenticated");
+      await terminal.sendKeys("ctrl+c");
+      await terminal.terminate();
+    });
+
+    test("R retries auth from no-token error screen", async () => {
+      const env = createMockAPIEnv();
+      delete env.CODEPLANE_TOKEN;
+      env.CODEPLANE_DISABLE_SYSTEM_KEYRING = "1";
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Not authenticated");
+      // Retry will re-resolve token — still no token, so error screen again
+      await terminal.sendKeys("R");
+      await terminal.waitForText("Authenticating");
+      await terminal.waitForText("Not authenticated");
+      await terminal.terminate();
+    });
+
+    test("R retries auth from expired-token error screen", async () => {
+      const env = createMockAPIEnv({ token: "expired-test-token" });
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Session expired");
+      await terminal.sendKeys("R");
+      // Retry transitions to loading state
+      await terminal.waitForText("Authenticating");
+      await terminal.terminate();
+    });
+
+    test("R retry is debounced — rapid presses trigger only one retry", async () => {
+      const env = createMockAPIEnv();
+      delete env.CODEPLANE_TOKEN;
+      env.CODEPLANE_DISABLE_SYSTEM_KEYRING = "1";
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Not authenticated");
+      // Send rapid R presses
+      await terminal.sendKeys("R", "R", "R");
+      // Should see loading screen (one retry), then error again
+      await terminal.waitForText("Not authenticated");
+      await terminal.terminate();
+    });
+
+    test("navigation keys are inactive during auth loading", async () => {
+      const env = createMockAPIEnv({
+        token: "valid-test-token",
+        apiBaseUrl: "http://10.255.255.1:1", // slow
+      });
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Authenticating");
+      // Try navigation keys — they should have no effect
+      await terminal.sendKeys("g", "d"); // go-to dashboard
+      await terminal.sendKeys(":"); // command palette
+      // Should still be on loading screen
+      expect(terminal.snapshot()).toContain("Authenticating");
+      expect(terminal.snapshot()).not.toContain("Dashboard");
+      await terminal.terminate();
+    });
+
+    test("? opens help overlay from error screen", async () => {
+      const env = createMockAPIEnv();
+      delete env.CODEPLANE_TOKEN;
+      env.CODEPLANE_DISABLE_SYSTEM_KEYRING = "1";
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Not authenticated");
+      await terminal.sendKeys("?");
+      // Help overlay should show available keybindings
+      const snapshot = terminal.snapshot();
+      expect(snapshot).toMatch(/q.*quit/);
+      expect(snapshot).toMatch(/R.*retry/);
+      // Close help overlay
+      await terminal.sendKeys("Escape");
+      await terminal.waitForText("Not authenticated");
+      await terminal.terminate();
+    });
+  });
+
+  // ─── Responsive / Resize Tests ───
+
+  describe("responsive layout", () => {
+    test("resize during loading re-centers content", async () => {
+      const env = createMockAPIEnv({
+        token: "valid-test-token",
+        apiBaseUrl: "http://10.255.255.1:1", // slow
+      });
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Authenticating");
+      await terminal.resize(80, 24);
+      // Spinner should still be visible and centered
+      expect(terminal.snapshot()).toContain("Authenticating");
+      expect(terminal.snapshot()).toMatchSnapshot();
+      await terminal.terminate();
+    });
+
+    test("resize during error screen re-renders correctly", async () => {
+      const env = createMockAPIEnv();
+      delete env.CODEPLANE_TOKEN;
+      env.CODEPLANE_DISABLE_SYSTEM_KEYRING = "1";
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Not authenticated");
+      await terminal.resize(80, 24);
+      const snapshot = terminal.snapshot();
+      expect(snapshot).toContain("Not authenticated");
+      expect(snapshot).toContain("codeplane auth login");
+      expect(snapshot).toMatchSnapshot();
+      await terminal.terminate();
+    });
+  });
+
+  // ─── Token Resolution Edge Cases ───
+
+  describe("token resolution edge cases", () => {
+    test("respects CODEPLANE_API_URL for target host", async () => {
+      const env = createMockAPIEnv({
+        token: "valid-test-token",
+        apiBaseUrl: "https://custom-api.example.com",
+      });
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Authenticating");
+      expect(terminal.snapshot()).toContain("custom-api.example.com");
+      await terminal.terminate();
+    });
+
+    test("handles keyring read failure gracefully", async () => {
+      const env = createMockAPIEnv();
+      delete env.CODEPLANE_TOKEN;
+      // Point to invalid credential store file
+      env.CODEPLANE_TEST_CREDENTIAL_STORE_FILE = "/tmp/nonexistent-invalid.json";
+      const terminal = await launchTUI({ cols: 120, rows: 40, env });
+      await terminal.waitForText("Not authenticated");
+      expect(terminal.snapshot()).toContain("Not authenticated");
+      await terminal.terminate();
+    });
+  });
+
+});

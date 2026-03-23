@@ -32,3 +32,29 @@ export function fitWidth(text: string, width: number, align: "left" | "right" = 
   if (align === "right") return text.padStart(width);
   return text.padEnd(width);
 }
+
+export function truncateText(text: string, maxLength: number): string {
+  if (maxLength < 1) return "";
+  if (text.length <= maxLength) return text;
+  if (maxLength === 1) return "…";
+  return text.slice(0, maxLength - 1) + "…";
+}
+
+export function wrapText(text: string, width: number): string[] {
+  if (width < 1) return [""];
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let currentLine = "";
+  for (const word of words) {
+    if (currentLine.length === 0) {
+      currentLine = word;
+    } else if (currentLine.length + 1 + word.length <= width) {
+      currentLine += " " + word;
+    } else {
+      lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  if (currentLine.length > 0) lines.push(currentLine);
+  return lines;
+}
