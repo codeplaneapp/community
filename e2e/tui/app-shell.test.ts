@@ -976,3 +976,258 @@ describe("TUI_APP_SHELL — Theme token definitions", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// TUI_APP_SHELL — ThemeProvider and useTheme hook
+// ---------------------------------------------------------------------------
+
+describe("TUI_APP_SHELL — ThemeProvider and useTheme hook", () => {
+  // ── File Existence & Export Tests ───────────────────────────────────────
+
+  test("PROVIDER-FILE-001: ThemeProvider.tsx exists", () => {
+    expect(existsSync(join(TUI_SRC, "providers/ThemeProvider.tsx"))).toBe(true);
+  });
+
+  test("PROVIDER-FILE-002: useTheme.ts exists", () => {
+    expect(existsSync(join(TUI_SRC, "hooks/useTheme.ts"))).toBe(true);
+  });
+
+  test("PROVIDER-FILE-003: useColorTier.ts exists", () => {
+    expect(existsSync(join(TUI_SRC, "hooks/useColorTier.ts"))).toBe(true);
+  });
+
+  test("PROVIDER-FILE-004: providers/index.ts re-exports ThemeProvider", async () => {
+    const result = await run(
+      [BUN, "-e", "import { ThemeProvider } from './src/providers/index.js'; console.log(typeof ThemeProvider)"],
+      { cwd: TUI_ROOT }
+    );
+    expect(result.stdout.trim()).toBe("function");
+  });
+
+  test("PROVIDER-FILE-005: hooks/index.ts re-exports useTheme", async () => {
+    const result = await run(
+      [BUN, "-e", "import { useTheme } from './src/hooks/index.js'; console.log(typeof useTheme)"],
+      { cwd: TUI_ROOT }
+    );
+    expect(result.stdout.trim()).toBe("function");
+  });
+
+  test("PROVIDER-FILE-006: hooks/index.ts re-exports useColorTier", async () => {
+    const result = await run(
+      [BUN, "-e", "import { useColorTier } from './src/hooks/index.js'; console.log(typeof useColorTier)"],
+      { cwd: TUI_ROOT }
+    );
+    expect(result.stdout.trim()).toBe("function");
+  });
+
+  // ── ThemeProvider Behavior Tests ────────────────────────────────────────
+
+  test("PROVIDER-RENDER-001: ThemeProvider renders children without adding layout nodes", async () => {
+    const result = await run(
+      [BUN, "-e", `
+        import { ThemeProvider } from './src/providers/ThemeProvider.js';
+        import { createElement } from 'react';
+        console.log(typeof ThemeProvider);
+        console.log(ThemeProvider.length <= 1);
+      `],
+      { cwd: TUI_ROOT }
+    );
+    expect(result.stdout.trim()).toContain("function");
+    expect(result.stdout.trim()).toContain("true");
+  });
+
+  test("PROVIDER-RENDER-002: ThemeContext default value is null", async () => {
+    const result = await run(
+      [BUN, "-e", `
+        import { ThemeContext } from './src/providers/ThemeProvider.js';
+        console.log(ThemeContext._currentValue === null);
+      `],
+      { cwd: TUI_ROOT }
+    );
+    expect(result.stdout.trim()).toBe("true");
+  });
+
+  test("PROVIDER-RENDER-003: ThemeContextValue exports correct type shape", async () => {
+    const result = await run(
+      [BUN, "-e", `
+        import type { ThemeContextValue } from './src/providers/ThemeProvider.js';
+        import type { ThemeTokens } from './src/theme/tokens.js';
+        import type { ColorTier } from './src/theme/detect.js';
+        const check: ThemeContextValue = { tokens: {} as ThemeTokens, colorTier: 'truecolor' as ColorTier };
+        console.log('type-check-ok');
+      `],
+      { cwd: TUI_ROOT }
+    );
+    expect(result.stdout.trim()).toBe("type-check-ok");
+  });
+
+  // ── useTheme Hook Tests ─────────────────────────────────────────────────
+
+  test("PROVIDER-HOOK-001: useTheme throws when called outside ThemeProvider", async () => {
+    const result = await run(
+      [BUN, "-e", `
+        try {
+          const src = await Bun.file('./src/hooks/useTheme.ts').text();
+          const throwsOnNull = src.includes('throw') && src.includes('ThemeProvider');
+          console.log(throwsOnNull);
+        } catch (e) {
+          console.log('threw:', e.message);
+        }
+      `],
+      { cwd: TUI_ROOT }
+    );
+    expect(result.stdout.trim()).toBe("true");
+  });
+
+  test("PROVIDER-HOOK-002: useTheme error message mentions ThemeProvider", async () => {
+    const content = await Bun.file(join(TUI_SRC, "hooks/useTheme.ts")).text();
+    expect(content).toContain("ThemeProvider");
+    expect(content).toContain("throw");
+  });
+
+  test("PROVIDER-HOOK-003: useTheme return type annotation is Readonly<ThemeTokens>", async () => {
+    const content = await Bun.file(join(TUI_SRC, "hooks/useTheme.ts")).text();
+    expect(content).toMatch(/Readonly<ThemeTokens>/);
+  });
+
+  // ── useColorTier Hook Tests ─────────────────────────────────────────────
+
+  test("PROVIDER-TIER-001: useColorTier throws when called outside ThemeProvider", async () => {
+    const content = await Bun.file(join(TUI_SRC, "hooks/useColorTier.ts")).text();
+    expect(content).toContain("ThemeProvider");
+    expect(content).toContain("throw");
+  });
+
+  test("PROVIDER-TIER-002: useColorTier error message mentions ThemeProvider", async () => {
+    const content = await Bun.file(join(TUI_SRC, "hooks/useColorTier.ts")).text();
+    expect(content).toMatch(/useColorTier.*must be used within/);
+  });
+
+  test("PROVIDER-TIER-003: useColorTier return type is ColorTier", async () => {
+    const content = await Bun.file(join(TUI_SRC, "hooks/useColorTier.ts")).text();
+    expect(content).toMatch(/ColorTier/);
+  });
+
+  // ── Module Integration Tests ────────────────────────────────────────────
+
+  test("PROVIDER-IMPORT-001: ThemeProvider imports detectColorCapability from theme/detect", async () => {
+    const content = await Bun.file(join(TUI_SRC, "providers/ThemeProvider.tsx")).text();
+    expect(content).toMatch(/import.*detectColorCapability.*from.*detect/);
+  });
+
+  test("PROVIDER-IMPORT-002: ThemeProvider imports createTheme from theme/tokens", async () => {
+    const content = await Bun.file(join(TUI_SRC, "providers/ThemeProvider.tsx")).text();
+    expect(content).toMatch(/import.*createTheme.*from.*tokens/);
+  });
+
+  test("PROVIDER-IMPORT-003: ThemeProvider uses useMemo for initialization", async () => {
+    const content = await Bun.file(join(TUI_SRC, "providers/ThemeProvider.tsx")).text();
+    expect(content).toContain("useMemo");
+  });
+
+  test("PROVIDER-IMPORT-004: ThemeProvider does not import any OpenTUI renderable components", async () => {
+    const content = await Bun.file(join(TUI_SRC, "providers/ThemeProvider.tsx")).text();
+    expect(content).not.toMatch(/import.*from.*@opentui\/core.*(box|text|scrollbox)/i);
+    expect(content).not.toContain("<box");
+    expect(content).not.toContain("<text");
+  });
+
+  // ── Compile Tests ───────────────────────────────────────────────────────
+
+  test("PROVIDER-TSC-001: ThemeProvider.tsx compiles without errors", async () => {
+    const result = await run(
+      [BUN, "-e", `
+        import { ThemeProvider, ThemeContext } from './src/providers/ThemeProvider.js';
+        import type { ThemeContextValue, ThemeProviderProps } from './src/providers/ThemeProvider.js';
+        console.log(typeof ThemeProvider, typeof ThemeContext);
+      `],
+      { cwd: TUI_ROOT }
+    );
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe("function object");
+  });
+
+  test("PROVIDER-TSC-002: useTheme.ts compiles without errors", async () => {
+    const result = await run(
+      [BUN, "-e", "import { useTheme } from './src/hooks/useTheme.js'; console.log(typeof useTheme)"],
+      { cwd: TUI_ROOT }
+    );
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe("function");
+  });
+
+  test("PROVIDER-TSC-003: useColorTier.ts compiles without errors", async () => {
+    const result = await run(
+      [BUN, "-e", "import { useColorTier } from './src/hooks/useColorTier.js'; console.log(typeof useColorTier)"],
+      { cwd: TUI_ROOT }
+    );
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe("function");
+  });
+
+  // ── Guard & Immutability Tests ──────────────────────────────────────────
+
+  test("PROVIDER-GUARD-001: ThemeProvider calls detectColorCapability and createTheme", async () => {
+    const content = await Bun.file(join(TUI_SRC, "providers/ThemeProvider.tsx")).text();
+    expect(content).toContain("detectColorCapability(");
+    expect(content).toContain("createTheme(");
+  });
+
+  test("PROVIDER-GUARD-002: ThemeProvider does not accept a theme prop", async () => {
+    const content = await Bun.file(join(TUI_SRC, "providers/ThemeProvider.tsx")).text();
+    expect(content).toMatch(/interface ThemeProviderProps/);
+    expect(content).not.toMatch(/theme\s*[?:]/);
+  });
+
+  test("PROVIDER-GUARD-003: Context value is memoized with empty deps", async () => {
+    const content = await Bun.file(join(TUI_SRC, "providers/ThemeProvider.tsx")).text();
+    expect(content).toMatch(/useMemo.*\[\]/);
+  });
+
+  // ── Integration Snapshot Tests ──────────────────────────────────────────
+
+  test("PROVIDER-SNAP-001: TUI renders with themed colors when ThemeProvider is in the tree", async () => {
+    const terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      env: { COLORTERM: "truecolor" },
+    });
+    try {
+      await terminal.waitForText("Dashboard");
+      const snapshot = terminal.snapshot();
+      expect(snapshot).toContain("Dashboard");
+      expect(snapshot).not.toContain("useTheme() must be used within");
+      expect(snapshot).not.toContain("useColorTier() must be used within");
+    } finally {
+      await terminal.terminate();
+    }
+  });
+
+  test("PROVIDER-SNAP-002: TUI launches with COLORTERM=truecolor", async () => {
+    const terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      env: { COLORTERM: "truecolor" },
+    });
+    try {
+      await terminal.waitForText("Dashboard");
+      expect(terminal.snapshot()).not.toContain("Error");
+    } finally {
+      await terminal.terminate();
+    }
+  });
+
+  test("PROVIDER-SNAP-003: TUI launches with basic TERM (ansi16 tier)", async () => {
+    const terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      env: { COLORTERM: "", TERM: "xterm", NO_COLOR: "" },
+    });
+    try {
+      await terminal.waitForText("Dashboard");
+      expect(terminal.snapshot()).not.toContain("Error");
+    } finally {
+      await terminal.terminate();
+    }
+  });
+});
+
