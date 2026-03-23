@@ -18,3 +18,16 @@
  */
 
 export { type ColorTier, detectColorCapability, isUnicodeSupported } from "./detect.js";
+export {
+  type ThemeTokens,
+  type SemanticTokenName,
+  type CoreTokenName,
+  type TextAttribute,
+  TextAttributes,
+  createTheme,
+  statusToToken,
+  TRUECOLOR_TOKENS,
+  ANSI256_TOKENS,
+  ANSI16_TOKENS,
+  THEME_TOKEN_COUNT,
+} from "./tokens.js";
