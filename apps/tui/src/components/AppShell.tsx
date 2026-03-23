@@ -2,6 +2,7 @@ import React from "react";
 import { useLayout } from "../hooks/useLayout.js";
 import { HeaderBar } from "./HeaderBar.js";
 import { StatusBar } from "./StatusBar.js";
+import { OverlayLayer } from "./OverlayLayer.js";
 import { TerminalTooSmallScreen } from "./TerminalTooSmallScreen.js";
 
 export function AppShell({ children }: { children?: React.ReactNode }) {
@@ -18,6 +19,7 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
         {children}
       </box>
       <StatusBar />
+      <OverlayLayer />
     </box>
   );
 }

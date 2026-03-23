@@ -1,5 +1,5 @@
 /** @jsxImportSource smithers-orchestrator */
-import { Task, Sequence, Branch } from "smithers-orchestrator";
+import { Task, Sequence, Branch, Parallel } from "smithers-orchestrator";
 import { z } from "zod";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
@@ -46,10 +46,13 @@ export const ticketPipelineSchemas = {
 };
 
 /**
- * Sequential ticket pipeline — processes one ticket at a time on the working copy.
+ * Two-phase ticket pipeline:
  *
- * For each ticket: spec → research → plan → implement → review → jj bookmark.
- * All work happens directly in the repo working copy (no worktrees).
+ * Phase 1 (parallel): spec → research → plan for ALL tickets concurrently.
+ *   These are read-only operations that write to specs/tui/ markdown files.
+ *
+ * Phase 2 (sequential): implement → review → bookmark, one ticket at a time.
+ *   These write code to the working copy and must not overlap.
  */
 export function TicketPipelinePhase({
   ctx,
@@ -75,39 +78,45 @@ export function TicketPipelinePhase({
   const allTicketsDone = ctx.outputMaybe(outputs.allTicketsDone, { nodeId: "all-tickets-done" });
   if (!allTicketsDone || flatNodes.length === 0 || !impact) return null;
 
+  // Split nodes into prep (spec/research/plan) and impl (implement/bookmark)
+  const prepNodes = flatNodes.filter((n) => n.type === "spec" || n.type === "research" || n.type === "plan");
+  const implNodes = flatNodes.filter((n) => n.type === "implement" || n.type === "bookmark");
+
   return (
     <Sequence>
-      {flatNodes.map((node) => {
-        const ticket = node.ticket;
+      {/* Phase 1: Parallel spec/research/plan for all tickets */}
+      <Parallel maxConcurrency={8}>
+        {prepNodes.map((node) => {
+          const ticket = node.ticket;
 
-        if (node.type === "spec") {
-          const checkSpec = ctx.outputMaybe(outputs.checkTicketSpec, { nodeId: `check-spec-${ticket.id}` });
-          return (
-            <Sequence key={node.id}>
-              <Task id={`check-spec-${ticket.id}`} output={outputs.checkTicketSpec} dependsOn={node.dependsOn}>
-                {async () => {
-                  const engDir = path.join(dir, "engineering");
-                  await fs.mkdir(engDir, { recursive: true });
-                  const p = path.join(engDir, `${ticket.id}.md`);
-                  let content = "";
-                  try { content = await fs.readFile(p, "utf-8"); } catch {}
-                  let prodContent = "";
-                  if (ticket.type === "feature" && ticket.featureName) {
-                    try { prodContent = await fs.readFile(path.join(dir, `${ticket.featureName}.md`), "utf-8"); } catch {}
-                  }
-                  let needsSpec =
-                    !content.includes("## Implementation Plan") || !content.includes("## Unit & Integration Tests");
-                  if (impact.invalidateTicketSpecsForTickets.includes(ticket.id)) needsSpec = true;
-                  return { ticketId: ticket.id, needsSpec, existingContent: content, productSpec: prodContent };
-                }}
-              </Task>
-              {checkSpec ? (
-                <Branch
-                  if={checkSpec.needsSpec}
-                  then={
-                    <Sequence>
-                      <Task id={`generate-spec-${ticket.id}`} output={outputs.ticketSpec} agent={specAgent} retries={2} timeoutMs={1800000}>
-                        {`Write the detailed Engineering Specification for the TUI ticket: ${ticket.id}.
+          if (node.type === "spec") {
+            const checkSpec = ctx.outputMaybe(outputs.checkTicketSpec, { nodeId: `check-spec-${ticket.id}` });
+            return (
+              <Sequence key={node.id}>
+                <Task id={`check-spec-${ticket.id}`} output={outputs.checkTicketSpec} dependsOn={node.dependsOn}>
+                  {async () => {
+                    const engDir = path.join(dir, "engineering");
+                    await fs.mkdir(engDir, { recursive: true });
+                    const p = path.join(engDir, `${ticket.id}.md`);
+                    let content = "";
+                    try { content = await fs.readFile(p, "utf-8"); } catch {}
+                    let prodContent = "";
+                    if (ticket.type === "feature" && ticket.featureName) {
+                      try { prodContent = await fs.readFile(path.join(dir, `${ticket.featureName}.md`), "utf-8"); } catch {}
+                    }
+                    let needsSpec =
+                      !content.includes("## Implementation Plan") || !content.includes("## Unit & Integration Tests");
+                    if (impact.invalidateTicketSpecsForTickets.includes(ticket.id)) needsSpec = true;
+                    return { ticketId: ticket.id, needsSpec, existingContent: content, productSpec: prodContent };
+                  }}
+                </Task>
+                {checkSpec ? (
+                  <Branch
+                    if={checkSpec.needsSpec}
+                    then={
+                      <Sequence>
+                        <Task id={`generate-spec-${ticket.id}`} output={outputs.ticketSpec} agent={specAgent} retries={2} timeoutMs={1800000}>
+                          {`Write the detailed Engineering Specification for the TUI ticket: ${ticket.id}.
 
 Ticket Details:
 Title: ${ticket.title}
@@ -135,54 +144,54 @@ If an existing engineering spec is provided, update and improve it. Otherwise bu
 
 Existing Content:
 ${checkSpec.existingContent || "None"}`}
-                      </Task>
-                      {ctx.outputMaybe(outputs.ticketSpec, { nodeId: `generate-spec-${ticket.id}` }) ? (
-                        <Task id={`write-spec-${ticket.id}`} output={outputs.writeTicketSpec}>
-                          {async () => {
-                            const p = path.join(dir, "engineering", `${ticket.id}.md`);
-                            await fs.writeFile(p, ctx.outputMaybe(outputs.ticketSpec, { nodeId: `generate-spec-${ticket.id}` })!.document, "utf-8");
-                            return { success: true };
-                          }}
                         </Task>
-                      ) : null}
-                    </Sequence>
-                  }
-                  else={
-                    <Task id={`write-spec-${ticket.id}`} output={outputs.writeTicketSpec}>{{ success: true }}</Task>
-                  }
-                />
-              ) : null}
-              {ctx.outputMaybe(outputs.writeTicketSpec, { nodeId: `write-spec-${ticket.id}` }) ? (
-                <Task id={`done-spec-${ticket.id}`} output={outputs.done}>{{ success: true }}</Task>
-              ) : null}
-            </Sequence>
-          );
-        }
+                        {ctx.outputMaybe(outputs.ticketSpec, { nodeId: `generate-spec-${ticket.id}` }) ? (
+                          <Task id={`write-spec-${ticket.id}`} output={outputs.writeTicketSpec}>
+                            {async () => {
+                              const p = path.join(dir, "engineering", `${ticket.id}.md`);
+                              await fs.writeFile(p, ctx.outputMaybe(outputs.ticketSpec, { nodeId: `generate-spec-${ticket.id}` })!.document, "utf-8");
+                              return { success: true };
+                            }}
+                          </Task>
+                        ) : null}
+                      </Sequence>
+                    }
+                    else={
+                      <Task id={`write-spec-${ticket.id}`} output={outputs.writeTicketSpec}>{{ success: true }}</Task>
+                    }
+                  />
+                ) : null}
+                {ctx.outputMaybe(outputs.writeTicketSpec, { nodeId: `write-spec-${ticket.id}` }) ? (
+                  <Task id={`done-spec-${ticket.id}`} output={outputs.done}>{{ success: true }}</Task>
+                ) : null}
+              </Sequence>
+            );
+          }
 
-        if (node.type === "research") {
-          const checkResearch = ctx.outputMaybe(outputs.checkResearch, { nodeId: `check-research-${ticket.id}` });
-          return (
-            <Sequence key={node.id}>
-              <Task id={`check-research-${ticket.id}`} output={outputs.checkResearch} dependsOn={node.dependsOn}>
-                {async () => {
-                  const p = path.join(dir, "research", `${ticket.id}.md`);
-                  try {
-                    const content = await fs.readFile(p, "utf-8");
-                    let needsResearch = content.length < 10;
-                    if (impact.invalidateResearchForTickets.includes(ticket.id)) needsResearch = true;
-                    return { needsResearch, existingContent: content };
-                  } catch {
-                    return { needsResearch: true, existingContent: "" };
-                  }
-                }}
-              </Task>
-              {checkResearch ? (
-                <Branch
-                  if={checkResearch.needsResearch}
-                  then={
-                    <Sequence>
-                      <Task id={`generate-research-${ticket.id}`} output={outputs.researchOut} agent={implementAgent} retries={2} timeoutMs={1800000}>
-                        {`Research context for TUI ticket: ${ticket.id}
+          if (node.type === "research") {
+            const checkResearch = ctx.outputMaybe(outputs.checkResearch, { nodeId: `check-research-${ticket.id}` });
+            return (
+              <Sequence key={node.id}>
+                <Task id={`check-research-${ticket.id}`} output={outputs.checkResearch} dependsOn={node.dependsOn}>
+                  {async () => {
+                    const p = path.join(dir, "research", `${ticket.id}.md`);
+                    try {
+                      const content = await fs.readFile(p, "utf-8");
+                      let needsResearch = content.length < 10;
+                      if (impact.invalidateResearchForTickets.includes(ticket.id)) needsResearch = true;
+                      return { needsResearch, existingContent: content };
+                    } catch {
+                      return { needsResearch: true, existingContent: "" };
+                    }
+                  }}
+                </Task>
+                {checkResearch ? (
+                  <Branch
+                    if={checkResearch.needsResearch}
+                    then={
+                      <Sequence>
+                        <Task id={`generate-research-${ticket.id}`} output={outputs.researchOut} agent={implementAgent} retries={2} timeoutMs={1800000}>
+                          {`Research context for TUI ticket: ${ticket.id}
 Title: ${ticket.title}
 
 Engineering Spec:
@@ -198,9 +207,9 @@ Search these key directories:
 Document your findings comprehensively. Do NOT write the implementation plan yet. Just research.
 
 Return a JSON object with a "document" string containing your markdown research.`}
-                      </Task>
-                      <Task id={`review-research-${ticket.id}`} output={outputs.review} agent={reviewAgent} retries={1} timeoutMs={1800000}>
-                        {`Review the research for TUI ticket: ${ticket.id}
+                        </Task>
+                        <Task id={`review-research-${ticket.id}`} output={outputs.review} agent={reviewAgent} retries={1} timeoutMs={1800000}>
+                          {`Review the research for TUI ticket: ${ticket.id}
 
 The researcher produced this document:
 ${ctx.outputMaybe(outputs.researchOut, { nodeId: `generate-research-${ticket.id}` })?.document}
@@ -214,67 +223,67 @@ Your job:
 Return a JSON object with:
 - lgtm: boolean (true ONLY if perfect)
 - feedback: string (detailed feedback, or "LGTM" if perfect)`}
-                      </Task>
-                      <Task id={`write-review-research-${ticket.id}`} output={outputs.writeReview}>
-                        {async () => {
-                          const r = ctx.outputMaybe(outputs.review, { nodeId: `review-research-${ticket.id}` });
-                          if (r && !r.lgtm) {
-                            const reviewDir = path.join(dir, "reviews");
-                            await fs.mkdir(reviewDir, { recursive: true });
-                            await fs.writeFile(path.join(reviewDir, `research-${ticket.id}-iteration-0.md`), r.feedback, "utf-8");
-                          }
-                          return { success: true };
-                        }}
-                      </Task>
-                      <Task id={`write-research-${ticket.id}`} output={outputs.writeResearch}>
-                        {async () => {
-                          const researchDir = path.join(dir, "research");
-                          await fs.mkdir(researchDir, { recursive: true });
-                          const out = ctx.outputMaybe(outputs.researchOut, { nodeId: `generate-research-${ticket.id}` });
-                          if (out?.document) {
-                            await fs.writeFile(path.join(researchDir, `${ticket.id}.md`), out.document, "utf-8");
-                          }
-                          return { success: true };
-                        }}
-                      </Task>
-                    </Sequence>
-                  }
-                  else={
-                    <Task id={`write-research-${ticket.id}`} output={outputs.writeResearch}>{{ success: true }}</Task>
-                  }
-                />
-              ) : null}
-              {ctx.outputMaybe(outputs.writeResearch, { nodeId: `write-research-${ticket.id}` }) ? (
-                <Task id={`done-research-${ticket.id}`} output={outputs.done}>{{ success: true }}</Task>
-              ) : null}
-            </Sequence>
-          );
-        }
+                        </Task>
+                        <Task id={`write-review-research-${ticket.id}`} output={outputs.writeReview}>
+                          {async () => {
+                            const r = ctx.outputMaybe(outputs.review, { nodeId: `review-research-${ticket.id}` });
+                            if (r && !r.lgtm) {
+                              const reviewDir = path.join(dir, "reviews");
+                              await fs.mkdir(reviewDir, { recursive: true });
+                              await fs.writeFile(path.join(reviewDir, `research-${ticket.id}-iteration-0.md`), r.feedback, "utf-8");
+                            }
+                            return { success: true };
+                          }}
+                        </Task>
+                        <Task id={`write-research-${ticket.id}`} output={outputs.writeResearch}>
+                          {async () => {
+                            const researchDir = path.join(dir, "research");
+                            await fs.mkdir(researchDir, { recursive: true });
+                            const out = ctx.outputMaybe(outputs.researchOut, { nodeId: `generate-research-${ticket.id}` });
+                            if (out?.document) {
+                              await fs.writeFile(path.join(researchDir, `${ticket.id}.md`), out.document, "utf-8");
+                            }
+                            return { success: true };
+                          }}
+                        </Task>
+                      </Sequence>
+                    }
+                    else={
+                      <Task id={`write-research-${ticket.id}`} output={outputs.writeResearch}>{{ success: true }}</Task>
+                    }
+                  />
+                ) : null}
+                {ctx.outputMaybe(outputs.writeResearch, { nodeId: `write-research-${ticket.id}` }) ? (
+                  <Task id={`done-research-${ticket.id}`} output={outputs.done}>{{ success: true }}</Task>
+                ) : null}
+              </Sequence>
+            );
+          }
 
-        if (node.type === "plan") {
-          const checkPlan = ctx.outputMaybe(outputs.checkPlan, { nodeId: `check-plan-${ticket.id}` });
-          return (
-            <Sequence key={node.id}>
-              <Task id={`check-plan-${ticket.id}`} output={outputs.checkPlan} dependsOn={node.dependsOn}>
-                {async () => {
-                  const p = path.join(dir, "plans", `${ticket.id}.md`);
-                  try {
-                    const content = await fs.readFile(p, "utf-8");
-                    let needsPlan = content.length < 10;
-                    if (impact.invalidatePlanForTickets.includes(ticket.id)) needsPlan = true;
-                    return { needsPlan, existingContent: content };
-                  } catch {
-                    return { needsPlan: true, existingContent: "" };
-                  }
-                }}
-              </Task>
-              {checkPlan ? (
-                <Branch
-                  if={checkPlan.needsPlan}
-                  then={
-                    <Sequence>
-                      <Task id={`generate-plan-${ticket.id}`} output={outputs.planOut} agent={implementAgent} retries={2} timeoutMs={1800000}>
-                        {`Create an implementation plan for TUI ticket: ${ticket.id}
+          if (node.type === "plan") {
+            const checkPlan = ctx.outputMaybe(outputs.checkPlan, { nodeId: `check-plan-${ticket.id}` });
+            return (
+              <Sequence key={node.id}>
+                <Task id={`check-plan-${ticket.id}`} output={outputs.checkPlan} dependsOn={node.dependsOn}>
+                  {async () => {
+                    const p = path.join(dir, "plans", `${ticket.id}.md`);
+                    try {
+                      const content = await fs.readFile(p, "utf-8");
+                      let needsPlan = content.length < 10;
+                      if (impact.invalidatePlanForTickets.includes(ticket.id)) needsPlan = true;
+                      return { needsPlan, existingContent: content };
+                    } catch {
+                      return { needsPlan: true, existingContent: "" };
+                    }
+                  }}
+                </Task>
+                {checkPlan ? (
+                  <Branch
+                    if={checkPlan.needsPlan}
+                    then={
+                      <Sequence>
+                        <Task id={`generate-plan-${ticket.id}`} output={outputs.planOut} agent={implementAgent} retries={2} timeoutMs={1800000}>
+                          {`Create an implementation plan for TUI ticket: ${ticket.id}
 Title: ${ticket.title}
 
 Engineering Spec:
@@ -293,9 +302,9 @@ Your job is to come up with a clear, step-by-step implementation plan.
 - Include explicit steps for creating/updating E2E tests in e2e/tui/
 
 Return a JSON object with a "document" string containing your markdown plan.`}
-                      </Task>
-                      <Task id={`review-plan-${ticket.id}`} output={outputs.review} agent={reviewAgent} retries={1} timeoutMs={1800000}>
-                        {`Review the implementation plan for TUI ticket: ${ticket.id}
+                        </Task>
+                        <Task id={`review-plan-${ticket.id}`} output={outputs.review} agent={reviewAgent} retries={1} timeoutMs={1800000}>
+                          {`Review the implementation plan for TUI ticket: ${ticket.id}
 
 The planner produced this document:
 ${ctx.outputMaybe(outputs.planOut, { nodeId: `generate-plan-${ticket.id}` })?.document}
@@ -310,42 +319,50 @@ Your job:
 Return a JSON object with:
 - lgtm: boolean (true ONLY if perfect)
 - feedback: string (detailed feedback, or "LGTM" if perfect)`}
-                      </Task>
-                      <Task id={`write-review-plan-${ticket.id}`} output={outputs.writeReview}>
-                        {async () => {
-                          const r = ctx.outputMaybe(outputs.review, { nodeId: `review-plan-${ticket.id}` });
-                          if (r && !r.lgtm) {
-                            const reviewDir = path.join(dir, "reviews");
-                            await fs.mkdir(reviewDir, { recursive: true });
-                            await fs.writeFile(path.join(reviewDir, `plan-${ticket.id}-iteration-0.md`), r.feedback, "utf-8");
-                          }
-                          return { success: true };
-                        }}
-                      </Task>
-                      <Task id={`write-plan-${ticket.id}`} output={outputs.writePlan}>
-                        {async () => {
-                          const plansDir = path.join(dir, "plans");
-                          await fs.mkdir(plansDir, { recursive: true });
-                          const out = ctx.outputMaybe(outputs.planOut, { nodeId: `generate-plan-${ticket.id}` });
-                          if (out?.document) {
-                            await fs.writeFile(path.join(plansDir, `${ticket.id}.md`), out.document, "utf-8");
-                          }
-                          return { success: true };
-                        }}
-                      </Task>
-                    </Sequence>
-                  }
-                  else={
-                    <Task id={`write-plan-${ticket.id}`} output={outputs.writePlan}>{{ success: true }}</Task>
-                  }
-                />
-              ) : null}
-              {ctx.outputMaybe(outputs.writePlan, { nodeId: `write-plan-${ticket.id}` }) ? (
-                <Task id={`done-plan-${ticket.id}`} output={outputs.done}>{{ success: true }}</Task>
-              ) : null}
-            </Sequence>
-          );
-        }
+                        </Task>
+                        <Task id={`write-review-plan-${ticket.id}`} output={outputs.writeReview}>
+                          {async () => {
+                            const r = ctx.outputMaybe(outputs.review, { nodeId: `review-plan-${ticket.id}` });
+                            if (r && !r.lgtm) {
+                              const reviewDir = path.join(dir, "reviews");
+                              await fs.mkdir(reviewDir, { recursive: true });
+                              await fs.writeFile(path.join(reviewDir, `plan-${ticket.id}-iteration-0.md`), r.feedback, "utf-8");
+                            }
+                            return { success: true };
+                          }}
+                        </Task>
+                        <Task id={`write-plan-${ticket.id}`} output={outputs.writePlan}>
+                          {async () => {
+                            const plansDir = path.join(dir, "plans");
+                            await fs.mkdir(plansDir, { recursive: true });
+                            const out = ctx.outputMaybe(outputs.planOut, { nodeId: `generate-plan-${ticket.id}` });
+                            if (out?.document) {
+                              await fs.writeFile(path.join(plansDir, `${ticket.id}.md`), out.document, "utf-8");
+                            }
+                            return { success: true };
+                          }}
+                        </Task>
+                      </Sequence>
+                    }
+                    else={
+                      <Task id={`write-plan-${ticket.id}`} output={outputs.writePlan}>{{ success: true }}</Task>
+                    }
+                  />
+                ) : null}
+                {ctx.outputMaybe(outputs.writePlan, { nodeId: `write-plan-${ticket.id}` }) ? (
+                  <Task id={`done-plan-${ticket.id}`} output={outputs.done}>{{ success: true }}</Task>
+                ) : null}
+              </Sequence>
+            );
+          }
+
+          return null;
+        })}
+      </Parallel>
+
+      {/* Phase 2: Sequential implement/review/bookmark, one ticket at a time */}
+      {implNodes.map((node) => {
+        const ticket = node.ticket;
 
         if (node.type === "implement") {
           const checkImpl = ctx.outputMaybe(outputs.checkPlan, { nodeId: `check-impl-${ticket.id}` });
@@ -364,14 +381,12 @@ Return a JSON object with:
                           ["diff", "--stat", "-r", `bookmarks("tui-impl/${ticket.id}")"`],
                           root
                         );
-                        // If diff --stat is empty, the bookmark has no changes — re-implement
                         if (!diffStat.trim()) {
                           needsImpl = true;
                         } else {
                           needsImpl = false;
                         }
                       } catch {
-                        // If we can't check, assume we need to re-implement
                         needsImpl = true;
                       }
                     }

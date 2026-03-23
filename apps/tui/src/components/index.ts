@@ -13,3 +13,4 @@ export { SkeletonList } from "./SkeletonList.js";
 export { SkeletonDetail } from "./SkeletonDetail.js";
 export { PaginationIndicator } from "./PaginationIndicator.js";
 export { ActionButton } from "./ActionButton.js";
+export { OverlayLayer } from "./OverlayLayer.js";

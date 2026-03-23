@@ -5154,3 +5154,285 @@ describe('TUI_APP_SHELL — sidebar toggle E2E', () => {
     expect(restored).toBe(initial);
   });
 });
+
+// ── OverlayManager — mutual exclusion and lifecycle ──────────────
+
+describe("TUI_OVERLAY_MANAGER — overlay mutual exclusion", () => {
+  let terminal: any;
+
+  afterEach(async () => {
+    if (terminal) {
+      await terminal.terminate();
+    }
+  });
+
+  // ── Basic open/close lifecycle ────────────────────────────────
+
+  test("OVERLAY-001: ? opens help overlay", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Keybindings");
+    // Overlay should be visible with title
+    expect(terminal.snapshot()).toContain("Keybindings");
+    expect(terminal.snapshot()).toContain("Esc close");
+  });
+
+  test("OVERLAY-002: Esc closes help overlay", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Keybindings");
+    await terminal.sendKeys("Escape");
+    await terminal.waitForNoText("Keybindings");
+    // Should be back to dashboard
+    await terminal.waitForText("Dashboard");
+  });
+
+  test("OVERLAY-003: ? toggles help overlay off when already open", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Keybindings");
+    await terminal.sendKeys("?");
+    await terminal.waitForNoText("Keybindings");
+    await terminal.waitForText("Dashboard");
+  });
+
+  test("OVERLAY-004: : opens command palette overlay", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys(":");
+    await terminal.waitForText("Command Palette");
+    expect(terminal.snapshot()).toContain("Esc close");
+  });
+
+  test("OVERLAY-005: Esc closes command palette overlay", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys(":");
+    await terminal.waitForText("Command Palette");
+    await terminal.sendKeys("Escape");
+    await terminal.waitForNoText("Command Palette");
+    await terminal.waitForText("Dashboard");
+  });
+
+  test("OVERLAY-006: : toggles command palette off when already open", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys(":");
+    await terminal.waitForText("Command Palette");
+    await terminal.sendKeys(":");
+    await terminal.waitForNoText("Command Palette");
+  });
+
+  // ── Mutual exclusion ──────────────────────────────────────────
+
+  test("OVERLAY-007: opening help while command palette is open swaps overlays", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    // Open command palette
+    await terminal.sendKeys(":");
+    await terminal.waitForText("Command Palette");
+    // Now press ? — should swap to help
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Keybindings");
+    await terminal.waitForNoText("Command Palette");
+  });
+
+  test("OVERLAY-008: opening command palette while help is open swaps overlays", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    // Open help
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Keybindings");
+    // Now press : — should swap to command palette
+    await terminal.sendKeys(":");
+    await terminal.waitForText("Command Palette");
+    await terminal.waitForNoText("Keybindings");
+  });
+
+  test("OVERLAY-009: only one overlay is visible at any time (snapshot check)", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Keybindings");
+    const helpSnapshot = terminal.snapshot();
+    // Help visible, command palette not
+    expect(helpSnapshot).toContain("Keybindings");
+    expect(helpSnapshot).not.toContain("Command Palette");
+
+    await terminal.sendKeys(":");
+    await terminal.waitForText("Command Palette");
+    const paletteSnapshot = terminal.snapshot();
+    // Command palette visible, help not
+    expect(paletteSnapshot).toContain("Command Palette");
+    expect(paletteSnapshot).not.toContain("Keybindings");
+  });
+
+  // ── Focus trapping (keyboard priority) ────────────────────────
+
+  test("OVERLAY-010: q does not navigate back while overlay is open", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Keybindings");
+    await terminal.sendKeys("q");
+    // Should still show overlay, not quit
+    await terminal.waitForText("Keybindings");
+    await terminal.waitForText("Dashboard");
+  });
+
+  test("OVERLAY-011: screen keybindings suppressed while overlay open", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Keybindings");
+    // j/k should not move list focus underneath
+    await terminal.sendKeys("j");
+    await terminal.sendKeys("k");
+    // Overlay should still be showing
+    await terminal.waitForText("Keybindings");
+    await terminal.sendKeys("Escape");
+    await terminal.waitForText("Repositories");
+  });
+
+  test("OVERLAY-012: go-to mode does not activate while overlay open", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys(":");
+    await terminal.waitForText("Command Palette");
+    // g d should not navigate to dashboard
+    await terminal.sendKeys("g");
+    await terminal.sendKeys("d");
+    // Should still be on command palette
+    await terminal.waitForText("Command Palette");
+    await terminal.sendKeys("Escape");
+    await terminal.waitForText("Dashboard");
+  });
+
+  // ── Status bar hint override ──────────────────────────────────
+
+  test("OVERLAY-013: status bar shows Esc close hint while overlay open", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Keybindings");
+    const statusLine = terminal.getLine(terminal.rows - 1);
+    expect(statusLine).toMatch(/Esc.*close/i);
+  });
+
+  test("OVERLAY-014: status bar hints restore after overlay closes", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    const beforeHints = terminal.getLine(terminal.rows - 1);
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Keybindings");
+    await terminal.sendKeys("Escape");
+    await terminal.waitForNoText("Keybindings");
+    const afterHints = terminal.getLine(terminal.rows - 1);
+    // Hints should be restored (same as before overlay)
+    expect(afterHints).toBe(beforeHints);
+  });
+
+  // ── Responsive overlay sizing ─────────────────────────────────
+
+  test("OVERLAY-015: overlay uses 90% width at minimum breakpoint (80x24)", async () => {
+    terminal = await launchTUI({ cols: 80, rows: 24 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Keybindings");
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  test("OVERLAY-016: overlay uses 60% width at standard breakpoint (120x40)", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Keybindings");
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  test("OVERLAY-017: overlay uses 50% width at large breakpoint (200x60)", async () => {
+    terminal = await launchTUI({ cols: 200, rows: 60 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Keybindings");
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  // ── Edge cases ────────────────────────────────────────────────
+
+  test("OVERLAY-018: rapid ? ? does not leave overlay in inconsistent state", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    // Rapid toggle: open then close
+    await terminal.sendKeys("?");
+    await terminal.sendKeys("?");
+    // Should be closed
+    await terminal.waitForNoText("Keybindings");
+    await terminal.waitForText("Dashboard");
+  });
+
+  test("OVERLAY-019: Ctrl+C still exits even with overlay open", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Keybindings");
+    await terminal.sendKeys("\\x03"); // Ctrl+C
+    // TUI should exit — terminate will succeed
+    await terminal.terminate();
+  });
+
+  test("OVERLAY-020: closing overlay after screen navigation restores correct screen", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Keybindings");
+    await terminal.sendKeys("Escape");
+    await terminal.waitForNoText("Keybindings");
+    // Should still be on Repositories screen
+    await terminal.waitForText("Repositories");
+  });
+
+  test("OVERLAY-021: overlay renders with border and surface background color", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      env: { COLORTERM: "truecolor" },
+    });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Keybindings");
+    // Snapshot captures colors and borders
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  test("OVERLAY-022: multiple open-close cycles work correctly", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+
+    // Cycle 1: help
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Keybindings");
+    await terminal.sendKeys("Escape");
+    await terminal.waitForNoText("Keybindings");
+
+    // Cycle 2: command palette
+    await terminal.sendKeys(":");
+    await terminal.waitForText("Command Palette");
+    await terminal.sendKeys("Escape");
+    await terminal.waitForNoText("Command Palette");
+
+    // Cycle 3: help again
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Keybindings");
+    await terminal.sendKeys("?"); // toggle off
+    await terminal.waitForNoText("Keybindings");
+
+    // Should still be on dashboard with no overlays
+    await terminal.waitForText("Dashboard");
+  });
+});
