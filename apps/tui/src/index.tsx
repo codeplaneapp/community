@@ -19,7 +19,7 @@ const launchOptions = parseCLIArgs(process.argv.slice(2));
 
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
-import React from "react";
+import React, { useState, useCallback, useRef } from "react";
 
 import { ErrorBoundary } from "./components/ErrorBoundary.js";
 import { AuthProvider } from "./providers/AuthProvider.js";
@@ -28,6 +28,7 @@ import { NavigationProvider } from "./providers/NavigationProvider.js";
 import { SSEProvider } from "./providers/SSEProvider.js";
 import { AppShell } from "./components/AppShell.js";
 import { GlobalKeybindings } from "./components/GlobalKeybindings.js";
+import { ScreenRouter } from "./router/ScreenRouter.js";
 import { registerSignalHandlers } from "./lib/signals.js";
 import { resolveDeepLink } from "./navigation/deepLinks.js";
 
@@ -44,21 +45,50 @@ const initialStack = resolveDeepLink({
 
 const root = createRoot(renderer);
 
-root.render(
-  <ErrorBoundary>
+function App() {
+  const [navResetKey, setNavResetKey] = useState(0);
+  const screenRef = useRef<string>(initialStack[initialStack.length - 1].screen);
+  const noColor = process.env.NO_COLOR === "1" || process.env.TERM === "dumb";
+
+  const handleReset = useCallback(() => {
+    setNavResetKey((k) => k + 1);
+  }, []);
+
+  const handleQuit = useCallback(() => {
+    process.exit(0);
+  }, []);
+
+  return (
     <ThemeProvider>
       <AuthProvider token={launchOptions.token} apiUrl={launchOptions.apiUrl}>
-        <SSEProvider>
-          <NavigationProvider initialStack={initialStack}>
-            <GlobalKeybindings>
-              <AppShell />
-            </GlobalKeybindings>
-          </NavigationProvider>
-        </SSEProvider>
+        <NavigationProvider
+          key={navResetKey}
+          initialStack={initialStack}
+          onNavigate={(entry) => {
+            screenRef.current = entry.screen;
+          }}
+        >
+          <GlobalKeybindings>
+            <AppShell>
+              <ErrorBoundary
+                onReset={handleReset}
+                onQuit={handleQuit}
+                currentScreen={screenRef.current}
+                noColor={noColor}
+              >
+                <SSEProvider>
+                  <ScreenRouter />
+                </SSEProvider>
+              </ErrorBoundary>
+            </AppShell>
+          </GlobalKeybindings>
+        </NavigationProvider>
       </AuthProvider>
     </ThemeProvider>
-  </ErrorBoundary>
-);
+  );
+}
+
+root.render(<App />);
 
 if (launchOptions.debug) {
   const { width, height } = renderer;

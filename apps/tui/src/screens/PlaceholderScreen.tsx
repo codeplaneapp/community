@@ -1,3 +1,10 @@
+import { TestCrashHook } from "../components/__test__/TestCrashHook.js";
+
 export function PlaceholderScreen() {
-  return <text>Placeholder</text>;
+  return (
+    <>
+      <TestCrashHook />
+      <text>Placeholder</text>
+    </>
+  );
 }

@@ -1,88 +1,167 @@
 import React from "react";
-import { detectColorCapability } from "../theme/detect.js";
-import { createTheme, TextAttributes } from "../theme/tokens.js";
+import { ErrorScreen } from "./ErrorScreen.js";
+import { CrashLoopDetector } from "../lib/crash-loop.js";
+import { normalizeError } from "../lib/normalize-error.js";
+import { emit } from "../lib/telemetry.js";
+import { logger } from "../lib/logger.js";
 
-const fallbackTheme = createTheme(detectColorCapability());
+// ── Types ────────────────────────────────────────────────────────────────────
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  /**
+   * Called when user presses 'r' to restart.
+   * Parent should: reset navigation stack → increment a key prop to
+   * force full child remount → clear SSE/data caches.
+   */
+  onReset: () => void;
+  /**
+   * Called when user presses 'q' to quit.
+   * Parent should: restore terminal → process.exit(0).
+   */
+  onQuit: () => void;
+  /**
+   * The current screen name, used for telemetry context.
+   * Updated by the NavigationProvider (or parent) on navigation.
+   */
+  currentScreen?: string;
+  /**
+   * Whether color output is disabled (NO_COLOR=1 or TERM=dumb).
+   */
+  noColor?: boolean;
+}
 
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
-  showStack: boolean;
+  /** Incremented on each restart to force child remount via key prop. */
+  resetToken: number;
 }
 
+// ── Component ────────────────────────────────────────────────────────────────
+
 export class ErrorBoundary extends React.Component<
-  { children: React.ReactNode; onRestart?: () => void },
+  ErrorBoundaryProps,
   ErrorBoundaryState
 > {
-  state: ErrorBoundaryState = { hasError: false, error: null, showStack: false };
+  private crashLoopDetector = new CrashLoopDetector();
+  private restartCount = 0;
 
-  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+  state: ErrorBoundaryState = {
+    hasError: false,
+    error: null,
+    resetToken: 0,
+  };
+
+  static getDerivedStateFromError(thrown: unknown): Partial<ErrorBoundaryState> {
+    const error = normalizeError(thrown);
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
-    if (process.env.CODEPLANE_TUI_DEBUG === "true") {
-      process.stderr.write(
-        JSON.stringify({
-          component: "tui",
-          phase: "render",
-          level: "error",
-          message: error.message,
-          stack: error.stack,
-          componentStack: info.componentStack,
-        }) + "\n"
-      );
+  componentDidMount(): void {
+    logger.debug("ErrorBoundary: mounted");
+  }
+
+  componentDidCatch(thrown: unknown, info: React.ErrorInfo): void {
+    const error = normalizeError(thrown);
+    const screen = this.props.currentScreen ?? "unknown";
+
+    // Log the error
+    logger.error(
+      `ErrorBoundary: caught unhandled error [screen=${screen}] [error=${error.name}: ${error.message}]`,
+    );
+    if (error.stack) {
+      logger.error(`ErrorBoundary: stack trace:\n${error.stack}`);
     }
+
+    // Emit telemetry
+    emit("tui.error_boundary.caught", {
+      error_name: error.name,
+      error_message_truncated: error.message.slice(0, 100),
+      screen,
+      stack_depth: 0, // Would need NavigationContext access; parent can provide
+      terminal_width: 0, // Set by telemetry context
+      terminal_height: 0,
+    });
   }
 
-  render() {
-    if (!this.state.hasError) return this.props.children;
+  private handleRestart = (): void => {
+    this.restartCount++;
 
-    return <ErrorBoundaryScreen 
-      error={this.state.error} 
-      showStack={this.state.showStack}
-      onToggleStack={() => this.setState(s => ({ showStack: !s.showStack }))}
-      onRestart={() => {
-        this.setState({ hasError: false, error: null, showStack: false });
-        this.props.onRestart?.();
-      }}
-    />;
+    // Check crash loop
+    const isCrashLoop = this.crashLoopDetector.recordRestart();
+    if (isCrashLoop) {
+      const msg = `Repeated crash detected. Exiting. [${this.crashLoopDetector.restartCount} restarts]`;
+      logger.warn(
+        `ErrorBoundary: crash loop detected [${this.crashLoopDetector.restartCount} restarts in ${5000}ms] — exiting`,
+      );
+      emit("tui.error_boundary.crash_loop_exit", {
+        error_name: this.state.error?.name ?? "unknown",
+        restart_count: this.restartCount,
+        time_window_ms: 5000,
+      });
+      process.stderr.write(msg + "\n");
+      process.exit(1);
+      return;
+    }
+
+    // Clear error state and increment resetToken to force child remount
+    this.setState((prev) => ({
+      hasError: false,
+      error: null,
+      resetToken: prev.resetToken + 1,
+    }));
+
+    // Notify parent to reset navigation stack, SSE, caches
+    this.props.onReset();
+  };
+
+  private handleQuit = (): void => {
+    this.props.onQuit();
+  };
+
+  render(): React.ReactNode {
+    if (this.state.hasError && this.state.error) {
+      // Double fault protection: if the error screen itself throws,
+      // catch it and exit cleanly to stderr.
+      try {
+        return (
+          <ErrorScreen
+            error={this.state.error}
+            onRestart={this.handleRestart}
+            onQuit={this.handleQuit}
+            screenName={this.props.currentScreen}
+            noColor={this.props.noColor}
+          />
+        );
+      } catch (secondaryError: unknown) {
+        // Double fault: the error screen itself crashed.
+        const primary = this.state.error;
+        const secondary = normalizeError(secondaryError);
+
+        logger.error(
+          `ErrorBoundary: error during error screen render [primary=${primary.message}] [secondary=${secondary.message}]`,
+        );
+        emit("tui.error_boundary.double_fault", {
+          primary_error_name: primary.name,
+          secondary_error_name: secondary.name,
+        });
+
+        process.stderr.write(
+          `Fatal: TUI error boundary failed.\n` +
+            `Primary error: ${primary.message}\n` +
+            `Secondary error: ${secondary.message}\n`,
+        );
+        process.exit(1);
+        return null; // unreachable, satisfies TypeScript
+      }
+    }
+
+    // Normal render: wrap children with resetToken key to force remount on restart
+    return (
+      <React.Fragment key={this.state.resetToken}>
+        {this.props.children}
+      </React.Fragment>
+    );
   }
-}
-
-function ErrorBoundaryScreen({
-  error,
-  showStack,
-  onToggleStack,
-  onRestart,
-}: {
-  error: Error | null;
-  showStack: boolean;
-  onToggleStack: () => void;
-  onRestart: () => void;
-}) {
-  const { useKeyboard } = require("@opentui/react");
-
-  useKeyboard((event: { name: string }) => {
-    if (event.name === "r") onRestart();
-    if (event.name === "q") process.exit(0);
-    if (event.name === "s") onToggleStack();
-  });
-
-  return (
-    <box flexDirection="column" width="100%" height="100%" padding={2}>
-      <text fg={fallbackTheme.error} attributes={TextAttributes.BOLD}>Something went wrong</text>
-      <text fg={fallbackTheme.error}>{error?.message ?? "Unknown error"}</text>
-      {showStack && error?.stack && (
-        <box marginTop={1}>
-          <text fg={fallbackTheme.muted}>{error.stack}</text>
-        </box>
-      )}
-      <box marginTop={1}>
-        <text fg={fallbackTheme.muted}>
-          Press `r` to restart — Press `q` to quit — Press `s` to {showStack ? "hide" : "show"} stack trace
-        </text>
-      </box>
-    </box>
-  );
 }

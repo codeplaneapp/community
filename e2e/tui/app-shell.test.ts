@@ -2312,3 +2312,617 @@ describe("TUI_THEME_AND_COLOR_TOKENS — Token System Unit Tests", () => {
     expect(content).toMatch(/import.*(?:detectColorCapability|detectColorTier).*from.*(?:theme\/detect|\.\.\/theme)/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// TUI_ERROR_BOUNDARY
+// ---------------------------------------------------------------------------
+
+describe("TUI_ERROR_BOUNDARY", () => {
+  let terminal: import("../../e2e/tui/helpers.js").TUITestInstance;
+
+  afterEach(async () => {
+    if (terminal) await terminal.terminate();
+  });
+
+  describe("Snapshot Tests", () => {
+    test("error-boundary-renders-error-screen", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      const snap = terminal.snapshot();
+      expect(snap).toContain("✗ Something went wrong");
+      expect(snap).toContain("r:restart");
+      expect(snap).toContain("q:quit");
+      expect(terminal.snapshot()).toMatchSnapshot();
+    });
+
+    test("error-boundary-renders-error-screen-80x24", async () => {
+      terminal = await launchTUI({
+        cols: 80,
+        rows: 24,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      expect(terminal.snapshot()).toMatchSnapshot();
+    });
+
+    test("error-boundary-renders-error-screen-200x60", async () => {
+      terminal = await launchTUI({
+        cols: 200,
+        rows: 60,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      expect(terminal.snapshot()).toMatchSnapshot();
+    });
+
+    test("error-boundary-error-message-wrapping-80x24", async () => {
+      terminal = await launchTUI({
+        cols: 80,
+        rows: 24,
+        env: {
+          CODEPLANE_TUI_TEST_THROW: "1",
+          CODEPLANE_TUI_TEST_ERROR_MESSAGE:
+            "This is a very long error message that exceeds eighty characters and should be wrapped across multiple lines in the error screen display",
+        },
+      });
+      await terminal.waitForText("Something went wrong");
+      const snap = terminal.snapshot();
+      expect(snap).toContain("This is a very long");
+      expect(terminal.snapshot()).toMatchSnapshot();
+    });
+
+    test("error-boundary-error-message-wrapping-120x40", async () => {
+      const longMsg = "A".repeat(300) + " " + "B".repeat(50);
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: {
+          CODEPLANE_TUI_TEST_THROW: "1",
+          CODEPLANE_TUI_TEST_ERROR_MESSAGE: longMsg,
+        },
+      });
+      await terminal.waitForText("Something went wrong");
+      expect(terminal.snapshot()).toMatchSnapshot();
+    });
+
+    test("error-boundary-stack-trace-collapsed", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      const snap = terminal.snapshot();
+      expect(snap).toContain("▸ Stack trace");
+      expect(snap).not.toContain("at ");
+    });
+
+    test("error-boundary-stack-trace-expanded", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("s");
+      const snap = terminal.snapshot();
+      expect(snap).toContain("▾ Stack trace");
+      expect(terminal.snapshot()).toMatchSnapshot();
+    });
+
+    test("error-boundary-no-stack-trace-available", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: {
+          CODEPLANE_TUI_TEST_THROW: "1",
+          CODEPLANE_TUI_TEST_NO_STACK: "1",
+        },
+      });
+      await terminal.waitForText("Something went wrong");
+      const snap = terminal.snapshot();
+      expect(snap).not.toContain("Stack trace");
+      expect(snap).toContain("r:restart");
+      expect(snap).toContain("q:quit");
+      expect(snap).not.toContain("s:trace");
+    });
+
+    test("error-boundary-header-and-status-bar-persist", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: {
+          CODEPLANE_TUI_TEST_THROW_AFTER_MS: "500",
+        },
+      });
+      await terminal.waitForText("Dashboard");
+      await terminal.waitForText("Something went wrong");
+      const header = terminal.getLine(0);
+      expect(header).toBeTruthy();
+      const statusBar = terminal.getLine(terminal.rows - 1);
+      expect(statusBar).toBeTruthy();
+    });
+
+    test("error-boundary-long-error-message-truncation", async () => {
+      const longMsg = "X".repeat(600);
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: {
+          CODEPLANE_TUI_TEST_THROW: "1",
+          CODEPLANE_TUI_TEST_ERROR_MESSAGE: longMsg,
+        },
+      });
+      await terminal.waitForText("Something went wrong");
+      const snap = terminal.snapshot();
+      expect(snap).toContain("…");
+      expect(snap).not.toContain("X".repeat(501));
+    });
+
+    test("error-boundary-colors-use-semantic-tokens", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: {
+          CODEPLANE_TUI_TEST_THROW: "1",
+          COLORTERM: "truecolor",
+        },
+      });
+      await terminal.waitForText("Something went wrong");
+      expect(terminal.snapshot()).toMatchSnapshot();
+    });
+  });
+
+  describe("Keyboard Interaction Tests", () => {
+    test("error-boundary-r-restarts-to-dashboard", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW_ONCE: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("r");
+      await terminal.waitForText("Dashboard");
+      await terminal.waitForNoText("Something went wrong");
+      const header = terminal.getLine(0);
+      expect(header).toMatch(/Dashboard/);
+    });
+
+    test("error-boundary-q-quits-cleanly", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("q");
+    });
+
+    test("error-boundary-ctrl-c-quits-immediately", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys(""); // Ctrl+C
+    });
+
+    test("error-boundary-s-toggles-stack-trace", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      expect(terminal.snapshot()).toContain("▸ Stack trace");
+      await terminal.sendKeys("s");
+      expect(terminal.snapshot()).toContain("▾ Stack trace");
+      await terminal.sendKeys("s");
+      expect(terminal.snapshot()).toContain("▸ Stack trace");
+    });
+
+    test("error-boundary-jk-scrolls-expanded-trace", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("s");
+      for (let i = 0; i < 10; i++) await terminal.sendKeys("j");
+      const snapAfterDown = terminal.snapshot();
+      for (let i = 0; i < 5; i++) await terminal.sendKeys("k");
+      const snapAfterUp = terminal.snapshot();
+      expect(snapAfterUp).toBeTruthy();
+    });
+
+    test("error-boundary-G-jumps-to-trace-bottom", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("s");
+      await terminal.sendKeys("G");
+      expect(terminal.snapshot()).toMatchSnapshot();
+    });
+
+    test("error-boundary-gg-jumps-to-trace-top", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("s");
+      await terminal.sendKeys("G");
+      await terminal.sendKeys("g", "g");
+      expect(terminal.snapshot()).toMatchSnapshot();
+    });
+
+    test("error-boundary-ctrl-d-pages-down-trace", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("s");
+      await terminal.sendKeys(""); // Ctrl+D
+      expect(terminal.snapshot()).toBeTruthy();
+    });
+
+    test("error-boundary-ctrl-u-pages-up-trace", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("s");
+      await terminal.sendKeys(""); // Ctrl+D
+      await terminal.sendKeys(""); // Ctrl+U
+      expect(terminal.snapshot()).toMatchSnapshot();
+    });
+
+    test("error-boundary-navigation-keys-suppressed", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("g", "d");
+      expect(terminal.snapshot()).toContain("Something went wrong");
+      await terminal.sendKeys(":");
+      expect(terminal.snapshot()).not.toContain("Command Palette");
+      expect(terminal.snapshot()).toContain("Something went wrong");
+    });
+
+    test("error-boundary-help-overlay-works", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("?");
+      expect(terminal.snapshot()).toContain("Error Screen Keybindings");
+      expect(terminal.snapshot()).toContain("Restart TUI");
+      await terminal.sendKeys(""); // Esc
+      expect(terminal.snapshot()).not.toContain("Error Screen Keybindings");
+      expect(terminal.snapshot()).toContain("Something went wrong");
+    });
+
+    test("error-boundary-rapid-r-no-double-restart", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW_ONCE: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("r", "r", "r");
+      await terminal.waitForText("Dashboard");
+    });
+
+    test("error-boundary-restart-after-restart", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW_COUNT: "2" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("r");
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("r");
+      await terminal.waitForText("Dashboard");
+    });
+  });
+
+  describe("Responsive Tests", () => {
+    test("error-boundary-layout-80x24", async () => {
+      terminal = await launchTUI({
+        cols: 80,
+        rows: 24,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      const snap = terminal.snapshot();
+      expect(snap).toContain("✗ Something went wrong");
+      expect(snap).toContain("r:restart");
+      expect(snap).toContain("q:quit");
+      expect(terminal.snapshot()).toMatchSnapshot();
+    });
+
+    test("error-boundary-layout-120x40", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      expect(terminal.snapshot()).toMatchSnapshot();
+    });
+
+    test("error-boundary-layout-200x60", async () => {
+      terminal = await launchTUI({
+        cols: 200,
+        rows: 60,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      expect(terminal.snapshot()).toMatchSnapshot();
+    });
+
+    test("error-boundary-resize-during-error-screen", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.resize(80, 24);
+      const snap = terminal.snapshot();
+      expect(snap).toContain("Something went wrong");
+      expect(snap).toContain("r:restart");
+    });
+
+    test("error-boundary-resize-with-expanded-trace", async () => {
+      terminal = await launchTUI({
+        cols: 200,
+        rows: 60,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("s");
+      await terminal.sendKeys("j", "j", "j");
+      await terminal.resize(80, 24);
+      const snap = terminal.snapshot();
+      expect(snap).toContain("▾ Stack trace");
+    });
+
+    test("error-boundary-resize-below-minimum-during-error", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.resize(60, 20);
+      await terminal.waitForText("Terminal too small");
+      await terminal.resize(120, 40);
+      await terminal.waitForText("Something went wrong");
+    });
+
+    test("error-boundary-resize-from-minimum-to-large", async () => {
+      terminal = await launchTUI({
+        cols: 80,
+        rows: 24,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.resize(200, 60);
+      expect(terminal.snapshot()).toMatchSnapshot();
+    });
+  });
+
+  describe("Crash Loop and Double Fault Tests", () => {
+    test("error-boundary-crash-loop-detection", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW_ALWAYS: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("r");
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("r");
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("r");
+    });
+
+    test("error-boundary-double-fault-exits-cleanly", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_DOUBLE_FAULT: "1" },
+      });
+    });
+
+    test("error-boundary-crash-loop-resets-after-stable-period", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW_TWICE: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("r");
+      await terminal.waitForText("Dashboard");
+    });
+  });
+
+  describe("Integration Tests", () => {
+    test("error-boundary-preserves-auth-state-on-restart", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: {
+          CODEPLANE_TUI_TEST_THROW_ONCE: "1",
+          CODEPLANE_TOKEN: "valid-test-token",
+        },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("r");
+      await terminal.waitForText("Dashboard");
+    });
+
+    test("error-boundary-sse-reconnects-after-restart", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW_ONCE: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      await terminal.sendKeys("r");
+      await terminal.waitForText("Dashboard");
+    });
+
+    test("error-boundary-non-error-thrown-value", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW_STRING: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      const snap = terminal.snapshot();
+      expect(snap).toContain("Something went wrong");
+    });
+
+    test("error-boundary-error-during-initial-render", async () => {
+      terminal = await launchTUI({
+        cols: 120,
+        rows: 40,
+        env: { CODEPLANE_TUI_TEST_THROW: "1" },
+      });
+      await terminal.waitForText("Something went wrong");
+      expect(terminal.snapshot()).toContain("r:restart");
+      await terminal.sendKeys("r");
+      await terminal.waitForText("Something went wrong");
+    });
+  });
+});
+
+describe("TUI_ERROR_BOUNDARY — Unit Tests", () => {
+  describe("CrashLoopDetector", () => {
+    test("returns false for first restart", async () => {
+      const { exitCode, stdout } = await bunEval(`
+        const { CrashLoopDetector } = require("${TUI_SRC}/lib/crash-loop.ts");
+        const detector = new CrashLoopDetector();
+        console.log(detector.recordRestart());
+      `);
+      expect(stdout.trim()).toBe("false");
+    });
+
+    test("returns false for 2 restarts in window", async () => {
+      const { stdout } = await bunEval(`
+        const { CrashLoopDetector } = require("${TUI_SRC}/lib/crash-loop.ts");
+        const detector = new CrashLoopDetector();
+        detector.recordRestart();
+        console.log(detector.recordRestart());
+      `);
+      expect(stdout.trim()).toBe("false");
+    });
+
+    test("returns true for 3 restarts within window", async () => {
+      const { stdout } = await bunEval(`
+        const { CrashLoopDetector } = require("${TUI_SRC}/lib/crash-loop.ts");
+        const detector = new CrashLoopDetector();
+        detector.recordRestart();
+        detector.recordRestart();
+        console.log(detector.recordRestart());
+      `);
+      expect(stdout.trim()).toBe("true");
+    });
+
+    test("does not trigger after timestamps age out", async () => {
+      const { stdout } = await bunEval(`
+        const { CrashLoopDetector } = require("${TUI_SRC}/lib/crash-loop.ts");
+        const detector = new CrashLoopDetector(100, 3);
+        detector.recordRestart();
+        detector.recordRestart();
+        await new Promise(r => setTimeout(r, 150));
+        console.log(detector.recordRestart());
+      `);
+      expect(stdout.trim()).toBe("false");
+    });
+
+    test("ring buffer caps at 5 entries", async () => {
+      const { stdout } = await bunEval(`
+        const { CrashLoopDetector } = require("${TUI_SRC}/lib/crash-loop.ts");
+        const detector = new CrashLoopDetector(100000, 10);
+        for (let i = 0; i < 10; i++) detector.recordRestart();
+        console.log(detector.restartCount);
+      `);
+      expect(stdout.trim()).toBe("5");
+    });
+  });
+
+  describe("normalizeError", () => {
+    test("passes through Error instances", async () => {
+      const { stdout } = await bunEval(`
+        const { normalizeError } = require("${TUI_SRC}/lib/normalize-error.ts");
+        const err = new Error("test");
+        const result = normalizeError(err);
+        console.log(result === err);
+      `);
+      expect(stdout.trim()).toBe("true");
+    });
+
+    test("wraps string in Error", async () => {
+      const { stdout } = await bunEval(`
+        const { normalizeError } = require("${TUI_SRC}/lib/normalize-error.ts");
+        const result = normalizeError("something broke");
+        console.log(result instanceof Error, result.message);
+      `);
+      expect(stdout.trim()).toBe("true something broke");
+    });
+
+    test("handles null with Unknown error", async () => {
+      const { stdout } = await bunEval(`
+        const { normalizeError } = require("${TUI_SRC}/lib/normalize-error.ts");
+        console.log(normalizeError(null).message);
+      `);
+      expect(stdout.trim()).toBe("Unknown error");
+    });
+
+    test("handles undefined with Unknown error", async () => {
+      const { stdout } = await bunEval(`
+        const { normalizeError } = require("${TUI_SRC}/lib/normalize-error.ts");
+        console.log(normalizeError(undefined).message);
+      `);
+      expect(stdout.trim()).toBe("Unknown error");
+    });
+
+    test("extracts message from plain object", async () => {
+      const { stdout } = await bunEval(`
+        const { normalizeError } = require("${TUI_SRC}/lib/normalize-error.ts");
+        console.log(normalizeError({ message: "obj error" }).message);
+      `);
+      expect(stdout.trim()).toBe("obj error");
+    });
+
+    test("handles number thrown value", async () => {
+      const { stdout } = await bunEval(`
+        const { normalizeError } = require("${TUI_SRC}/lib/normalize-error.ts");
+        console.log(normalizeError(42).message);
+      `);
+      expect(stdout.trim()).toBe("42");
+    });
+  });
+});

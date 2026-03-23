@@ -1,15 +1,15 @@
+import React from "react";
 import { useTerminalDimensions } from "@opentui/react";
 import { getBreakpoint } from "../types/breakpoint.js";
 import { HeaderBar } from "./HeaderBar.js";
 import { StatusBar } from "./StatusBar.js";
-import { ScreenRouter } from "../router/ScreenRouter.js";
 import { TerminalTooSmallScreen } from "./TerminalTooSmallScreen.js";
 
-export function AppShell() {
+export function AppShell({ children }: { children?: React.ReactNode }) {
   const { width, height } = useTerminalDimensions();
-  const breakpoint = getBreakpoint(width, height);
+  const bp = getBreakpoint(width, height);
 
-  if (breakpoint === null) {
+  if (bp === null) {
     return <TerminalTooSmallScreen cols={width} rows={height} />;
   }
 
@@ -17,7 +17,7 @@ export function AppShell() {
     <box flexDirection="column" width="100%" height="100%">
       <HeaderBar />
       <box flexGrow={1} width="100%">
-        <ScreenRouter />
+        {children}
       </box>
       <StatusBar />
     </box>
