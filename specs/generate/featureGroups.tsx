@@ -3,7 +3,7 @@ import { Task, Sequence, Branch } from "smithers-orchestrator";
 import { z } from "zod";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { specsDir } from "./utils";
+// specsDir is now passed as a prop (domain-aware)
 
 export const featureGroupsSchemas = {
   checkGroups: z.object({ needsGroups: z.boolean(), existingContent: z.string() }),
@@ -26,6 +26,7 @@ export function FeatureGroupsPhase({
   archContent,
   specAgent,
   outputs,
+  dir,
 }: {
   ctx: any;
   impact: any;
@@ -33,6 +34,7 @@ export function FeatureGroupsPhase({
   archContent: string;
   specAgent: any;
   outputs: any;
+  dir: string;
 }) {
   const writeArch = ctx.outputMaybe(outputs.writeArch, { nodeId: "write-arch" });
   if (!writeArch || !impact) return null;
@@ -43,7 +45,7 @@ export function FeatureGroupsPhase({
     <Sequence>
       <Task id="check-groups" output={outputs.checkGroups}>
         {async () => {
-          const p = path.join(specsDir(),"feature-groups.json");
+          const p = path.join(dir,"feature-groups.json");
           let content = "";
           try {
             content = await fs.readFile(p, "utf-8");
@@ -91,7 +93,7 @@ ${featureNames.join(", ")}`}
               {ctx.outputMaybe(outputs.featureGroupsOut, { nodeId: "generate-groups" }) ? (
                 <Task id="write-groups" output={outputs.writeGroups}>
                   {async () => {
-                    const p = path.join(specsDir(),"feature-groups.json");
+                    const p = path.join(dir,"feature-groups.json");
                     const g = ctx.outputMaybe(outputs.featureGroupsOut, { nodeId: "generate-groups" });
                     await fs.writeFile(p, JSON.stringify(g, null, 2), "utf-8");
                     return { success: true };
