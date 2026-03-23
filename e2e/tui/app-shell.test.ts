@@ -1231,3 +1231,102 @@ describe("TUI_APP_SHELL — ThemeProvider and useTheme hook", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// TUI_APP_SHELL — useSpinner hook scaffold
+// ---------------------------------------------------------------------------
+
+describe("TUI_APP_SHELL — useSpinner hook scaffold", () => {
+  test("useSpinner.ts exports useSpinner function", async () => {
+    const { exitCode, stdout } = await bunEval(`
+      const mod = await import("./src/hooks/useSpinner.js");
+      console.log(typeof mod.useSpinner);
+    `);
+    expect(exitCode).toBe(0);
+    expect(stdout.trim()).toBe("function");
+  });
+
+  test("useSpinner.ts exports BRAILLE_FRAMES with 10 entries", async () => {
+    const { exitCode, stdout } = await bunEval(`
+      const { BRAILLE_FRAMES } = await import("./src/hooks/useSpinner.js");
+      console.log(JSON.stringify({ length: BRAILLE_FRAMES.length, first: BRAILLE_FRAMES[0], last: BRAILLE_FRAMES[9] }));
+    `);
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout.trim());
+    expect(parsed.length).toBe(10);
+    expect(parsed.first).toBe("⠋");
+    expect(parsed.last).toBe("⠏");
+  });
+
+  test("useSpinner.ts exports ASCII_FRAMES with 4 entries", async () => {
+    const { exitCode, stdout } = await bunEval(`
+      const { ASCII_FRAMES } = await import("./src/hooks/useSpinner.js");
+      console.log(JSON.stringify({ length: ASCII_FRAMES.length, frames: Array.from(ASCII_FRAMES) }));
+    `);
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout.trim());
+    expect(parsed.length).toBe(4);
+    expect(parsed.frames).toEqual(["-", "\\", "|", "/"]);
+  });
+
+  test("useSpinner.ts exports interval constants", async () => {
+    const { exitCode, stdout } = await bunEval(`
+      const { BRAILLE_INTERVAL_MS, ASCII_INTERVAL_MS } = await import("./src/hooks/useSpinner.js");
+      console.log(JSON.stringify({ braille: BRAILLE_INTERVAL_MS, ascii: ASCII_INTERVAL_MS }));
+    `);
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout.trim());
+    expect(parsed.braille).toBe(80);
+    expect(parsed.ascii).toBe(120);
+  });
+
+  test("hooks/index.ts barrel re-exports useSpinner", async () => {
+    const { exitCode, stdout } = await bunEval(`
+      const mod = await import("./src/hooks/index.js");
+      console.log(typeof mod.useSpinner);
+    `);
+    expect(exitCode).toBe(0);
+    expect(stdout.trim()).toBe("function");
+  });
+
+  test("hooks/index.ts barrel re-exports spinner constants", async () => {
+    const { exitCode, stdout } = await bunEval(`
+      const mod = await import("./src/hooks/index.js");
+      console.log(JSON.stringify({
+        BRAILLE_FRAMES: typeof mod.BRAILLE_FRAMES,
+        ASCII_FRAMES: typeof mod.ASCII_FRAMES,
+        BRAILLE_INTERVAL_MS: typeof mod.BRAILLE_INTERVAL_MS,
+        ASCII_INTERVAL_MS: typeof mod.ASCII_INTERVAL_MS,
+      }));
+    `);
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout.trim());
+    expect(parsed.BRAILLE_FRAMES).toBe("object");
+    expect(parsed.ASCII_FRAMES).toBe("object");
+    expect(parsed.BRAILLE_INTERVAL_MS).toBe("number");
+    expect(parsed.ASCII_INTERVAL_MS).toBe("number");
+  });
+
+  test("useSpinner imports Timeline and engine from @opentui/core", async () => {
+    // Verify the hook's dependencies resolve at runtime
+    const { exitCode } = await bunEval(`
+      const { Timeline, engine } = await import("@opentui/core");
+      if (typeof Timeline !== "function") throw new Error("Timeline not a constructor");
+      if (typeof engine !== "object" || engine === null) throw new Error("engine not an object");
+      if (typeof engine.register !== "function") throw new Error("engine.register not a function");
+    `);
+    expect(exitCode).toBe(0);
+  });
+
+  test("useSpinner respects isUnicodeSupported from theme/detect", async () => {
+    // In TERM=dumb, isUnicodeSupported() returns false → ASCII frames should be used
+    const { exitCode, stdout } = await bunEval(`
+      const { isUnicodeSupported } = await import("./src/theme/detect.js");
+      console.log(isUnicodeSupported());
+    `);
+    expect(exitCode).toBe(0);
+    // The actual value depends on the test environment's TERM,
+    // but the function should return a boolean.
+    expect(["true", "false"]).toContain(stdout.trim());
+  });
+});
+

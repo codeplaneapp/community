@@ -18,11 +18,10 @@
 
 The TUI codebase requires a canonical, shared spinner animation hook before any screen-level loading indicator, status bar syncing badge, or agent streaming indicator can be implemented. Currently:
 
-- **No shared spinner exists** in `apps/tui/src/hooks/` — the directory contains only `useDiffSyntaxStyle.ts`.
-- **No barrel export** file exists at `apps/tui/src/hooks/index.ts`.
-- **No `theme/detect.ts`** exists yet in `apps/tui/src/` — the `apps/tui/src/theme/` directory is absent entirely. The `isUnicodeSupported()` function it depends on is defined in the `tui-color-detection` ticket spec at `specs/tui/apps/tui/src/theme/detect.ts`, and must be implemented before or alongside this ticket.
+- **No shared spinner exists** in `apps/tui/src/hooks/` — the directory contains `useDiffSyntaxStyle.ts`, `useTheme.ts`, `useColorTier.ts`, and a barrel `index.ts`, but no spinner hook.
+- **`apps/tui/src/theme/detect.ts` exists and is fully implemented** — the `isUnicodeSupported()` function required by this hook is already available. The `tui-color-detection` dependency is satisfied.
 - Spec-level reference implementations in `specs/tui/apps/tui/src/` define the target patterns for `MessageBlock.tsx` (currently `export {};` stub), `LoadingProvider.tsx` (imports `useSpinner`), and `useAgentStream.ts` (imports `useSpinner`), but the production `apps/tui/src/` tree has none of these implementations yet.
-- The spec-level research document (`specs/tui/research/tui-spinner-hook.md`) documents two existing inline spinner implementations (in `MessageBlock.tsx` and `useAgentStream.ts`) using `setInterval` — both must be replaced by the canonical hook when those components are implemented.
+- The spec-level research document (`specs/tui/research/tui-spinner-hook.md`) documents two planned inline spinner implementations (in `MessageBlock.tsx` and `useAgentStream.ts`) using `setInterval` — both must be replaced by the canonical hook when those components are implemented.
 - **At least 15 downstream tickets** (`tui-auth-token-loading`, `tui-loading-states`, `tui-status-bar`, workspace status, force sync, notification resolution, workflow dispatch, agent chat) list `tui-spinner-hook` as a direct dependency.
 
 The hook must use OpenTUI's `Timeline` + `engine` animation system (not `setInterval`) to integrate with the renderer's `requestLive()`/`dropLive()` lifecycle, ensuring zero CPU consumption when no spinners are active.
@@ -40,6 +39,7 @@ The hook must use OpenTUI's `Timeline` + `engine` animation system (not `setInte
 - [ ] Hook is a pure hook — no DOM/terminal output. Components use the returned character in their own `<text>` elements.
 - [ ] Frame constants (`BRAILLE_FRAMES`, `ASCII_FRAMES`) and interval constants (`BRAILLE_INTERVAL_MS`, `ASCII_INTERVAL_MS`) are exported for consumer inspection and test assertions.
 - [ ] Timeline's `onUpdate` callback uses a dedicated `lastEmittedIndex` integer for comparison, not `state.frameIndex` which may hold intermediate float values from Timeline interpolation.
+- [ ] Barrel export at `apps/tui/src/hooks/index.ts` is updated to include all spinner exports alongside existing hook exports.
 
 ---
 
@@ -60,11 +60,11 @@ Single file containing the hook, constants, and module-level singleton state. Na
 | Animation driver | `Timeline` + `engine` from `@opentui/core` | Integrates with OpenTUI's `TimelineEngine` which manages `requestLive()`/`dropLive()` on the renderer. `setInterval` bypasses this and causes frame tearing, leaked intervals, and CPU waste. |
 | Frame synchronization | Module-level shared `Timeline` singleton with `React.useSyncExternalStore` | All `useSpinner` consumers subscribe to the same timeline so frames are always in sync. `useTimeline()` from `@opentui/react` creates per-instance timelines which defeats synchronization. |
 | Per-caller active gating | Hook combines global frame + local `active` param | `getSnapshot()` returns the global frame unconditionally. The hook itself gates: `active ? globalFrame : ""`. This prevents `useSpinner(false)` from returning a frame when another component is active. |
-| Unicode detection | `isUnicodeSupported()` from `../theme/detect.js` | Implemented by the `tui-color-detection` dependency ticket. Heuristic based on `TERM` and `NO_COLOR` env vars. |
+| Unicode detection | `isUnicodeSupported()` from `../theme/detect.js` | Already implemented in `apps/tui/src/theme/detect.ts` by the `tui-color-detection` ticket. Heuristic based on `TERM` and `NO_COLOR` env vars. |
 | Interval difference | 80ms braille / 120ms ASCII | Braille characters are visually subtle and need faster cycling. ASCII characters (`- \\ | /`) are visually heavier and need slower cycling to avoid flicker. |
 | Return type | `string` (single character or empty) | Callers embed the return value directly in `<text>` children. No wrapper component, no render prop. |
 | Lazy initialization | Timeline created on first `activate()`, never destroyed | Avoids startup cost for screens that don't use spinners. Singleton survives for app lifetime — `play()`/`pause()` control whether it consumes frame callbacks. |
-| Frame comparison guard | Dedicated `lastEmittedIndex` integer separate from `state.frameIndex` | Timeline.add() interpolates target properties as floats before `onUpdate` fires. Comparing against `state.frameIndex` (which holds intermediate float) would cause `emitChange()` to fire at engine tick rate (~60fps) instead of spinner frame cadence (~12fps). A separate integer variable ensures comparison is always integer-to-integer. |
+| Frame comparison guard | Dedicated `lastEmittedIndex` integer separate from animated target | Timeline.add() interpolates target properties as floats before `onUpdate` fires. Comparing against a property the Timeline has written to (which holds intermediate floats) would cause `emitChange()` to fire at engine tick rate (~60fps) instead of spinner frame cadence (~12fps). A separate integer variable ensures comparison is always integer-to-integer. |
 
 ### 3.3 Frame Sets
 
@@ -87,7 +87,7 @@ The spinner uses a **single shared `Timeline` instance** at module scope:
 │  Module scope: spinnerTimeline (singleton)           │
 │  ┌───────────────────────────────────────────────┐  │
 │  │ Timeline { loop: true, duration: CYCLE_MS }   │  │
-│  │  .add(state, { frameIndex: FRAME_COUNT }, …)  │  │
+│  │  .add(state, { _progress: 1 }, …)             │  │
 │  └───────────────────────────────────────────────┘  │
 │                     ▲                               │
 │     ┌───────────────┼───────────────┐               │
@@ -109,9 +109,20 @@ This ensures:
 
 The ticket description mentions `useTimeline()` from `@opentui/react`. The implementation uses the same underlying `Timeline` and `engine` primitives from `@opentui/core` that `useTimeline()` wraps internally. However, `useTimeline()` creates a **per-instance** timeline on each hook call — each component calling `useSpinner(true)` would get its own timeline at a different phase, defeating synchronization.
 
-The `useTimeline()` hook (from `@opentui/react@0.1.90`) has this signature:
+The `useTimeline()` hook (from `@opentui/react@0.1.90`, implemented in `packages/react/src/hooks/use-timeline.ts`) has this behavior:
 ```typescript
-export declare const useTimeline: (options?: TimelineOptions) => Timeline;
+export const useTimeline = (options?: TimelineOptions) => {
+  const timeline = new Timeline(options);
+  useEffect(() => {
+    if (!options.autoplay) timeline.play();
+    engine.register(timeline);
+    return () => {
+      timeline.pause();
+      engine.unregister(timeline);
+    };
+  }, []);
+  return timeline;
+};
 ```
 
 It automatically registers/unregisters the timeline with the engine on mount/unmount. Our singleton pattern achieves the same engine integration but with a single shared timeline for all consumers.
@@ -173,7 +184,9 @@ timeline.add(
 );
 ```
 
-Timeline interpolates `state.frameIndex` as a float (e.g., `0.375`, `4.8`) before `onUpdate` fires. The comparison `newIndex !== state.frameIndex` evaluates `true` almost every tick because an integer is compared to a float, causing `emitChange()` to fire at engine tick rate (~60fps) instead of spinner frame cadence (~12fps).
+Timeline interpolates `state.frameIndex` as a float (e.g., `0.375`, `4.8`) before `onUpdate` fires. The `add()` method extracts any numeric properties from the options object that are not recognized config keys (like `ease`, `duration`, `onUpdate`, etc.) and treats them as animation targets. Since `frameIndex` is numeric and not a recognized config key, it becomes an animation target — the Timeline will linearly interpolate it from `0` to `FRAMES.length` over the animation duration, writing float values into `state.frameIndex` at each engine tick.
+
+The comparison `newIndex !== state.frameIndex` evaluates `true` almost every tick because an integer is compared to a float, causing `emitChange()` to fire at engine tick rate (~60fps) instead of spinner frame cadence (~12fps).
 
 **Fix:** Use a throwaway animation target and a dedicated integer for frame comparison:
 
@@ -185,6 +198,9 @@ timeline.add(
   [animTarget],  // ← float writes go here harmlessly
   {
     _progress: 1,  // ← animate throwaway property
+    ease: "linear",
+    duration: CYCLE_DURATION_MS,
+    loop: true,
     onUpdate: (animation) => {
       const newIndex = Math.min(
         Math.floor(animation.progress * FRAMES.length),
@@ -197,6 +213,7 @@ timeline.add(
       }
     },
   },
+  0
 );
 ```
 
@@ -204,111 +221,17 @@ timeline.add(
 
 ## 4. Implementation Plan
 
-### Step 1: Verify or Create `tui-color-detection` Dependency
+### Step 1: Verify `tui-color-detection` Dependency
 
-**Precondition check** — before implementing, confirm that `apps/tui/src/theme/detect.ts` exists and exports `isUnicodeSupported()`. As of the current codebase state:
-- `apps/tui/src/theme/` directory does **not** exist.
-- The spec reference implementation exists at `specs/tui/apps/tui/src/theme/detect.ts` (102 lines).
+**Precondition check** — confirm that `apps/tui/src/theme/detect.ts` exists and exports `isUnicodeSupported()`.
 
-**If not present:** Create the `theme/` directory and `detect.ts` file as part of this ticket. The file is a pure-function module with no React dependencies, making it safe to create idempotently with the `tui-color-detection` ticket.
+**Current codebase state (verified):**
+- ✅ `apps/tui/src/theme/detect.ts` exists (73 lines).
+- ✅ Exports `detectColorCapability(): ColorTier` and `isUnicodeSupported(): boolean`.
+- ✅ `isUnicodeSupported()` returns `false` for `TERM=dumb` or `NO_COLOR` set.
+- ✅ `apps/tui/src/theme/index.ts` barrel-exports all theme symbols.
 
-**File:** `apps/tui/src/theme/detect.ts`
-**Action:** Create if absent.
-
-```typescript
-/**
- * Terminal color capability detection.
- *
- * Pure function module — no React dependencies, no API calls, no side effects.
- * Reads only environment variables. Used by ThemeProvider at startup.
- *
- * Detection cascade:
- *   1. NO_COLOR set or TERM=dumb  → ansi16 (most constrained)
- *   2. COLORTERM=truecolor|24bit  → truecolor (24-bit RGB)
- *   3. TERM contains '256color'   → ansi256 (256-color palette)
- *   4. Default fallback            → ansi256 (safe default)
- *
- * @see https://no-color.org/
- * @see specs/tui/design.md § Theme & Colors
- * @see specs/tui/engineering-architecture.md § Theme and Color Token System
- */
-
-/**
- * Terminal color capability tiers, ordered from most capable to least.
- *
- * - `truecolor`: 24-bit RGB (16.7M colors). Detected via COLORTERM env var.
- * - `ansi256`:   256-color palette. Detected via TERM containing '256color'.
- * - `ansi16`:    Basic 16-color ANSI. Used for constrained/dumb terminals.
- */
-export type ColorTier = "truecolor" | "ansi256" | "ansi16";
-
-/**
- * Detect the terminal's color capability tier.
- *
- * The detection cascade is ordered by priority — first match wins:
- *
- * 1. `NO_COLOR` env var set (non-empty) or `TERM=dumb` → `ansi16`
- * 2. `COLORTERM` is `truecolor` or `24bit` → `truecolor`
- * 3. `TERM` contains `256color` → `ansi256`
- * 4. Default fallback → `ansi256`
- *
- * NO_COLOR is checked before COLORTERM because it represents explicit user
- * intent to constrain color output, which should override capability signals.
- *
- * @returns The detected color tier for the current terminal environment.
- */
-export function detectColorCapability(): ColorTier {
-  const noColor = process.env.NO_COLOR;
-  if (noColor !== undefined && noColor !== "") {
-    return "ansi16";
-  }
-
-  const term = (process.env.TERM ?? "").toLowerCase();
-  if (term === "dumb") {
-    return "ansi16";
-  }
-
-  const colorterm = (process.env.COLORTERM ?? "").toLowerCase();
-  if (colorterm === "truecolor" || colorterm === "24bit") {
-    return "truecolor";
-  }
-
-  if (term.includes("256color")) {
-    return "ansi256";
-  }
-
-  return "ansi256";
-}
-
-/**
- * Check if the terminal likely supports Unicode characters.
- *
- * Used for choosing between Unicode spinner/progress characters (braille,
- * box-drawing) and ASCII fallbacks.
- *
- * Returns false when:
- * - `TERM` is `dumb` (minimal terminal, often ASCII-only)
- * - `NO_COLOR` is set and non-empty (correlates with constrained environments)
- *
- * This is a heuristic — there is no reliable way to detect Unicode support
- * from environment variables alone.
- *
- * @returns true if Unicode characters are likely supported.
- */
-export function isUnicodeSupported(): boolean {
-  const term = (process.env.TERM ?? "").toLowerCase();
-  if (term === "dumb") {
-    return false;
-  }
-
-  const noColor = process.env.NO_COLOR;
-  if (noColor !== undefined && noColor !== "") {
-    return false;
-  }
-
-  return true;
-}
-```
+**Action:** No file creation needed. Dependency is satisfied.
 
 ### Step 2: Create the `useSpinner` Hook
 
@@ -497,14 +420,20 @@ export function useSpinner(active: boolean): string {
 }
 ```
 
-### Step 3: Create or Update the Barrel Export
+### Step 3: Update the Barrel Export
 
 **File:** `apps/tui/src/hooks/index.ts`
-**Action:** Create new file.
+**Action:** Edit existing file to add spinner exports.
 
-The current `apps/tui/src/hooks/` directory contains only `useDiffSyntaxStyle.ts` and has no barrel export.
+The current file exports three hooks. Add the spinner exports:
 
 ```typescript
+/**
+ * Custom hooks for the TUI application.
+ */
+export { useDiffSyntaxStyle } from "./useDiffSyntaxStyle.js";
+export { useTheme } from "./useTheme.js";
+export { useColorTier } from "./useColorTier.js";
 export {
   useSpinner,
   BRAILLE_FRAMES,
@@ -512,8 +441,6 @@ export {
   BRAILLE_INTERVAL_MS,
   ASCII_INTERVAL_MS,
 } from "./useSpinner.js";
-
-export { useDiffSyntaxStyle } from "./useDiffSyntaxStyle.js";
 ```
 
 As downstream tickets add hooks, they append to this barrel.
@@ -525,7 +452,14 @@ As downstream tickets add hooks, they append to this barrel.
 
 See §5 (Unit & Integration Tests) for full test specification.
 
-### Step 5: Migrate Existing Inline Spinners (Deferred)
+### Step 5: Write E2E Validation Tests
+
+**File:** `e2e/tui/app-shell.test.ts`
+**Action:** Append spinner-specific tests to existing file.
+
+See §5.3 for E2E test specification.
+
+### Step 6: Migrate Existing Inline Spinners (Deferred)
 
 These migrations apply only if the consuming files have been implemented from their respective tickets. Current state of each file:
 
@@ -554,7 +488,7 @@ These tests validate the hook's logic by mocking React's `useSyncExternalStore` 
 3. Per-caller active gating is explicitly tested: Component A active + Component B inactive → B returns `""`.
 
 ```typescript
-import { test, expect, describe, spyOn } from "bun:test";
+import { test, expect, describe, spyOn, beforeEach } from "bun:test";
 import * as React from "react";
 
 // ── Mock React hooks to test without a renderer ─────────────────────
@@ -609,7 +543,7 @@ function simulateMount(active: boolean): {
   };
 }
 
-// All valid spinner frames (union of both sets)
+// All valid spinner frames (union of both sets — tests pass regardless of TERM)
 const ALL_FRAMES = [...BRAILLE_FRAMES, ...ASCII_FRAMES];
 
 // ── Constant export tests ───────────────────────────────────────────
@@ -763,9 +697,115 @@ describe("useSpinner hook", () => {
 });
 ```
 
-### 5.2 E2E Test Integration Points
+### 5.2 E2E Import Validation Test
 
-The `useSpinner` hook is exercised indirectly by E2E tests in downstream ticket test files. These tests are **not** created as part of this ticket but are documented here for traceability.
+**File:** `e2e/tui/app-shell.test.ts`
+**Action:** Append to existing file within the `TUI_APP_SHELL` describe block.
+
+These tests validate that the hook module is importable and its exports are structurally correct at runtime. They use the existing `bunEval` helper from `e2e/tui/helpers.ts` which executes `bun -e` expressions in the TUI package context.
+
+```typescript
+// Append to existing TUI_APP_SHELL describe block:
+
+describe("TUI_APP_SHELL — useSpinner hook scaffold", () => {
+  test("useSpinner.ts exports useSpinner function", async () => {
+    const { exitCode, stdout } = await bunEval(`
+      const mod = await import("./src/hooks/useSpinner.js");
+      console.log(typeof mod.useSpinner);
+    `);
+    expect(exitCode).toBe(0);
+    expect(stdout.trim()).toBe("function");
+  });
+
+  test("useSpinner.ts exports BRAILLE_FRAMES with 10 entries", async () => {
+    const { exitCode, stdout } = await bunEval(`
+      const { BRAILLE_FRAMES } = await import("./src/hooks/useSpinner.js");
+      console.log(JSON.stringify({ length: BRAILLE_FRAMES.length, first: BRAILLE_FRAMES[0], last: BRAILLE_FRAMES[9] }));
+    `);
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout.trim());
+    expect(parsed.length).toBe(10);
+    expect(parsed.first).toBe("⠋");
+    expect(parsed.last).toBe("⠏");
+  });
+
+  test("useSpinner.ts exports ASCII_FRAMES with 4 entries", async () => {
+    const { exitCode, stdout } = await bunEval(`
+      const { ASCII_FRAMES } = await import("./src/hooks/useSpinner.js");
+      console.log(JSON.stringify({ length: ASCII_FRAMES.length, frames: Array.from(ASCII_FRAMES) }));
+    `);
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout.trim());
+    expect(parsed.length).toBe(4);
+    expect(parsed.frames).toEqual(["-", "\\", "|", "/"]);
+  });
+
+  test("useSpinner.ts exports interval constants", async () => {
+    const { exitCode, stdout } = await bunEval(`
+      const { BRAILLE_INTERVAL_MS, ASCII_INTERVAL_MS } = await import("./src/hooks/useSpinner.js");
+      console.log(JSON.stringify({ braille: BRAILLE_INTERVAL_MS, ascii: ASCII_INTERVAL_MS }));
+    `);
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout.trim());
+    expect(parsed.braille).toBe(80);
+    expect(parsed.ascii).toBe(120);
+  });
+
+  test("hooks/index.ts barrel re-exports useSpinner", async () => {
+    const { exitCode, stdout } = await bunEval(`
+      const mod = await import("./src/hooks/index.js");
+      console.log(typeof mod.useSpinner);
+    `);
+    expect(exitCode).toBe(0);
+    expect(stdout.trim()).toBe("function");
+  });
+
+  test("hooks/index.ts barrel re-exports spinner constants", async () => {
+    const { exitCode, stdout } = await bunEval(`
+      const mod = await import("./src/hooks/index.js");
+      console.log(JSON.stringify({
+        BRAILLE_FRAMES: typeof mod.BRAILLE_FRAMES,
+        ASCII_FRAMES: typeof mod.ASCII_FRAMES,
+        BRAILLE_INTERVAL_MS: typeof mod.BRAILLE_INTERVAL_MS,
+        ASCII_INTERVAL_MS: typeof mod.ASCII_INTERVAL_MS,
+      }));
+    `);
+    expect(exitCode).toBe(0);
+    const parsed = JSON.parse(stdout.trim());
+    expect(parsed.BRAILLE_FRAMES).toBe("object");
+    expect(parsed.ASCII_FRAMES).toBe("object");
+    expect(parsed.BRAILLE_INTERVAL_MS).toBe("number");
+    expect(parsed.ASCII_INTERVAL_MS).toBe("number");
+  });
+
+  test("useSpinner imports Timeline and engine from @opentui/core", async () => {
+    // Verify the hook's dependencies resolve at runtime
+    const { exitCode } = await bunEval(`
+      const { Timeline, engine } = await import("@opentui/core");
+      if (typeof Timeline !== "function") throw new Error("Timeline not a constructor");
+      if (typeof engine !== "object" || engine === null) throw new Error("engine not an object");
+      if (typeof engine.register !== "function") throw new Error("engine.register not a function");
+    `);
+    expect(exitCode).toBe(0);
+  });
+
+  test("useSpinner respects isUnicodeSupported from theme/detect", async () => {
+    // In TERM=dumb, isUnicodeSupported() returns false → ASCII frames should be used
+    const { exitCode, stdout } = await bunEval(`
+      const { isUnicodeSupported } = await import("./src/theme/detect.js");
+      console.log(isUnicodeSupported());
+    `);
+    expect(exitCode).toBe(0);
+    // The actual value depends on the test environment's TERM,
+    // but the function should return a boolean.
+    expect(["true", "false"]).toContain(stdout.trim());
+  });
+});
+```
+
+### 5.3 E2E Spinner Visual Integration Tests (Deferred)
+
+The `useSpinner` hook is exercised indirectly by E2E tests in downstream ticket test files. These tests are **not** created as part of this ticket but are documented here for traceability. When the consuming components are implemented, these test patterns validate the spinner through the full rendering stack.
 
 **File:** `e2e/tui/app-shell.test.ts` (created by `tui-loading-states` and `tui-status-bar` tickets)
 
@@ -785,35 +825,51 @@ The `useSpinner` hook is exercised indirectly by E2E tests in downstream ticket 
 | `SNAP-MSG-005` | Spinner character precedes "Agent" label during streaming |
 | `SNAP-AGENT-LIST-008` | Loading state shows spinner with title/toolbar visible |
 
-### 5.3 E2E Spinner-Specific Validation Test
-
-**File:** `e2e/tui/app-shell.test.ts`
-
-When the `tui-loading-states` ticket is implemented, the following test patterns exercise the spinner hook through the loading component. These tests are left failing until the backend and loading screen are implemented — they are **never skipped or commented out** (per `specs/tui/prd.md` §7.3 and `feedback_failing_tests.md` memory).
+When the `tui-loading-states` ticket is implemented, the following test patterns exercise the spinner hook through the loading component. These tests are left failing until the backend and loading screen are implemented — they are **never skipped or commented out** (per `specs/tui/prd.md` §7.3 and project memory `feedback_failing_tests.md`).
 
 ```typescript
-import { createTestTui } from "@microsoft/tui-test";
-
+// Future: added by tui-loading-states ticket to e2e/tui/app-shell.test.ts
 describe("TUI_LOADING_STATES — Spinner animation", () => {
   test("loading spinner renders braille character at 120x40", async () => {
-    // Launch TUI at 120x40
-    // The initial data fetch triggers FullScreenLoading which uses useSpinner(true)
-    // Capture terminal snapshot during loading
-    // Assert: one of the braille characters ⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ is present
-    // Assert: "Loading" text accompanies the spinner character
+    const tui = await launchTUI({ cols: 120, rows: 40 });
+    try {
+      // The initial data fetch triggers FullScreenLoading which uses useSpinner(true)
+      // Capture terminal snapshot during loading
+      const snapshot = tui.snapshot();
+      // Assert: one of the braille characters is present
+      expect(snapshot).toMatch(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/);
+      // Assert: "Loading" text accompanies the spinner character
+      expect(snapshot).toMatch(/Loading/);
+    } finally {
+      await tui.terminate();
+    }
   });
 
   test("loading spinner disappears after data load", async () => {
-    // Launch TUI at 120x40
-    // Wait for data to load (waitForText on dashboard content)
-    // Assert: no braille spinner character present in terminal output
+    const tui = await launchTUI({ cols: 120, rows: 40 });
+    try {
+      await tui.waitForText("Dashboard");
+      const snapshot = tui.snapshot();
+      // Assert: no braille spinner character present after data loaded
+      expect(snapshot).not.toMatch(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/);
+    } finally {
+      await tui.terminate();
+    }
   });
 
   test("loading spinner uses ASCII fallback at TERM=dumb", async () => {
-    // Launch TUI at 120x40 with env { TERM: "dumb" }
-    // Capture terminal snapshot during loading
-    // Assert: one of the ASCII characters - \ | / is present
-    // Assert: no braille characters present
+    const tui = await launchTUI({
+      cols: 120,
+      rows: 40,
+      env: { TERM: "dumb", COLORTERM: "" },
+    });
+    try {
+      const snapshot = tui.snapshot();
+      // Assert: no braille characters present
+      expect(snapshot).not.toMatch(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/);
+    } finally {
+      await tui.terminate();
+    }
   });
 });
 ```
@@ -838,7 +894,7 @@ The spec-level research document (`specs/tui/research/tui-spinner-hook.md`) conf
 
 ### 6.2 Timeline Configuration
 
-Based on the `Timeline` API from `@opentui/core@0.1.90`:
+Based on the `Timeline` API from `@opentui/core@0.1.90` (source: `context/opentui/packages/core/src/animation/Timeline.ts`):
 
 ```typescript
 new Timeline({
@@ -850,14 +906,20 @@ new Timeline({
 
 The `add()` method signature is:
 ```typescript
-add(target: object | object[], properties: AnimationOptions, startTime?: number): this
+add(
+  target: any | any[],                    // Single object or array of objects
+  properties: AnimationOptions,           // Animation config + numeric target values
+  startTime: number | string = 0          // When to start animation (ms)
+): this
 ```
 
+Key detail: The `add()` method extracts any numeric properties from the `properties` object that are not recognized configuration keys (`duration`, `ease`, `onUpdate`, `onComplete`, `onStart`, `onLoop`, `loop`, `loopDelay`, `alternate`, `once`). These extracted numeric properties become animation targets — the Timeline linearly interpolates them on the target objects at each engine tick. This is why `frameIndex: FRAMES.length` in the spec reference implementation causes the float interpolation bug.
+
 The `onUpdate` callback receives a `JSAnimation` object with:
-- `targets: any[]` — animated objects
-- `progress: number` — 0.0 to 1.0 animation progress
-- `deltaTime: number` — time since last frame
-- `currentTime: number` — current playback time
+- `targets: any[]` — the animated target objects
+- `progress: number` — 0.0 to 1.0 animation progress (already eased)
+- `deltaTime: number` — time since last frame (ms)
+- `currentTime: number` — current playback time (ms)
 
 The callback converts continuous `progress` (0.0–1.0) into discrete frame indices:
 
@@ -878,12 +940,13 @@ engine.register(timeline);  // Called once on first activation
 ```
 
 The `TimelineEngine` singleton provides:
-- `register(timeline: Timeline)` — registers a timeline for frame callbacks
-- `unregister(timeline: Timeline)` — removes a timeline
+- `register(timeline: Timeline)` — registers a timeline for frame callbacks, adds state change listener
+- `unregister(timeline: Timeline)` — removes a timeline, removes state change listener
+- `update(deltaTime: number)` — called by renderer frame callback to update all registered non-synced timelines
 - `attach(renderer: CliRenderer)` — connects to the renderer (done by OpenTUI at startup)
-- `defaults.frameRate: number` — the engine's frame rate
+- `clear()` — removes all registered timelines and listeners
 
-The timeline is **never unregistered** during the app lifecycle (it's a singleton). `play()` and `pause()` control whether it consumes frame callbacks. The engine's internal state checking mechanism evaluates `timeline.isPlaying` to decide `requestLive()`/`dropLive()` calls.
+The timeline is **never unregistered** during the app lifecycle (it's a singleton). `play()` and `pause()` control whether it consumes frame callbacks. When paused, the engine's state change listener detects the change and calls `dropLive()` on the renderer.
 
 ### 6.4 OpenTUI API Surface Used
 
@@ -917,6 +980,7 @@ The timeline is **never unregistered** during the app lifecycle (it's a singleto
 | `activeCount` underflow protection | `deactivate()` clamps `activeCount` to `Math.max(0, activeCount - 1)` preventing negative counts from double-cleanup. |
 | `progress` at exactly 1.0 | `Math.min(Math.floor(1.0 * 10), 9)` = 9, preventing out-of-bounds access. Timeline then loops. |
 | Timeline interpolation writes float to target | Throwaway `animTarget._progress` absorbs float writes. `currentFrameIndex` is only set in `onUpdate` as an integer. |
+| `useSpinner(true)` called but component never renders | `useEffect` will not run (React requires render to schedule effects). Hook returns the global snapshot via `useSyncExternalStore` but no activation occurs — safe because `getSnapshot` returns `""` when `activeCount === 0`. |
 
 ---
 
@@ -928,7 +992,7 @@ The timeline is **never unregistered** during the app lifecycle (it's a singleto
 | CPU when active | Negligible | Engine runs at its default frame rate. `onUpdate` does one integer comparison + conditional `emitChange()`. At 80ms intervals, ~1 emitChange per 5 engine frames (80% of callbacks are no-ops). |
 | Memory allocation per frame | 0 new objects | `currentFrameIndex` is mutated in place. `FRAMES[index]` returns a pre-existing string from the frozen `as const` array. No closures, no temporary objects. |
 | Re-renders per consumer per frame change | 1 | `emitChange()` notifies all `useSyncExternalStore` subscribers. Each subscriber triggers exactly one React re-render with the new frame character. |
-| Startup cost | Zero until first `useSpinner(true)` | Lazy initialization: `ensureTimeline()` is only called on first activation. Module import itself is free (only constant allocation). |
+| Startup cost | Zero until first `useSpinner(true)` | Lazy initialization: `ensureTimeline()` is only called on first activation. Module import itself is free (only constant allocation + one `isUnicodeSupported()` call). |
 | Total re-renders per second (braille) | ~12.5 | 1000ms ÷ 80ms = 12.5 frame changes per second. Each triggers one re-render per subscribed component. |
 | Total re-renders per second (ASCII) | ~8.3 | 1000ms ÷ 120ms = 8.3 frame changes per second. |
 | Spurious emitChange rate | 0 | Previous spec reference had ~60/s due to float comparison bug. Fixed via `lastEmittedIndex` integer comparison. |
@@ -943,7 +1007,7 @@ The timeline is **never unregistered** during the app lifecycle (it's a singleto
 tui-foundation-scaffold
         │
         ▼
-tui-color-detection  (provides isUnicodeSupported)
+tui-color-detection  (provides isUnicodeSupported) ✅ COMPLETE
         │
         ▼
   tui-spinner-hook   ◄── THIS TICKET
@@ -1031,13 +1095,21 @@ The module-level singleton pattern (`currentFrameIndex`, `lastEmittedIndex`, `ac
 
 ### 11.3 Dependency on `tui-color-detection`
 
-The import `from "../theme/detect.js"` will fail at runtime if the `tui-color-detection` ticket has not been completed. The implementation plan (§4, Step 1) includes a fallback: create the `detect.ts` file inline if it does not exist. This makes the ticket self-contained while remaining compatible with the canonical `tui-color-detection` implementation.
+The import `from "../theme/detect.js"` resolves to `apps/tui/src/theme/detect.ts` which is **already implemented** and exports `isUnicodeSupported()`. No additional file creation is needed for this dependency.
 
-The spec reference for `detect.ts` at `specs/tui/apps/tui/src/theme/detect.ts` (102 lines) is the canonical source. The production implementation should be a verbatim copy.
+The production `detect.ts` (73 lines) matches the spec reference at `specs/tui/apps/tui/src/theme/detect.ts` — both implement the same cascade: `NO_COLOR` → `TERM=dumb` → default `true`.
 
 ### 11.4 TypeScript Strictness
 
 The implementation uses `as const` for frame arrays, ensuring the exported types are `readonly ["⠋", "⠙", ...]` tuples, not `string[]`. This gives consumers compile-time access to the exact frame values. The internal `FRAMES` variable is typed as `readonly string[]` (widened) because it's resolved dynamically based on unicode detection.
+
+### 11.5 Import Path Convention
+
+All imports use the `.js` extension convention consistent with the existing TUI codebase (TypeScript module resolution with `.js` extensions for ESM compatibility):
+- `import { isUnicodeSupported } from "../theme/detect.js";`
+- `import { useSpinner } from "./useSpinner.js";`
+
+This matches the pattern used in existing hooks (`useTheme.ts` imports from `../providers/ThemeProvider.js`, etc.).
 
 ---
 
@@ -1071,10 +1143,18 @@ The implementation uses `as const` for frame arrays, ensuring the exported types
 
 | File | Action | Description |
 |---|---|---|
-| `apps/tui/src/theme/detect.ts` | **Create** (if absent) | Unicode/color detection — dependency from `tui-color-detection`. Verbatim copy of `specs/tui/apps/tui/src/theme/detect.ts`. |
 | `apps/tui/src/hooks/useSpinner.ts` | **Create** | Shared spinner hook with braille/ASCII animation. Fixes 3 HIGH-severity review findings vs spec reference. |
-| `apps/tui/src/hooks/index.ts` | **Create** | Barrel re-export for `useSpinner`, constants, and `useDiffSyntaxStyle` |
+| `apps/tui/src/hooks/index.ts` | **Edit** | Add `useSpinner`, `BRAILLE_FRAMES`, `ASCII_FRAMES`, `BRAILLE_INTERVAL_MS`, `ASCII_INTERVAL_MS` exports to existing barrel (alongside existing `useDiffSyntaxStyle`, `useTheme`, `useColorTier` exports). |
 | `apps/tui/src/hooks/__tests__/useSpinner.test.ts` | **Create** | Unit tests for hook behavior and constant exports |
+| `e2e/tui/app-shell.test.ts` | **Edit** | Append `TUI_APP_SHELL — useSpinner hook scaffold` describe block with import validation tests |
+
+### Files NOT changed (pre-existing, verified):
+
+| File | Status | Notes |
+|---|---|---|
+| `apps/tui/src/theme/detect.ts` | ✅ Already exists | `isUnicodeSupported()` already implemented (73 lines). No changes needed. |
+| `apps/tui/src/theme/index.ts` | ✅ Already exists | Barrel exports already include `isUnicodeSupported`. No changes needed. |
+| `apps/tui/src/theme/tokens.ts` | ✅ Already exists | Semantic color tokens. Not touched by this ticket. |
 
 ### Follow-up migration (deferred to consuming tickets):
 
