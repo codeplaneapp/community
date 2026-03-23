@@ -23,3 +23,19 @@ export { useBreakpoint } from "./useBreakpoint.js";
 export { useResponsiveValue, type ResponsiveValues } from "./useResponsiveValue.js";
 export { useSidebarState, resolveSidebarVisibility, type SidebarState } from "./useSidebarState.js";
 export { useOverlay } from "./useOverlay.js";
+
+// Repository tree and file content hooks
+export { useRepoTree } from "./useRepoTree.js";
+export { useFileContent } from "./useFileContent.js";
+export { useBookmarks } from "./useBookmarks.js";
+export type {
+  TreeEntry,
+  TreeEntryType,
+  Bookmark,
+  UseRepoTreeOptions,
+  UseRepoTreeReturn,
+  UseFileContentOptions,
+  UseFileContentReturn,
+  UseBookmarksOptions,
+  UseBookmarksReturn,
+} from "./repo-tree-types.js";
