@@ -478,7 +478,7 @@ Return a JSON object with:
                   try {
                     execJJ(["bookmark", "create", bookmarkName, "-r", "@-"], root);
                   } catch {
-                    execJJ(["bookmark", "set", bookmarkName, "-r", "@-"], root);
+                    execJJ(["bookmark", "set", bookmarkName, "--allow-backwards", "-r", "@-"], root);
                   }
                   return { ticketId: ticket.id, changeId, bookmarkName };
                 }}
