@@ -1,24 +1,19 @@
-Not LGTM.
+Rejected.
 
-1. Blocker: `tui-util-text` deliverables are missing entirely. Required files do not exist:
-- `/Users/williamcory/codeplane/specs/tui/apps/tui/src/util/constants.ts`
-- `/Users/williamcory/codeplane/specs/tui/apps/tui/src/util/truncate.ts`
-- `/Users/williamcory/codeplane/specs/tui/apps/tui/src/util/format.ts`
-- `/Users/williamcory/codeplane/specs/tui/e2e/tui/util-text.test.ts`
+Tests run:
+- `bun test ../../e2e/tui/util-text.test.ts --timeout 30000` (pass: 76/76)
+- `bun run check` (pass)
+- `bun run test:e2e` (fail: 239 pass / 521 fail; repeated `Cannot find module '@microsoft/tui-test/lib/terminal/term.js'` from `/Users/williamcory/codeplane/e2e/tui/helpers.ts:289`)
 
-2. Blocker: util barrel is still a stub, not an implementation/export surface. `/Users/williamcory/codeplane/specs/tui/apps/tui/src/util/index.ts:16` is `export {}` and the file only contains planning comments.
+Findings (highest severity first):
+1) HIGH: Column-width logic is incorrect for terminal text and can corrupt Unicode graphemes. `truncateText`, `truncateLeft`, and `wrapText` use JS code-unit length/slice (`/Users/williamcory/codeplane/apps/tui/src/util/truncate.ts:27`, `:29`, `:52`, `:54`, `:92`, `:98`, `:117`). This violates the documented "columns" contract for TUI rendering. Repro: `truncateText("🙂🙂🙂", 2)` returns a broken surrogate (`"\ud83d…"`), and `truncateText("你好世界", 3)` returns `"你好…"` (display width exceeds 3 columns).
+2) HIGH: The "comprehensive" test suite misses the most important terminal edge cases. No tests for wide chars (CJK), emoji/surrogates/ZWJ sequences, combining marks, ANSI escape sequences, or non-finite widths. So the above rendering bugs ship undetected (`/Users/williamcory/codeplane/e2e/tui/util-text.test.ts`).
+3) MEDIUM: A key parity test is a false positive by design. `MAX_STACK_DEPTH matches router/types.ts value` swallows all import errors and passes when the source file is missing (`/Users/williamcory/codeplane/e2e/tui/util-text.test.ts:231-240`). In this repo, `apps/tui/src/router/types.ts` does not exist, so this assertion provides no protection.
+4) MEDIUM: Documentation/comments claim linkage to non-existent source-of-truth files (`/Users/williamcory/codeplane/apps/tui/src/util/constants.ts:3`, `:22`). This is misleading and will drift silently.
+5) MEDIUM: "Centralized" constants are not integrated into runtime code yet (only defined/exported), and duplicate breakpoint values still exist elsewhere (e.g. `/Users/williamcory/codeplane/e2e/tui/helpers.ts:27-31`).
+6) LOW: `wrapText` collapses all whitespace/newlines via `split(/\s+/)` (`/Users/williamcory/codeplane/apps/tui/src/util/truncate.ts:83`). That may be undesirable for preserving intentional line breaks in terminal content.
 
-3. Blocker: required ticket tests are absent. `bun test ./e2e/tui/util-text.test.ts` returns no matches.
-
-4. Blocker: workspace quality gates fail.
-- `bun test` (from `specs/tui`) -> 700 tests run, 189 failed (including e2e harness stub failures and hook behavior failures).
-- `bun run check` (from `apps/tui`) -> TypeScript fails with many errors (OpenTUI JSX/runtime/types and hook typing/import issues).
-
-5. Major: data access pattern check fails the stated requirement (“use @codeplane/ui-core hooks, no direct API calls”). Current TUI hooks still construct API paths and call `useAPIClient`/internal ui-core primitives directly, e.g.:
-- `/Users/williamcory/codeplane/specs/tui/apps/tui/src/hooks/useWorkflowRuns.ts:1`
-- `/Users/williamcory/codeplane/specs/tui/apps/tui/src/hooks/useWorkflowRuns.ts:20`
-- `/Users/williamcory/codeplane/specs/tui/apps/tui/src/hooks/useWorkflowActions.ts:1`
-- `/Users/williamcory/codeplane/specs/tui/apps/tui/src/hooks/useWorkflowActions.ts:20`
-- `/Users/williamcory/codeplane/specs/tui/apps/tui/src/hooks/useDispatchWorkflow.ts:24`
-
-6. Major: no ticket-level OpenTUI interaction changes were delivered, so keyboard interaction/spec conformance for this ticket is not implementable/verifiable in code.
+Checks requested:
+- OpenTUI components/hooks usage: N/A in this ticket (no component/hook code touched).
+- Keyboard interaction spec conformance: N/A in this ticket (no key handling changes).
+- `@codeplane/ui-core` data access: no direct API calls introduced in changed files.
