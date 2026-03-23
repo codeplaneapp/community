@@ -2,15 +2,31 @@ import { useKeyboard } from "@opentui/react";
 import { useNavigation } from "../hooks/useNavigation.js";
 import { goToBindings } from "../navigation/goToBindings.js";
 import { useState, useRef, useCallback } from "react";
+import { useLoading } from "../hooks/useLoading.js";
 
 export function GlobalKeybindings({ children }: { children: React.ReactNode }) {
   const nav = useNavigation();
+  const { retryCallback } = useLoading();
   const [goToMode, setGoToMode] = useState(false);
   const goToTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleKey = useCallback((event: { name: string; ctrl?: boolean }) => {
+  const handleKey = useCallback((event: { name: string; ctrl?: boolean; shift?: boolean }) => {
     if (event.name === "c" && event.ctrl) {
       process.exit(0);
+    }
+
+    if (event.name === "r" && event.shift) {
+      if (retryCallback) {
+        retryCallback();
+      }
+      return;
+    }
+
+    if (event.name === "R") {
+      if (retryCallback) {
+        retryCallback();
+      }
+      return;
     }
 
     if (goToMode) {

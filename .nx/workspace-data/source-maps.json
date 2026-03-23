@@ -385,6 +385,152 @@
       "nx/target-defaults"
     ]
   },
+  "apps/tui": {
+    "root": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "name": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "tags": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "tags.npm:private": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups.NPM Scripts": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups.NPM Scripts.0": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups.NPM Scripts.1": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups.NPM Scripts.2": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageName": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageVersion": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageMain": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.isInPackageManagerWorkspaces": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev.executor": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev.options": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev.metadata": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev.options.script": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev.metadata.scriptContent": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev.metadata.runCommand": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.executor": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.options": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.metadata": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.options.script": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.metadata.scriptContent": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.metadata.runCommand": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:e2e": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:e2e.executor": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:e2e.options": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:e2e.metadata": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:e2e.options.script": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:e2e.metadata.scriptContent": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:e2e.metadata.runCommand": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ]
+  },
   "docs": {
     "root": [
       "docs/package.json",

@@ -18,6 +18,7 @@ import { AuthProvider } from "./providers/AuthProvider.js";
 import { APIClientProvider } from "./providers/APIClientProvider.js";
 import { SSEProvider } from "./providers/SSEProvider.js";
 import { NavigationProvider } from "./providers/NavigationProvider.js";
+import { LoadingProvider } from "./providers/LoadingProvider.js";
 import { GlobalKeybindings } from "./components/GlobalKeybindings.js";
 import { AppShell } from "./components/AppShell.js";
 import { ScreenRouter } from "./router/ScreenRouter.js";
@@ -68,11 +69,13 @@ function App() {
                   screenRef.current = entry.screen;
                 }}
               >
-                <GlobalKeybindings>
-                  <AppShell>
-                    <ScreenRouter />
-                  </AppShell>
-                </GlobalKeybindings>
+                <LoadingProvider>
+                  <GlobalKeybindings>
+                    <AppShell>
+                      <ScreenRouter />
+                    </AppShell>
+                  </GlobalKeybindings>
+                </LoadingProvider>
               </NavigationProvider>
             </SSEProvider>
           </APIClientProvider>
