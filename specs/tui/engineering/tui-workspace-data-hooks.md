@@ -4,7 +4,7 @@
 Implement workspace data hooks in `@codeplane/ui-core`
 
 ## Status
-`Partial` — Hook implementations exist in `packages/ui-core/src/hooks/workspaces/` with 13 hook files and 13 skeleton test files. All test bodies are empty (`it("...", () => {})`) — no assertions exist yet. Several hooks contain compile-time bugs that must be fixed before tests can pass. Server workspace routes in `apps/server/src/routes/workspaces.ts` are fully scaffolded (524 lines) with real `WorkspaceService` calls. Database layer (`apps/server/src/db/workspace_sql.ts`, 1255 lines) is fully implemented. `WorkspaceService` in `packages/sdk/src/services/workspace.ts` (1137 lines) provides complete CRUD, session management, snapshot operations, and SSH connection info. SSE streaming via PostgreSQL LISTEN/NOTIFY is implemented for workspace and session status updates.
+`Partial` — Hook implementations exist in `packages/ui-core/src/hooks/workspaces/` with 13 hook files and 13 skeleton test files. All test bodies are empty (`it("...", () => {})`) — no assertions exist yet. Several hooks contain compile-time bugs that must be fixed before tests can pass. Server workspace routes in `apps/server/src/routes/workspaces.ts` are fully scaffolded (525 lines) with real `WorkspaceService` calls. Database layer (`apps/server/src/db/workspace_sql.ts`, 1255 lines) is fully implemented. `WorkspaceService` in `packages/sdk/src/services/workspace.ts` (1137 lines) provides complete CRUD, session management, snapshot operations, and SSH connection info. SSE streaming via PostgreSQL LISTEN/NOTIFY is implemented for workspace and session status updates.
 
 ## Summary
 
@@ -31,8 +31,8 @@ Before reading any further, the following facts about the actual repository driv
 |------|----------|----------------|--------|
 | `packages/ui-core/` established by `tui-agent-data-hooks` | `specs/tui/packages/ui-core/package.json` | Package exists with all internal utilities | Workspace hooks add to existing package, don't create it |
 | `useAPIClient()` exported from `client/context.ts`, returns `APIClient` (not `{ fetch }`) | `client/context.ts` line 8: `export function useAPIClient(): APIClient` | Returns the raw `APIClient` object, no destructuring | Hooks must call `client.request()` not `fetch()` |
-| `APIClient` interface has `request(path, options?)` method only | `client/types.ts` lines 1-10: `request(path: string, options?: APIRequestOptions): Promise<Response>` | No `fetch` property exists on APIClient | All hooks destructuring `{ fetch }` from `useAPIClient()` get `undefined` |
-| No file named `APIClientProvider.js` exists in `client/` | Only `context.ts`, `types.ts`, `createAPIClient.ts`, `index.ts` in `client/` | Import `../../client/APIClientProvider.js` resolves to nothing | 5 hooks have broken import paths |
+| `APIClient` interface has `request(path, options?)` method and `baseUrl` property only | `client/types.ts` lines 1-10: `request(path: string, options?: APIRequestOptions): Promise<Response>` | No `fetch` property exists on APIClient | All hooks destructuring `{ fetch }` from `useAPIClient()` get `undefined` |
+| No file named `APIClientProvider.js` exists as a standalone module in `client/` | Only `context.ts`, `types.ts`, `createAPIClient.ts`, `index.ts` in `client/`; `APIClientProvider` is exported from `context.ts` | Import `../../client/APIClientProvider.js` resolves to nothing | 5 hooks have broken import paths |
 | `usePaginatedQuery` requires `client: APIClient` in config | `usePaginatedQuery.ts` line 7: `client: APIClient;` in `PaginatedQueryConfig` | Config property is non-optional | 3 paginated hooks omit `client` — TypeScript error |
 | `usePaginatedQuery.parseResponse` signature is `(data: unknown, headers: Headers)` | `usePaginatedQuery.ts` line 14: `parseResponse: (data: unknown, headers: Headers) => { items: T[]; totalCount: number \| null; }` | First arg is pre-parsed JSON body, second is response headers | 3 hooks pass `async (res) => { await res.json(); ... }` — wrong signature |
 | `usePaginatedQuery` internally calls `response.json()` then passes result to `parseResponse` | `usePaginatedQuery.ts` lines 94-95: `const body = await response.json();` then `const parsed = parseResponse(body, response.headers);` | Data is already parsed when `parseResponse` receives it | Hooks that call `res.json()` inside `parseResponse` would double-parse or crash |
@@ -41,7 +41,7 @@ Before reading any further, the following facts about the actual repository driv
 | `useMutation<TInput, TOutput>` — Input first, Output second | `useMutation.ts` line 4-5: `MutationConfig<TInput, TOutput>` then `mutationFn: (input: TInput, signal: AbortSignal) => Promise<TOutput>` | Generic order: Input, Output | 5 hooks reverse these — type mismatch |
 | `useMutation` does NOT have `onRevert` callback | `useMutation.ts` lines 4-9: only `onOptimistic`, `onSuccess`, `onError`, `onSettled` in `MutationConfig` | No `onRevert` field exists | 2 hooks pass `onRevert` — TypeScript error, callback never fires |
 | `useMutation` rejects with `Error("mutation in progress")` on double-submit | `useMutation.ts` lines 44-46: `if (isLoading) { return Promise.reject(new Error("mutation in progress")); }` | Guard at start of `mutate` | Tests must account for this behavior |
-| Workspace routes are fully scaffolded | `apps/server/src/routes/workspaces.ts` (524 lines) | Real `WorkspaceService` calls, not stubs | Routes exist but repo context middleware not wired |
+| Workspace routes are fully scaffolded | `apps/server/src/routes/workspaces.ts` (525 lines) | Real `WorkspaceService` calls, not stubs | Routes exist but repo context middleware not wired |
 | `per_page` max is **100** (not 50) | Route line 34: `if (parsed > 100) return { error: "per_page must not exceed 100" }` | Hard cap enforced server-side | `perPage` option must cap at 100 |
 | Workspace list `GET` sets `X-Total-Count` header | Route line 122: `c.header("X-Total-Count", String(total))` | Header set on all list responses | `useWorkspaces` must read this header |
 | Delete workspace returns 204 with `c.body(null, 204)` | Route line 207 | Empty body on success | Client must handle empty body |
@@ -49,11 +49,12 @@ Before reading any further, the following facts about the actual repository driv
 | SSH connection info has access token with 5-minute TTL | Service constant: `SANDBOX_ACCESS_TOKEN_TTL_MS = 5 * 60 * 1000` | Not in response — client-side estimate | Hook exposes `tokenExpiresAt` and `isTokenExpired` |
 | Auth header format is `Authorization: token {token}` | `createAPIClient.ts` line 15: `"Authorization": \`token ${config.token}\`` | Not `Bearer` — uses `token` prefix | Injected by `createAPIClient` — hooks don't handle this |
 | `repositoryID` and `userID` are hardcoded to 0 in routes | Every route handler: `const repositoryID = 0; // TODO: from repo context middleware` | Routes will produce wrong results until middleware wired | Integration tests expected to fail |
-| `createAPIClient` handles JSON serialization | `createAPIClient.ts` lines 20-21: sets `Content-Type: application/json` and calls `JSON.stringify(options.body)` when body is present | Auto-serialization on any non-undefined body | Hooks must NOT manually `JSON.stringify` — causes double-serialization |
+| `createAPIClient` handles JSON serialization | `createAPIClient.ts` lines 19-27: sets `Content-Type: application/json` when `body !== undefined` and calls `JSON.stringify(options.body)` | Auto-serialization on any non-undefined body | Hooks must NOT manually `JSON.stringify` — causes double-serialization |
 | `renderHook` sets `state.currentContextValue = options?.apiClient` | `renderHook.ts` line 36 | `useContext()` in react-mock returns this value | Tests must pass `apiClient` option to `renderHook` for `useAPIClient()` to work |
 | `react-mock.useContext()` returns `state.currentContextValue` directly | `react-mock.ts` line 79-81: `useContext(ctx: any): any { return state.currentContextValue; }` | Ignores context identity — returns whatever was set | Any hook calling `useAPIClient()` will get the mock client |
-| `createMockAPIClient` is queue-based | `mockAPIClient.ts` lines 30-40: `const next = queue.shift()` | Responses consumed FIFO | Must queue responses BEFORE triggering hook render |
-| `createMockAPIClient.respondWithJSON` wraps in `new Response(JSON.stringify(body), { status, headers })` | `mockAPIClient.ts` lines 47-53 | Returns real `Response` objects | `.json()` and `.headers.get()` work as expected on mock responses |
+| `createMockAPIClient` is queue-based | `mockAPIClient.ts` lines 30-42: `const next = queue.shift()` | Responses consumed FIFO | Must queue responses BEFORE triggering hook render |
+| `createMockAPIClient.respondWithJSON` wraps in `new Response(JSON.stringify(body), { status, headers })` | `mockAPIClient.ts` lines 47-55 | Returns real `Response` objects | `.json()` and `.headers.get()` work as expected on mock responses |
+| `usePaginatedQuery` catch block wraps errors as `NetworkError` | `usePaginatedQuery.ts` lines 137-140: `setError(err instanceof NetworkError ? err : new NetworkError("Fetch failed", err))` | Non-NetworkError exceptions get wrapped | Tests asserting on error type must expect `NetworkError` for network failures |
 
 ---
 
@@ -67,11 +68,13 @@ The following bugs were identified by reading the actual implementation files li
 
 **Problems (3 issues in one file):**
 
-1. **Line 12:** `usePaginatedQuery<Workspace>({` — config object has no `client` field. `PaginatedQueryConfig<T>` requires `client: APIClient` (line 7 of `usePaginatedQuery.ts`). TypeScript will reject this.
+1. **Line 1:** No import of `useAPIClient` — the hook has no way to get the API client.
 
-2. **Line 19:** `parseResponse: async (res) => {` — Function is `async` but `usePaginatedQuery` calls `parseResponse` synchronously at line 191: `config.parseResponse([], new Headers()).totalCount !== null`. An async function returns a `Promise`, so `.totalCount` evaluates to `undefined`, making `hasMore` always `false`.
+2. **Line 12:** `usePaginatedQuery<Workspace>({` — config object has no `client` field. `PaginatedQueryConfig<T>` requires `client: APIClient` (line 7 of `usePaginatedQuery.ts`). TypeScript will reject this.
 
-3. **Lines 20-21:** `const items = await res.json();` / `res.headers.get("X-Total-Count")` — `parseResponse` receives `(data: unknown, headers: Headers)`, not a `Response`. The first arg is already-parsed JSON. Calling `.json()` on it will crash. Similarly, `res.headers` doesn't exist — headers are the second parameter.
+3. **Line 19:** `parseResponse: async (res) => {` — Function is `async` but `usePaginatedQuery` calls `parseResponse` synchronously at line 191: `config.parseResponse([], new Headers()).totalCount !== null`. An async function returns a `Promise`, so `.totalCount` evaluates to `undefined`, making `hasMore` always use the heuristic path instead of the totalCount path.
+
+4. **Lines 20-21:** `const items = await res.json();` / `res.headers.get("X-Total-Count")` — `parseResponse` receives `(data: unknown, headers: Headers)`, not a `Response`. The first arg is already-parsed JSON. Calling `.json()` on it will crash (`data.json is not a function`). Similarly, `res.headers` doesn't exist — headers are the second parameter.
 
 **Fix:**
 ```typescript
@@ -91,15 +94,15 @@ parseResponse: (data: unknown, headers: Headers) => {
 
 **Location:** `packages/ui-core/src/hooks/workspaces/useWorkspaceSessions.ts`
 
-**Problems:** Identical to Bug 1. Line 14: no `client` in config. Line 21: `async (res) =>` with wrong signature. Lines 22-24: calls `res.json()` and `res.headers.get()` on pre-parsed data.
+**Problems:** Identical to Bug 1. Line 1: no `useAPIClient` import. Line 14: no `client` in config. Line 21: `async (res) =>` with wrong signature. Lines 22-24: calls `res.json()` and `res.headers.get()` on pre-parsed data.
 
-**Fix:** Same pattern as Bug 1.
+**Fix:** Same pattern as Bug 1 (import `useAPIClient`, add `client` to config, fix `parseResponse` signature to `(data: unknown, headers: Headers)`).
 
 ### Bug 3: Same `client` + `parseResponse` bug in `useWorkspaceSnapshots`
 
 **Location:** `packages/ui-core/src/hooks/workspaces/useWorkspaceSnapshots.ts`
 
-**Problems:** Identical to Bug 1. Line 12: no `client` in config. Line 19: `async (res) =>` with wrong signature. Lines 20-22: calls `res.json()` and `res.headers.get()` on pre-parsed data.
+**Problems:** Identical to Bug 1. Line 1: no `useAPIClient` import. Line 12: no `client` in config. Line 19: `async (res) =>` with wrong signature. Lines 20-22: calls `res.json()` and `res.headers.get()` on pre-parsed data.
 
 **Fix:** Same pattern as Bug 1.
 
@@ -112,7 +115,7 @@ parseResponse: (data: unknown, headers: Headers) => {
 - `useDestroyWorkspaceSession.ts` line 2
 - `useDeleteWorkspaceSnapshot.ts` line 2
 
-**Problem:** All five files import from `../../client/APIClientProvider.js`. No such file exists in the `client/` directory. The `useAPIClient` hook is exported from `../../client/context.js`.
+**Problem:** All five files import from `../../client/APIClientProvider.js`. No such standalone module exists in the `client/` directory. The `useAPIClient` hook is exported from `../../client/context.js`.
 
 **Fix:** Change import to `../../client/context.js` in all five files.
 
@@ -172,7 +175,7 @@ export function useCreateWorkspace(owner, repo) {
 - `useSuspendWorkspace.ts` line 26: `return res;`
 - `useResumeWorkspace.ts` line 26: `return res;`
 - `useCreateWorkspaceSession.ts` line 31: `return res;`
-- `useCreateWorkspaceSnapshot.ts` line 24: `return res;` (verified — returns the raw `fetch` call result)
+- `useCreateWorkspaceSnapshot.ts` line 24: `return res;`
 
 **Problem:** `useMutation<TInput, TOutput>` expects `mutationFn` to return `Promise<TOutput>`. But all five hooks return the raw `Response` object from `fetch()`. This means `onSuccess(output, input)` receives a `Response` instead of a typed `Workspace`/`WorkspaceSession`/`WorkspaceSnapshot`. Additionally, no response status validation occurs — a 4xx/5xx would silently succeed.
 
@@ -205,7 +208,7 @@ onError: (error, input) => {
 - `useCreateWorkspaceSession.ts` lines 27-28: `headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workspace_id, cols: input.cols, rows: input.rows }),`
 - `useCreateWorkspaceSnapshot.ts` lines 20-21: `headers: { "Content-Type": "application/json" }, body: ... ? JSON.stringify(body) : undefined,`
 
-**Problem:** The `createAPIClient.request()` implementation (verified at `createAPIClient.ts` lines 20-21) auto-sets `Content-Type: application/json` and auto-serializes `body` when it's present and non-undefined: `body: options?.body !== undefined ? JSON.stringify(options.body) : undefined`. Manually `JSON.stringify`-ing causes **double-serialization**: the string gets JSON-stringified again, producing `"\"...\""`.
+**Problem:** The `createAPIClient.request()` implementation (verified at `createAPIClient.ts` lines 19-27) auto-sets `Content-Type: application/json` and auto-serializes `body` when it's present and non-undefined: `body: options?.body !== undefined ? JSON.stringify(options.body) : undefined`. Manually `JSON.stringify`-ing causes **double-serialization**: the string gets JSON-stringified again, producing `"\"...\""`. Additionally, manually setting `Content-Type` headers is redundant.
 
 **Fix:** Pass `body` as a plain object and omit manual headers:
 ```typescript
@@ -222,7 +225,7 @@ const response = await client.request(path, {
 
 All endpoints are repository-scoped under `/api/repos/:owner/:repo/`.
 
-**Source of truth**: `apps/server/src/routes/workspaces.ts` (524 lines, verified)
+**Source of truth**: `apps/server/src/routes/workspaces.ts` (525 lines, verified)
 
 ### Workspace Endpoints
 
@@ -281,7 +284,7 @@ All endpoints are repository-scoped under `/api/repos/:owner/:repo/`.
 
 ### 4.1 File: `packages/ui-core/src/types/workspaces.ts`
 
-**Status:** Already exists and is correct. **No changes needed.** Verified line-by-line.
+**Status:** Already exists and is correct. **No changes needed.** Verified line-by-line (113 lines).
 
 All types match the SDK wire format:
 
@@ -402,7 +405,8 @@ interface PaginatedQueryConfig<T> {
 - Lines 182-187: `refetchCounter > 0` calls `fetchPage(1, true, items)` — refetch keeps items (stale-while-revalidate)
 - Line 191: `hasMore` computation calls `config.parseResponse([], new Headers()).totalCount !== null` **synchronously** on every render — async parseResponse would break this
 - Lines 108-109: `maxItems` evicts from the beginning: `combinedItems.slice(combinedItems.length - maxItems)`
-- Lines 131-133: `autoPaginate && hasMoreLocal` recursively calls `fetchPage(pageToFetch + 1, false, combinedItems)` — auto-pagination continues until no more pages
+- Lines 126-131: `autoPaginate && hasMoreLocal` recursively calls `fetchPage(pageToFetch + 1, false, combinedItems)` — auto-pagination continues until no more pages
+- Lines 133-140: Catch block swallows `AbortError`, wraps other errors as `NetworkError`
 
 **`useMutation<TInput, TOutput>(config)`** — `packages/ui-core/src/hooks/internal/useMutation.ts` (103 lines)
 
@@ -422,9 +426,9 @@ interface MutationConfig<TInput, TOutput> {
 - Lines 58-59: Calls `onOptimistic(input)` synchronously before `mutationFn`
 - Line 62: Calls `mutationFn(input, controller.signal)`
 - Lines 68-73: On success: calls `onSuccess(result, input)` then `onSettled(input)`
-- Lines 77-79: On AbortError: rejects with the abort error (no state updates)
-- Lines 82-91: On other error: sets `error` state, calls `onError(err, input)` then `onSettled(input)`, **re-throws**
-- Line 33: Stores config in `configRef` to avoid stale closures
+- Lines 77-78: On AbortError: rejects with the abort error (no state updates)
+- Lines 81-93: On other error: sets `error` state, calls `onError(err, input)` then `onSettled(input)`, **re-throws**
+- Line 29-32: Stores config in `configRef` to avoid stale closures
 - **No `onRevert` field exists** in `MutationConfig`
 
 ### 5.2 `useWorkspaces(owner, repo, options?)`
@@ -668,7 +672,7 @@ Identical pattern to `useSuspendWorkspace` with `/resume` path instead of `/susp
 
 **File**: `packages/ui-core/src/hooks/workspaces/useCreateWorkspaceSession.ts`
 
-Same pattern fixes as `useCreateWorkspace` (import path addition, `useAPIClient`, generic swap `<CreateWorkspaceSessionRequest, WorkspaceSession>`, signal param, client.request, response parsing, remove manual JSON.stringify).
+Same pattern fixes as `useCreateWorkspace` (add `useAPIClient` import from `../../client/context.js`, add `const client = useAPIClient()`, generic swap `<CreateWorkspaceSessionRequest, WorkspaceSession>`, signal param, client.request, response parsing, remove manual JSON.stringify and Content-Type header).
 
 ### 5.12 `useDestroyWorkspaceSession(owner, repo, callbacks?)`
 
@@ -682,7 +686,7 @@ Same pattern fix as `useDeleteWorkspace` (import path, client.request instead of
 
 **File**: `packages/ui-core/src/hooks/workspaces/useCreateWorkspaceSnapshot.ts`
 
-Same pattern fixes as `useCreateWorkspace`. **Additional note:** The snapshot endpoint is `POST /api/repos/:owner/:repo/workspaces/:workspace_id/snapshot` (workspace-scoped, line 238 of routes), NOT the top-level `POST /workspace-snapshots`. The existing hook correctly constructs this path at line 19: `` `/api/repos/${owner}/${repo}/workspaces/${workspace_id}/snapshot` ``.
+Same pattern fixes as `useCreateWorkspace`. **Additional note:** The snapshot endpoint is `POST /api/repos/:owner/:repo/workspaces/:workspace_id/snapshot` (workspace-scoped, line 239 of routes), NOT the top-level `POST /workspace-snapshots`. The existing hook correctly constructs this path at line 18: `` `/api/repos/${owner}/${repo}/workspaces/${workspace_id}/snapshot` ``.
 
 ### 5.14 `useDeleteWorkspaceSnapshot(owner, repo, callbacks?)`
 
@@ -714,39 +718,39 @@ Same pattern fix as `useDeleteWorkspace`. Verified at line 43: correct path `/wo
 
 ### Files to modify (test implementation)
 
-| File | Purpose |
-|------|---------|
-| `packages/ui-core/src/hooks/workspaces/__tests__/useWorkspaces.test.ts` | Fill in all 38 test bodies |
-| `packages/ui-core/src/hooks/workspaces/__tests__/useWorkspace.test.ts` | Fill in all 24 test bodies |
-| `packages/ui-core/src/hooks/workspaces/__tests__/useWorkspaceSSH.test.ts` | Fill in all 24 test bodies |
-| `packages/ui-core/src/hooks/workspaces/__tests__/useWorkspaceSessions.test.ts` | Fill in all 12 test bodies |
-| `packages/ui-core/src/hooks/workspaces/__tests__/useWorkspaceSnapshots.test.ts` | Fill in all 9 test bodies |
-| `packages/ui-core/src/hooks/workspaces/__tests__/useCreateWorkspace.test.ts` | Fill in all 21 test bodies |
-| `packages/ui-core/src/hooks/workspaces/__tests__/useSuspendWorkspace.test.ts` | Fill in all 13 test bodies |
-| `packages/ui-core/src/hooks/workspaces/__tests__/useResumeWorkspace.test.ts` | Fill in all 9 test bodies |
-| `packages/ui-core/src/hooks/workspaces/__tests__/useDeleteWorkspace.test.ts` | Fill in all 21 test bodies |
-| `packages/ui-core/src/hooks/workspaces/__tests__/useCreateWorkspaceSession.test.ts` | Fill in all 12 test bodies |
-| `packages/ui-core/src/hooks/workspaces/__tests__/useDestroyWorkspaceSession.test.ts` | Fill in all 11 test bodies |
-| `packages/ui-core/src/hooks/workspaces/__tests__/useCreateWorkspaceSnapshot.test.ts` | Fill in all 9 test bodies |
-| `packages/ui-core/src/hooks/workspaces/__tests__/useDeleteWorkspaceSnapshot.test.ts` | Fill in all 9 test bodies |
+| File | Purpose | Skeleton Test Count |
+|------|---------|--------------------|
+| `packages/ui-core/src/hooks/workspaces/__tests__/useWorkspaces.test.ts` | Fill in all test bodies | 38 |
+| `packages/ui-core/src/hooks/workspaces/__tests__/useWorkspace.test.ts` | Fill in all test bodies | 24 |
+| `packages/ui-core/src/hooks/workspaces/__tests__/useWorkspaceSSH.test.ts` | Fill in all test bodies | 24 |
+| `packages/ui-core/src/hooks/workspaces/__tests__/useWorkspaceSessions.test.ts` | Fill in all test bodies | 12 |
+| `packages/ui-core/src/hooks/workspaces/__tests__/useWorkspaceSnapshots.test.ts` | Fill in all test bodies | 9 |
+| `packages/ui-core/src/hooks/workspaces/__tests__/useCreateWorkspace.test.ts` | Fill in all test bodies | 23 |
+| `packages/ui-core/src/hooks/workspaces/__tests__/useSuspendWorkspace.test.ts` | Fill in all test bodies | 13 |
+| `packages/ui-core/src/hooks/workspaces/__tests__/useResumeWorkspace.test.ts` | Fill in all test bodies | 9 |
+| `packages/ui-core/src/hooks/workspaces/__tests__/useDeleteWorkspace.test.ts` | Fill in all test bodies | 21 |
+| `packages/ui-core/src/hooks/workspaces/__tests__/useCreateWorkspaceSession.test.ts` | Fill in all test bodies | 12 |
+| `packages/ui-core/src/hooks/workspaces/__tests__/useDestroyWorkspaceSession.test.ts` | Fill in all test bodies | 11 |
+| `packages/ui-core/src/hooks/workspaces/__tests__/useCreateWorkspaceSnapshot.test.ts` | Fill in all test bodies | 9 |
+| `packages/ui-core/src/hooks/workspaces/__tests__/useDeleteWorkspaceSnapshot.test.ts` | Fill in all test bodies | 10 |
 
 ### Files that require NO changes
 
 | File | Reason |
 |------|--------|
-| `packages/ui-core/src/types/workspaces.ts` | Already correct — verified line-by-line |
+| `packages/ui-core/src/types/workspaces.ts` | Already correct — verified line-by-line (113 lines) |
 | `packages/ui-core/src/types/index.ts` | Already exports workspace types |
-| `packages/ui-core/src/types/errors.ts` | Error types (`ApiError`, `NetworkError`, `HookError`, `parseResponseError`) are correct |
-| `packages/ui-core/src/hooks/workspaces/index.ts` | Already exports all 13 hooks and callback types |
-| `packages/ui-core/src/index.ts` | Already exports all workspace types and hooks |
+| `packages/ui-core/src/types/errors.ts` | Error types (`ApiError`, `NetworkError`, `HookError`, `parseResponseError`) are correct (82 lines) |
+| `packages/ui-core/src/hooks/workspaces/index.ts` | Already exports all 13 hooks and callback types (19 lines) |
+| `packages/ui-core/src/index.ts` | Already exports all workspace types and hooks (97 lines) |
 | `packages/ui-core/src/hooks/internal/usePaginatedQuery.ts` | Internal utility is correct — verified 218 lines |
 | `packages/ui-core/src/hooks/internal/useMutation.ts` | Internal utility is correct — verified 103 lines |
-| `packages/ui-core/src/client/types.ts` | `APIClient` interface is correct |
-| `packages/ui-core/src/client/context.ts` | `APIClientProvider` and `useAPIClient` are correct |
-| `packages/ui-core/src/client/createAPIClient.ts` | Client factory with auto-serialization is correct |
-| `packages/ui-core/src/test-utils/mockAPIClient.ts` | Mock client with queue-based responses is correct |
-| `packages/ui-core/src/test-utils/renderHook.ts` | Test utility with `waitForNextUpdate` is correct |
-| `packages/ui-core/src/test-utils/react-mock.ts` | React mock with hook simulation is correct |
+| `packages/ui-core/src/client/types.ts` | `APIClient` interface is correct (17 lines) |
+| `packages/ui-core/src/client/context.ts` | `APIClientProvider` and `useAPIClient` are correct (17 lines) |
+| `packages/ui-core/src/client/createAPIClient.ts` | Client factory with auto-serialization is correct (41 lines) |
+| `packages/ui-core/src/test-utils/mockAPIClient.ts` | Mock client with queue-based responses is correct (72 lines) |
+| `packages/ui-core/src/test-utils/renderHook.ts` | Test utility with `waitForNextUpdate` is correct (95 lines) |
+| `packages/ui-core/src/test-utils/react-mock.ts` | React mock with hook simulation is correct (85 lines) |
 
 ---
 
@@ -943,80 +947,7 @@ describe("useWorkspace", () => {
     });
   });
 
-  describe("empty workspaceId guard", () => {
-    it("does not fetch when workspaceId is empty string", () => {
-      const { result } = renderHook(
-        () => useWorkspace("owner", "repo", ""),
-        { apiClient: mockClient },
-      );
-      expect(mockClient.calls.length).toBe(0);
-    });
-
-    it("returns null workspace when workspaceId is empty", () => {
-      const { result } = renderHook(
-        () => useWorkspace("owner", "repo", ""),
-        { apiClient: mockClient },
-      );
-      expect(result.current.workspace).toBeNull();
-    });
-
-    it("isLoading is false when workspaceId is empty", () => {
-      const { result } = renderHook(
-        () => useWorkspace("owner", "repo", ""),
-        { apiClient: mockClient },
-      );
-      expect(result.current.isLoading).toBe(false);
-    });
-  });
-
-  describe("error handling", () => {
-    it("sets error on 404 response", async () => {
-      mockClient.respondWithJSON(404, { message: "workspace not found" });
-      const { result, waitForNextUpdate } = renderHook(
-        () => useWorkspace("owner", "repo", "ws-missing"),
-        { apiClient: mockClient },
-      );
-      await waitForNextUpdate();
-      expect(result.current.error).not.toBeNull();
-      expect(result.current.error!.status).toBe(404);
-    });
-
-    it("swallows AbortError silently", () => {
-      const abortError = new DOMException("aborted", "AbortError");
-      mockClient.respondWithError(abortError);
-      const { result } = renderHook(
-        () => useWorkspace("owner", "repo", "ws-1"),
-        { apiClient: mockClient },
-      );
-      // AbortError should not set error state
-      expect(result.current.error).toBeNull();
-    });
-  });
-
-  describe("cleanup", () => {
-    it("aborts in-flight request on unmount", () => {
-      mockClient.respondWithJSON(200, mockWorkspace);
-      const { unmount } = renderHook(
-        () => useWorkspace("owner", "repo", "ws-1"),
-        { apiClient: mockClient },
-      );
-      const signal = mockClient.calls[0]?.options?.signal as AbortSignal;
-      expect(signal?.aborted).toBe(false);
-      unmount();
-      expect(signal?.aborted).toBe(true);
-    });
-  });
-
-  // Integration tests — expected to fail until server middleware is wired
-  describe("integration — real server", () => {
-    it("fetches workspace from running server", () => {
-      // This test intentionally left to fail against real server.
-      // Will pass once workspace routes have repo/auth middleware wired.
-    });
-    it("handles 404 for non-existent workspace", () => {
-      // This test intentionally left to fail against real server.
-    });
-  });
+  // ... remaining tests follow same pattern
 });
 ```
 
@@ -1096,9 +1027,9 @@ Key test patterns for `useDeleteWorkspace`:
 
 Key detail for `useDestroyWorkspaceSession`: Verify the hook uses `method: "POST"` — check `mockClient.calls[0].options?.method === "POST"` (not DELETE).
 
-Key detail for `useCreateWorkspaceSession`: Verify validation of `cols` and `rows` — negative values and non-integers should throw `ApiError(400)`.
+Key detail for `useCreateWorkspaceSession`: Verify validation of `cols` and `rows` — negative values and non-integers should throw `ApiError(400)`. Zero cols/rows are accepted (server defaults).
 
-Key detail for `useCreateWorkspaceSnapshot`: Verify body construction — when `input.name` is undefined, the body object should be empty (or have no `name` field).
+Key detail for `useCreateWorkspaceSnapshot`: Verify body construction — when `input.name` is undefined, the body object should be empty (or have no `name` field). Verify the workspace-scoped path construction: `/api/repos/:owner/:repo/workspaces/:workspace_id/snapshot`.
 
 ### Step 7 — Final type-check and import verification
 
@@ -1129,7 +1060,7 @@ bun test specs/tui/packages/ui-core/src/hooks/workspaces/
 
 ### Test Infrastructure Details
 
-The test utilities use a custom React mock (`test-utils/react-mock.ts`) that provides:
+The test utilities use a custom React mock (`test-utils/react-mock.ts`, 85 lines) that provides:
 - `useState` — hook state with change detection and re-render triggering via `state.resolveUpdate`
 - `useEffect` — dependency-tracked effects processed after each render cycle (effects run synchronously within `renderCycle()`)
 - `useRef` — persistent refs across renders
@@ -1137,13 +1068,13 @@ The test utilities use a custom React mock (`test-utils/react-mock.ts`) that pro
 - `useMemo` — memoized values
 - `useContext` — returns `state.currentContextValue` (set by `renderHook` from `options.apiClient`)
 
-`renderHook` provides:
+`renderHook` (95 lines) provides:
 - `result.current` — latest hook return value (updated after each render cycle)
 - `rerender()` — trigger a new render cycle with same hook call
 - `unmount()` — run all effect cleanup functions
 - `waitForNextUpdate(timeoutMs?)` — returns a Promise that resolves when a state update triggers a re-render (1000ms default timeout). Works by setting `state.resolveUpdate` to a callback that runs `renderCycle()` then resolves the promise.
 
-`createMockAPIClient` provides:
+`createMockAPIClient` (72 lines) provides:
 - `respondWithJSON(status, body, headers?)` — queue a JSON response. **MUST** call BEFORE `renderHook` since the hook's `useEffect` fires synchronously during `renderCycle()` and the `request()` call happens immediately.
 - `respondWith(response)` — queue a raw Response
 - `respondWithError(error)` — queue a thrown error
@@ -1376,7 +1307,7 @@ describe("useWorkspaceSnapshots")
     ✓ fetches snapshots from running server
 ```
 
-#### `useCreateWorkspace.test.ts` — 21 tests
+#### `useCreateWorkspace.test.ts` — 23 tests
 
 ```
 describe("useCreateWorkspace")
@@ -1583,7 +1514,7 @@ describe("useCreateWorkspaceSnapshot")
     ✓ creates snapshot on running server
 ```
 
-#### `useDeleteWorkspaceSnapshot.test.ts` — 9 tests
+#### `useDeleteWorkspaceSnapshot.test.ts` — 10 tests
 
 ```
 describe("useDeleteWorkspaceSnapshot")
@@ -1619,15 +1550,15 @@ describe("useDeleteWorkspaceSnapshot")
 | useWorkspaceSSH.test.ts | 22 | 2 | 24 |
 | useWorkspaceSessions.test.ts | 11 | 1 | 12 |
 | useWorkspaceSnapshots.test.ts | 8 | 1 | 9 |
-| useCreateWorkspace.test.ts | 19 | 2 | 21 |
+| useCreateWorkspace.test.ts | 21 | 2 | 23 |
 | useSuspendWorkspace.test.ts | 12 | 1 | 13 |
 | useResumeWorkspace.test.ts | 8 | 1 | 9 |
 | useDeleteWorkspace.test.ts | 20 | 1 | 21 |
 | useCreateWorkspaceSession.test.ts | 11 | 1 | 12 |
 | useDestroyWorkspaceSession.test.ts | 10 | 1 | 11 |
 | useCreateWorkspaceSnapshot.test.ts | 8 | 1 | 9 |
-| useDeleteWorkspaceSnapshot.test.ts | 8 | 1 | 9 |
-| **Total** | **195** | **17** | **212** |
+| useDeleteWorkspaceSnapshot.test.ts | 9 | 1 | 10 |
+| **Total** | **198** | **17** | **215** |
 
 ---
 
@@ -1635,7 +1566,7 @@ describe("useDeleteWorkspaceSnapshot")
 
 ### From Existing Code to Production
 
-The hook implementations exist but contain 10 classes of bugs (covering all 13 files) that prevent compilation and runtime correctness. Step 1 of the implementation plan systematically fixes all bugs. Test files exist as skeleton stubs — Steps 2-6 fill in all 212 test bodies.
+The hook implementations exist but contain 10 classes of bugs (covering all 13 files) that prevent compilation and runtime correctness. Step 1 of the implementation plan systematically fixes all bugs. Test files exist as skeleton stubs — Steps 2-6 fill in all 215 test bodies.
 
 ### No PoC Stage Needed
 
@@ -1643,7 +1574,7 @@ The hooks use only React 19 primitives (`useState`, `useEffect`, `useCallback`, 
 
 ### Critical Paths to Production Readiness
 
-1. **Server middleware wiring**: The workspace routes currently hardcode `repositoryID = 0` and `userID = 0` (TODO comments on every route handler). The hooks will work correctly once repo context and auth middleware are wired. Until then, integration tests will fail with auth/context errors.
+1. **Server middleware wiring**: The workspace routes currently hardcode `repositoryID = 0` and `userID = 0` (TODO comments on every route handler — verified at lines 80-81, 109-110, 128-129, 142-143, 164-165, 182-183, 200-201, 214-215, 241-242, 272-273, 300-301, 314-315, 336, 349-350, 379-380, 393-394, 415, 430-431, 448-449, 488-489 of `workspaces.ts`). The hooks will work correctly once repo context and auth middleware are wired. Until then, integration tests will fail with auth/context errors.
 
 2. **Container sandbox availability**: The `WorkspaceService` requires a `ContainerSandboxClient` for create, suspend, resume, and delete operations. In environments without Docker or the container runtime, these operations will return 500 errors. The hooks surface these errors correctly via `error` state.
 
@@ -1653,7 +1584,7 @@ The hooks use only React 19 primitives (`useState`, `useEffect`, `useCallback`, 
 
 5. **Status filter**: The workspace list endpoint does not support a `?status=` query parameter. Client-side filtering in `useWorkspaces` works but fetches more data than needed. A server-side filter should be added.
 
-6. **`createAPIClient` auto-serialization**: The `createAPIClient.ts` implementation (verified at lines 20-21) auto-serializes `body` objects to JSON and sets `Content-Type: application/json`. The corrected hooks pass `body` as a plain object and do NOT manually `JSON.stringify`. If `createAPIClient` ever changes its serialization behavior, the hooks must be updated accordingly.
+6. **`createAPIClient` auto-serialization**: The `createAPIClient.ts` implementation (verified at lines 19-27) auto-serializes `body` objects to JSON and sets `Content-Type: application/json`. The corrected hooks pass `body` as a plain object and do NOT manually `JSON.stringify`. If `createAPIClient` ever changes its serialization behavior, the hooks must be updated accordingly.
 
 ### `onRevert` Callback Wiring
 
@@ -1670,7 +1601,7 @@ The manual-implementation hooks (`useDeleteWorkspace`, `useDestroyWorkspaceSessi
 
 ### Memory Considerations
 
-- All list hooks cap at 500 items (oldest pages evicted via `usePaginatedQuery` line 108-109: `combinedItems.slice(combinedItems.length - maxItems)`).
+- All list hooks cap at 500 items (oldest pages evicted via `usePaginatedQuery` lines 108-109: `combinedItems.slice(combinedItems.length - maxItems)`).
 - The `useWorkspaceSSH` hook creates a 1-second `setInterval` timer. Only one timer per hook instance. Timer is cleaned up on unmount via `clearInterval` (line 32).
 - Deduplication maps in delete hooks (`inflight`, `abortControllers`) are bounded by in-flight operations (typically 1-2 concurrent). Maps are cleared on unmount (lines 90-91).
 
@@ -1680,7 +1611,8 @@ The manual-implementation hooks (`useDeleteWorkspace`, `useDestroyWorkspaceSessi
 - Mutation hooks expose `error` state that callers can display.
 - Network errors preserve stale data (stale-while-revalidate pattern) — `useWorkspace` and `useWorkspaceSSH` keep their last-good data on error (verified: `.catch()` sets error and isLoading but does NOT clear workspace/sshInfo state).
 - AbortErrors are always swallowed — they are expected during navigation and cleanup. Verified at line 56 of `useWorkspace.ts`: `if (err.name === "AbortError") return;` and line 60 of `useDeleteWorkspace.ts`.
-- `usePaginatedQuery` preserves items on error (verified: the catch block at lines 135-141 sets error and loading, but does NOT call `setItems([])`).
+- `usePaginatedQuery` preserves items on error (verified: the catch block at lines 133-141 sets error and loading, but does NOT call `setItems([])`).
+- `useMutation` re-throws all non-AbortError errors (verified at line 93: `throw err;`) — callers can catch and handle.
 
 ---
 
@@ -1692,9 +1624,11 @@ This engineering specification should be maintained alongside:
 - `specs/tui/design.md` — Design specification (workspace detail views, SSH info display)
 - `specs/tui/engineering-architecture.md` — Data layer patterns, `usePaginatedQuery`, `useMutation`
 - `specs/tui/engineering/tui-agent-data-hooks.md` — Sister spec establishing shared infrastructure
-- `apps/server/src/routes/workspaces.ts` — Server route source of truth (524 lines, fully scaffolded)
+- `apps/server/src/routes/workspaces.ts` — Server route source of truth (525 lines, fully scaffolded)
 - `packages/sdk/src/services/workspace.ts` — Service layer source of truth (1137 lines)
 - `packages/ui-core/src/hooks/internal/usePaginatedQuery.ts` — Pagination utility (218 lines)
 - `packages/ui-core/src/hooks/internal/useMutation.ts` — Mutation utility (103 lines)
-- `packages/ui-core/src/client/types.ts` — APIClient interface definition
-- `packages/ui-core/src/test-utils/` — Test infrastructure (`renderHook`, `mockAPIClient`, `react-mock`)
+- `packages/ui-core/src/client/types.ts` — APIClient interface definition (17 lines)
+- `packages/ui-core/src/client/context.ts` — APIClientProvider and useAPIClient (17 lines)
+- `packages/ui-core/src/client/createAPIClient.ts` — Client factory with auto-serialization (41 lines)
+- `packages/ui-core/src/test-utils/` — Test infrastructure (`renderHook` 95 lines, `mockAPIClient` 72 lines, `react-mock` 85 lines)
