@@ -5,7 +5,7 @@
 **Title:** Implement terminal color capability detection module  
 **Type:** Engineering  
 **Feature Flag:** `TUI_THEME_AND_COLOR_TOKENS` (within `TUI_APP_SHELL`)  
-**Dependency:** `tui-foundation-scaffold` (completed)  
+**Dependency:** `tui-foundation-scaffold` (completed ✅)  
 
 ---
 
@@ -15,7 +15,9 @@ This ticket implements the color capability detection module at `apps/tui/src/th
 
 ### Relationship to Existing Code
 
-The codebase already has a `detectColorTier()` function in `apps/tui/src/lib/diff-syntax.ts` (lines 103–121). That function serves diff-specific syntax highlighting. The `apps/tui/src/hooks/useDiffSyntaxStyle.ts` hook imports `detectColorTier` and `ColorTier` from `lib/diff-syntax.ts` and uses them to create a `SyntaxStyle` instance.
+The codebase already has a `detectColorTier()` function in `apps/tui/src/lib/diff-syntax.ts` (lines 103–121). That function serves diff-specific syntax highlighting. The `apps/tui/src/hooks/useDiffSyntaxStyle.ts` hook imports `detectColorTier` and `ColorTier` from `../lib/diff-syntax.js` and uses them to create a `SyntaxStyle` instance.
+
+The `apps/tui/src/lib/index.ts` barrel re-exports `detectColorTier`, `ColorTier`, and all palette-related symbols from `diff-syntax.js`.
 
 This ticket creates a **canonical, centralized** detection module in the theme directory that:
 
@@ -26,52 +28,65 @@ This ticket creates a **canonical, centralized** detection module in the theme d
 
 ### Current Filesystem State
 
-The actual `apps/tui/src/` directory currently contains:
+The `tui-foundation-scaffold` prerequisite is **complete**. The actual `apps/tui/` directory contains:
 
 ```
-apps/tui/src/
-├── hooks/
-│   └── useDiffSyntaxStyle.ts    (53 lines — implemented, imports from lib/diff-syntax.ts)
-├── lib/
-│   └── diff-syntax.ts           (161 lines — implemented, defines ColorTier + detectColorTier + palettes)
-└── screens/
-    └── Agents/
-        ├── components/
-        │   ├── index.ts           (re-exports from MessageBlock, ToolBlock)
-        │   ├── MessageBlock.tsx    (stub: export {})
-        │   └── ToolBlock.tsx       (stub: export {})
-        ├── types.ts               (17 lines — message types defined)
-        └── utils/
-            └── formatTimestamp.ts  (34 lines — implemented)
+apps/tui/
+├── package.json           (@codeplane/tui v0.0.1, react 19.2.4, @opentui 0.1.90)
+├── tsconfig.json          (ESNext, jsx: react-jsx, jsxImportSource: @opentui/react)
+└── src/
+    ├── index.tsx           (TUI entry point)
+    ├── verify-imports.ts   (dependency chain validation)
+    ├── theme/
+    │   └── index.ts        (stub: export {})
+    ├── hooks/
+    │   ├── index.ts        (re-exports useDiffSyntaxStyle)
+    │   └── useDiffSyntaxStyle.ts  (imports from ../lib/diff-syntax.js)
+    ├── lib/
+    │   ├── index.ts        (re-exports ColorTier, detectColorTier, palettes)
+    │   └── diff-syntax.ts  (161 lines — ColorTier type, detectColorTier, palettes, SyntaxStyle)
+    ├── screens/
+    │   ├── index.ts
+    │   └── Agents/
+    │       ├── components/  (MessageBlock.tsx, ToolBlock.tsx stubs)
+    │       ├── types.ts     (message types)
+    │       └── utils/
+    │           └── formatTimestamp.ts
+    ├── components/
+    │   └── index.ts
+    ├── providers/
+    │   └── index.ts
+    └── util/
+        └── index.ts
 ```
 
-**Critical facts about the current state:**
+**E2E test infrastructure is already in place:**
 
-- **No `theme/` directory exists** in the actual implementation.
-- **No `package.json` or `tsconfig.json`** exist in `apps/tui/`. Node modules are resolved via the workspace root through symlinks in `apps/tui/node_modules/` (react@19.2.4, @opentui/core, @opentui/react, typescript@5.9.3, bun-types).
-- The blueprint for the full TUI lives in `specs/tui/apps/tui/src/` — this ticket materializes the `theme/detect.ts` and `theme/index.ts` files from that blueprint into the actual implementation directory.
-- The `e2e/tui/` directory contains only `diff.test.ts` (217 lines — stub test skeleton using `@microsoft/tui-test`). No `helpers.ts` or `app-shell.test.ts` exist.
+```
+e2e/tui/
+├── helpers.ts          (492 lines — TUI_ROOT, TUI_SRC, BUN, run(), bunEval(), launchTUI(), etc.)
+├── app-shell.test.ts   (875 lines — scaffold, compilation, dependency, infrastructure, loading, keybinding tests)
+├── diff.test.ts        (diff syntax highlighting tests)
+└── agents.test.ts      (agent screen tests)
+```
+
+**Key observations about the current state:**
+
+- `apps/tui/src/theme/index.ts` exists but is an empty stub (`export {};`)
+- `apps/tui/src/theme/detect.ts` does **not** exist — this ticket creates it
+- `e2e/tui/helpers.ts` already exists with `run()`, `bunEval()`, `TUI_SRC`, `BUN` exports
+- `e2e/tui/app-shell.test.ts` already exists with 5 `describe` blocks — this ticket adds a 6th
+- `apps/tui/package.json` and `apps/tui/tsconfig.json` exist (scaffold complete)
+- TypeScript strict mode is enabled with `isolatedModules: true`
 
 ---
 
 ## 2. Implementation Plan
 
-### Step 0: Prerequisite — Verify `tui-foundation-scaffold` is Complete
-
-Before starting, confirm the foundation scaffold ticket has been completed. This ticket depends on:
-
-- `apps/tui/package.json` existing with `@opentui/core`, `@opentui/react`, `react@19.x`, `@codeplane/sdk` dependencies
-- `apps/tui/tsconfig.json` existing with `jsxImportSource: "@opentui/react"`, `target: "ESNext"`, `moduleResolution: "bundler"`
-- `apps/tui/src/index.tsx` entry point existing
-- Directory structure (`src/theme/`, `src/providers/`, etc.) scaffolded
-- `bun run check` (tsc --noEmit) passing
-
-**Current state:** As of 2026-03-22, `apps/tui/package.json` and `apps/tui/tsconfig.json` do NOT exist. The scaffold MUST be completed first. This is tracked as a hard prerequisite. Node modules are already installed via workspace symlinks but there is no local TypeScript project configuration.
-
 ### Step 1: Create `apps/tui/src/theme/detect.ts`
 
 **File:** `apps/tui/src/theme/detect.ts`  
-**Action:** Create  
+**Action:** Create new file  
 **Source blueprint:** `specs/tui/apps/tui/src/theme/detect.ts` (102 lines, verbatim)
 
 This is the primary deliverable. It contains three exports:
@@ -177,14 +192,20 @@ export function isUnicodeSupported(): boolean {
 
 The file should be copied verbatim from `specs/tui/apps/tui/src/theme/detect.ts` (102 lines). It contains the module-level JSDoc, the `ColorTier` type, `detectColorCapability()`, and `isUnicodeSupported()`.
 
-### Step 2: Create `apps/tui/src/theme/index.ts` barrel export
+### Step 2: Update `apps/tui/src/theme/index.ts` barrel export
 
 **File:** `apps/tui/src/theme/index.ts`  
-**Action:** Create (the `theme/` directory does not exist in the actual implementation yet)
+**Action:** Replace the existing stub (`export {};`) with real re-exports
 
-The barrel export re-exports all public API from `detect.ts`.
+The current file contains only:
+```typescript
+/**
+ * Theme system for the TUI application.
+ */
+export {};
+```
 
-**Important:** The blueprint file at `specs/tui/apps/tui/src/theme/index.ts` re-exports from `syntaxStyle.js` and `tokens.js` as well, but those files are separate tickets. For this ticket, the barrel ONLY re-exports from `detect.ts`. The barrel will be extended when those files land.
+Replace with:
 
 ```typescript
 /**
@@ -209,40 +230,29 @@ The barrel export re-exports all public API from `detect.ts`.
 export { type ColorTier, detectColorCapability, isUnicodeSupported } from "./detect.js";
 ```
 
-**Rationale for excluding `detectColorTier` alias and other re-exports:**
+**Rationale for excluding additional re-exports:**
 
-The blueprint barrel at `specs/tui/apps/tui/src/theme/index.ts` also includes:
+The full blueprint barrel at `specs/tui/apps/tui/src/theme/index.ts` also includes:
 - `import { detectColorCapability } from "./detect.js"; export const detectColorTier = detectColorCapability;` — backward-compatible alias
 - `export { defaultSyntaxStyle } from "./syntaxStyle.js";` — singleton syntax style
 - `export { type ThemeTokens, ... } from "./tokens.js";` — token definitions
 
 These are deferred to their respective tickets (`tui-theme-tokens`, `tui-syntax-style-singleton`) to avoid module resolution failures for files that don't exist yet. The `detectColorTier` alias is deferred to the migration ticket that updates `lib/diff-syntax.ts` callers.
 
-### Step 3: Materialize `e2e/tui/helpers.ts` test infrastructure
-
-**File:** `e2e/tui/helpers.ts`  
-**Action:** Create from blueprint at `specs/tui/e2e/tui/helpers.ts` (353 lines, verbatim)  
-
-This file provides the test infrastructure needed by DET-* tests and all future TUI E2E tests. It is not a test file itself, but a shared utility module.
-
-**Key exports used by color detection tests:**
-
-| Export | Type | Description |
-|--------|------|-------------|
-| `TUI_ROOT` | `string` | `join(import.meta.dir, "../../apps/tui")` |
-| `TUI_SRC` | `string` | `join(TUI_ROOT, "src")` |
-| `BUN` | `string` | `Bun.which("bun") ?? process.execPath` |
-| `run(cmd, opts?)` | `async function` | Spawns subprocess with controlled env, merges `opts.env` with `process.env` |
-| `bunEval(expression)` | `async function` | Shorthand for `run([BUN, "-e", expression])` |
-
-The `run()` function has a critical detail: it merges `opts.env` with `process.env` (line 331: `env: { ...(process.env as Record<string, string>), ...opts.env }`). This means tests must explicitly set `NO_COLOR`, `COLORTERM`, and `TERM` to override the test runner's own environment.
-
-### Step 4: Create `e2e/tui/app-shell.test.ts` with color detection tests
+### Step 3: Add color detection tests to `e2e/tui/app-shell.test.ts`
 
 **File:** `e2e/tui/app-shell.test.ts`  
-**Action:** Create  
+**Action:** Append a new `describe` block after the existing 5 blocks
 
-Only the color detection `describe` block is added in this ticket. Other `describe` blocks (loading states, keybinding dispatch, etc.) will be added by their respective tickets.
+The existing file already has:
+1. `TUI_APP_SHELL — Package scaffold` (lines 10–129)
+2. `TUI_APP_SHELL — TypeScript compilation` (lines 135–155)
+3. `TUI_APP_SHELL — Dependency resolution` (lines 161–221)
+4. `TUI_APP_SHELL — E2E test infrastructure` (lines 227–310)
+5. `TUI_LOADING_STATES` (lines within the blueprint app-shell.test.ts)
+6. `KeybindingProvider — Priority Dispatch` (lines 610–874)
+
+A 7th `describe` block for color detection tests will be appended. New imports needed: `existsSync` from `node:fs` (already imported at line 2).
 
 Full test specifications are in Section 10 below.
 
@@ -253,17 +263,12 @@ Full test specifications are in Section 10 below.
 | File | Action | Lines | Description |
 |------|--------|-------|-------------|
 | `apps/tui/src/theme/detect.ts` | **Create** | 102 | Color detection module — sole new logic file |
-| `apps/tui/src/theme/index.ts` | **Create** | ~18 | Barrel re-export from detect.ts |
-| `e2e/tui/helpers.ts` | **Create** | 353 | Test infrastructure (from blueprint) |
-| `e2e/tui/app-shell.test.ts` | **Create** | ~250 | Color detection E2E tests |
+| `apps/tui/src/theme/index.ts` | **Modify** | ~18 | Replace stub `export {}` with re-exports from detect.ts |
+| `e2e/tui/app-shell.test.ts` | **Modify** | +~230 | Append color detection `describe` block |
 
-**No existing files are modified.** This is a purely additive change.
+**No new directories need to be created** — `apps/tui/src/theme/` already exists (contains `index.ts`).
 
-**Directories to create:**
-
-| Directory | Status |
-|-----------|--------|
-| `apps/tui/src/theme/` | Does not exist — must be created |
+**No test infrastructure files need to be created** — `e2e/tui/helpers.ts` already exists with all required exports (`TUI_SRC`, `BUN`, `run()`, `bunEval()`).
 
 ---
 
@@ -288,7 +293,7 @@ All three exports above are re-exported from the barrel.
 This table documents every meaningful combination of environment variables and the expected output. It serves as both a specification and a test plan.
 
 | # | `NO_COLOR` | `TERM` | `COLORTERM` | `detectColorCapability()` | `isUnicodeSupported()` | Rationale |
-|---|------------|--------|-------------|---------------------------|------------------------|----------|
+|---|------------|--------|-------------|---------------------------|------------------------|-----------|
 | 1 | `"1"` | `"xterm-256color"` | `"truecolor"` | `ansi16` | `false` | NO_COLOR overrides everything |
 | 2 | `""` | `"xterm-256color"` | `"truecolor"` | `truecolor` | `true` | Empty NO_COLOR is treated as unset |
 | 3 | _(unset)_ | `"dumb"` | `"truecolor"` | `ansi16` | `false` | TERM=dumb overrides COLORTERM |
@@ -315,7 +320,7 @@ The existing `detectColorTier()` in `apps/tui/src/lib/diff-syntax.ts` (lines 103
 | Aspect | `lib/diff-syntax.ts` (existing, line 103) | `theme/detect.ts` (new) |
 |--------|--------------------------------|-------------------------|
 | `NO_COLOR` handling | ❌ Not checked | ✅ Checked first (priority 1) |
-| `TERM=dumb` handling | Returns `ansi16` (lumped with `linux`, `xterm`, empty at line 115) | Returns `ansi16` (explicit check at priority 2) |
+| `TERM=dumb` handling | Returns `ansi16` (part of catch-all at line 115) | Returns `ansi16` (explicit check at priority 2) |
 | `TERM=linux` | Returns `ansi16` (explicit match at line 115) | Returns `ansi256` (default fallback — linux console supports 256 in many configs) |
 | `TERM=xterm` | Returns `ansi16` (explicit match at line 115) | Returns `ansi256` (default fallback — modern xterm supports 256) |
 | `TERM=""` (empty) | Returns `ansi16` (explicit match at line 115) | Returns `ansi256` (default fallback) |
@@ -331,6 +336,7 @@ The existing `detectColorTier()` in `apps/tui/src/lib/diff-syntax.ts` (lines 103
 |------|---------------|------------------|
 | `apps/tui/src/hooks/useDiffSyntaxStyle.ts` (line 3) | `import { createDiffSyntaxStyle, detectColorTier, type ColorTier } from "../lib/diff-syntax.js"` | `import { type ColorTier } from "../theme/detect.js"` (or via barrel) |
 | `apps/tui/src/lib/diff-syntax.ts` (line 101) | Defines `ColorTier` locally | Re-exports from `../theme/detect.js` |
+| `apps/tui/src/lib/index.ts` (line 8, 15) | `export { detectColorTier } from "./diff-syntax.js"` and `export type { ColorTier } from "./diff-syntax.js"` | Re-exports from `../theme/detect.js` |
 
 ---
 
@@ -367,18 +373,19 @@ This module is production-ready as specified. There are no POC artifacts to grad
 
 The following must be verified before marking the ticket complete:
 
-- [ ] `apps/tui/src/theme/` directory exists
 - [ ] `apps/tui/src/theme/detect.ts` exists and contains the three exports (`ColorTier`, `detectColorCapability`, `isUnicodeSupported`)
-- [ ] `apps/tui/src/theme/index.ts` exists and re-exports from detect.ts
-- [ ] `bun run check` passes with the new files (TypeScript compilation)
+- [ ] `apps/tui/src/theme/index.ts` has been updated from stub `export {}` to re-export from detect.ts
+- [ ] `bun run check` passes with the new files (TypeScript compilation) — run from `apps/tui/`
 - [ ] The barrel export from `theme/index.ts` resolves correctly when imported
-- [ ] The module is importable via `import { detectColorCapability, isUnicodeSupported, type ColorTier } from "../theme/detect.js"`
+- [ ] The module is importable via `import { detectColorCapability, isUnicodeSupported, type ColorTier } from "./src/theme/detect.js"` from the `apps/tui/` cwd
 - [ ] No circular dependency introduced (detect.ts has zero internal imports)
 - [ ] Existing `lib/diff-syntax.ts` continues to compile and function unchanged
 - [ ] Existing `hooks/useDiffSyntaxStyle.ts` continues to compile and function unchanged
-- [ ] `e2e/tui/helpers.ts` exists and exports `TUI_ROOT`, `TUI_SRC`, `BUN`, `run()`, `bunEval()`
+- [ ] Existing `lib/index.ts` barrel continues to compile and function unchanged
 - [ ] All DET-* tests in `e2e/tui/app-shell.test.ts` pass
+- [ ] All pre-existing tests in `e2e/tui/app-shell.test.ts` continue to pass
 - [ ] Existing `e2e/tui/diff.test.ts` continues to compile unchanged
+- [ ] Existing `e2e/tui/agents.test.ts` continues to compile unchanged
 
 ---
 
@@ -386,19 +393,21 @@ The following must be verified before marking the ticket complete:
 
 ### Test file: `e2e/tui/app-shell.test.ts`
 
-Tests are added to the `e2e/tui/app-shell.test.ts` file within a dedicated `describe` block. The color detection tests belong to the `TUI_APP_SHELL` feature group (`TUI_THEME_AND_COLOR_TOKENS` feature flag).
+Tests are appended to the existing `e2e/tui/app-shell.test.ts` file as a new `describe` block. The color detection tests belong to the `TUI_APP_SHELL` feature group (`TUI_THEME_AND_COLOR_TOKENS` feature flag).
 
-### Test infrastructure dependency
+### Test infrastructure
 
-The tests depend on `e2e/tui/helpers.ts` which provides:
+The tests depend on `e2e/tui/helpers.ts` which **already exists** (492 lines) and provides:
 
-- `TUI_ROOT` — `join(import.meta.dir, "../../apps/tui")`
-- `TUI_SRC` — `join(TUI_ROOT, "src")`
-- `BUN` — `Bun.which("bun") ?? process.execPath`
-- `run(cmd, opts)` — spawns a subprocess with custom environment, returns `{ exitCode, stdout, stderr }`
-- `bunEval(expression)` — shorthand for `run([BUN, "-e", expression])`
+| Export | Type | Description |
+|--------|------|-------------|
+| `TUI_ROOT` | `string` | `join(import.meta.dir, "../../apps/tui")` |
+| `TUI_SRC` | `string` | `join(TUI_ROOT, "src")` |
+| `BUN` | `string` | `Bun.which("bun") ?? process.execPath` |
+| `run(cmd, opts?)` | `async function` | Spawns subprocess with controlled env, merges `opts.env` with `process.env` |
+| `bunEval(expression)` | `async function` | Shorthand for `run([BUN, "-e", expression])` |
 
-The `helpers.ts` file currently only exists in `specs/tui/e2e/tui/helpers.ts` (353 lines) and must be materialized to `e2e/tui/helpers.ts` as part of this ticket (Step 3).
+The `run()` function merges `opts.env` with `process.env` (line 465: `env: { ...process.env as Record<string, string>, ...opts.env }`). This means tests must explicitly set `NO_COLOR`, `COLORTERM`, and `TERM` to override the test runner's own environment.
 
 ### Test approach
 
@@ -410,18 +419,13 @@ Since `detectColorCapability()` and `isUnicodeSupported()` are pure functions th
 
 Each `run()` call spawns a fresh Bun subprocess with a clean, explicitly-specified environment, making tests fully isolated.
 
-**Environment isolation detail:** The `run()` helper merges the provided `env` object with `process.env` by default (see `helpers.ts` line 331: `env: { ...(process.env as Record<string, string>), ...opts.env }`). For color detection tests where we need precise control over `NO_COLOR`, `TERM`, and `COLORTERM`, every test explicitly sets all three variables in the `env` object. This ensures the subprocess doesn't inherit the test runner's terminal settings.
+**Environment isolation detail:** Every test case explicitly sets all three env vars (`NO_COLOR`, `COLORTERM`, `TERM`) to ensure deterministic results regardless of the test runner's terminal environment. Setting `NO_COLOR: ""` or `COLORTERM: ""` is equivalent to unsetting those vars for detection purposes (empty strings are treated as unset by the detection logic).
 
 ### Test specifications
 
+The following `describe` block is appended to the end of `e2e/tui/app-shell.test.ts`. The existing imports on line 1-4 already include `existsSync`, `join`, `TUI_SRC`, `run`, `bunEval`, and `BUN` (via the helpers import). The only addition needed to the imports is ensuring `BUN` is in the destructured import.
+
 ```typescript
-// e2e/tui/app-shell.test.ts
-
-import { describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { TUI_SRC, run, bunEval, BUN } from "./helpers";
-
 // ---------------------------------------------------------------------------
 // TUI_APP_SHELL — Color capability detection (theme/detect.ts)
 // ---------------------------------------------------------------------------
@@ -777,12 +781,28 @@ describe("TUI_APP_SHELL — Color capability detection", () => {
 1. **No mocking.** Tests run actual Bun subprocesses with controlled `env` objects. No `jest.mock()`, no `vi.mock()`, no `process.env` mutation.
 2. **Each test validates one behavior.** Test names describe what the user/system observes, not implementation mechanics.
 3. **Tests are independent.** Each `run()` call spawns a fresh subprocess. No shared state.
-4. **Tests that fail due to unimplemented backends stay failing.** Not directly applicable here (this module has no backend dependencies), but DET-TSC-001 will fail if the `tui-foundation-scaffold` prerequisite is not complete. It stays failing as a signal.
+4. **Tests that fail due to unimplemented backends stay failing.** Not directly applicable here (this module has no backend dependencies), but the principle is upheld.
 5. **No skipping.** Every test in the spec is executed.
 
 ### Environment isolation note
 
 The `run()` helper merges `opts.env` with `process.env` (spread: `{ ...process.env, ...opts.env }`). This means the test runner's `TERM`, `COLORTERM`, and `NO_COLOR` values will be inherited unless explicitly overridden. Every test case in this spec explicitly sets all three env vars (`NO_COLOR`, `COLORTERM`, `TERM`) to ensure deterministic results regardless of the test runner's terminal environment.
+
+### Integration with existing test file
+
+The existing `e2e/tui/app-shell.test.ts` (875 lines) already imports from `./helpers.ts`:
+
+```typescript
+import { TUI_ROOT, TUI_SRC, run, bunEval, createTestCredentialStore, createMockAPIEnv, launchTUI } from "./helpers.ts"
+```
+
+The `BUN` export is used in the DET-* tests but is not currently in the import. The import line must be updated to include `BUN`:
+
+```typescript
+import { TUI_ROOT, TUI_SRC, BUN, run, bunEval, createTestCredentialStore, createMockAPIEnv, launchTUI } from "./helpers.ts"
+```
+
+No other imports need to change. `existsSync` and `join` are already imported.
 
 ---
 
@@ -810,20 +830,21 @@ The `run()` helper merges `opts.env` with `process.env` (spread: `{ ...process.e
 - **ThemeProvider implementation.** This ticket delivers only the detection function. ThemeProvider is a separate ticket.
 - **Token resolution (semantic color → ANSI value).** Separate ticket (`tui-theme-tokens`).
 - **`syntaxStyle.ts` module.** Separate ticket — depends on tokens.ts.
-- **Migration of existing `detectColorTier()` callers.** Follow-up ticket to avoid cascading changes. The callers are `lib/diff-syntax.ts` (definition, line 103) and `hooks/useDiffSyntaxStyle.ts` (consumer, line 3).
+- **Migration of existing `detectColorTier()` callers.** Follow-up ticket to avoid cascading changes. The callers are:
+  - `lib/diff-syntax.ts` (definition, line 103)
+  - `hooks/useDiffSyntaxStyle.ts` (consumer, line 3)
+  - `lib/index.ts` (re-export, lines 8 and 15)
 - **Runtime theme switching.** Architecture doc explicitly states the tier is frozen for session lifetime.
 - **Terminal capability querying via escape sequences.** Some terminals support `\e[?11;4c` DA responses. This module uses only environment variables — simpler, faster, and sufficient.
 - **`FORCE_COLOR` env var support.** Could be added later if needed. Currently not in the cascade.
-- **Foundation scaffold creation.** This ticket assumes `tui-foundation-scaffold` is complete. If the scaffold is missing (`apps/tui/package.json` and `apps/tui/tsconfig.json` do not exist as of 2026-03-22), it must be completed first.
 - **`detectColorTier` alias export.** The blueprint barrel exports `export const detectColorTier = detectColorCapability;` for backward compatibility. This alias is deferred to the migration ticket to keep this ticket's scope minimal and free of import-side complexity.
-- **Full `helpers.ts` test infrastructure design.** The helpers file is copied verbatim from the blueprint. Any modifications to its design are out of scope — this ticket materializes it as-is for consumption by DET-* tests.
 
 ---
 
 ## 13. Acceptance Criteria
 
 1. ✅ `apps/tui/src/theme/detect.ts` exists and exports `ColorTier`, `detectColorCapability`, and `isUnicodeSupported`
-2. ✅ `apps/tui/src/theme/index.ts` exists and re-exports all three
+2. ✅ `apps/tui/src/theme/index.ts` re-exports all three (replacing the stub `export {}`)
 3. ✅ `detectColorCapability()` returns `ansi16` when `NO_COLOR` is set (non-empty) or `TERM=dumb`
 4. ✅ `detectColorCapability()` returns `truecolor` when `COLORTERM=truecolor` or `COLORTERM=24bit`
 5. ✅ `detectColorCapability()` returns `ansi256` when `TERM` contains `256color`
@@ -831,10 +852,12 @@ The `run()` helper merges `opts.env` with `process.env` (spread: `{ ...process.e
 7. ✅ `isUnicodeSupported()` returns `false` for `TERM=dumb` and `NO_COLOR` set
 8. ✅ `isUnicodeSupported()` returns `true` by default
 9. ✅ Module has zero React imports and zero `@opentui` imports
-10. ✅ `bun run check` passes (TypeScript compilation)
+10. ✅ `bun run check` passes from `apps/tui/` (TypeScript compilation)
 11. ✅ All 32 DET-* tests in `e2e/tui/app-shell.test.ts` pass
-12. ✅ No existing tests are broken by the addition
+12. ✅ All pre-existing tests in `e2e/tui/app-shell.test.ts` continue to pass (scaffold, compilation, dependency, infrastructure, loading, keybinding)
 13. ✅ Existing `lib/diff-syntax.ts` compiles and functions unchanged
 14. ✅ Existing `hooks/useDiffSyntaxStyle.ts` compiles and functions unchanged
-15. ✅ `e2e/tui/helpers.ts` exists and provides `run()`, `bunEval()`, `TUI_SRC`, `BUN` exports
+15. ✅ Existing `lib/index.ts` barrel compiles and functions unchanged
 16. ✅ DET-COMPAT-003 documents the intentional behavioral divergence between new and old detection
+17. ✅ Existing `e2e/tui/diff.test.ts` continues to compile unchanged
+18. ✅ Existing `e2e/tui/agents.test.ts` continues to compile unchanged

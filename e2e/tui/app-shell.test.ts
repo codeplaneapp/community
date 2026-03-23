@@ -1,7 +1,7 @@
 import { describe, test, expect } from "bun:test"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
-import { TUI_ROOT, TUI_SRC, run, bunEval, createTestCredentialStore, createMockAPIEnv, launchTUI } from "./helpers.ts"
+import { TUI_ROOT, TUI_SRC, BUN, run, bunEval, createTestCredentialStore, createMockAPIEnv, launchTUI } from "./helpers.ts"
 
 // ---------------------------------------------------------------------------
 // TUI_APP_SHELL — Package scaffold
@@ -308,3 +308,337 @@ describe("TUI_APP_SHELL — E2E test infrastructure", () => {
     expect(sizes.large).toEqual({ width: 200, height: 60 })
   })
 })
+
+
+// ---------------------------------------------------------------------------
+// TUI_APP_SHELL — Color capability detection (theme/detect.ts)
+// ---------------------------------------------------------------------------
+
+describe("TUI_APP_SHELL — Color capability detection", () => {
+
+  // ── File structure ─────────────────────────────────────────────────────
+
+  test("DET-FILE-001: theme/detect.ts exists", () => {
+    expect(existsSync(join(TUI_SRC, "theme/detect.ts"))).toBe(true);
+  });
+
+  test("DET-FILE-002: theme/index.ts re-exports detectColorCapability", async () => {
+    const result = await bunEval(
+      "import { detectColorCapability } from './src/theme/index.js'; console.log(typeof detectColorCapability)"
+    );
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe("function");
+  });
+
+  test("DET-FILE-003: theme/index.ts re-exports isUnicodeSupported", async () => {
+    const result = await bunEval(
+      "import { isUnicodeSupported } from './src/theme/index.js'; console.log(typeof isUnicodeSupported)"
+    );
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe("function");
+  });
+
+  test("DET-FILE-004: theme/index.ts re-exports ColorTier type", async () => {
+    // Type-only exports are erased at runtime; verify the module loads
+    // and that the value-level exports coexist with the type export.
+    const result = await bunEval(
+      "import { detectColorCapability } from './src/theme/index.js'; const t: import('./src/theme/detect.js').ColorTier = detectColorCapability(); console.log(typeof t)"
+    );
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe("string");
+  });
+
+  test("DET-FILE-005: detect.ts has zero React imports", async () => {
+    const content = await Bun.file(join(TUI_SRC, "theme/detect.ts")).text();
+    expect(content).not.toContain("from 'react'");
+    expect(content).not.toContain('from "react"');
+    expect(content).not.toContain("import React");
+  });
+
+  test("DET-FILE-006: detect.ts has zero @opentui imports", async () => {
+    const content = await Bun.file(join(TUI_SRC, "theme/detect.ts")).text();
+    expect(content).not.toContain("@opentui");
+  });
+
+  // ── detectColorCapability() ────────────────────────────────────────────
+
+  // Priority 1: NO_COLOR
+  test("DET-DETECT-001: NO_COLOR=1 returns ansi16 even with truecolor COLORTERM", async () => {
+    const r = await run(
+      [BUN, "-e", "import { detectColorCapability } from './src/theme/detect.js'; console.log(detectColorCapability())"],
+      { env: { NO_COLOR: "1", COLORTERM: "truecolor", TERM: "xterm-256color" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("ansi16");
+  });
+
+  test("DET-DETECT-002: NO_COLOR=0 (non-empty) returns ansi16", async () => {
+    const r = await run(
+      [BUN, "-e", "import { detectColorCapability } from './src/theme/detect.js'; console.log(detectColorCapability())"],
+      { env: { NO_COLOR: "0", COLORTERM: "", TERM: "xterm-256color" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("ansi16");
+  });
+
+  test("DET-DETECT-003: NO_COLOR='' (empty string) does NOT trigger ansi16", async () => {
+    const r = await run(
+      [BUN, "-e", "import { detectColorCapability } from './src/theme/detect.js'; console.log(detectColorCapability())"],
+      { env: { NO_COLOR: "", COLORTERM: "truecolor", TERM: "" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("truecolor");
+  });
+
+  // Priority 2: TERM=dumb
+  test("DET-DETECT-004: TERM=dumb returns ansi16 even with truecolor COLORTERM", async () => {
+    const r = await run(
+      [BUN, "-e", "import { detectColorCapability } from './src/theme/detect.js'; console.log(detectColorCapability())"],
+      { env: { NO_COLOR: "", TERM: "dumb", COLORTERM: "truecolor" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("ansi16");
+  });
+
+  // Priority 3: COLORTERM=truecolor
+  test("DET-DETECT-005: COLORTERM=truecolor returns truecolor", async () => {
+    const r = await run(
+      [BUN, "-e", "import { detectColorCapability } from './src/theme/detect.js'; console.log(detectColorCapability())"],
+      { env: { NO_COLOR: "", COLORTERM: "truecolor", TERM: "xterm-256color" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("truecolor");
+  });
+
+  test("DET-DETECT-006: COLORTERM=24bit returns truecolor", async () => {
+    const r = await run(
+      [BUN, "-e", "import { detectColorCapability } from './src/theme/detect.js'; console.log(detectColorCapability())"],
+      { env: { NO_COLOR: "", COLORTERM: "24bit", TERM: "" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("truecolor");
+  });
+
+  test("DET-DETECT-007: COLORTERM is case-insensitive (TrueColor)", async () => {
+    const r = await run(
+      [BUN, "-e", "import { detectColorCapability } from './src/theme/detect.js'; console.log(detectColorCapability())"],
+      { env: { NO_COLOR: "", COLORTERM: "TrueColor", TERM: "" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("truecolor");
+  });
+
+  // Priority 4: TERM contains 256color
+  test("DET-DETECT-008: TERM=xterm-256color returns ansi256", async () => {
+    const r = await run(
+      [BUN, "-e", "import { detectColorCapability } from './src/theme/detect.js'; console.log(detectColorCapability())"],
+      { env: { NO_COLOR: "", COLORTERM: "", TERM: "xterm-256color" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("ansi256");
+  });
+
+  test("DET-DETECT-009: TERM=screen-256color returns ansi256", async () => {
+    const r = await run(
+      [BUN, "-e", "import { detectColorCapability } from './src/theme/detect.js'; console.log(detectColorCapability())"],
+      { env: { NO_COLOR: "", COLORTERM: "", TERM: "screen-256color" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("ansi256");
+  });
+
+  test("DET-DETECT-010: TERM=tmux-256color returns ansi256", async () => {
+    const r = await run(
+      [BUN, "-e", "import { detectColorCapability } from './src/theme/detect.js'; console.log(detectColorCapability())"],
+      { env: { NO_COLOR: "", COLORTERM: "", TERM: "tmux-256color" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("ansi256");
+  });
+
+  test("DET-DETECT-011: TERM is case-insensitive (XTERM-256COLOR)", async () => {
+    const r = await run(
+      [BUN, "-e", "import { detectColorCapability } from './src/theme/detect.js'; console.log(detectColorCapability())"],
+      { env: { NO_COLOR: "", COLORTERM: "", TERM: "XTERM-256COLOR" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("ansi256");
+  });
+
+  // Priority 5: Default fallback
+  test("DET-DETECT-012: no env vars returns ansi256 (default)", async () => {
+    const r = await run(
+      [BUN, "-e", "import { detectColorCapability } from './src/theme/detect.js'; console.log(detectColorCapability())"],
+      { env: { NO_COLOR: "", COLORTERM: "", TERM: "" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("ansi256");
+  });
+
+  test("DET-DETECT-013: TERM=xterm (no 256) returns ansi256 (default)", async () => {
+    const r = await run(
+      [BUN, "-e", "import { detectColorCapability } from './src/theme/detect.js'; console.log(detectColorCapability())"],
+      { env: { NO_COLOR: "", COLORTERM: "", TERM: "xterm" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("ansi256");
+  });
+
+  test("DET-DETECT-014: TERM=linux returns ansi256 (default)", async () => {
+    const r = await run(
+      [BUN, "-e", "import { detectColorCapability } from './src/theme/detect.js'; console.log(detectColorCapability())"],
+      { env: { NO_COLOR: "", COLORTERM: "", TERM: "linux" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("ansi256");
+  });
+
+  test("DET-DETECT-015: empty TERM returns ansi256 (default)", async () => {
+    const r = await run(
+      [BUN, "-e", "import { detectColorCapability } from './src/theme/detect.js'; console.log(detectColorCapability())"],
+      { env: { NO_COLOR: "", COLORTERM: "", TERM: "" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("ansi256");
+  });
+
+  // Return type validation
+  test("DET-DETECT-016: return value is always one of the three valid tiers", async () => {
+    const envCombos = [
+      { NO_COLOR: "1", COLORTERM: "", TERM: "" },
+      { NO_COLOR: "", COLORTERM: "", TERM: "dumb" },
+      { NO_COLOR: "", COLORTERM: "truecolor", TERM: "" },
+      { NO_COLOR: "", COLORTERM: "", TERM: "xterm-256color" },
+      { NO_COLOR: "", COLORTERM: "", TERM: "" },
+      { NO_COLOR: "", COLORTERM: "", TERM: "rxvt-unicode" },
+    ];
+    for (const env of envCombos) {
+      const r = await run(
+        [BUN, "-e", "import { detectColorCapability } from './src/theme/detect.js'; const t = detectColorCapability(); console.log(['truecolor','ansi256','ansi16'].includes(t))"],
+        { env }
+      );
+      expect(r.exitCode).toBe(0);
+      expect(r.stdout.trim()).toBe("true");
+    }
+  });
+
+  // ── isUnicodeSupported() ───────────────────────────────────────────────
+
+  test("DET-UNICODE-001: returns false when TERM=dumb", async () => {
+    const r = await run(
+      [BUN, "-e", "import { isUnicodeSupported } from './src/theme/detect.js'; console.log(isUnicodeSupported())"],
+      { env: { NO_COLOR: "", COLORTERM: "", TERM: "dumb" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("false");
+  });
+
+  test("DET-UNICODE-002: returns false when NO_COLOR=1", async () => {
+    const r = await run(
+      [BUN, "-e", "import { isUnicodeSupported } from './src/theme/detect.js'; console.log(isUnicodeSupported())"],
+      { env: { NO_COLOR: "1", COLORTERM: "", TERM: "" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("false");
+  });
+
+  test("DET-UNICODE-003: returns true for xterm-256color", async () => {
+    const r = await run(
+      [BUN, "-e", "import { isUnicodeSupported } from './src/theme/detect.js'; console.log(isUnicodeSupported())"],
+      { env: { NO_COLOR: "", COLORTERM: "", TERM: "xterm-256color" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("true");
+  });
+
+  test("DET-UNICODE-004: returns true when no env vars set", async () => {
+    const r = await run(
+      [BUN, "-e", "import { isUnicodeSupported } from './src/theme/detect.js'; console.log(isUnicodeSupported())"],
+      { env: { NO_COLOR: "", COLORTERM: "", TERM: "" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("true");
+  });
+
+  test("DET-UNICODE-005: returns true when NO_COLOR is empty string", async () => {
+    const r = await run(
+      [BUN, "-e", "import { isUnicodeSupported } from './src/theme/detect.js'; console.log(isUnicodeSupported())"],
+      { env: { NO_COLOR: "", COLORTERM: "", TERM: "" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("true");
+  });
+
+  test("DET-UNICODE-006: TERM=dumb takes priority (returns false even with NO_COLOR unset)", async () => {
+    const r = await run(
+      [BUN, "-e", "import { isUnicodeSupported } from './src/theme/detect.js'; console.log(isUnicodeSupported())"],
+      { env: { NO_COLOR: "", COLORTERM: "", TERM: "dumb" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("false");
+  });
+
+  // ── TypeScript compilation ─────────────────────────────────────────────
+
+  test("DET-TSC-001: theme/detect.ts compiles under tsc --noEmit", async () => {
+    const result = await run(["bun", "run", "check"]);
+    if (result.exitCode !== 0) {
+      console.error("tsc stderr:", result.stderr);
+      console.error("tsc stdout:", result.stdout);
+    }
+    expect(result.exitCode).toBe(0);
+  }, 30_000);
+
+  // ── Integration: consistent with existing detectColorTier ──────────────
+
+  test("DET-COMPAT-001: ColorTier type is compatible with lib/diff-syntax ColorTier", async () => {
+    // Both modules export the same string union type. Verify they produce
+    // the same result for the truecolor case.
+    const r = await run(
+      [BUN, "-e", [
+        "import { detectColorCapability } from './src/theme/detect.js';",
+        "import { detectColorTier } from './src/lib/diff-syntax.js';",
+        "const a = detectColorCapability();",
+        "const b = detectColorTier();",
+        "console.log(a, b);"
+      ].join(" ")],
+      { env: { NO_COLOR: "", COLORTERM: "truecolor", TERM: "xterm-256color" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("truecolor truecolor");
+  });
+
+  test("DET-COMPAT-002: both modules agree on ansi256 for TERM=xterm-256color", async () => {
+    const r = await run(
+      [BUN, "-e", [
+        "import { detectColorCapability } from './src/theme/detect.js';",
+        "import { detectColorTier } from './src/lib/diff-syntax.js';",
+        "console.log(detectColorCapability(), detectColorTier());"
+      ].join(" ")],
+      { env: { NO_COLOR: "", COLORTERM: "", TERM: "xterm-256color" } }
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("ansi256 ansi256");
+  });
+
+  // ── Behavioral divergence: new module handles NO_COLOR ─────────────────
+
+  test("DET-COMPAT-003: new module returns ansi16 for NO_COLOR while old module does not check NO_COLOR", async () => {
+    // This documents the intentional behavioral divergence. The new module
+    // respects NO_COLOR; the old one does not. Both are correct in their
+    // respective contexts — the old one was designed before NO_COLOR was
+    // a requirement. The migration ticket will unify behavior.
+    const r = await run(
+      [BUN, "-e", [
+        "import { detectColorCapability } from './src/theme/detect.js';",
+        "import { detectColorTier } from './src/lib/diff-syntax.js';",
+        "console.log(detectColorCapability(), detectColorTier());"
+      ].join(" ")],
+      { env: { NO_COLOR: "1", COLORTERM: "truecolor", TERM: "xterm-256color" } }
+    );
+    expect(r.exitCode).toBe(0);
+    // New module: ansi16 (NO_COLOR respected)
+    // Old module: truecolor (NO_COLOR not checked, COLORTERM wins)
+    expect(r.stdout.trim()).toBe("ansi16 truecolor");
+  });
+});

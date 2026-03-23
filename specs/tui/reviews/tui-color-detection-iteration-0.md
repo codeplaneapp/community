@@ -1,14 +1,19 @@
-Findings (strict review, current on-disk state):
-1. BLOCKER: Test suite is not runnable from the workspace root. `bun test e2e/tui/app-shell.test.ts` fails before executing tests with `Cannot find module '@microsoft/tui-test'` from [/Users/williamcory/codeplane/specs/tui/e2e/tui/helpers.ts:3]. Root package does not declare this dependency ([/Users/williamcory/codeplane/specs/tui/package.json:14]). This violates the requirement to have passing verification for the ticket.
-2. HIGH: Claimed “compatibility with legacy detection” is incorrect for important TERM values. New detector returns `ansi256` for `TERM=xterm`/`linux` ([/Users/williamcory/codeplane/specs/tui/apps/tui/src/theme/detect.ts:51], [/Users/williamcory/codeplane/specs/tui/apps/tui/src/theme/detect.ts:69]), while existing `detectColorTier()` returns `ansi16` ([/Users/williamcory/codeplane/specs/tui/apps/tui/src/lib/diff-syntax.ts:105]). This is a behavioral divergence on low-capability terminals.
-3. HIGH: `DET-FILE-004` does not test what it claims. It says it verifies `theme/index.ts` re-exports `ColorTier`, but the type reference is imported directly from `./src/theme/detect.js` ([/Users/williamcory/codeplane/specs/tui/e2e/tui/app-shell.test.ts:688]). False-positive test.
-4. MEDIUM: `DET-TSC-001` is scoped incorrectly. It claims to validate `theme/detect.ts` compilation, but runs full-project `bun run check` ([/Users/williamcory/codeplane/specs/tui/e2e/tui/app-shell.test.ts:932]). Failures are dominated by unrelated files, so this test does not isolate ticket correctness.
-5. MEDIUM: `isUnicodeSupported()` ties Unicode capability to `NO_COLOR` ([/Users/williamcory/codeplane/specs/tui/apps/tui/src/theme/detect.ts:95]). `NO_COLOR` is a color preference, not a Unicode capability signal; this can unnecessarily degrade UI glyph rendering.
-6. NIT: Stale helper docs: comment says `bun eval` while implementation uses `-e` ([/Users/williamcory/codeplane/specs/tui/e2e/tui/helpers.ts:319], [/Users/williamcory/codeplane/specs/tui/e2e/tui/helpers.ts:323]).
-7. NIT: Dead code/clarity issue in tests: unused `result` in `DET-DETECT-001` ([/Users/williamcory/codeplane/specs/tui/e2e/tui/app-shell.test.ts:710]).
-8. NIT: Multiple env literals use duplicate keys (example: [/Users/williamcory/codeplane/specs/tui/e2e/tui/app-shell.test.ts:716]), which is error-prone and obscures intent.
+Tests run:
+1. `bun run test:e2e` (from `/Users/williamcory/codeplane/apps/tui`) fails globally: 518 failures caused by missing module `@microsoft/tui-test/lib/terminal/term.js` referenced by `/Users/williamcory/codeplane/e2e/tui/helpers.ts:289`.
+2. Ticket-focused test run passes: `bun test ../../e2e/tui/app-shell.test.ts --timeout 30000` -> 73 pass, 0 fail.
+3. Typecheck passes: `bun run check`.
 
-Requested checks summary:
-- OpenTUI components/hooks usage in modified `apps/tui/src` files: no component/hook usage introduced in `theme/detect.ts` or `theme/index.ts`; no direct misuse found there.
-- Keyboard interaction conformance: no production keyboard handling was changed by this ticket, so no new keyboard regression was introduced in modified app code.
-- Data access policy (`@codeplane/ui-core` vs direct API): modified app code is pure env-based detection and introduces no direct API calls.
+Findings (ordered by severity):
+1. High: `isUnicodeSupported()` incorrectly ties Unicode capability to `NO_COLOR` in `/Users/williamcory/codeplane/apps/tui/src/theme/detect.ts:67-70`. `NO_COLOR` is a color-preference signal, not a Unicode capability signal; this can unnecessarily disable Unicode box-drawing/progress glyphs and conflicts with the TUI design’s Unicode-first rendering expectations.
+2. Medium: The “pure-function” claim is not met in strict terms. Both exported functions read global mutable state (`process.env`) directly (`/Users/williamcory/codeplane/apps/tui/src/theme/detect.ts:22`, `:61`). For deterministic behavior and easier unit testing, this should accept an injected env object.
+3. Medium: New tests contain duplicate/redundant cases that add runtime cost without coverage gain:
+- `DET-DETECT-012` and `DET-DETECT-015` are functionally identical (`/Users/williamcory/codeplane/e2e/tui/app-shell.test.ts:469-476` and `:496-503`).
+- `DET-UNICODE-004` and `DET-UNICODE-005` are identical (`:554-561` and `:563-570`).
+- `DET-UNICODE-001` and `DET-UNICODE-006` are identical (`:527-534` and `:572-579`).
+4. Medium: Compatibility coverage is incomplete. The suite documents divergence only for `NO_COLOR`, but another existing divergence is untested: new detector returns `ansi256` for `TERM=xterm|linux|""` while old `detectColorTier()` returns `ansi16` (`/Users/williamcory/codeplane/apps/tui/src/lib/diff-syntax.ts:115-117`). This is a migration risk.
+5. Nit: Appended block uses semicolon-heavy style inconsistent with the rest of `app-shell.test.ts` (existing file largely no-semicolon), reducing consistency.
+
+Requested verification checks:
+- OpenTUI components/hooks: no new component or hook usage introduced in this ticket; no misuse found in changed files.
+- Keyboard interactions: no keyboard handling changes in this ticket.
+- Data access boundaries: no direct API calls added in `apps/tui/src` for this ticket; no evidence of bypassing `@codeplane/ui-core` in changed code.
