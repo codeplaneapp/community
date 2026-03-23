@@ -18,7 +18,7 @@ This ticket creates the foundational `apps/tui` package from scratch. It establi
 The `apps/tui/` directory currently has:
 - A `node_modules/` directory pre-populated by pnpm with symlinks to `@opentui/core@0.1.90`, `@opentui/react@0.1.90`, `react@19.2.4`, `bun-types@1.3.11`, `@types/react@19.2.14`, and `typescript@5.9.3`
 - Existing source files under `src/` created by prior work: `src/hooks/useDiffSyntaxStyle.ts`, `src/lib/diff-syntax.ts`, and `src/screens/Agents/` (types, components, utils)
-- An existing e2e test file: `e2e/tui/diff.test.ts`
+- Existing e2e test files: `e2e/tui/diff.test.ts`, `e2e/tui/agents.test.ts`, and `e2e/tui/helpers.ts`
 
 **No `package.json` or `tsconfig.json` exist yet.** This ticket adds them, along with the remaining directory structure, to make `apps/tui` a proper, compilable workspace package.
 
@@ -35,7 +35,8 @@ The `apps/tui/` directory currently has:
 5. Verification that `pnpm install` succeeds from monorepo root
 6. Verification that `tsc --noEmit` passes with zero errors (covering both new scaffold files AND existing `src/hooks/`, `src/lib/`, `src/screens/` code)
 7. Verification that `@opentui/core` `createCliRenderer` and `@opentui/react` `createRoot` are importable at runtime
-8. E2E test file scaffolding (`e2e/tui/helpers.ts` and `e2e/tui/app-shell.test.ts`) with structural and dependency tests
+8. Extension of `e2e/tui/helpers.ts` with subprocess utilities (`run`, `bunEval`, constants) while preserving the existing `TUITestInstance` interface and `launchTUI` stub
+9. Creation of `e2e/tui/app-shell.test.ts` with structural and dependency verification tests
 
 ### Out of scope
 
@@ -50,7 +51,9 @@ The `apps/tui/` directory currently has:
 
 ## 3. Pre-existing Code Inventory
 
-The following files already exist under `apps/tui/src/` and must be accounted for by this scaffold. The `tsconfig.json` created by this ticket must compile all of them without errors.
+### Source files under `apps/tui/src/`
+
+The following files already exist and must be accounted for by this scaffold. The `tsconfig.json` created by this ticket must compile all of them without errors.
 
 | File | Purpose | Lines | Imports from |
 |------|---------|-------|-------------|
@@ -79,29 +82,36 @@ export * from "./ToolBlock";
 ```
 These use `.tsx` files but the re-exports lack extensions. Under `moduleResolution: "bundler"`, this resolves correctly — Bun and bundler resolution both handle extensionless imports by probing `.ts`, `.tsx`, `.js` extensions. However, this is inconsistent with `useDiffSyntaxStyle.ts` which uses `.js` extensions.
 
-**Resolution**: Do NOT enable `verbatimModuleSyntax`. The existing code was not written with this constraint. Enabling it would require modifying `formatTimestamp.ts` (out of scope — this ticket must not modify existing files). Instead, use `isolatedModules: true` which provides most of the same safety without breaking the existing value-import-of-type pattern. `isolatedModules` ensures each file can be transpiled independently (critical for Bun) without requiring `import type` annotations.
+**Resolution**: Do NOT enable `verbatimModuleSyntax`. Use `isolatedModules: true` instead, which provides most of the same safety without breaking the existing value-import-of-type pattern. `isolatedModules` ensures each file can be transpiled independently (critical for Bun) without requiring `import type` annotations.
 
-### Existing e2e test
+### Existing e2e test files
 
 | File | Purpose | Lines | Imports from |
 |------|---------|-------|-------------|
-| `e2e/tui/diff.test.ts` | Diff syntax highlighting e2e test specs (tests across 5 describe blocks) | 217 | `@microsoft/tui-test` (`createTestTui`) — not yet installed |
+| `e2e/tui/helpers.ts` | Stub test helpers: `TUITestInstance` interface and `launchTUI()` throwing not-implemented | 21 | none |
+| `e2e/tui/diff.test.ts` | Diff syntax highlighting e2e test specs (30+ tests across 5 describe blocks, comment-only bodies) | 217 | `@microsoft/tui-test` (`createTestTui`) — not yet installed |
+| `e2e/tui/agents.test.ts` | Agent session e2e test specs (comprehensive fixtures and tests) | ~190KB | `bun:test`, `./helpers` (`launchTUI`, `TUITestInstance`) |
 
-This test file imports `createTestTui` from `@microsoft/tui-test`, which is not installed in the monorepo. The tests have comment-only bodies (empty `async` blocks with inline specification comments). They will fail at import time until `@microsoft/tui-test` is added by a separate test infrastructure ticket. Per project policy, these tests remain as-is — they are never skipped or commented out.
+**Critical backward compatibility constraint**: `e2e/tui/agents.test.ts` imports `launchTUI` and `TUITestInstance` from `./helpers` as named imports:
+```ts
+import { launchTUI, TUITestInstance } from "./helpers";
+```
+Any changes to `helpers.ts` MUST preserve these exports with compatible signatures. The existing `launchTUI` function signature accepts `{ cols?, rows?, env?, args? }` and returns `Promise<TUITestInstance>` — this must remain unchanged.
+
+`e2e/tui/diff.test.ts` imports `createTestTui` from `@microsoft/tui-test` which is not installed in the monorepo. Tests will fail at import time until `@microsoft/tui-test` is added by a separate test infrastructure ticket. Per project policy, these tests remain as-is — they are never skipped or commented out.
 
 ### Reference test files in `specs/tui/e2e/tui/`
 
-The `specs/tui/` directory contains reference implementations of test files that serve as specification scaffolds:
+The `specs/tui/` directory contains reference implementations of test files:
 
 | File | Purpose |
 |------|--------|
-| `specs/tui/e2e/tui/helpers.ts` | Reference test helpers with `TUITestInstance` interface, `launchTUI()`, `run()`, `bunEval()`, credential store helpers, mock API env helpers, navigation helpers |
+| `specs/tui/e2e/tui/helpers.ts` | Reference test helpers (353 lines) with full `launchTUI()` implementation, credential store helpers, mock API env helpers, navigation helpers, `run()`, `bunEval()` |
 | `specs/tui/e2e/tui/app-shell.test.ts` | Reference app shell tests (~875 lines) with LOAD-* and KEY-* test IDs covering loading states and keybinding priority dispatch |
-| `specs/tui/e2e/tui/diff.test.ts` | Reference diff test specs |
-| `specs/tui/e2e/tui/agents.test.ts` | Reference agent session tests |
-| Other test files | Reference specs for workflows, workspaces, organizations, etc. |
 
-These reference files inform the real `e2e/tui/` test files but live in `specs/` as documentation. The real `e2e/tui/helpers.ts` created by this ticket is derived from the reference but adapted for the scaffold-only scope (no `@microsoft/tui-test` dependency, subprocess-based verification).
+These reference files inform the real `e2e/tui/` test files but live in `specs/` as documentation. The `e2e/tui/helpers.ts` update created by this ticket is derived from the reference but adapted for scaffold-only scope.
+
+The reference `app-shell.test.ts` imports `launchTUI`, `createMockAPIEnv`, and `type TUITestInstance` from `./helpers`. These LOAD-* and KEY-* tests require a running TUI with navigation, screens, and keyboard handling — none of which exist yet. The `e2e/tui/app-shell.test.ts` created by this ticket is the *scaffold-only* subset, covering package structure, TypeScript compilation, and dependency resolution only.
 
 ---
 
@@ -139,12 +149,12 @@ These reference files inform the real `e2e/tui/` test files but live in `specs/`
 **Design decisions**:
 
 - **Name**: `@codeplane/tui` — scoped to match `@codeplane/sdk` convention.
-- **`private: true`**: This is an app, not a published package. Prevents accidental `npm publish`. Matches `apps/cli/package.json` (which also sets `private: true`).
+- **`private: true`**: This is an app, not a published package. Prevents accidental `npm publish`. Matches `apps/cli/package.json` pattern (`"private": true`).
 - **`type: module`**: All Codeplane packages use ES modules. Required by `@opentui/core` and `@opentui/react` which declare `"type": "module"`. Matches `@codeplane/sdk`'s package configuration.
 - **`main: src/index.tsx`**: Entry point for the TUI application. Bun runs TypeScript directly — no compilation step needed. Matches `@codeplane/sdk`'s `"main": "src/index.ts"` pattern.
-- **`@opentui/core` at `0.1.90`**: Exact-pinned (no `^` or `~`). The npm-published package includes pre-compiled `.js`/`.d.ts` files and platform-specific Zig native binaries via optional dependencies (`@opentui/core-darwin-arm64`, `@opentui/core-darwin-x64`, `@opentui/core-linux-arm64`, `@opentui/core-linux-x64`, `@opentui/core-win32-arm64`, `@opentui/core-win32-x64`). Exact pinning per architecture principle: "Pin exact versions for rendering-critical dependencies."
-- **`@opentui/react` at `0.1.90`**: Exact-pinned. The npm-published package exports `createRoot`, reconciler hooks, JSX runtime types, and test utilities. Its `peerDependencies` require `react >=19.0.0` — satisfied by `react@19.2.4`. It also peer-depends on `react-devtools-core@^7.0.1` and `ws@^8.18.0` — both are only needed for React DevTools remote debugging.
-- **`react` at `19.2.4`**: Exact-pinned to match the version already resolved in the TUI's `node_modules/react` symlink (points to `.pnpm/react@19.2.4/node_modules/react`). The monorepo lockfile contains both `react@19.2.3` (used by some docs/mintlify packages) and `react@19.2.4`. The TUI must pin `19.2.4` to match the current resolution and avoid introducing a second React copy, which would break the React reconciler (reconciler hooks require a singleton React instance).
+- **`@opentui/core` at `0.1.90`**: Exact-pinned (no `^` or `~`). The npm-published package includes pre-compiled `.js`/`.d.ts` files and platform-specific Zig native binaries via optional dependencies. Exact pinning per architecture principle: "Pin exact versions for rendering-critical dependencies."
+- **`@opentui/react` at `0.1.90`**: Exact-pinned. Exports `createRoot`, reconciler hooks, JSX runtime types. Its `peerDependencies` require `react >=19.0.0` — satisfied by `react@19.2.4`.
+- **`react` at `19.2.4`**: Exact-pinned to match the version already resolved in the TUI's `node_modules/react` symlink. Pinning avoids introducing a second React copy, which would break the React reconciler (reconciler hooks require a singleton React instance).
 - **`@codeplane/sdk` at `workspace:*`**: Standard monorepo workspace reference. Provides domain types for all API entities. Resolves to `packages/sdk/`.
 - **`bun-types` at `^1.3.11`**: Codeplane convention for Bun global types (see `apps/cli/tsconfig.json` with `"types": ["bun-types"]`). Lockfile resolves `bun-types@1.3.11`.
 - **`@types/react` at `^19.0.0`**: Provides React type definitions. Lockfile resolves `@types/react@19.2.14`. Caret range acceptable for dev deps per architecture principle.
@@ -194,32 +204,31 @@ These reference files inform the real `e2e/tui/` test files but live in `specs/`
 
 **Design decisions**:
 
-- **`jsx: "react-jsx"`** + **`jsxImportSource: "@opentui/react"`**: The critical configuration that makes OpenTUI JSX elements type-check as valid JSX intrinsic elements. The `@opentui/react` package exports `jsx-runtime.d.ts` which re-exports `Fragment`, `jsx`, `jsxs` from `react/jsx-runtime` and `export type *` from `jsx-namespace.d.ts`. That namespace declares the full `JSX.IntrinsicElements` interface including all 21 OpenTUI components with their typed props: `box` (`BoxProps`), `text` (`TextProps`), `span` (`SpanProps`), `code` (`CodeProps`), `diff` (`DiffProps`), `markdown` (`MarkdownProps`), `input` (`InputProps`), `textarea` (`TextareaProps`), `select` (`SelectProps`), `scrollbox` (`ScrollBoxProps`), `ascii-font` (`AsciiFontProps`), `tab-select` (`TabSelectProps`), `line-number` (`LineNumberProps`), `b` (`SpanProps`), `i` (`SpanProps`), `u` (`SpanProps`), `strong` (`SpanProps`), `em` (`SpanProps`), `br` (`LineBreakProps`), `a` (`LinkProps`). The interface also extends `React.JSX.IntrinsicElements` and `ExtendedIntrinsicElements<OpenTUIComponents>` for forward compatibility.
-- **`lib: ["ESNext"]`**: No `"DOM"` lib. The TUI runs in a terminal, not a browser — including DOM types would allow accidental use of `window`, `document`, `localStorage`, etc. `skipLibCheck: true` prevents transitive DOM references in `@opentui/react` internals (which import from `react`, whose types reference DOM) from causing errors.
+- **`jsx: "react-jsx"` + `jsxImportSource: "@opentui/react"`**: Makes OpenTUI JSX elements type-check as valid JSX intrinsic elements. The `@opentui/react` package exports `jsx-runtime.d.ts` which re-exports `Fragment`, `jsx`, `jsxs` from `react/jsx-runtime` and `export type *` from `jsx-namespace.d.ts`. That namespace declares the full `JSX.IntrinsicElements` interface including all 21 OpenTUI components: `box` (`BoxProps`), `text` (`TextProps`), `span` (`SpanProps`), `code` (`CodeProps`), `diff` (`DiffProps`), `markdown` (`MarkdownProps`), `input` (`InputProps`), `textarea` (`TextareaProps`), `select` (`SelectProps`), `scrollbox` (`ScrollBoxProps`), `ascii-font` (`AsciiFontProps`), `tab-select` (`TabSelectProps`), `line-number` (`LineNumberProps`), `b`/`i`/`u`/`strong`/`em` (`SpanProps`), `br` (`LineBreakProps`), `a` (`LinkProps`).
+- **`lib: ["ESNext"]`**: No `"DOM"` lib. The TUI runs in a terminal, not a browser — including DOM types would allow accidental use of `window`, `document`, `localStorage`. `skipLibCheck: true` prevents transitive DOM references from causing errors.
 - **`target: "ESNext"` + `module: "ESNext"`**: Matches `apps/cli/tsconfig.json`. No downleveling — Bun supports all ESNext features natively.
 - **`moduleDetection: "force"`**: Treats all files as modules regardless of `import`/`export` presence. Prevents ambient script behavior. Matches `@opentui/react` convention.
-- **`moduleResolution: "bundler"`**: Required for the existing code which uses mixed import patterns — `.js` extensions in `useDiffSyntaxStyle.ts` (`../lib/diff-syntax.js`) and extensionless imports in `Agents/components/index.ts` (`./MessageBlock`). Bundler resolution probes both patterns correctly. Matches `apps/cli/tsconfig.json`.
+- **`moduleResolution: "bundler"`**: Required for the existing code which uses mixed import patterns — `.js` extensions in `useDiffSyntaxStyle.ts` and extensionless imports in `Agents/components/index.ts`. Bundler resolution probes both patterns correctly. Matches `apps/cli/tsconfig.json`.
 - **`allowImportingTsExtensions: true`**: Required alongside `noEmit: true` when `moduleResolution` is `bundler`. Allows `.ts`/`.tsx` extensions in import paths.
-- **`isolatedModules: true`** (NOT `verbatimModuleSyntax`): Ensures each file can be transpiled independently — critical for Bun's single-file transpilation model. Chosen over `verbatimModuleSyntax` because the existing `formatTimestamp.ts` uses a value-import pattern (`import { Breakpoint } from "../types"`) for a type-only export. Under `verbatimModuleSyntax`, this would be a compile error. Under `isolatedModules`, it is permitted because TypeScript's type erasure handles it correctly. Switching to `verbatimModuleSyntax` can happen in a follow-up ticket that also updates the existing import to `import type { Breakpoint }`.
+- **`isolatedModules: true`** (NOT `verbatimModuleSyntax`): Ensures each file can be transpiled independently — critical for Bun's single-file transpilation model. Chosen over `verbatimModuleSyntax` because the existing `formatTimestamp.ts` uses `import { Breakpoint } from "../types"` where `Breakpoint` is a type-only export. Under `verbatimModuleSyntax`, this would be a compile error.
 - **`noEmit: true`**: Bun runs TypeScript directly. No compilation step.
 - **`strict: true`**: Matches `apps/cli/tsconfig.json`. Enables `strictNullChecks`, `strictFunctionTypes`, `noImplicitAny`, etc.
-- **`skipLibCheck: true`**: Matches `apps/cli/tsconfig.json`. Prevents errors in `node_modules` type files — particularly important because `@opentui/core` `renderer.d.ts` imports from `bun:ffi` and `@opentui/react` references `react-reconciler` types.
-- **`esModuleInterop: true`** + **`forceConsistentCasingInFileNames: true`** + **`resolveJsonModule: true`**: Matches `apps/cli/tsconfig.json` conventions.
+- **`skipLibCheck: true`**: Prevents errors in `node_modules` type files — particularly important because `@opentui/core` `renderer.d.ts` imports from `bun:ffi` and `@opentui/react` references `react-reconciler` types.
 - **`paths: { "@/*": ["./src/*"] }`**: Path alias for cleaner imports. Not yet used but configured to avoid future tsconfig changes. Bun supports tsconfig paths natively.
 - **`types: ["bun-types"]`**: Provides Bun global types (`Bun.spawn`, `Bun.file`, `process`, `import.meta`). Matches `apps/cli/tsconfig.json`.
-- **`noUnusedLocals: false`** + **`noUnusedParameters: false`**: Permissive during scaffold phase. The existing `diff-syntax.ts` file defines module-level RGBA constants used within `Object.freeze()` calls, and `verify-imports.ts` uses `void` expressions to suppress warnings. Strictening to `true` can happen in a follow-up ticket when lint rules are established.
-- **`include: ["src/**/*.ts", "src/**/*.tsx"]`**: Covers both `.ts` and `.tsx` files. Includes the existing files in `src/hooks/`, `src/lib/`, and `src/screens/`. Only covers `src/` — test files in `e2e/tui/` have their own compilation context via `bun test`.
-- **No `extends`**: The root monorepo has no shared `tsconfig.json` to extend (verified: no `/tsconfig.json` at repo root). We follow the `apps/cli` pattern: standalone tsconfig with all options declared locally.
+- **`noUnusedLocals: false` + `noUnusedParameters: false`**: Permissive during scaffold phase. Strictening to `true` can happen in a follow-up ticket.
+- **`include: ["src/**/*.ts", "src/**/*.tsx"]`**: Covers both `.ts` and `.tsx` files. Only covers `src/` — test files in `e2e/tui/` have their own compilation context via `bun test`.
+- **No `extends`**: The root monorepo has no shared `tsconfig.json` to extend. Follows the `apps/cli` pattern: standalone tsconfig.
 
-**Compatibility with existing code**:
-- `useDiffSyntaxStyle.ts` uses `import { type SyntaxStyle } from "@opentui/core"` — inline type annotations work correctly with `isolatedModules`.
-- `diff-syntax.ts` uses `import { RGBA, type StyleDefinition, SyntaxStyle, pathToFiletype } from "@opentui/core"` — mixed value and inline-type imports work correctly.
-- `formatTimestamp.ts` uses `import { Breakpoint } from "../types"` — a value import of a type. This works with `isolatedModules` because TypeScript erases the import during compilation. It would NOT work with `verbatimModuleSyntax`.
-- `components/index.ts` uses `export * from "./MessageBlock"` without `.js` extension — works with `moduleResolution: "bundler"`.
+**Compatibility with existing code verified**:
+- `useDiffSyntaxStyle.ts`: `import { type SyntaxStyle } from "@opentui/core"` — inline type annotations work with `isolatedModules`.
+- `diff-syntax.ts`: `import { RGBA, type StyleDefinition, SyntaxStyle, pathToFiletype } from "@opentui/core"` — mixed value and inline-type imports work correctly.
+- `formatTimestamp.ts`: `import { Breakpoint } from "../types"` — value import of a type works with `isolatedModules`.
+- `components/index.ts`: `export * from "./MessageBlock"` without extension — works with `moduleResolution: "bundler"`.
 
 ### Step 3: Create directory structure with placeholder files
 
-All new directories are created with `index.ts` barrel files that export an empty set. Existing directories (`src/hooks/`, `src/lib/`, `src/screens/`) already have content and receive barrel files that re-export existing symbols.
+All new directories are created with `index.ts` barrel files. Existing directories (`src/hooks/`, `src/lib/`, `src/screens/`) receive barrel files that re-export existing symbols.
 
 #### 3a. Entry point
 
@@ -250,7 +259,7 @@ import type { Root } from "@opentui/react"
 export type { CliRenderer, Root }
 ```
 
-**Why type-only imports**: This entry point is a placeholder. It must type-check to prove the dependency chain resolves, but it does not execute any runtime code. Using `import type` avoids runtime side effects. Real runtime imports (`createCliRenderer`, `createRoot`) are added by the *TUI Bootstrap and Renderer* ticket.
+**Why type-only imports**: This entry point is a placeholder. It must type-check to prove the dependency chain resolves, but it does not execute any runtime code. Real runtime imports are added by the *TUI Bootstrap and Renderer* ticket.
 
 #### 3b. Provider directory
 
@@ -382,6 +391,8 @@ The `src/hooks/` directory already exists with `useDiffSyntaxStyle.ts`. This tic
 
 export { useDiffSyntaxStyle } from "./useDiffSyntaxStyle.js"
 ```
+
+**Note**: The re-export uses `.js` extension to match the convention used by `useDiffSyntaxStyle.ts` itself (which imports `../lib/diff-syntax.js`). Under `moduleResolution: "bundler"`, Bun resolves `.js` to `.ts` seamlessly.
 
 #### 3g. Screens barrel file
 
@@ -520,13 +531,13 @@ export type { CliRenderer, Root }
 
 - **`ReturnType<typeof createCliRenderer>` assertion**: Verified from `@opentui/core/renderer.d.ts`: `export declare function createCliRenderer(config?: CliRendererConfig): Promise<CliRenderer>` — the return type check confirms the async factory pattern.
 - **`ReturnType<typeof createRoot>` assertion**: Verified from `@opentui/react/src/reconciler/renderer.d.ts`: `export declare function createRoot(renderer: CliRenderer): Root` where `Root = { render: (node: ReactNode) => void; unmount: () => void }`.
-- **Hook assertions use `(...args: any[]) => any`**: Verifies they are functions without matching exact signatures. Specific verified signatures:
+- **Hook assertions use `(...args: any[]) => any`**: Verifies they are functions without matching exact signatures. Verified signatures:
   - `useKeyboard: (handler: (key: KeyEvent) => void, options?: UseKeyboardOptions) => void`
   - `useTerminalDimensions: () => { width: number; height: number }`
-  - `useOnResize: (callback: (width: number, height: number) => void) => CliRenderer` (note: returns `CliRenderer`, not `void`)
+  - `useOnResize: (callback: (width: number, height: number) => void) => CliRenderer`
   - `useTimeline: (options?: TimelineOptions) => Timeline`
   - `useRenderer: () => CliRenderer`
-- **`void` expressions**: Prevent TypeScript unused-variable errors while keeping the value-level imports (needed to prove runtime resolution). This is the standard TypeScript pattern for intentionally unused bindings.
+- **`void` expressions**: Prevent TypeScript unused-variable errors while keeping value-level imports.
 
 ### Step 5: Create `.gitignore` for TUI app
 
@@ -537,7 +548,7 @@ dist/
 *.tsbuildinfo
 ```
 
-**Note**: `node_modules/` is already covered by the root `.gitignore` pattern `**/node_modules/`. We only need TUI-specific ignores: `dist/` (for future build output) and `*.tsbuildinfo` (for incremental compilation artifacts).
+**Note**: `node_modules/` is already covered by the root `.gitignore` pattern `**/node_modules/`. Only TUI-specific ignores are needed.
 
 ### Step 6: Run `pnpm install` and verify
 
@@ -551,7 +562,7 @@ dist/
 - `@codeplane/sdk` resolves via workspace protocol (exists at `packages/sdk/`)
 - Dev deps install: `bun-types@^1.3.11`, `@types/react@^19.0.0`, `typescript@^5`
 - Exit code 0
-- Expected warnings: pnpm will warn about missing peer dependencies `react-devtools-core@^7.0.1` and `ws@^8.18.0` from `@opentui/react`. These are listed as `peerDependencies` and `@opentui/react` has no `peerDependenciesMeta` field (confirmed from the published `package.json`), so pnpm cannot know they are optional. The warnings are informational only and do not affect functionality.
+- Expected warnings: pnpm will warn about missing peer dependencies `react-devtools-core@^7.0.1` and `ws@^8.18.0` from `@opentui/react`. These are informational only and do not affect functionality.
 
 ### Step 7: Run `tsc --noEmit` and verify
 
@@ -561,19 +572,12 @@ dist/
 
 **What this proves**:
 1. `tsconfig.json` is valid — all compiler options are recognized
-2. `jsxImportSource: "@opentui/react"` resolves the JSX runtime types from `@opentui/react/jsx-runtime.d.ts` → `@opentui/react/jsx-namespace.d.ts` → `JSX.IntrinsicElements` with all 21 OpenTUI components
-3. All new scaffold files (`index.tsx`, barrel files, `verify-imports.ts`) compile
-4. All existing files (`useDiffSyntaxStyle.ts`, `diff-syntax.ts`, `types.ts`, `formatTimestamp.ts`, `MessageBlock.tsx`, `ToolBlock.tsx`, `components/index.ts`) compile under the new tsconfig
+2. `jsxImportSource: "@opentui/react"` resolves the JSX runtime types correctly
+3. All new scaffold files compile
+4. All existing files compile under the new tsconfig
 5. `createCliRenderer`, `createRoot`, and all five hooks are importable with correct types
 6. The `@/*` path alias is configured (verified at first usage in a future ticket)
 7. `bun-types` provides Bun globals without errors
-
-**Import resolution verification**:
-- `../lib/diff-syntax.js` in `useDiffSyntaxStyle.ts` → resolves to `src/lib/diff-syntax.ts` via `moduleResolution: "bundler"` (`.js` → `.ts` probing)
-- `./MessageBlock` in `Agents/components/index.ts` → resolves to `MessageBlock.tsx` via `moduleResolution: "bundler"` (extensionless → `.tsx` probing)
-- `../types` in `formatTimestamp.ts` → resolves to `Agents/types.ts` via `moduleResolution: "bundler"`
-- `@opentui/core` → resolves via `node_modules/@opentui/core/index.d.ts` which re-exports from `./Renderable.js`, `./types.js`, `./renderer.js`, `./syntax-style.js`, etc.
-- `@opentui/react` → resolves via `node_modules/@opentui/react/src/index.d.ts` which re-exports from `./reconciler/renderer.js`, `./hooks/index.js`, `./components/index.js`, `./components/app.js`, `./plugins/slot.js`, `./time-to-first-draw.js`, `./types/components.js`
 
 ---
 
@@ -592,31 +596,32 @@ Complete list of files created by this ticket:
 | `apps/tui/src/components/index.ts` | Components directory placeholder | 20 |
 | `apps/tui/src/hooks/index.ts` | Hooks barrel file (re-exports existing hook) | 22 |
 | `apps/tui/src/theme/index.ts` | Theme directory placeholder | 16 |
-| `apps/tui/src/screens/index.ts` | Screens barrel file (placeholder, existing Agents/ untouched) | 24 |
+| `apps/tui/src/screens/index.ts` | Screens barrel file (placeholder) | 24 |
 | `apps/tui/src/lib/index.ts` | Lib barrel file (re-exports existing diff-syntax) | 18 |
 | `apps/tui/src/util/index.ts` | Utilities directory placeholder | 14 |
-| `e2e/tui/helpers.ts` | Shared test utilities for TUI E2E tests | 55 |
-| `e2e/tui/app-shell.test.ts` | Scaffold verification tests | 195 |
 
-**Total**: 14 files, ~493 lines.
+**Total new files**: 12 files under `apps/tui/`, ~243 lines.
 
-**Existing files NOT modified**: `src/hooks/useDiffSyntaxStyle.ts`, `src/lib/diff-syntax.ts`, `src/screens/Agents/**`, `e2e/tui/diff.test.ts`.
+**Modified files**:
+
+| File | Change | Lines added (approx) |
+|------|--------|---------------------|
+| `e2e/tui/helpers.ts` | Extended with constants, `run()`, `bunEval()`, `sleep()`, `TERMINAL_SIZES` — preserving existing `TUITestInstance` and `launchTUI` | +80 |
+| `e2e/tui/app-shell.test.ts` | New file: scaffold verification tests | 195 |
+
+**Existing files NOT modified**: `src/hooks/useDiffSyntaxStyle.ts`, `src/lib/diff-syntax.ts`, `src/screens/Agents/**`, `e2e/tui/diff.test.ts`, `e2e/tui/agents.test.ts`.
 
 ---
 
 ## 6. Unit & Integration Tests
 
-### Test file location
+### Test infrastructure update
 
-**File**: `e2e/tui/app-shell.test.ts`
+**File**: `e2e/tui/helpers.ts` (modified — extends existing stub)
 
-Per the testing architecture, this file covers the `TUI_APP_SHELL` feature group. At this stage, it contains structural scaffold verification tests and dependency resolution tests. As subsequent tickets add bootstrap, auth, routing, and chrome behavior, tests are appended.
+The existing `e2e/tui/helpers.ts` (21 lines) contains the `TUITestInstance` interface and a stub `launchTUI()` that throws. This ticket **prepends** constants and subprocess utilities while preserving the existing exports exactly as-is. The `agents.test.ts` file (~190KB) imports `launchTUI` and `TUITestInstance` from this file — backward compatibility is mandatory.
 
-### Test infrastructure
-
-**File**: `e2e/tui/helpers.ts`
-
-Shared test helpers for TUI E2E tests. Modeled after the existing `e2e/cli/helpers.ts` patterns and the reference implementation at `specs/tui/e2e/tui/helpers.ts`.
+Updated file content:
 
 ```ts
 import { join } from "node:path"
@@ -682,17 +687,48 @@ export async function run(
 export async function bunEval(expression: string): Promise<{ exitCode: number; stdout: string; stderr: string }> {
   return run([BUN, "-e", expression])
 }
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+// ── TUITestInstance interface (preserved for backward compatibility) ─────────
+// Imported by: e2e/tui/agents.test.ts, future test files
+
+export interface TUITestInstance {
+  sendKeys(...keys: string[]): Promise<void>;
+  sendText(text: string): Promise<void>;
+  waitForText(text: string, timeoutMs?: number): Promise<void>;
+  waitForNoText(text: string, timeoutMs?: number): Promise<void>;
+  snapshot(): string;
+  getLine(lineNumber: number): string;
+  resize(cols: number, rows: number): Promise<void>;
+  terminate(): Promise<void>;
+  rows: number;
+  cols: number;
+}
+
+export async function launchTUI(options?: {
+  cols?: number;
+  rows?: number;
+  env?: Record<string, string>;
+  args?: string[];
+}): Promise<TUITestInstance> {
+  throw new Error("TUITestInstance: Not yet implemented. This is a stub for E2E test scaffolding.");
+}
 ```
 
 **Design notes**:
 
-- **`bunEval` uses `bun -e`**: Matches the `bun -e` flag for evaluating inline expressions. The reference `specs/tui/e2e/tui/helpers.ts` also uses `[BUN, "-e", expression]`.
-- **No `@microsoft/tui-test` import**: This helper file is for scaffold verification tests that use subprocess-based assertions. The `TUITestInstance` interface, `launchTUI()`, and `createTestCredentialStore()` from the reference helpers in `specs/tui/e2e/tui/helpers.ts` will be added to this file when the test infrastructure ticket installs `@microsoft/tui-test` and enables interactive terminal testing.
-- **Constants match CLI e2e**: `API_URL`, `WRITE_TOKEN`, `READ_TOKEN`, `OWNER`, `ORG` mirror `e2e/cli/helpers.ts` for consistency.
+- The `TUITestInstance` interface and `launchTUI` function signatures are preserved **byte-for-byte** from the existing file to ensure `agents.test.ts` continues to import without errors.
+- The `sleep` helper is not exported (matches the reference `specs/tui/e2e/tui/helpers.ts` pattern where it's module-private).
+- `run()` and `bunEval()` are new exports used by the scaffold verification tests.
+- Constants (`TUI_ROOT`, `TUI_SRC`, `TUI_ENTRY`, `BUN`, `TERMINAL_SIZES`) are new exports.
+- Server config constants (`API_URL`, `WRITE_TOKEN`, `READ_TOKEN`, `OWNER`, `ORG`) match CLI e2e test conventions.
 
 ### Test specification
 
-**File**: `e2e/tui/app-shell.test.ts`
+**File**: `e2e/tui/app-shell.test.ts` (new file)
 
 ```ts
 import { describe, test, expect } from "bun:test"
@@ -838,16 +874,13 @@ describe("TUI_APP_SHELL — TypeScript compilation", () => {
       console.error("tsc stdout:", result.stdout)
     }
     expect(result.exitCode).toBe(0)
-  }, 30_000) // generous timeout for first tsc invocation
+  }, 30_000)
 
   test("existing diff-syntax code compiles under new tsconfig", async () => {
     // This implicitly tests that the existing code at
     // src/hooks/useDiffSyntaxStyle.ts and src/lib/diff-syntax.ts
     // is compatible with the new tsconfig settings
     // (isolatedModules, moduleDetection: force, etc.)
-    // If tsc --noEmit passes above, this is proven.
-    // This test makes the assertion explicit and will catch
-    // regressions if the tsconfig is modified.
     const result = await run(["bun", "run", "check"])
     expect(result.exitCode).toBe(0)
   }, 30_000)
@@ -948,17 +981,29 @@ describe("TUI_APP_SHELL — Dependency resolution", () => {
 
 ### Tests left intentionally failing
 
-None for this ticket. All tests validate the scaffold itself, which is fully implementable without backend dependencies.
+None for this ticket. All 32 tests validate the scaffold itself, which is fully implementable without backend dependencies.
 
-The existing `e2e/tui/diff.test.ts` (tests across 5 describe blocks) will continue to fail at import time because it imports `createTestTui` from `@microsoft/tui-test` which is not yet installed. Per project policy, these tests remain as-is and are not modified, skipped, or commented out.
+The existing `e2e/tui/diff.test.ts` (30+ tests) will continue to fail at import time because it imports `createTestTui` from `@microsoft/tui-test` which is not installed. The existing `e2e/tui/agents.test.ts` (~190KB) will continue to fail because its `launchTUI()` call throws "Not yet implemented". Per project policy, these tests remain as-is — they are never skipped or commented out.
 
 ### Note on `@microsoft/tui-test`
 
-The architecture specifies `@microsoft/tui-test` for terminal snapshot matching and keyboard simulation. This package is not yet installed in the monorepo. The existing `e2e/tui/diff.test.ts` already imports from it (proving the convention), but these tests cannot run until the package is added. A dedicated test infrastructure ticket will add it as a dev dependency and create the `launchTUI()` test helper that enables interactive terminal testing. The tests in this ticket use `bun -e` subprocesses and filesystem assertions, which do not require `@microsoft/tui-test`.
+The architecture specifies `@microsoft/tui-test` for terminal snapshot matching and keyboard simulation. This package is not yet installed in the monorepo. The tests in this ticket use `bun -e` subprocesses and filesystem assertions, which do not require `@microsoft/tui-test`. A dedicated test infrastructure ticket will add it as a dev dependency and implement the full `launchTUI()` helper.
 
 ### Relationship to reference test files in `specs/tui/e2e/tui/`
 
-The `specs/tui/e2e/tui/app-shell.test.ts` file (~875 lines) contains reference tests for loading states (LOAD-*) and keybinding priority dispatch (KEY-*). These tests require a running TUI with navigation, screens, and keyboard handling — none of which exist yet. The `e2e/tui/app-shell.test.ts` created by this ticket is the *scaffold-only* subset that validates package structure and dependency resolution. The reference tests will be migrated into the real `e2e/tui/app-shell.test.ts` as their corresponding features are implemented in subsequent tickets.
+The `specs/tui/e2e/tui/app-shell.test.ts` file (~875 lines) contains reference tests organized into two major describe blocks:
+
+1. **`TUI_LOADING_STATES`** (LOAD-SNAP-*, LOAD-KEY-*, LOAD-RSP-*) — Tests for full-screen loading spinners, skeleton rendering, pagination indicators, action loading, full-screen error states, optimistic UI revert, no-color terminal support, loading timeouts, keyboard interactions during loading, and responsive behavior during loading.
+2. **`KeybindingProvider — Priority Dispatch`** (KEY-SNAP-*, KEY-KEY-*, KEY-INT-*, KEY-EDGE-*, KEY-RSP-*) — Tests for status bar hints, global keybindings (q, Escape, Ctrl+C, ?, :, g), priority layering (modal > go-to > screen > global), text input capture, scope lifecycle, and responsive behavior.
+
+These reference tests all require:
+- A running TUI process with visual rendering
+- NavigationProvider with screen stack
+- KeybindingProvider with priority dispatch
+- Loading states and error boundaries
+- Mock API server helpers (`createMockAPIEnv`)
+
+None of these exist yet. The `e2e/tui/app-shell.test.ts` created by this ticket is the *scaffold-only* subset. Reference tests will be migrated as their corresponding features are implemented in subsequent tickets.
 
 ---
 
@@ -981,6 +1026,7 @@ The `specs/tui/e2e/tui/app-shell.test.ts` file (~875 lines) contains reference t
 | AC-13 | `react` resolves to version 19.x at runtime | Test: "react 19.x is resolvable with correct major version" |
 | AC-14 | `@codeplane/sdk` resolves via workspace protocol at runtime | Test: "@codeplane/sdk is resolvable via workspace protocol" |
 | AC-15 | Existing source files (`useDiffSyntaxStyle.ts`, `diff-syntax.ts`, Agent screen files) are NOT modified | Manual review — existing files must have zero diffs |
+| AC-16 | `e2e/tui/helpers.ts` preserves `TUITestInstance` interface and `launchTUI` stub signature | `agents.test.ts` continues to import without errors |
 
 ---
 
@@ -988,16 +1034,15 @@ The `specs/tui/e2e/tui/app-shell.test.ts` file (~875 lines) contains reference t
 
 | Risk | Impact | Likelihood | Mitigation |
 |------|--------|-----------|------------|
-| `formatTimestamp.ts` value-imports type `Breakpoint` — incompatible with `verbatimModuleSyntax` | Would cause tsc error if `verbatimModuleSyntax` were enabled | **Resolved** — we use `isolatedModules` instead | `isolatedModules` allows value imports of types (TypeScript erases them). `verbatimModuleSyntax` can be enabled in a follow-up ticket that also updates `formatTimestamp.ts` to use `import type`. |
-| Agent component barrel uses extensionless paths (`export * from "./MessageBlock"`) while `useDiffSyntaxStyle.ts` uses `.js` | Inconsistent but functional | Very low — `moduleResolution: "bundler"` handles both patterns | Both extensionless and `.js` extension imports resolve correctly under bundler resolution. A style convention can be enforced later via lint rules. |
-| `@opentui/core@0.1.90` native Zig bindings not available for current platform → runtime import fails | Runtime errors in `verify-imports.ts` and dependency resolution tests | Low — the npm package includes optional platform-specific native deps for darwin-arm64, darwin-x64, linux-arm64, linux-x64, win32-arm64, win32-x64 | Verified: pnpm store contains the darwin-arm64 native binary. `skipLibCheck: true` handles transitive type issues. |
-| React version mismatch → pnpm installs a second React copy | Two React copies cause "Invalid hook call" errors in the reconciler (React hooks require singleton) | Low — we pin to the exact version already resolved in TUI's node_modules | Verified: TUI's `node_modules/react` symlinks to `.pnpm/react@19.2.4/node_modules/react`. The monorepo also has `react@19.2.3` used by docs/mintlify packages — these are separate pnpm dependency trees and don't conflict. |
-| pnpm workspace protocol `workspace:*` doesn't resolve `@codeplane/sdk` | Install failure | Very low — `apps/*` is in `pnpm-workspace.yaml` and `packages/sdk` exists | Already verified: the glob pattern `apps/*` covers `apps/tui`. Root `package.json` also has `workspaces: ["apps/*", ...]`. |
-| `@opentui/react` peer dependency warnings for `react-devtools-core` and `ws` | Noisy install output, potential confusion | Medium | Both are listed as `peerDependencies` in `@opentui/react`. The package has no `peerDependenciesMeta` field (confirmed from the published `package.json`), so pnpm will warn about missing `react-devtools-core` and `ws` but will not fail. These packages are only needed for React DevTools remote debugging and are not required for production TUI functionality. |
-| The `@/*` path alias doesn't work at runtime in Bun | Runtime import errors when alias is first used | Low | Bun supports tsconfig paths natively since v1.0. Verify when the first `@/` import is added in a future ticket. Not exercised in this ticket. |
-| Barrel file in `src/hooks/index.ts` re-exports `useDiffSyntaxStyle` — if the import path is wrong, tsc fails | Compile error | Low | The barrel uses `./useDiffSyntaxStyle.js` which matches the existing file at `src/hooks/useDiffSyntaxStyle.ts` via bundler resolution. This follows the same `.js` extension pattern the existing code already uses (`useDiffSyntaxStyle.ts` imports `../lib/diff-syntax.js`). |
-| Barrel file in `src/lib/index.ts` re-exports symbols from `diff-syntax.ts` that may not all be exported | Compile error | Low | Verified: all 9 value exports and 1 type export are confirmed present in `diff-syntax.ts` at the specific line numbers documented in Step 3h. |
-| `@opentui/core` index.d.ts imports from `bun:ffi` — could cause type errors | tsc may fail if `bun:ffi` types aren't available | Low | `bun-types` dev dependency provides `bun:ffi` type declarations. `skipLibCheck: true` prevents errors in node_modules type files. |
+| `formatTimestamp.ts` value-imports type `Breakpoint` — incompatible with `verbatimModuleSyntax` | Would cause tsc error if `verbatimModuleSyntax` were enabled | **Resolved** — we use `isolatedModules` instead | `isolatedModules` allows value imports of types. `verbatimModuleSyntax` can be enabled in a follow-up ticket that also updates `formatTimestamp.ts` to use `import type`. |
+| Agent component barrel uses extensionless paths while `useDiffSyntaxStyle.ts` uses `.js` | Inconsistent but functional | Very low | Both patterns resolve correctly under `moduleResolution: "bundler"`. Style convention can be enforced later via lint rules. |
+| `@opentui/core@0.1.90` native Zig bindings not available for current platform | Runtime import errors in dependency resolution tests | Low — npm package includes optional platform-specific deps for darwin-arm64, darwin-x64, linux-arm64, linux-x64, win32-arm64, win32-x64 | Verified: pnpm store contains the darwin-arm64 native binary. `skipLibCheck: true` handles transitive type issues. |
+| React version mismatch → pnpm installs a second React copy | Two React copies cause "Invalid hook call" errors | Low — we pin to the exact version already resolved | Verified: TUI's `node_modules/react` symlinks to `react@19.2.4`. |
+| pnpm workspace protocol `workspace:*` doesn't resolve `@codeplane/sdk` | Install failure | Very low | Already verified: `apps/*` glob covers `apps/tui`, `packages/sdk` exists at correct path. |
+| `@opentui/react` peer dependency warnings for `react-devtools-core` and `ws` | Noisy install output | Medium | Both are optional (only needed for React DevTools debugging). pnpm will warn but not fail. |
+| The `@/*` path alias doesn't work at runtime in Bun | Runtime import errors when alias is first used | Low | Bun supports tsconfig paths natively since v1.0. Verified when first `@/` import is added. |
+| Extending `e2e/tui/helpers.ts` breaks `agents.test.ts` imports | Test file import errors | Very low | The `TUITestInstance` interface and `launchTUI` signature are preserved byte-for-byte. New exports are additive only. |
+| `@opentui/core` index.d.ts imports from `bun:ffi` — could cause type errors | tsc may fail | Low | `bun-types` dev dependency provides `bun:ffi` type declarations. `skipLibCheck: true` prevents errors in node_modules type files. |
 
 ---
 
@@ -1022,12 +1067,12 @@ The following changes happen in subsequent tickets. Nothing in this ticket needs
 | What changes | When (ticket) | How |
 |-------------|---------------|-----|
 | `src/index.tsx` gains runtime bootstrap code | TUI Bootstrap and Renderer | Add `createCliRenderer()`, `createRoot()`, signal handlers, provider tree mount |
-| `src/verify-imports.ts` is deleted | TUI Bootstrap and Renderer | No longer needed — `src/index.tsx` has real runtime imports that prove the dependency chain |
-| `package.json` gains `@codeplane/ui-core` dependency | When `ui-core` package is created (does not exist yet — only `packages/sdk` and `packages/workflow` in monorepo) | Add `"@codeplane/ui-core": "workspace:*"` to dependencies |
+| `src/verify-imports.ts` is deleted | TUI Bootstrap and Renderer | No longer needed — `src/index.tsx` has real runtime imports |
+| `package.json` gains `@codeplane/ui-core` dependency | When `ui-core` package is created | Add `"@codeplane/ui-core": "workspace:*"` to dependencies |
 | `package.json` gains `build` script | When distribution bundling is needed | Add Bun build command targeting `dist/` |
 | Placeholder `index.ts` files gain real exports | Each feature ticket | Barrel file is extended, never replaced |
 | `tsconfig.json` may gain `verbatimModuleSyntax` | When existing files are updated | Requires `formatTimestamp.ts` to change `import { Breakpoint }` → `import type { Breakpoint }` |
-| `e2e/tui/helpers.ts` gains `TUITestInstance`, `launchTUI()` | Test infrastructure ticket | Adds `@microsoft/tui-test` dependency and full interactive terminal test support |
+| `e2e/tui/helpers.ts` gains full `launchTUI()` implementation | Test infrastructure ticket | Replaces stub with process-spawning implementation; adds `@microsoft/tui-test` dependency |
 | `e2e/tui/app-shell.test.ts` gains LOAD-* and KEY-* tests | Loading states + keybinding tickets | Migration from reference tests in `specs/tui/e2e/tui/app-shell.test.ts` |
 
 ### Directory placeholder lifecycle
@@ -1064,7 +1109,7 @@ This ticket is a prerequisite for **all TUI features** in `specs/tui/features.ts
 
 It does not implement any feature to completion but partially satisfies:
 
-- **TUI_BOOTSTRAP_AND_RENDERER**: Package exists and core dependencies resolve. The actual renderer bootstrap (terminal setup, React mount, signal handling) is ticket `tui-bootstrap-and-renderer` in TUI_EPIC_01.
+- **TUI_BOOTSTRAP_AND_RENDERER**: Package exists and core dependencies resolve. The actual renderer bootstrap is ticket `tui-bootstrap-and-renderer` in TUI_EPIC_01.
 
 ### Dependency chain this ticket validates
 
@@ -1080,7 +1125,6 @@ It does not implement any feature to completion but partially satisfies:
     → bun-ffi-structs (Zig FFI)
     → diff@8.0.2 (text diff computation)
     → marked@17.0.1 (markdown parsing)
-    → jimp@1.6.0 (image processing — used for sixel/kitty graphics, not required by TUI)
   → @codeplane/sdk@workspace:* (domain types, services)
 ```
 
@@ -1092,25 +1136,22 @@ This chain must resolve both at compile time (tsc) and at runtime (bun -e) befor
 
 | Question | Resolution | Evidence |
 |----------|-----------|----------|
-| Are `@opentui/core` and `@opentui/react` published to npm at 0.1.90? | **Yes** — both are published to npm with compiled `.js`/`.d.ts` files and pre-built binaries | `node_modules/.pnpm/@opentui+core@0.1.90*/node_modules/@opentui/core/package.json` shows `"main": "index.js"`, `"types": "index.d.ts"`, `"version": "0.1.90"`. `node_modules/.pnpm/@opentui+react@0.1.90*/node_modules/@opentui/react/package.json` shows `"main": "index.js"`, `"types": "src/index.d.ts"`, `"version": "0.1.90"`. |
-| Should `apps/tui` be added to `pnpm-workspace.yaml`? | **No** — covered by existing `apps/*` glob | `pnpm-workspace.yaml` contains `packages: ["apps/*", "packages/*", "specs", "docs"]`. Root `package.json` has `workspaces: ["apps/*", "packages/*", ...]`. |
-| Should we use `bun-types` or `@types/bun`? | **`bun-types`** — matches Codeplane convention | `apps/cli/tsconfig.json` uses `"types": ["bun-types"]`. Resolves to `bun-types@1.3.11` in lockfile. |
-| What React version to pin? | **`19.2.4`** — matches the TUI's resolved node_modules symlink | TUI's `node_modules/react` symlinks to `.pnpm/react@19.2.4/node_modules/react`. The monorepo also has `react@19.2.3` used by docs/mintlify packages — these are separate pnpm dependency trees and don't conflict. `@opentui/react` peer dependency `react >=19.0.0` is satisfied. |
-| Does existing code need modification? | **No** — all existing imports are compatible with the chosen tsconfig | `isolatedModules: true` (not `verbatimModuleSyntax`) permits `formatTimestamp.ts`'s value import of type `Breakpoint`. Both `.js` extension and extensionless imports work with `moduleResolution: "bundler"`. |
-| Should we use `verbatimModuleSyntax`? | **No** — use `isolatedModules` instead | `formatTimestamp.ts` uses `import { Breakpoint } from "../types"` where `Breakpoint` is `export type`. This is a compile error under `verbatimModuleSyntax` but works under `isolatedModules`. Switching requires modifying existing files, which is out of scope. |
-| Where do existing directories get barrel files? | **In this ticket** — barrel files re-export existing code | `src/hooks/index.ts` re-exports `useDiffSyntaxStyle`. `src/lib/index.ts` re-exports all `diff-syntax` symbols. `src/screens/index.ts` is a placeholder (Agents screen has its own internal barrel). |
+| Are `@opentui/core` and `@opentui/react` published to npm at 0.1.90? | **Yes** | `node_modules/.pnpm/@opentui+core@0.1.90*/` and `@opentui+react@0.1.90*/` present with `"version": "0.1.90"` in their package.json files. |
+| Should `apps/tui` be added to `pnpm-workspace.yaml`? | **No** — covered by existing `apps/*` glob | `pnpm-workspace.yaml` contains `packages: ["apps/*", "packages/*", "specs", "docs"]`. |
+| Should we use `bun-types` or `@types/bun`? | **`bun-types`** — matches Codeplane convention | `apps/cli/tsconfig.json` uses `"types": ["bun-types"]`. |
+| What React version to pin? | **`19.2.4`** — matches TUI's resolved node_modules symlink | TUI's `node_modules/react` symlinks to `.pnpm/react@19.2.4/node_modules/react`. |
+| Does existing code need modification? | **No** — all existing imports are compatible with chosen tsconfig | `isolatedModules: true` (not `verbatimModuleSyntax`) permits `formatTimestamp.ts`'s value import of type `Breakpoint`. |
+| Should we use `verbatimModuleSyntax`? | **No** — use `isolatedModules` instead | `formatTimestamp.ts` uses `import { Breakpoint } from "../types"` for a type-only export. Error under `verbatimModuleSyntax`, works under `isolatedModules`. |
+| Where do existing directories get barrel files? | **In this ticket** | `src/hooks/index.ts` re-exports `useDiffSyntaxStyle`. `src/lib/index.ts` re-exports all `diff-syntax` symbols. `src/screens/index.ts` is a placeholder. |
 | Is `@microsoft/tui-test` installed? | **No** — not in pnpm store or lockfile | `e2e/tui/diff.test.ts` imports it but tests cannot run until a test infrastructure ticket adds it. |
-| Does a root `tsconfig.json` exist that we should extend? | **No** — the file does not exist at `/tsconfig.json` | `apps/cli/tsconfig.json` is standalone with no `extends`. We follow the CLI pattern. |
-| Should `.gitignore` include `node_modules/`? | **No** — root `.gitignore` has `**/node_modules/` pattern | Only TUI-specific entries needed: `dist/` and `*.tsbuildinfo`. Root `.gitignore` confirmed to contain `**/node_modules/`. |
-| Does `@opentui/react` export `useOnResize` or `useResize`? | **`useOnResize`** — exported from `use-resize.js` | Confirmed from `@opentui/react/src/hooks/use-resize.d.ts`: `export declare const useOnResize: (callback: (width: number, height: number) => void) => import("@opentui/core").CliRenderer`. Returns `CliRenderer`, not `void`. |
-| What JSX intrinsic elements does `@opentui/react` declare? | 21 elements: `box`, `text`, `span`, `code`, `diff`, `markdown`, `input`, `textarea`, `select`, `scrollbox`, `ascii-font`, `tab-select`, `line-number`, `b`, `i`, `u`, `strong`, `em`, `br`, `a` | Confirmed from `@opentui/react/jsx-namespace.d.ts`. The `IntrinsicElements` interface extends `React.JSX.IntrinsicElements` and `ExtendedIntrinsicElements<OpenTUIComponents>`, plus declares all 21 elements with typed props. |
-| Does `createRoot` return a `Root` type with `render` and `unmount`? | **Yes** | `Root = { render: (node: ReactNode) => void; unmount: () => void }` from `@opentui/react/src/reconciler/renderer.d.ts`. `createRoot` declared as `export declare function createRoot(renderer: CliRenderer): Root`. |
-| Does `@opentui/react` have `peerDependenciesMeta` for optional peers? | **No** — there is no `peerDependenciesMeta` field in the published `package.json` | pnpm will warn about missing `react-devtools-core` and `ws` but will not fail. These packages are only needed for React DevTools remote debugging. |
-| Does `createCliRenderer` accept optional config? | **Yes** — `createCliRenderer(config?: CliRendererConfig): Promise<CliRenderer>` | Confirmed from `@opentui/core/renderer.d.ts`. `CliRendererConfig` has ~24+ optional fields including `stdin`, `stdout`, `exitOnCtrlC`, `useAlternateScreen`, `useMouse`, `targetFps`, `maxFps`, `backgroundColor`, `useKittyKeyboard`, etc. |
-| What does `useKeyboard` accept? | `(handler: (key: KeyEvent) => void, options?: UseKeyboardOptions) => void` | Confirmed from `@opentui/react/src/hooks/use-keyboard.d.ts`. `UseKeyboardOptions` has optional `release: boolean` field for including key release events. |
-| What does `@opentui/react` re-export from its main entry? | Components, app, hooks, plugins, reconciler, time-to-first-draw, types, and `createElement` from React | Confirmed from `src/index.d.ts`: exports from `./components/index.js`, `./components/app.js`, `./hooks/index.js`, `./plugins/slot.js`, `./reconciler/renderer.js`, `./time-to-first-draw.js`, `./types/components.js`, and `{ createElement } from "react"`. |
-| Does `@opentui/react` also export `flushSync` and `createPortal`? | **Yes** — from `src/reconciler/renderer.d.ts` | Available but not needed for scaffold ticket. |
-| Does `@opentui/react` export test utilities? | **Yes** — from `./test-utils` export path | `testRender(node, options)` returns `{ renderer, mockInput, mockMouse, renderOnce, captureCharFrame, captureSpans, resize }`. May be useful for unit tests in future tickets. |
-| Does `@codeplane/ui-core` exist in the monorepo? | **No** — only `packages/sdk` and `packages/workflow` exist under `packages/` | The TUI imports `@codeplane/sdk` directly. `@codeplane/ui-core` is referenced in the architecture docs as a planned shared data layer but has not been created yet. |
-| Do reference test files exist in `specs/tui/e2e/tui/`? | **Yes** — `helpers.ts`, `app-shell.test.ts` (~875 lines), `diff.test.ts`, `agents.test.ts`, and others | These are reference specifications. The real `e2e/tui/` at repo root currently only has `diff.test.ts`. This ticket creates `helpers.ts` and `app-shell.test.ts` at `e2e/tui/` with scaffold-scope tests. |
-| How many tests does the reference `specs/tui/e2e/tui/app-shell.test.ts` contain? | ~76 tests across 2 describe blocks: `TUI_LOADING_STATES` (32 tests covering spinners, skeletons, errors, pagination, actions, timeouts) and `KeybindingProvider — Priority Dispatch` (44 tests covering keybinding scopes, hints, and interactions) | Confirmed by reading the full 875-line file. These tests require a running TUI and are deferred to their respective feature tickets. |
+| Does a root `tsconfig.json` exist? | **No** | `apps/cli/tsconfig.json` is standalone with no `extends`. We follow the same pattern. |
+| Should `.gitignore` include `node_modules/`? | **No** — root `.gitignore` has `**/node_modules/` | Only TUI-specific entries needed: `dist/` and `*.tsbuildinfo`. |
+| Does `@opentui/react` export `useOnResize` or `useResize`? | **`useOnResize`** — from `use-resize.js` | Confirmed: `export declare const useOnResize: (callback: (width: number, height: number) => void) => import("@opentui/core").CliRenderer`. Returns `CliRenderer`, not `void`. |
+| What JSX intrinsic elements does `@opentui/react` declare? | 21 elements | `box`, `text`, `span`, `code`, `diff`, `markdown`, `input`, `textarea`, `select`, `scrollbox`, `ascii-font`, `tab-select`, `line-number`, `b`, `i`, `u`, `strong`, `em`, `br`, `a` — confirmed from `jsx-namespace.d.ts`. |
+| Does `createRoot` return a `Root` type with `render` and `unmount`? | **Yes** | `Root = { render: (node: ReactNode) => void; unmount: () => void }` from `renderer.d.ts`. |
+| Does `@opentui/react` have `peerDependenciesMeta`? | **No** | pnpm will warn about missing `react-devtools-core` and `ws` but will not fail. |
+| Does `createCliRenderer` accept optional config? | **Yes** | `createCliRenderer(config?: CliRendererConfig): Promise<CliRenderer>` — `CliRendererConfig` has ~24+ optional fields. |
+| What does `useKeyboard` accept? | `(handler: (key: KeyEvent) => void, options?: UseKeyboardOptions) => void` | `UseKeyboardOptions` has optional `release: boolean` field. |
+| Does `@codeplane/ui-core` exist in the monorepo? | **No** — only `packages/sdk` and `packages/workflow` exist | The TUI imports `@codeplane/sdk` directly. |
+| Does the existing `e2e/tui/helpers.ts` need backward compatibility? | **Yes** — `agents.test.ts` (~190KB) imports `launchTUI` and `TUITestInstance` from it | The `TUITestInstance` interface and `launchTUI` function signature must be preserved exactly. |
+| How many test files exist in `e2e/tui/`? | **3 files**: `helpers.ts` (21 lines), `diff.test.ts` (217 lines), `agents.test.ts` (~190KB) | `app-shell.test.ts` does not yet exist — created by this ticket. |

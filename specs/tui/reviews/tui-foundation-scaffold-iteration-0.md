@@ -1,27 +1,15 @@
+Tests run:
+1. `bun test app-shell.test.ts` (cwd `/Users/williamcory/codeplane/e2e/tui`) -> 32 pass, 0 fail.
+2. `bun run check` (cwd `/Users/williamcory/codeplane/apps/tui`) -> pass.
+3. `bun test e2e/tui/app-shell.test.ts` (cwd repo root) -> executed `/Users/williamcory/codeplane/specs/tui/e2e/tui/app-shell.test.ts` and failed in non-TTY mode.
+
 Findings (ordered by severity):
-
-CRITICAL
-1. Broken dependency/workspace setup: `@codeplane/sdk: workspace:*` is unresolved in this repo. `bun install` fails with `Workspace dependency "@codeplane/sdk" not found`. File: /Users/williamcory/codeplane/specs/tui/apps/tui/package.json:15.
-2. Compilation gate is red: `bun run check` in `apps/tui` exits 2 with many TS errors (unresolved `@opentui/core`, `@opentui/react`, missing JSX runtime/types). This violates the ticket’s stated requirement that `tsc --noEmit` passes. Files include /Users/williamcory/codeplane/specs/tui/apps/tui/src/index.tsx:19 and /Users/williamcory/codeplane/specs/tui/apps/tui/src/verify-imports.ts:22.
-3. E2E harness is intentionally crashing: `launchTUI()` always throws, so all interaction/snapshot tests are guaranteed to fail regardless of implementation. File: /Users/williamcory/codeplane/specs/tui/e2e/tui/helpers.ts:20.
-
-HIGH
-4. `e2e/tui/app-shell.test.ts` contains large navigation/keyboard/snapshot suites that are not executable with the scaffolded stub harness, creating deterministic noise failures. File: /Users/williamcory/codeplane/specs/tui/e2e/tui/app-shell.test.ts:6.
-5. `verify-imports.ts` assertions are ineffective: conditional type aliases (`true | never`) are never enforced, so they do not actually prove signatures. Also comments claim checks for React peer/version, `@codeplane/sdk`, and JSX runtime, but those are not actually imported/asserted here. File: /Users/williamcory/codeplane/specs/tui/apps/tui/src/verify-imports.ts:9-40.
-6. PRD mismatch for E2E strategy: tests are supposed to use `@microsoft/tui-test`, but this scaffold uses custom stubs and no `@microsoft/tui-test` dependency is present.
-
-MEDIUM / NITS
-7. Barrel files are placeholders (`export {}`) instead of usable exports, so the scaffolded module surface is mostly non-functional. Files: /Users/williamcory/codeplane/specs/tui/apps/tui/src/components/index.ts:20, /Users/williamcory/codeplane/specs/tui/apps/tui/src/theme/index.ts:18, /Users/williamcory/codeplane/specs/tui/apps/tui/src/screens/index.ts:25, /Users/williamcory/codeplane/specs/tui/apps/tui/src/util/index.ts:16.
-8. Data-layer contract not met yet: no `@codeplane/ui-core` hook usage found in `apps/tui/src` (and no direct API calls found either). This is incomplete vs the review requirement.
-9. Minor style inconsistency (semicolon style differs from surrounding files). File: /Users/williamcory/codeplane/specs/tui/apps/tui/src/providers/index.ts:1.
-
-Test execution evidence:
-- `bun test e2e/tui/app-shell.test.ts` -> 22 pass, 44 fail.
-- `bun test e2e/tui/*.test.ts` -> 177 pass, 10 skip, 137 fail.
-- `bun test e2e/tui/app-shell.test.ts -t "TUI_APP_SHELL — Package scaffold"` -> 22 pass, 0 fail.
-- `bun test e2e/tui/app-shell.test.ts -t "TUI_APP_SHELL — TypeScript compilation"` -> 0 pass, 3 fail.
-- `bun test e2e/tui/app-shell.test.ts -t "TUI_APP_SHELL — Dependency resolution"` -> 0 pass, 7 fail.
-- `bun run check` (apps/tui) -> exit 2.
-- `bun install` (apps/tui) -> fails on unresolved workspace dependency `@codeplane/sdk`.
-
-Verdict: not LGTM.
+1. High - Ambiguous test targeting from repo root. Adding `e2e/tui/app-shell.test.ts` creates a basename collision with `specs/tui/e2e/tui/app-shell.test.ts`; `bun test e2e/tui/app-shell.test.ts` can run the wrong suite and fail. Reference: `/Users/williamcory/codeplane/e2e/tui/app-shell.test.ts:1`.
+2. High - TUI entrypoint is non-functional scaffold only; no renderer bootstrap, no app mount, no keybinding registration (`?`, `:`, `q`, `Esc`, vim nav) to match the design spec. It only re-exports types. Reference: `/Users/williamcory/codeplane/apps/tui/src/index.tsx:14`.
+3. Medium - `verify-imports.ts` "assertions" are no-ops. The conditional type aliases can evaluate to `never` without failing compilation, so they do not actually enforce API contracts. Reference: `/Users/williamcory/codeplane/apps/tui/src/verify-imports.ts:10`.
+4. Medium - Data access contract is not established for TUI hooks. `@codeplane/ui-core` is not declared in TUI dependencies and no ui-core hook usage exists in `apps/tui/src`, so the requirement to consume shared hooks is not satisfied yet (no direct API calls found, which is good). Reference: `/Users/williamcory/codeplane/apps/tui/package.json:11`.
+5. Low - Test quality nits in scaffold test/helpers:
+   - Redundant repeated `bun run check` test bodies add runtime without extra signal. Reference: `/Users/williamcory/codeplane/e2e/tui/app-shell.test.ts:136`.
+   - Hardcoded `"bun"` in `run([...])` instead of helper `BUN` weakens portability. Reference: `/Users/williamcory/codeplane/e2e/tui/app-shell.test.ts:137`.
+   - Unused `sleep()` in helpers. Reference: `/Users/williamcory/codeplane/e2e/tui/helpers.ts:65`.
+6. Low - Workspace hygiene issue: unrelated lockfile/node_modules/spec snapshot churn is present and should be excluded from this ticket changeset.
