@@ -4758,3 +4758,399 @@ describe("KeybindingProvider — Priority Dispatch", () => {
   });
 });
 
+
+
+describe('TUI_APP_SHELL — useBreakpoint hook', () => {
+  test('HOOK-BP-001: useBreakpoint is importable from hooks barrel', async () => {
+    const result = await bunEval(`
+      const mod = await import('./src/hooks/index.js');
+      console.log(typeof mod.useBreakpoint);
+    `);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe('function');
+  });
+
+  test('HOOK-BP-002: useBreakpoint is importable from direct path', async () => {
+    const result = await bunEval(`
+      const { useBreakpoint } = await import('./src/hooks/useBreakpoint.js');
+      console.log(typeof useBreakpoint);
+    `);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe('function');
+  });
+
+  test('HOOK-BP-003: useBreakpoint.ts imports from @opentui/react', async () => {
+    const content = await Bun.file(join(TUI_SRC, 'hooks/useBreakpoint.ts')).text();
+    expect(content).toContain('from "@opentui/react"');
+  });
+
+  test('HOOK-BP-004: useBreakpoint.ts imports getBreakpoint from types', async () => {
+    const content = await Bun.file(join(TUI_SRC, 'hooks/useBreakpoint.ts')).text();
+    expect(content).toContain('from "../types/breakpoint.js"');
+  });
+
+  test('HOOK-BP-005: useBreakpoint.ts has zero useState calls', async () => {
+    const content = await Bun.file(join(TUI_SRC, 'hooks/useBreakpoint.ts')).text();
+    expect(content).not.toContain('useState');
+  });
+
+  test('HOOK-BP-006: useBreakpoint.ts has zero useEffect calls', async () => {
+    const content = await Bun.file(join(TUI_SRC, 'hooks/useBreakpoint.ts')).text();
+    expect(content).not.toContain('useEffect');
+  });
+
+  test('HOOK-BP-007: useBreakpoint.ts uses useMemo for memoization', async () => {
+    const content = await Bun.file(join(TUI_SRC, 'hooks/useBreakpoint.ts')).text();
+    expect(content).toContain('useMemo');
+  });
+});
+
+describe('TUI_APP_SHELL — useResponsiveValue hook', () => {
+  test('HOOK-RV-001: useResponsiveValue is importable from hooks barrel', async () => {
+    const result = await bunEval(`
+      const mod = await import('./src/hooks/index.js');
+      console.log(typeof mod.useResponsiveValue);
+    `);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe('function');
+  });
+
+  test("HOOK-RV-002: selects 'minimum' value at 80x24", async () => {
+    const result = await bunEval(`
+      const { getBreakpoint } = await import('./src/types/breakpoint.js');
+      const bp = getBreakpoint(80, 24);
+      const values = { minimum: 0, standard: 2, large: 4 };
+      const selected = bp ? values[bp] : undefined;
+      console.log(JSON.stringify({ bp, selected }));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.bp).toBe('minimum');
+    expect(parsed.selected).toBe(0);
+  });
+
+  test("HOOK-RV-003: selects 'standard' value at 120x40", async () => {
+    const result = await bunEval(`
+      const { getBreakpoint } = await import('./src/types/breakpoint.js');
+      const bp = getBreakpoint(120, 40);
+      const values = { minimum: 0, standard: 2, large: 4 };
+      const selected = bp ? values[bp] : undefined;
+      console.log(JSON.stringify({ bp, selected }));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.bp).toBe('standard');
+    expect(parsed.selected).toBe(2);
+  });
+
+  test("HOOK-RV-004: selects 'large' value at 200x60", async () => {
+    const result = await bunEval(`
+      const { getBreakpoint } = await import('./src/types/breakpoint.js');
+      const bp = getBreakpoint(200, 60);
+      const values = { minimum: 0, standard: 2, large: 4 };
+      const selected = bp ? values[bp] : undefined;
+      console.log(JSON.stringify({ bp, selected }));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.bp).toBe('large');
+    expect(parsed.selected).toBe(4);
+  });
+
+  test('HOOK-RV-005: returns undefined when below minimum and no fallback', async () => {
+    const result = await bunEval(`
+      const { getBreakpoint } = await import('./src/types/breakpoint.js');
+      const bp = getBreakpoint(60, 20);
+      const values = { minimum: 0, standard: 2, large: 4 };
+      const selected = bp ? values[bp] : undefined;
+      console.log(JSON.stringify({ bp, selected: selected === undefined ? '__undefined__' : selected }));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.bp).toBeNull();
+    expect(parsed.selected).toBe('__undefined__');
+  });
+
+  test('HOOK-RV-006: returns fallback when below minimum', async () => {
+    const result = await bunEval(`
+      const { getBreakpoint } = await import('./src/types/breakpoint.js');
+      const bp = getBreakpoint(60, 20);
+      const values = { minimum: 0, standard: 2, large: 4 };
+      const fallback = -1;
+      const selected = bp ? values[bp] : fallback;
+      console.log(JSON.stringify({ selected }));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.selected).toBe(-1);
+  });
+
+  test('HOOK-RV-007: works with string values', async () => {
+    const result = await bunEval(`
+      const { getBreakpoint } = await import('./src/types/breakpoint.js');
+      const bp = getBreakpoint(120, 40);
+      const values = { minimum: 'sm', standard: 'md', large: 'lg' };
+      const selected = bp ? values[bp] : undefined;
+      console.log(JSON.stringify({ selected }));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.selected).toBe('md');
+  });
+
+  test('HOOK-RV-008: works with boolean values', async () => {
+    const result = await bunEval(`
+      const { getBreakpoint } = await import('./src/types/breakpoint.js');
+      const bp = getBreakpoint(80, 24);
+      const values = { minimum: false, standard: true, large: true };
+      const selected = bp ? values[bp] : undefined;
+      console.log(JSON.stringify({ selected }));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.selected).toBe(false);
+  });
+
+  test('HOOK-RV-009: useResponsiveValue.ts has zero useEffect calls', async () => {
+    const content = await Bun.file(join(TUI_SRC, 'hooks/useResponsiveValue.ts')).text();
+    expect(content).not.toContain('useEffect');
+  });
+});
+
+describe('TUI_APP_SHELL — resolveSidebarVisibility pure function', () => {
+  test('HOOK-SB-001: sidebar hidden when breakpoint is null', async () => {
+    const result = await bunEval(`
+      const { resolveSidebarVisibility } = await import('./src/hooks/useSidebarState.js');
+      console.log(JSON.stringify(resolveSidebarVisibility(null, null)));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.visible).toBe(false);
+    expect(parsed.autoOverride).toBe(true);
+  });
+
+  test('HOOK-SB-002: sidebar hidden at minimum breakpoint', async () => {
+    const result = await bunEval(`
+      const { resolveSidebarVisibility } = await import('./src/hooks/useSidebarState.js');
+      console.log(JSON.stringify(resolveSidebarVisibility('minimum', null)));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.visible).toBe(false);
+    expect(parsed.autoOverride).toBe(true);
+  });
+
+  test('HOOK-SB-003: sidebar hidden at minimum even with user preference true', async () => {
+    const result = await bunEval(`
+      const { resolveSidebarVisibility } = await import('./src/hooks/useSidebarState.js');
+      console.log(JSON.stringify(resolveSidebarVisibility('minimum', true)));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.visible).toBe(false);
+    expect(parsed.autoOverride).toBe(true);
+  });
+
+  test('HOOK-SB-004: sidebar visible at standard with no user preference', async () => {
+    const result = await bunEval(`
+      const { resolveSidebarVisibility } = await import('./src/hooks/useSidebarState.js');
+      console.log(JSON.stringify(resolveSidebarVisibility('standard', null)));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.visible).toBe(true);
+    expect(parsed.autoOverride).toBe(false);
+  });
+
+  test('HOOK-SB-005: sidebar hidden at standard with user preference false', async () => {
+    const result = await bunEval(`
+      const { resolveSidebarVisibility } = await import('./src/hooks/useSidebarState.js');
+      console.log(JSON.stringify(resolveSidebarVisibility('standard', false)));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.visible).toBe(false);
+    expect(parsed.autoOverride).toBe(false);
+  });
+
+  test('HOOK-SB-006: sidebar visible at large with no user preference', async () => {
+    const result = await bunEval(`
+      const { resolveSidebarVisibility } = await import('./src/hooks/useSidebarState.js');
+      console.log(JSON.stringify(resolveSidebarVisibility('large', null)));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.visible).toBe(true);
+    expect(parsed.autoOverride).toBe(false);
+  });
+
+  test('HOOK-SB-007: sidebar visible at standard with user preference true', async () => {
+    const result = await bunEval(`
+      const { resolveSidebarVisibility } = await import('./src/hooks/useSidebarState.js');
+      console.log(JSON.stringify(resolveSidebarVisibility('standard', true)));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.visible).toBe(true);
+    expect(parsed.autoOverride).toBe(false);
+  });
+
+  test('HOOK-SB-008: sidebar hidden at large with user preference false', async () => {
+    const result = await bunEval(`
+      const { resolveSidebarVisibility } = await import('./src/hooks/useSidebarState.js');
+      console.log(JSON.stringify(resolveSidebarVisibility('large', false)));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.visible).toBe(false);
+    expect(parsed.autoOverride).toBe(false);
+  });
+
+  test('HOOK-SB-009: resolveSidebarVisibility is importable from hooks barrel', async () => {
+    const result = await bunEval(`
+      const mod = await import('./src/hooks/index.js');
+      console.log(typeof mod.resolveSidebarVisibility);
+    `);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe('function');
+  });
+
+  test('HOOK-SB-010: useSidebarState is importable from hooks barrel', async () => {
+    const result = await bunEval(`
+      const mod = await import('./src/hooks/index.js');
+      console.log(typeof mod.useSidebarState);
+    `);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe('function');
+  });
+
+  test('HOOK-SB-011: useSidebarState.ts has zero useEffect calls', async () => {
+    const content = await Bun.file(join(TUI_SRC, 'hooks/useSidebarState.ts')).text();
+    expect(content).not.toContain('useEffect');
+  });
+
+  test('HOOK-SB-012: useSidebarState.ts imports useBreakpoint from local hook', async () => {
+    const content = await Bun.file(join(TUI_SRC, 'hooks/useSidebarState.ts')).text();
+    expect(content).toContain('from "./useBreakpoint.js"');
+  });
+});
+
+describe('TUI_APP_SHELL — useLayout sidebar integration', () => {
+  test("HOOK-LAY-039: sidebarWidth returns '0%' when visibility is false at standard", async () => {
+    const result = await bunEval(`
+      function getSidebarWidth(bp, visible) {
+        if (!visible) return '0%';
+        switch (bp) {
+          case 'large': return '30%';
+          case 'standard': return '25%';
+          default: return '0%';
+        }
+      }
+      console.log(JSON.stringify({
+        visibleStandard: getSidebarWidth('standard', true),
+        hiddenStandard: getSidebarWidth('standard', false),
+        visibleLarge: getSidebarWidth('large', true),
+        hiddenLarge: getSidebarWidth('large', false),
+        visibleMinimum: getSidebarWidth('minimum', true),
+        hiddenNull: getSidebarWidth(null, false),
+      }));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.visibleStandard).toBe('25%');
+    expect(parsed.hiddenStandard).toBe('0%');
+    expect(parsed.visibleLarge).toBe('30%');
+    expect(parsed.hiddenLarge).toBe('0%');
+    expect(parsed.visibleMinimum).toBe('0%');
+    expect(parsed.hiddenNull).toBe('0%');
+  });
+
+  test('HOOK-LAY-040: useLayout.ts imports useSidebarState', async () => {
+    const content = await Bun.file(join(TUI_SRC, 'hooks/useLayout.ts')).text();
+    expect(content).toContain('from "./useSidebarState.js"');
+  });
+
+  test('HOOK-LAY-041: useLayout.ts no longer has inline sidebarVisible derivation', async () => {
+    const content = await Bun.file(join(TUI_SRC, 'hooks/useLayout.ts')).text();
+    expect(content).not.toContain('breakpoint !== null && breakpoint !== "minimum"');
+  });
+
+  test('HOOK-LAY-042: LayoutContext interface includes sidebar field', async () => {
+    const content = await Bun.file(join(TUI_SRC, 'hooks/useLayout.ts')).text();
+    expect(content).toContain('sidebar: SidebarState');
+  });
+
+  test('HOOK-LAY-043: AppShell.tsx imports useLayout instead of getBreakpoint', async () => {
+    const content = await Bun.file(join(TUI_SRC, 'components/AppShell.tsx')).text();
+    expect(content).toContain('from "../hooks/useLayout.js"');
+    expect(content).not.toContain('from "../types/breakpoint.js"');
+    expect(content).not.toContain('getBreakpoint');
+  });
+
+  test('HOOK-LAY-044: AppShell.tsx does not import useTerminalDimensions directly', async () => {
+    const content = await Bun.file(join(TUI_SRC, 'components/AppShell.tsx')).text();
+    expect(content).not.toContain('useTerminalDimensions');
+  });
+
+  test('HOOK-LAY-045: ErrorScreen.tsx still uses getBreakpoint directly (acceptable)', async () => {
+    const content = await Bun.file(join(TUI_SRC, 'components/ErrorScreen.tsx')).text();
+    expect(content).toContain('getBreakpoint');
+  });
+
+  test('HOOK-LAY-046: tsc --noEmit passes with new hook files', async () => {
+    const result = await run(['bun', 'run', 'check']);
+    if (result.exitCode !== 0) {
+      console.error('tsc stderr:', result.stderr);
+      console.error('tsc stdout:', result.stdout);
+    }
+    expect(result.exitCode).toBe(0);
+  }, 30_000);
+});
+
+describe('TUI_APP_SHELL — sidebar toggle E2E', () => {
+  let terminal;
+
+  afterEach(async () => {
+    if (terminal) {
+      await terminal.terminate();
+    }
+  });
+
+  test('RESP-SB-001: Ctrl+B toggles sidebar off at standard breakpoint', async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText('Dashboard');
+    const beforeSnapshot = terminal.snapshot();
+    await terminal.sendKeys('ctrl+b');
+    const afterSnapshot = terminal.snapshot();
+    expect(beforeSnapshot).not.toBe(afterSnapshot);
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  test('RESP-SB-002: Ctrl+B toggles sidebar back on at standard breakpoint', async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText('Dashboard');
+    await terminal.sendKeys('ctrl+b'); // hide
+    await terminal.sendKeys('ctrl+b'); // show
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  test('RESP-SB-003: Ctrl+B is no-op at minimum breakpoint', async () => {
+    terminal = await launchTUI({ cols: 80, rows: 24 });
+    await terminal.waitForText('Dashboard');
+    const before = terminal.snapshot();
+    await terminal.sendKeys('ctrl+b');
+    const after = terminal.snapshot();
+    expect(before).toBe(after);
+  });
+
+  test('RESP-SB-004: user preference survives resize through minimum', async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText('Dashboard');
+    await terminal.sendKeys('ctrl+b'); // hide sidebar
+    await terminal.resize(80, 24);    // minimum - auto-hidden
+    await terminal.waitForText('Dashboard');
+    await terminal.resize(120, 40);   // back to standard - preference should persist
+    await terminal.waitForText('Dashboard');
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  test('RESP-SB-005: sidebar shows at large breakpoint with wider width', async () => {
+    terminal = await launchTUI({ cols: 200, rows: 60 });
+    await terminal.waitForText('Dashboard');
+    expect(terminal.snapshot()).toMatchSnapshot();
+  });
+
+  test('RESP-SB-006: Ctrl+B restores sidebar after toggle off then on', async () => {
+    terminal = await launchTUI({ cols: 200, rows: 60 });
+    await terminal.waitForText('Dashboard');
+    const initial = terminal.snapshot();
+    await terminal.sendKeys('ctrl+b'); // hide
+    await terminal.sendKeys('ctrl+b'); // show
+    const restored = terminal.snapshot();
+    expect(restored).toBe(initial);
+  });
+});

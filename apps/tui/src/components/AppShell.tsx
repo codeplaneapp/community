@@ -1,16 +1,14 @@
 import React from "react";
-import { useTerminalDimensions } from "@opentui/react";
-import { getBreakpoint } from "../types/breakpoint.js";
+import { useLayout } from "../hooks/useLayout.js";
 import { HeaderBar } from "./HeaderBar.js";
 import { StatusBar } from "./StatusBar.js";
 import { TerminalTooSmallScreen } from "./TerminalTooSmallScreen.js";
 
 export function AppShell({ children }: { children?: React.ReactNode }) {
-  const { width, height } = useTerminalDimensions();
-  const bp = getBreakpoint(width, height);
+  const layout = useLayout();
 
-  if (bp === null) {
-    return <TerminalTooSmallScreen cols={width} rows={height} />;
+  if (!layout.breakpoint) {
+    return <TerminalTooSmallScreen cols={layout.width} rows={layout.height} />;
   }
 
   return (

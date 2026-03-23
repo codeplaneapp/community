@@ -7,84 +7,67 @@
 **Status:** Partial  
 **Depends on:** tui-bootstrap-and-renderer  
 **Files:**
-- `apps/tui/src/hooks/useBreakpoint.ts`
-- `apps/tui/src/hooks/useResponsiveValue.ts`
-- `apps/tui/src/hooks/useLayout.ts`
-- `apps/tui/src/hooks/useSidebarState.ts`
-- `apps/tui/src/types/breakpoint.ts` (prerequisite — type + pure function)
+- `apps/tui/src/hooks/useBreakpoint.ts` (new)
+- `apps/tui/src/hooks/useResponsiveValue.ts` (new)
+- `apps/tui/src/hooks/useLayout.ts` (modify — integrate sidebar state)
+- `apps/tui/src/hooks/useSidebarState.ts` (new)
+- `apps/tui/src/types/breakpoint.ts` (exists, no changes)
+- `apps/tui/src/components/AppShell.tsx` (modify — migrate to `useLayout()`)
 
 **Test files:**
-- `e2e/tui/app-shell.test.ts` (extends existing responsive layout test groups)
+- `e2e/tui/app-shell.test.ts` (extend existing responsive layout test groups)
 
 ---
 
 ## 1. Overview
 
-This ticket implements the responsive layout detection system for the Codeplane TUI. The system provides a layered set of hooks that translate raw terminal dimensions (from OpenTUI's `useTerminalDimensions`) into semantic breakpoints, breakpoint-aware values, and a composite layout context. It also introduces a sidebar state machine that separates user preference from auto-collapse behavior.
+This ticket implements the responsive layout detection system for the Codeplane TUI. The system provides a layered set of hooks that translate raw terminal dimensions (from OpenTUI's `useTerminalDimensions`) into semantic breakpoints, breakpoint-aware values, and a composite layout context. It also introduces a sidebar state machine that separates user preference (Ctrl+B toggle) from automatic breakpoint-driven collapse.
 
 The hooks are foundational — every screen, every component that adapts to terminal size, and every modal/overlay relies on this system. The design must be zero-allocation on re-renders when dimensions haven't changed, and layout recalculations must be synchronous (no debounce, no animation) per the TUI design spec.
 
 ### 1.1 Current State Assessment
 
-All four hooks and the type foundation already exist under `apps/tui/src/`. The implementations are complete and well-structured. The following components and screens already consume them:
+Two of the six files in scope already exist. The remaining four must be created, and `useLayout.ts` must be evolved to integrate the new sidebar state machine.
+
+**What exists today:**
+
+| File | Status | Notes |
+|------|--------|-------|
+| `apps/tui/src/types/breakpoint.ts` | ✅ Complete | `Breakpoint` type + `getBreakpoint()` pure function. No changes needed. |
+| `apps/tui/src/types/index.ts` | ✅ Complete | Re-exports `getBreakpoint` and `Breakpoint`. No changes needed. |
+| `apps/tui/src/hooks/useLayout.ts` | ⚠️ Exists, needs evolution | Current implementation derives `sidebarVisible` as a simple `breakpoint !== null && breakpoint !== "minimum"` check. Does NOT integrate `useSidebarState()` for Ctrl+B toggle support. `getSidebarWidth` takes only breakpoint (not visibility). `LayoutContext` interface lacks `sidebar: SidebarState` field. |
+| `apps/tui/src/hooks/index.ts` | ⚠️ Exists, needs additions | Exports `useLayout` and `LayoutContext` but not the three new hooks. |
+| `apps/tui/src/hooks/useBreakpoint.ts` | ❌ Does not exist | Must be created. |
+| `apps/tui/src/hooks/useResponsiveValue.ts` | ❌ Does not exist | Must be created. |
+| `apps/tui/src/hooks/useSidebarState.ts` | ❌ Does not exist | Must be created. |
+| `apps/tui/src/components/AppShell.tsx` | ⚠️ Migration candidate | Currently calls `getBreakpoint()` directly via `useTerminalDimensions()` instead of `useLayout()`. Should be migrated to `useLayout()` for consistency. |
 
 **Components consuming `useLayout()`:**
-- `AppShell.tsx` — root shell, unsupported-size gate
-- `HeaderBar.tsx` — width + breakpoint for truncation
-- `StatusBar.tsx` — width + breakpoint for hint count
-- `FullScreenLoading.tsx` — centering via `contentHeight`
-- `FullScreenError.tsx` — centering via `contentHeight`
-- `PaginationIndicator.tsx` — width for truncation
-- `SkeletonList.tsx` — `contentHeight` + `width` for placeholder rows
-- `SkeletonDetail.tsx` — `width` + `contentHeight`
-- `WorkspaceStatusBadge.tsx` — `breakpoint` for label truncation
+- `HeaderBar.tsx` — `{ width, breakpoint }` for truncation
+- `StatusBar.tsx` — `{ width, breakpoint }` for hint count
+- `FullScreenLoading.tsx` — `{ width, contentHeight }` for centering
+- `FullScreenError.tsx` — `{ width, contentHeight }` for centering
+- `PaginationIndicator.tsx` — `{ width }` for truncation
+- `SkeletonList.tsx` — `{ contentHeight, width }` for placeholder rows
+- `SkeletonDetail.tsx` — `{ width, contentHeight }` for sizing
 
-**Components consuming `getBreakpoint()` directly:**
-- `TabbedDetailView.tsx` — calls `getBreakpoint(termWidth, termHeight)` directly instead of `useLayout()` (migration candidate)
-- `ErrorScreen.tsx` — calls `getBreakpoint(termWidth, termHeight)` directly (pre-provider context, acceptable)
-- `AgentChatScreen.tsx` — calls `getBreakpoint(width, height)` directly via `useTerminalDimensions()` with unsafe `as Breakpoint` cast (migration candidate)
-- `AgentSessionReplayScreen.tsx` — same pattern as AgentChatScreen (migration candidate)
+**Components calling `getBreakpoint()` directly:**
+- `AppShell.tsx` — `getBreakpoint(width, height)` for null check (migration target for this ticket)
+- `ErrorScreen.tsx` — `getBreakpoint(termWidth, termHeight)` for responsive config (acceptable — renders outside provider stack in error boundary)
 
-**Unused hooks (infrastructure for future consumption):**
-- `useBreakpoint()` — not imported directly by any consumer (used internally by `useResponsiveValue` and `useSidebarState`)
-- `useResponsiveValue()` — not imported by any consumer in the current codebase (available for future responsive value patterns)
-- `useSidebarState()` — consumed only internally by `useLayout()` (sidebar state exposed via `layout.sidebar`)
-
-**E2E tests:** The `e2e/tui/app-shell.test.ts` file contains 67 existing tests across `TUI_LOADING_STATES` (with sub-groups: loading spinner, skeleton rendering, pagination, action loading, error, optimistic UI, no-color, timeout, keyboard, responsive) and `KeybindingProvider — Priority Dispatch` (with sub-groups: snapshots, global keybindings, priority layering, scope lifecycle, status bar hints, integration, edge cases, responsive). The responsive layout hook tests will extend this file with new `describe` blocks.
+**E2E tests:** The `e2e/tui/app-shell.test.ts` file contains 412 existing tests across many describe blocks. Layout-specific tests use IDs `HOOK-LAY-001` through `HOOK-LAY-038` and `RESP-LAY-001` through `RESP-LAY-015`. New tests will use `HOOK-BP-*`, `HOOK-RV-*`, `HOOK-SB-*`, and `RESP-SB-*` prefixes to avoid collisions.
 
 ---
 
 ## 2. Type Foundation
 
-### 2.1 `apps/tui/src/types/breakpoint.ts`
+### 2.1 `apps/tui/src/types/breakpoint.ts` — No changes
 
-This file provides the pure type and pure function used by all layout hooks. It has no React dependency.
+This file already exists and matches the architecture spec exactly:
 
 ```typescript
-/**
- * Terminal size breakpoint classification.
- *
- * Ranges (both cols AND rows must meet the threshold):
- * - minimum: 80×24 – 119×39
- * - standard: 120×40 – 199×59
- * - large: 200×60+
- *
- * Below 80×24 returns null (unsupported).
- */
 export type Breakpoint = "minimum" | "standard" | "large";
 
-/**
- * Compute the breakpoint from terminal dimensions.
- *
- * Returns null when the terminal is below the minimum supported size
- * (cols < 80 OR rows < 24). The caller is responsible for rendering
- * the "terminal too small" screen when this returns null.
- *
- * The threshold logic uses OR for downgrade: if EITHER dimension
- * is below the threshold for a breakpoint, the terminal falls to
- * the next lower breakpoint. This prevents usability issues where
- * a terminal is wide but very short (or vice versa).
- */
 export function getBreakpoint(
   cols: number,
   rows: number,
@@ -94,37 +77,6 @@ export function getBreakpoint(
   if (cols < 200 || rows < 60) return "standard";
   return "large";
 }
-```
-
-**Design decisions:**
-
-| Decision | Rationale |
-|----------|----------|
-| Return `null` instead of `"unsupported"` string | `null` is more idiomatic for "no valid value". Consumers do `if (!breakpoint)` which is clearer than string comparison. TypeScript narrowing works naturally with `Breakpoint \| null`. |
-| OR logic for threshold checks | A 200×20 terminal is unusable at "large" layout even though columns qualify. Both dimensions must clear the bar for a given tier. |
-| Pure function, no React | Enables use in tests, pre-provider contexts (e.g., `ErrorScreen.tsx`), and non-React utility code without importing React. |
-
-**Re-export from `apps/tui/src/types/index.ts`:**
-
-```typescript
-export { getBreakpoint } from "./breakpoint.js";
-export type { Breakpoint } from "./breakpoint.js";
-```
-
----
-
-## 3. Implementation Plan
-
-### Step 1: `apps/tui/src/types/breakpoint.ts` — Breakpoint type and pure function
-
-**Status:** ✅ Complete — file exists and matches spec exactly.
-
-**What:** The `Breakpoint` type alias and `getBreakpoint()` pure function.
-
-**Interface:**
-```typescript
-export type Breakpoint = "minimum" | "standard" | "large";
-export function getBreakpoint(cols: number, rows: number): Breakpoint | null;
 ```
 
 **Boundary table (exhaustive):**
@@ -148,11 +100,13 @@ export function getBreakpoint(cols: number, rows: number): Breakpoint | null;
 
 ---
 
-### Step 2: `apps/tui/src/hooks/useBreakpoint.ts` — Reactive breakpoint hook
+## 3. Implementation Plan
 
-**Status:** ✅ Complete — file exists and matches spec exactly.
+### Step 1: Create `apps/tui/src/hooks/useBreakpoint.ts` — Reactive breakpoint hook
 
-**What:** A React hook that returns the current `Breakpoint | null` derived from live terminal dimensions.
+**Status:** ❌ New file
+
+**What:** A React hook that returns the current `Breakpoint | null` derived from live terminal dimensions. This extracts the breakpoint computation that currently lives inline inside `useLayout()` into its own composable hook.
 
 **File:** `apps/tui/src/hooks/useBreakpoint.ts`
 
@@ -200,9 +154,9 @@ It returns `{ width: number, height: number }` and auto-updates on SIGWINCH.
 
 ---
 
-### Step 3: `apps/tui/src/hooks/useResponsiveValue.ts` — Breakpoint-to-value mapper
+### Step 2: Create `apps/tui/src/hooks/useResponsiveValue.ts` — Breakpoint-to-value mapper
 
-**Status:** ✅ Complete — file exists and matches spec exactly.
+**Status:** ❌ New file
 
 **What:** A generic hook that selects a value from a breakpoint-keyed map based on the current breakpoint.
 
@@ -255,8 +209,6 @@ export function useResponsiveValue<T>(
 | `fallback` parameter | For hooks called in components that may render briefly during resize transitions below minimum, a fallback prevents crashes. |
 | `useMemo` with `values` in deps | Since `values` is typically an object literal, it will be a new reference each render. Callers should define values objects at module scope for stability, or memoize them. |
 
-**Current usage note:** No component in the codebase currently imports `useResponsiveValue` directly. Components that need responsive values currently use `useLayout()` and derive values from the breakpoint field. `useResponsiveValue` is available as infrastructure for future consumption patterns where a component needs a single responsive value without the full layout context.
-
 **Recommended usage patterns:**
 ```typescript
 // Pattern 1: Module-level constant (preferred for stable objects)
@@ -274,24 +226,13 @@ const label = useResponsiveValue(
 
 ---
 
-### Step 4: `apps/tui/src/hooks/useSidebarState.ts` — Sidebar visibility state machine
+### Step 3: Create `apps/tui/src/hooks/useSidebarState.ts` — Sidebar visibility state machine
 
-**Status:** ⚠️ Needs one change — export `resolveSidebarVisibility` for direct testing.
+**Status:** ❌ New file
 
-**What:** Manages sidebar visibility by combining user preference (manual toggle) with automatic breakpoint-driven collapse.
+**What:** Manages sidebar visibility by combining user preference (manual Ctrl+B toggle) with automatic breakpoint-driven collapse.
 
 **File:** `apps/tui/src/hooks/useSidebarState.ts`
-
-**Required change:**
-
-```diff
--function resolveSidebarVisibility(
-+export function resolveSidebarVisibility(
-```
-
-This is a non-breaking change — adding an export does not affect existing consumers.
-
-**Full implementation:**
 
 ```typescript
 import { useState, useMemo, useCallback } from "react";
@@ -426,13 +367,21 @@ export function useSidebarState(): SidebarState {
 
 ---
 
-### Step 5: `apps/tui/src/hooks/useLayout.ts` — Composite layout hook
+### Step 4: Evolve `apps/tui/src/hooks/useLayout.ts` — Integrate sidebar state machine
 
-**Status:** ✅ Complete — file exists and matches spec exactly.
+**Status:** ⚠️ Existing file — modify
 
-**What:** The primary consumer-facing hook that aggregates all responsive layout values into a single object.
+**What:** The current `useLayout()` computes `sidebarVisible` as a simple boolean from the breakpoint. It must be upgraded to integrate `useSidebarState()` so that sidebar visibility respects both auto-collapse AND user Ctrl+B toggle.
 
-**File:** `apps/tui/src/hooks/useLayout.ts`
+**Current implementation (lines relevant to sidebar):**
+```typescript
+// Current: simple derivation
+const sidebarVisible = breakpoint !== null && breakpoint !== "minimum";
+// ...
+sidebarWidth: getSidebarWidth(breakpoint),
+```
+
+**Target implementation:**
 
 ```typescript
 import { useMemo } from "react";
@@ -440,13 +389,6 @@ import { useTerminalDimensions } from "@opentui/react";
 import { getBreakpoint, type Breakpoint } from "../types/breakpoint.js";
 import { useSidebarState, type SidebarState } from "./useSidebarState.js";
 
-/**
- * Composite layout context.
- *
- * All values are derived from the current terminal dimensions and
- * sidebar state. Recalculates synchronously on terminal resize
- * (no debounce, no animation).
- */
 export interface LayoutContext {
   /** Raw terminal width in columns. */
   width: number;
@@ -514,16 +456,6 @@ function getModalHeight(breakpoint: Breakpoint | null): string {
   }
 }
 
-/**
- * Central responsive layout hook for the Codeplane TUI.
- *
- * Combines terminal dimensions, breakpoint detection, sidebar state,
- * and derived layout values into a single memoized object.
- *
- * Every screen and layout component should consume this hook
- * (or one of the lower-level hooks it composes) rather than
- * calling useTerminalDimensions() directly.
- */
 export function useLayout(): LayoutContext {
   const { width, height } = useTerminalDimensions();
   const sidebar = useSidebarState();
@@ -545,12 +477,21 @@ export function useLayout(): LayoutContext {
 }
 ```
 
-**Key design difference from architecture spec:**
+**Changes from current implementation:**
 
-The architecture spec's `useLayout` computed `sidebarVisible` as a simple `breakpoint !== "minimum"` check. This implementation integrates `useSidebarState` so that:
-1. Sidebar visibility respects both auto-collapse AND user toggle.
-2. `sidebarWidth` returns `"0%"` when the user has toggled the sidebar off, not just when the breakpoint forces it.
-3. The full `SidebarState` object is exposed for advanced consumers.
+| Change | Before | After |
+|--------|--------|-------|
+| `sidebarVisible` derivation | `breakpoint !== null && breakpoint !== "minimum"` (inline) | `sidebar.visible` (from `useSidebarState()`) |
+| `getSidebarWidth` signature | `getSidebarWidth(breakpoint: Breakpoint \| null)` | `getSidebarWidth(breakpoint: Breakpoint \| null, sidebarVisible: boolean)` |
+| `getSidebarWidth` behavior | Returns `"0%"` only for minimum/null breakpoint | Returns `"0%"` when `!sidebarVisible` (includes user toggle) |
+| `LayoutContext` interface | No `sidebar` field | Adds `sidebar: SidebarState` field |
+| Import | No `useSidebarState` import | Imports `useSidebarState` and `SidebarState` type |
+| `useMemo` deps | `[width, height]` | `[width, height, sidebar]` |
+| Future comment | Line 31-32 contains TODO about future `useSidebarState()` | Removed — integrated |
+
+**Backward compatibility:**
+
+All existing consumers that destructure `{ width, breakpoint, contentHeight, sidebarVisible, sidebarWidth, modalWidth, modalHeight }` from `useLayout()` will continue to work unchanged. The only additions are the new `sidebar` field and the behavioral change where `sidebarVisible` now reflects user toggle state (which defaults to `null` / auto, producing the same initial behavior as before).
 
 **Value table for derived properties:**
 
@@ -565,75 +506,119 @@ The architecture spec's `useLayout` computed `sidebarVisible` as a simple `break
 
 ---
 
-### Step 6: Re-export barrel
+### Step 5: Update `apps/tui/src/hooks/index.ts` — Barrel exports
 
-**Status:** ✅ Complete.
+**Status:** ⚠️ Existing file — add new exports
 
-**File:** `apps/tui/src/hooks/index.ts` — already includes all four hook exports:
-
+**Current content:**
 ```typescript
+export { useDiffSyntaxStyle } from "./useDiffSyntaxStyle.js";
+export { useTheme } from "./useTheme.js";
+export { useColorTier } from "./useColorTier.js";
+export {
+  useSpinner,
+  BRAILLE_FRAMES,
+  ASCII_FRAMES,
+  BRAILLE_INTERVAL_MS,
+  ASCII_INTERVAL_MS,
+} from "./useSpinner.js";
 export { useLayout } from "./useLayout.js";
 export type { LayoutContext } from "./useLayout.js";
+export { useNavigation } from "./useNavigation.js";
+export { useAuth } from "./useAuth.js";
+export { useLoading } from "./useLoading.js";
+export { useScreenLoading } from "./useScreenLoading.js";
+export { useOptimisticMutation } from "./useOptimisticMutation.js";
+export { usePaginationLoading } from "./usePaginationLoading.js";
+```
+
+**Additions (append after existing exports):**
+```typescript
 export { useBreakpoint } from "./useBreakpoint.js";
 export { useResponsiveValue, type ResponsiveValues } from "./useResponsiveValue.js";
-export { useSidebarState, type SidebarState } from "./useSidebarState.js";
-```
-
-**File:** `apps/tui/src/types/index.ts` — already includes type exports:
-
-```typescript
-export { getBreakpoint } from "./breakpoint.js";
-export type { Breakpoint } from "./breakpoint.js";
-```
-
-**Action needed after Step 4:** After exporting `resolveSidebarVisibility`, add it to the hooks barrel:
-
-```diff
--export { useSidebarState, type SidebarState } from "./useSidebarState.js";
-+export { useSidebarState, resolveSidebarVisibility, type SidebarState } from "./useSidebarState.js";
+export { useSidebarState, resolveSidebarVisibility, type SidebarState } from "./useSidebarState.js";
 ```
 
 ---
 
-## 4. Integration Points
+### Step 6: Migrate `apps/tui/src/components/AppShell.tsx` — Use `useLayout()`
 
-### 4.1 AppShell integration (complete)
+**Status:** ⚠️ Migration — replace direct `getBreakpoint` call
 
-The `AppShell` component (`apps/tui/src/components/AppShell.tsx`) uses `useLayout()` and gates on `!layout.breakpoint` for the terminal-too-small screen:
-
+**Current:**
 ```typescript
-export function AppShell({ children }: AppShellProps) {
-  const layout = useLayout();
-  if (!layout.breakpoint) {
-    return <TerminalTooSmallScreen cols={layout.width} rows={layout.height} />;
+import React from "react";
+import { useTerminalDimensions } from "@opentui/react";
+import { getBreakpoint } from "../types/breakpoint.js";
+import { HeaderBar } from "./HeaderBar.js";
+import { StatusBar } from "./StatusBar.js";
+import { TerminalTooSmallScreen } from "./TerminalTooSmallScreen.js";
+
+export function AppShell({ children }: { children?: React.ReactNode }) {
+  const { width, height } = useTerminalDimensions();
+  const bp = getBreakpoint(width, height);
+
+  if (bp === null) {
+    return <TerminalTooSmallScreen cols={width} rows={height} />;
   }
+
   return (
     <box flexDirection="column" width="100%" height="100%">
       <HeaderBar />
-      <box flexGrow={1} width="100%">{children}</box>
+      <box flexGrow={1} width="100%">
+        {children}
+      </box>
       <StatusBar />
     </box>
   );
 }
 ```
 
-### 4.2 Migration candidates — direct `getBreakpoint()` callers
+**Target:**
+```typescript
+import React from "react";
+import { useLayout } from "../hooks/useLayout.js";
+import { HeaderBar } from "./HeaderBar.js";
+import { StatusBar } from "./StatusBar.js";
+import { TerminalTooSmallScreen } from "./TerminalTooSmallScreen.js";
 
-Three screen/component files call `getBreakpoint()` directly via `useTerminalDimensions()` instead of using `useLayout()` or `useBreakpoint()`. These should be migrated for consistency:
+export function AppShell({ children }: { children?: React.ReactNode }) {
+  const layout = useLayout();
 
-| File | Current pattern | Migration | Priority |
-|------|----------------|----------|----------|
-| `TabbedDetailView.tsx` | `const rawBreakpoint = getBreakpoint(termWidth, termHeight)` | Replace with `const { breakpoint } = useLayout()` or `const breakpoint = useBreakpoint()` | Medium |
-| `AgentChatScreen.tsx` | `const breakpoint = getBreakpoint(width, height) as Breakpoint` | Replace with `const breakpoint = useBreakpoint()` — the `as Breakpoint` cast suppresses the null/unsupported case which is unsafe | Medium |
-| `AgentSessionReplayScreen.tsx` | Same unsafe cast pattern as AgentChatScreen | Same migration as above | Medium |
+  if (!layout.breakpoint) {
+    return <TerminalTooSmallScreen cols={layout.width} rows={layout.height} />;
+  }
 
-**Exception:** `ErrorScreen.tsx` calls `getBreakpoint()` directly because it may render outside the provider stack (e.g., in the error boundary before providers are mounted). This is acceptable — `ErrorScreen` accepts `termWidth`/`termHeight` as props and cannot rely on React context.
+  return (
+    <box flexDirection="column" width="100%" height="100%">
+      <HeaderBar />
+      <box flexGrow={1} width="100%">
+        {children}
+      </box>
+      <StatusBar />
+    </box>
+  );
+}
+```
 
-**Note on `as Breakpoint` casts:** The Agent screens use `getBreakpoint(width, height) as Breakpoint`, which is a type assertion that discards the `null` case. If the terminal is below 80×24, these screens would receive `null` typed as `Breakpoint`, leading to undefined behavior when indexing into breakpoint-keyed objects. Using `useBreakpoint()` + a proper null check would be safer. However, in practice the `AppShell` already gates on `!layout.breakpoint` before any screen renders, so the null case would never reach these screens. The casts are still a code smell that should be cleaned up.
+**Changes:**
+- Remove `useTerminalDimensions` import from `@opentui/react`
+- Remove `getBreakpoint` import from `../types/breakpoint.js`
+- Add `useLayout` import from `../hooks/useLayout.js`
+- Replace `useTerminalDimensions() + getBreakpoint()` with `useLayout()`
+- Replace `bp === null` with `!layout.breakpoint`
+- Replace `width`/`height` with `layout.width`/`layout.height`
 
-### 4.3 KeybindingProvider / GlobalKeybindings
+**Exception — `ErrorScreen.tsx` is NOT migrated:**
+`ErrorScreen.tsx` calls `getBreakpoint()` directly because it may render outside the provider stack (e.g., in the error boundary before providers are mounted). This is acceptable and intentional — `ErrorScreen` cannot rely on React context since the error boundary catches errors from within the provider tree. No changes to this file.
 
-The `Ctrl+B` sidebar toggle must be wired to `useSidebarState().toggle()` via the `useLayout().sidebar.toggle` accessor. This should be registered as a global keybinding in `GlobalKeybindings`:
+---
+
+## 4. Integration Points
+
+### 4.1 KeybindingProvider / GlobalKeybindings — Ctrl+B toggle
+
+The `Ctrl+B` sidebar toggle must be wired to `layout.sidebar.toggle` via the keybinding system. The global keybinding registration should include:
 
 ```typescript
 const layout = useLayout();
@@ -650,34 +635,29 @@ useScreenKeybindings([
 ]);
 ```
 
-### 4.4 StatusBar
+This integration is out of scope for this ticket but should be wired in the GlobalKeybindings component after this ticket lands.
 
-The status bar consumes `useLayout()` to:
-- Show the sync status indicator
-- Truncate keybinding hints at minimum breakpoint (≤4 hints) vs standard (6) vs large (all)
-- Show sidebar toggle state
-- Show `Ctrl+B` hint adapted to sidebar state
+### 4.2 StatusBar
 
-### 4.5 ModalSystem
+The status bar already consumes `useLayout()` for `{ width, breakpoint }`. After this ticket, it can also use `layout.sidebarVisible` and `layout.sidebar.autoOverride` to dynamically display the Ctrl+B hint with appropriate state text.
 
-Modal/overlay components consume `useLayout().modalWidth` and `useLayout().modalHeight`:
+### 4.3 ModalSystem
 
+Modal/overlay components consume `useLayout().modalWidth` and `useLayout().modalHeight`. No changes needed — these values are unchanged.
+
+### 4.4 Screen components with sidebars
+
+Screens that render a sidebar+main split (code explorer, diff file tree) should use:
 ```typescript
-function Modal({ children }: { children: React.ReactNode }) {
-  const { modalWidth, modalHeight } = useLayout();
-  return (
-    <box
-      position="absolute"
-      top="center"
-      left="center"
-      width={modalWidth}
-      height={modalHeight}
-      border="single"
-    >
-      {children}
-    </box>
-  );
-}
+const layout = useLayout();
+return (
+  <box flexDirection="row" height={layout.contentHeight}>
+    {layout.sidebarVisible && (
+      <box width={layout.sidebarWidth}><FileTree /></box>
+    )}
+    <box flexGrow={1}><Content /></box>
+  </box>
+);
 ```
 
 ---
@@ -686,137 +666,61 @@ function Modal({ children }: { children: React.ReactNode }) {
 
 ### 5.1 Test file: `e2e/tui/app-shell.test.ts`
 
-All responsive layout tests are co-located with app shell tests since the responsive system is part of the app shell's foundation. The existing test file contains 67 tests. The following test groups extend this file. New `describe` blocks are appended after the existing `KeybindingProvider — Priority Dispatch` block.
+All responsive layout tests are co-located with app shell tests since the responsive system is part of the app shell's foundation. New `describe` blocks are appended after the existing `KeybindingProvider — Priority Dispatch` block.
 
 **Testing approach:**
 
-Pure functions (`getBreakpoint`, `resolveSidebarVisibility`) are tested via `bunEval` — Bun subprocess evaluation that `require()`s the compiled module and exercises the function directly. This avoids React context requirements.
+Pure functions (`getBreakpoint`, `resolveSidebarVisibility`) are tested via `bunEval` — Bun subprocess evaluation that runs `bun -e <expression>` in the TUI package context. This avoids React context requirements.
 
 React hooks (`useBreakpoint`, `useResponsiveValue`, `useSidebarState`, `useLayout`) are tested indirectly via E2E scenarios that launch the real TUI at specific terminal dimensions and verify the rendered output reflects the expected breakpoint behavior. Per project policy, no mocking of implementation details.
 
-**Important `bunEval` note:** The source files use ESM (`export function ...`) but `bunEval` uses `require()`. Bun's runtime supports `require()` on ESM modules via its CJS interop layer, so `require("../../apps/tui/src/types/breakpoint.js")` will resolve named exports. If the `.js` extension doesn't resolve (TypeScript sources), use `.ts` extension directly since Bun natively handles TypeScript.
+**Note on existing tests:** 19 tests in `HOOK-LAY-001` through `HOOK-LAY-019` already test `getBreakpoint()` boundaries comprehensively. The new tests focus on the three new hooks and the sidebar state machine. Tests `HOOK-LAY-020` through `HOOK-LAY-038` already cover `useLayout` computed values and module resolution. Some of these existing tests may need adjustments if the `useLayout()` interface changes (e.g., new exports in the barrel), but the boundary value tests for `getBreakpoint()` are unaffected.
 
-#### 5.1.1 `getBreakpoint` — Pure function boundary tests
+#### 5.1.1 `useBreakpoint` — Module resolution and hook availability
 
 ```typescript
-import { describe, expect, test } from "bun:test";
-import { bunEval } from "./helpers";
-
-describe("getBreakpoint — boundary exhaustive", () => {
-  // Unsupported (null) boundaries
-  test("HOOK-BP-001: returns null for 79x24", async () => {
+describe("TUI_APP_SHELL — useBreakpoint hook", () => {
+  test("HOOK-BP-001: useBreakpoint is importable from hooks barrel", async () => {
     const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
-      console.log(JSON.stringify(getBreakpoint(79, 24)));
+      const mod = await import("./src/hooks/index.js");
+      console.log(typeof mod.useBreakpoint);
     `);
-    expect(JSON.parse(result.stdout.trim())).toBeNull();
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe("function");
   });
 
-  test("HOOK-BP-002: returns null for 80x23", async () => {
+  test("HOOK-BP-002: useBreakpoint is importable from direct path", async () => {
     const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
-      console.log(JSON.stringify(getBreakpoint(80, 23)));
+      const { useBreakpoint } = await import("./src/hooks/useBreakpoint.js");
+      console.log(typeof useBreakpoint);
     `);
-    expect(JSON.parse(result.stdout.trim())).toBeNull();
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe("function");
   });
 
-  test("HOOK-BP-003: returns null for 0x0", async () => {
-    const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
-      console.log(JSON.stringify(getBreakpoint(0, 0)));
-    `);
-    expect(JSON.parse(result.stdout.trim())).toBeNull();
+  test("HOOK-BP-003: useBreakpoint.ts imports from @opentui/react", async () => {
+    const content = await Bun.file(join(TUI_SRC, "hooks/useBreakpoint.ts")).text();
+    expect(content).toContain('from "@opentui/react"');
   });
 
-  test("HOOK-BP-004: returns null for negative dimensions", async () => {
-    const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
-      console.log(JSON.stringify(getBreakpoint(-1, -1)));
-    `);
-    expect(JSON.parse(result.stdout.trim())).toBeNull();
+  test("HOOK-BP-004: useBreakpoint.ts imports getBreakpoint from types", async () => {
+    const content = await Bun.file(join(TUI_SRC, "hooks/useBreakpoint.ts")).text();
+    expect(content).toContain('from "../types/breakpoint.js"');
   });
 
-  // Minimum boundaries
-  test("HOOK-BP-005: returns 'minimum' for exact lower bound 80x24", async () => {
-    const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
-      console.log(JSON.stringify(getBreakpoint(80, 24)));
-    `);
-    expect(JSON.parse(result.stdout.trim())).toBe("minimum");
+  test("HOOK-BP-005: useBreakpoint.ts has zero useState calls", async () => {
+    const content = await Bun.file(join(TUI_SRC, "hooks/useBreakpoint.ts")).text();
+    expect(content).not.toContain("useState");
   });
 
-  test("HOOK-BP-006: returns 'minimum' for 119x39 (upper bound)", async () => {
-    const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
-      console.log(JSON.stringify(getBreakpoint(119, 39)));
-    `);
-    expect(JSON.parse(result.stdout.trim())).toBe("minimum");
+  test("HOOK-BP-006: useBreakpoint.ts has zero useEffect calls", async () => {
+    const content = await Bun.file(join(TUI_SRC, "hooks/useBreakpoint.ts")).text();
+    expect(content).not.toContain("useEffect");
   });
 
-  test("HOOK-BP-007: returns 'minimum' for 120x39 (cols standard, rows not)", async () => {
-    const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
-      console.log(JSON.stringify(getBreakpoint(120, 39)));
-    `);
-    expect(JSON.parse(result.stdout.trim())).toBe("minimum");
-  });
-
-  test("HOOK-BP-008: returns 'minimum' for 119x40 (rows standard, cols not)", async () => {
-    const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
-      console.log(JSON.stringify(getBreakpoint(119, 40)));
-    `);
-    expect(JSON.parse(result.stdout.trim())).toBe("minimum");
-  });
-
-  // Standard boundaries
-  test("HOOK-BP-009: returns 'standard' for exact lower bound 120x40", async () => {
-    const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
-      console.log(JSON.stringify(getBreakpoint(120, 40)));
-    `);
-    expect(JSON.parse(result.stdout.trim())).toBe("standard");
-  });
-
-  test("HOOK-BP-010: returns 'standard' for 199x59 (upper bound)", async () => {
-    const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
-      console.log(JSON.stringify(getBreakpoint(199, 59)));
-    `);
-    expect(JSON.parse(result.stdout.trim())).toBe("standard");
-  });
-
-  test("HOOK-BP-011: returns 'standard' for 200x59 (cols large, rows not)", async () => {
-    const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
-      console.log(JSON.stringify(getBreakpoint(200, 59)));
-    `);
-    expect(JSON.parse(result.stdout.trim())).toBe("standard");
-  });
-
-  test("HOOK-BP-012: returns 'standard' for 199x60 (rows large, cols not)", async () => {
-    const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
-      console.log(JSON.stringify(getBreakpoint(199, 60)));
-    `);
-    expect(JSON.parse(result.stdout.trim())).toBe("standard");
-  });
-
-  // Large boundaries
-  test("HOOK-BP-013: returns 'large' for exact lower bound 200x60", async () => {
-    const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
-      console.log(JSON.stringify(getBreakpoint(200, 60)));
-    `);
-    expect(JSON.parse(result.stdout.trim())).toBe("large");
-  });
-
-  test("HOOK-BP-014: returns 'large' for 500x200", async () => {
-    const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
-      console.log(JSON.stringify(getBreakpoint(500, 200)));
-    `);
-    expect(JSON.parse(result.stdout.trim())).toBe("large");
+  test("HOOK-BP-007: useBreakpoint.ts uses useMemo for memoization", async () => {
+    const content = await Bun.file(join(TUI_SRC, "hooks/useBreakpoint.ts")).text();
+    expect(content).toContain("useMemo");
   });
 });
 ```
@@ -826,10 +730,19 @@ describe("getBreakpoint — boundary exhaustive", () => {
 Since `useResponsiveValue` is a React hook, the underlying selection logic (breakpoint lookup into a values map) is exercised through `bunEval` by reproducing the lookup logic:
 
 ```typescript
-describe("useResponsiveValue — value selection logic", () => {
-  test("HOOK-RV-001: selects 'minimum' value at 80x24", async () => {
+describe("TUI_APP_SHELL — useResponsiveValue hook", () => {
+  test("HOOK-RV-001: useResponsiveValue is importable from hooks barrel", async () => {
     const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
+      const mod = await import("./src/hooks/index.js");
+      console.log(typeof mod.useResponsiveValue);
+    `);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe("function");
+  });
+
+  test("HOOK-RV-002: selects 'minimum' value at 80x24", async () => {
+    const result = await bunEval(`
+      const { getBreakpoint } = await import("./src/types/breakpoint.js");
       const bp = getBreakpoint(80, 24);
       const values = { minimum: 0, standard: 2, large: 4 };
       const selected = bp ? values[bp] : undefined;
@@ -840,9 +753,9 @@ describe("useResponsiveValue — value selection logic", () => {
     expect(parsed.selected).toBe(0);
   });
 
-  test("HOOK-RV-002: selects 'standard' value at 120x40", async () => {
+  test("HOOK-RV-003: selects 'standard' value at 120x40", async () => {
     const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
+      const { getBreakpoint } = await import("./src/types/breakpoint.js");
       const bp = getBreakpoint(120, 40);
       const values = { minimum: 0, standard: 2, large: 4 };
       const selected = bp ? values[bp] : undefined;
@@ -853,9 +766,9 @@ describe("useResponsiveValue — value selection logic", () => {
     expect(parsed.selected).toBe(2);
   });
 
-  test("HOOK-RV-003: selects 'large' value at 200x60", async () => {
+  test("HOOK-RV-004: selects 'large' value at 200x60", async () => {
     const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
+      const { getBreakpoint } = await import("./src/types/breakpoint.js");
       const bp = getBreakpoint(200, 60);
       const values = { minimum: 0, standard: 2, large: 4 };
       const selected = bp ? values[bp] : undefined;
@@ -866,9 +779,9 @@ describe("useResponsiveValue — value selection logic", () => {
     expect(parsed.selected).toBe(4);
   });
 
-  test("HOOK-RV-004: returns undefined when below minimum and no fallback", async () => {
+  test("HOOK-RV-005: returns undefined when below minimum and no fallback", async () => {
     const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
+      const { getBreakpoint } = await import("./src/types/breakpoint.js");
       const bp = getBreakpoint(60, 20);
       const values = { minimum: 0, standard: 2, large: 4 };
       const selected = bp ? values[bp] : undefined;
@@ -879,9 +792,9 @@ describe("useResponsiveValue — value selection logic", () => {
     expect(parsed.selected).toBe("__undefined__");
   });
 
-  test("HOOK-RV-005: returns fallback when below minimum", async () => {
+  test("HOOK-RV-006: returns fallback when below minimum", async () => {
     const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
+      const { getBreakpoint } = await import("./src/types/breakpoint.js");
       const bp = getBreakpoint(60, 20);
       const values = { minimum: 0, standard: 2, large: 4 };
       const fallback = -1;
@@ -892,9 +805,9 @@ describe("useResponsiveValue — value selection logic", () => {
     expect(parsed.selected).toBe(-1);
   });
 
-  test("HOOK-RV-006: works with string values", async () => {
+  test("HOOK-RV-007: works with string values", async () => {
     const result = await bunEval(`
-      const { getBreakpoint } = require("../../apps/tui/src/types/breakpoint.ts");
+      const { getBreakpoint } = await import("./src/types/breakpoint.js");
       const bp = getBreakpoint(120, 40);
       const values = { minimum: "sm", standard: "md", large: "lg" };
       const selected = bp ? values[bp] : undefined;
@@ -903,18 +816,35 @@ describe("useResponsiveValue — value selection logic", () => {
     const parsed = JSON.parse(result.stdout.trim());
     expect(parsed.selected).toBe("md");
   });
+
+  test("HOOK-RV-008: works with boolean values", async () => {
+    const result = await bunEval(`
+      const { getBreakpoint } = await import("./src/types/breakpoint.js");
+      const bp = getBreakpoint(80, 24);
+      const values = { minimum: false, standard: true, large: true };
+      const selected = bp ? values[bp] : undefined;
+      console.log(JSON.stringify({ selected }));
+    `);
+    const parsed = JSON.parse(result.stdout.trim());
+    expect(parsed.selected).toBe(false);
+  });
+
+  test("HOOK-RV-009: useResponsiveValue.ts has zero useEffect calls", async () => {
+    const content = await Bun.file(join(TUI_SRC, "hooks/useResponsiveValue.ts")).text();
+    expect(content).not.toContain("useEffect");
+  });
 });
 ```
 
 #### 5.1.3 `resolveSidebarVisibility` — State resolution logic tests
 
-The pure `resolveSidebarVisibility` function is tested directly. **Prerequisite: the function must be exported** (see Step 4).
+The pure `resolveSidebarVisibility` function is tested directly via `bunEval`:
 
 ```typescript
-describe("resolveSidebarVisibility — state resolution", () => {
+describe("TUI_APP_SHELL — resolveSidebarVisibility pure function", () => {
   test("HOOK-SB-001: sidebar hidden when breakpoint is null", async () => {
     const result = await bunEval(`
-      const { resolveSidebarVisibility } = require("../../apps/tui/src/hooks/useSidebarState.ts");
+      const { resolveSidebarVisibility } = await import("./src/hooks/useSidebarState.js");
       console.log(JSON.stringify(resolveSidebarVisibility(null, null)));
     `);
     const parsed = JSON.parse(result.stdout.trim());
@@ -924,7 +854,7 @@ describe("resolveSidebarVisibility — state resolution", () => {
 
   test("HOOK-SB-002: sidebar hidden at minimum breakpoint", async () => {
     const result = await bunEval(`
-      const { resolveSidebarVisibility } = require("../../apps/tui/src/hooks/useSidebarState.ts");
+      const { resolveSidebarVisibility } = await import("./src/hooks/useSidebarState.js");
       console.log(JSON.stringify(resolveSidebarVisibility("minimum", null)));
     `);
     const parsed = JSON.parse(result.stdout.trim());
@@ -934,7 +864,7 @@ describe("resolveSidebarVisibility — state resolution", () => {
 
   test("HOOK-SB-003: sidebar hidden at minimum even with user preference true", async () => {
     const result = await bunEval(`
-      const { resolveSidebarVisibility } = require("../../apps/tui/src/hooks/useSidebarState.ts");
+      const { resolveSidebarVisibility } = await import("./src/hooks/useSidebarState.js");
       console.log(JSON.stringify(resolveSidebarVisibility("minimum", true)));
     `);
     const parsed = JSON.parse(result.stdout.trim());
@@ -944,7 +874,7 @@ describe("resolveSidebarVisibility — state resolution", () => {
 
   test("HOOK-SB-004: sidebar visible at standard with no user preference", async () => {
     const result = await bunEval(`
-      const { resolveSidebarVisibility } = require("../../apps/tui/src/hooks/useSidebarState.ts");
+      const { resolveSidebarVisibility } = await import("./src/hooks/useSidebarState.js");
       console.log(JSON.stringify(resolveSidebarVisibility("standard", null)));
     `);
     const parsed = JSON.parse(result.stdout.trim());
@@ -954,7 +884,7 @@ describe("resolveSidebarVisibility — state resolution", () => {
 
   test("HOOK-SB-005: sidebar hidden at standard with user preference false", async () => {
     const result = await bunEval(`
-      const { resolveSidebarVisibility } = require("../../apps/tui/src/hooks/useSidebarState.ts");
+      const { resolveSidebarVisibility } = await import("./src/hooks/useSidebarState.js");
       console.log(JSON.stringify(resolveSidebarVisibility("standard", false)));
     `);
     const parsed = JSON.parse(result.stdout.trim());
@@ -964,7 +894,7 @@ describe("resolveSidebarVisibility — state resolution", () => {
 
   test("HOOK-SB-006: sidebar visible at large with no user preference", async () => {
     const result = await bunEval(`
-      const { resolveSidebarVisibility } = require("../../apps/tui/src/hooks/useSidebarState.ts");
+      const { resolveSidebarVisibility } = await import("./src/hooks/useSidebarState.js");
       console.log(JSON.stringify(resolveSidebarVisibility("large", null)));
     `);
     const parsed = JSON.parse(result.stdout.trim());
@@ -974,7 +904,7 @@ describe("resolveSidebarVisibility — state resolution", () => {
 
   test("HOOK-SB-007: sidebar visible at standard with user preference true", async () => {
     const result = await bunEval(`
-      const { resolveSidebarVisibility } = require("../../apps/tui/src/hooks/useSidebarState.ts");
+      const { resolveSidebarVisibility } = await import("./src/hooks/useSidebarState.js");
       console.log(JSON.stringify(resolveSidebarVisibility("standard", true)));
     `);
     const parsed = JSON.parse(result.stdout.trim());
@@ -984,23 +914,51 @@ describe("resolveSidebarVisibility — state resolution", () => {
 
   test("HOOK-SB-008: sidebar hidden at large with user preference false", async () => {
     const result = await bunEval(`
-      const { resolveSidebarVisibility } = require("../../apps/tui/src/hooks/useSidebarState.ts");
+      const { resolveSidebarVisibility } = await import("./src/hooks/useSidebarState.js");
       console.log(JSON.stringify(resolveSidebarVisibility("large", false)));
     `);
     const parsed = JSON.parse(result.stdout.trim());
     expect(parsed.visible).toBe(false);
     expect(parsed.autoOverride).toBe(false);
   });
+
+  test("HOOK-SB-009: resolveSidebarVisibility is importable from hooks barrel", async () => {
+    const result = await bunEval(`
+      const mod = await import("./src/hooks/index.js");
+      console.log(typeof mod.resolveSidebarVisibility);
+    `);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe("function");
+  });
+
+  test("HOOK-SB-010: useSidebarState is importable from hooks barrel", async () => {
+    const result = await bunEval(`
+      const mod = await import("./src/hooks/index.js");
+      console.log(typeof mod.useSidebarState);
+    `);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toBe("function");
+  });
+
+  test("HOOK-SB-011: useSidebarState.ts has zero useEffect calls", async () => {
+    const content = await Bun.file(join(TUI_SRC, "hooks/useSidebarState.ts")).text();
+    expect(content).not.toContain("useEffect");
+  });
+
+  test("HOOK-SB-012: useSidebarState.ts imports useBreakpoint from local hook", async () => {
+    const content = await Bun.file(join(TUI_SRC, "hooks/useSidebarState.ts")).text();
+    expect(content).toContain('from "./useBreakpoint.js"');
+  });
 });
 ```
 
-#### 5.1.4 `useLayout` — Derived layout values tests
+#### 5.1.4 `useLayout` — Updated derived layout values tests
 
-Tests for the helper functions that compute derived layout values. These replicate the module-private functions (`getSidebarWidth`, `getModalWidth`, `getModalHeight`, `contentHeight`) inline since those functions are not exported:
+These tests verify the `getSidebarWidth` function now respects visibility (not just breakpoint), and that the `sidebar` field is exposed on the `LayoutContext`:
 
 ```typescript
-describe("useLayout — derived layout value computation", () => {
-  test("HOOK-LAY-030: sidebarWidth respects visibility across breakpoints", async () => {
+describe("TUI_APP_SHELL — useLayout sidebar integration", () => {
+  test("HOOK-LAY-039: sidebarWidth returns '0%' when visibility is false at standard", async () => {
     const result = await bunEval(`
       function getSidebarWidth(bp, visible) {
         if (!visible) return "0%";
@@ -1028,47 +986,49 @@ describe("useLayout — derived layout value computation", () => {
     expect(parsed.hiddenNull).toBe("0%");
   });
 
-  test("HOOK-LAY-031: modalWidth scales inversely with breakpoint", async () => {
-    const result = await bunEval(`
-      function getModalWidth(bp) {
-        switch (bp) {
-          case "large": return "50%";
-          case "standard": return "60%";
-          default: return "90%";
-        }
-      }
-      console.log(JSON.stringify({
-        large: getModalWidth("large"),
-        standard: getModalWidth("standard"),
-        minimum: getModalWidth("minimum"),
-        nullBp: getModalWidth(null),
-      }));
-    `);
-    const parsed = JSON.parse(result.stdout.trim());
-    expect(parsed.large).toBe("50%");
-    expect(parsed.standard).toBe("60%");
-    expect(parsed.minimum).toBe("90%");
-    expect(parsed.nullBp).toBe("90%");
+  test("HOOK-LAY-040: useLayout.ts imports useSidebarState", async () => {
+    const content = await Bun.file(join(TUI_SRC, "hooks/useLayout.ts")).text();
+    expect(content).toContain('from "./useSidebarState.js"');
   });
 
-  test("HOOK-LAY-032: contentHeight is height minus 2 floored at 0", async () => {
-    const result = await bunEval(`
-      function contentHeight(h) { return Math.max(0, h - 2); }
-      console.log(JSON.stringify({
-        h24: contentHeight(24),
-        h40: contentHeight(40),
-        h60: contentHeight(60),
-        h1: contentHeight(1),
-        h0: contentHeight(0),
-      }));
-    `);
-    const parsed = JSON.parse(result.stdout.trim());
-    expect(parsed.h24).toBe(22);
-    expect(parsed.h40).toBe(38);
-    expect(parsed.h60).toBe(58);
-    expect(parsed.h1).toBe(0);
-    expect(parsed.h0).toBe(0);
+  test("HOOK-LAY-041: useLayout.ts no longer has inline sidebarVisible derivation", async () => {
+    const content = await Bun.file(join(TUI_SRC, "hooks/useLayout.ts")).text();
+    // The old pattern was: breakpoint !== null && breakpoint !== "minimum"
+    // This should no longer appear — sidebar state comes from useSidebarState
+    expect(content).not.toContain('breakpoint !== null && breakpoint !== "minimum"');
   });
+
+  test("HOOK-LAY-042: LayoutContext interface includes sidebar field", async () => {
+    const content = await Bun.file(join(TUI_SRC, "hooks/useLayout.ts")).text();
+    expect(content).toContain("sidebar: SidebarState");
+  });
+
+  test("HOOK-LAY-043: AppShell.tsx imports useLayout instead of getBreakpoint", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/AppShell.tsx")).text();
+    expect(content).toContain('from "../hooks/useLayout.js"');
+    expect(content).not.toContain('from "../types/breakpoint.js"');
+    expect(content).not.toContain("getBreakpoint");
+  });
+
+  test("HOOK-LAY-044: AppShell.tsx does not import useTerminalDimensions directly", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/AppShell.tsx")).text();
+    expect(content).not.toContain("useTerminalDimensions");
+  });
+
+  test("HOOK-LAY-045: ErrorScreen.tsx still uses getBreakpoint directly (acceptable)", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/ErrorScreen.tsx")).text();
+    expect(content).toContain("getBreakpoint");
+    // ErrorScreen renders outside provider stack — direct usage is intentional
+  });
+
+  test("HOOK-LAY-046: tsc --noEmit passes with new hook files", async () => {
+    const result = await run(["bun", "run", "check"]);
+    if (result.exitCode !== 0) {
+      console.error("tsc stderr:", result.stderr);
+      console.error("tsc stdout:", result.stdout);
+    }
+    expect(result.exitCode).toBe(0);
+  }, 30_000);
 });
 ```
 
@@ -1077,7 +1037,7 @@ describe("useLayout — derived layout value computation", () => {
 These tests launch the real TUI and verify sidebar behavior through rendered output:
 
 ```typescript
-describe("TUI Responsive Layout — sidebar toggle E2E", () => {
+describe("TUI_APP_SHELL — sidebar toggle E2E", () => {
   let terminal: TUITestInstance;
 
   afterEach(async () => {
@@ -1099,8 +1059,8 @@ describe("TUI Responsive Layout — sidebar toggle E2E", () => {
   test("RESP-SB-002: Ctrl+B toggles sidebar back on at standard breakpoint", async () => {
     terminal = await launchTUI({ cols: 120, rows: 40 });
     await terminal.waitForText("Dashboard");
-    await terminal.sendKeys("ctrl+b");
-    await terminal.sendKeys("ctrl+b");
+    await terminal.sendKeys("ctrl+b"); // hide
+    await terminal.sendKeys("ctrl+b"); // show
     expect(terminal.snapshot()).toMatchSnapshot();
   });
 
@@ -1116,11 +1076,12 @@ describe("TUI Responsive Layout — sidebar toggle E2E", () => {
   test("RESP-SB-004: user preference survives resize through minimum", async () => {
     terminal = await launchTUI({ cols: 120, rows: 40 });
     await terminal.waitForText("Dashboard");
-    await terminal.sendKeys("ctrl+b");
-    await terminal.resize(80, 24);
+    await terminal.sendKeys("ctrl+b"); // hide sidebar
+    await terminal.resize(80, 24);    // minimum - auto-hidden
     await terminal.waitForText("Dashboard");
-    await terminal.resize(120, 40);
+    await terminal.resize(120, 40);   // back to standard - preference should persist
     await terminal.waitForText("Dashboard");
+    // Sidebar should still be hidden because user toggled it off
     expect(terminal.snapshot()).toMatchSnapshot();
   });
 
@@ -1129,92 +1090,16 @@ describe("TUI Responsive Layout — sidebar toggle E2E", () => {
     await terminal.waitForText("Dashboard");
     expect(terminal.snapshot()).toMatchSnapshot();
   });
-});
-```
 
-#### 5.1.6 E2E resize transition tests
-
-```typescript
-describe("TUI Responsive Layout — resize transitions", () => {
-  let terminal: TUITestInstance;
-
-  afterEach(async () => {
-    if (terminal) {
-      await terminal.terminate();
-    }
-  });
-
-  test("RESP-LAY-020: resize from large to standard changes sidebar width", async () => {
+  test("RESP-SB-006: Ctrl+B restores sidebar after toggle off then on", async () => {
     terminal = await launchTUI({ cols: 200, rows: 60 });
     await terminal.waitForText("Dashboard");
-    await terminal.resize(120, 40);
-    await terminal.waitForText("Dashboard");
-    expect(terminal.snapshot()).toMatchSnapshot();
-  });
-
-  test("RESP-LAY-021: resize from standard to large changes modal/sidebar widths", async () => {
-    terminal = await launchTUI({ cols: 120, rows: 40 });
-    await terminal.waitForText("Dashboard");
-    await terminal.resize(200, 60);
-    await terminal.waitForText("Dashboard");
-    expect(terminal.snapshot()).toMatchSnapshot();
-  });
-
-  test("RESP-LAY-022: content area height adjusts on vertical resize", async () => {
-    terminal = await launchTUI({ cols: 120, rows: 40 });
-    await terminal.waitForText("Dashboard");
-    await terminal.resize(120, 50);
-    await terminal.waitForText("Dashboard");
-    // Content area should now be 48 rows (50 - 2)
-    // Header still on line 0, status bar on line 49
-    const statusLine = terminal.getLine(49);
-    expect(statusLine.length).toBeGreaterThan(0);
-  });
-
-  test("RESP-LAY-023: modal width is 90% at minimum, 60% at standard via command palette", async () => {
-    terminal = await launchTUI({ cols: 120, rows: 40 });
-    await terminal.waitForText("Dashboard");
-    await terminal.sendKeys(":");
-    await terminal.waitForText("Command");
-    const standardSnapshot = terminal.snapshot();
-    await terminal.sendKeys("Escape");
-
-    await terminal.resize(80, 24);
-    await terminal.waitForText("Dashboard");
-    await terminal.sendKeys(":");
-    await terminal.waitForText("Command");
-    const minimumSnapshot = terminal.snapshot();
-
-    expect(standardSnapshot).not.toBe(minimumSnapshot);
-  });
-
-  test("RESP-LAY-024: terminal too small screen at 79x23", async () => {
-    terminal = await launchTUI({ cols: 79, rows: 23 });
-    const snapshot = terminal.snapshot();
-    expect(snapshot.length).toBeGreaterThan(0);
-    expect(terminal.snapshot()).toMatchSnapshot();
-  });
-
-  test("RESP-LAY-025: resize from below-minimum to standard restores full UI", async () => {
-    terminal = await launchTUI({ cols: 60, rows: 20 });
-    const tooSmall = terminal.snapshot();
-    await terminal.resize(120, 40);
-    await terminal.waitForText("Dashboard");
+    const initial = terminal.snapshot();
+    await terminal.sendKeys("ctrl+b"); // hide
+    await terminal.sendKeys("ctrl+b"); // show
     const restored = terminal.snapshot();
-    expect(restored).not.toBe(tooSmall);
-  });
-
-  test("RESP-LAY-026: rapid resize does not crash", async () => {
-    terminal = await launchTUI({ cols: 120, rows: 40 });
-    await terminal.waitForText("Dashboard");
-    await terminal.resize(80, 24);
-    await terminal.resize(200, 60);
-    await terminal.resize(120, 40);
-    await terminal.resize(80, 24);
-    await terminal.resize(120, 40);
-    await terminal.waitForText("Dashboard");
-    const snapshot = terminal.snapshot();
-    expect(snapshot).toContain("Dashboard");
+    // Layout should match initial state after toggle cycle
+    expect(restored).toBe(initial);
   });
 });
 ```
@@ -1223,57 +1108,45 @@ describe("TUI Responsive Layout — resize transitions", () => {
 
 ## 6. Productionization Checklist
 
-### 6.1 From spec to production files
+### 6.1 File creation and modification summary
 
-All source files exist in `specs/tui/apps/tui/src/` (the spec directory IS the working tree for TUI sources). The production path `apps/tui/src/` is relative to the spec root.
+| File | Action | Lines (approx) | Purpose |
+|------|--------|----|--------|
+| `apps/tui/src/hooks/useBreakpoint.ts` | **Create** | ~20 | Reactive breakpoint hook wrapping `getBreakpoint()` + `useTerminalDimensions()` |
+| `apps/tui/src/hooks/useResponsiveValue.ts` | **Create** | ~45 | Generic breakpoint-to-value mapper |
+| `apps/tui/src/hooks/useSidebarState.ts` | **Create** | ~100 | Sidebar visibility state machine with user toggle + auto-collapse |
+| `apps/tui/src/hooks/useLayout.ts` | **Modify** | ~140 | Integrate `useSidebarState()`, add `sidebar` to `LayoutContext`, update `getSidebarWidth` signature |
+| `apps/tui/src/hooks/index.ts` | **Modify** | +3 lines | Add barrel exports for three new hooks |
+| `apps/tui/src/components/AppShell.tsx` | **Modify** | ~26 | Migrate from `getBreakpoint()` to `useLayout()` |
+| `apps/tui/src/types/breakpoint.ts` | No change | — | Already complete |
+| `apps/tui/src/types/index.ts` | No change | — | Already complete |
 
-| Spec file | Status | Action |
-|------|--------|--------|
-| `apps/tui/src/types/breakpoint.ts` | ✅ Exists | Verified — matches spec exactly |
-| `apps/tui/src/types/index.ts` | ✅ Exists | Verified — re-exports `getBreakpoint` and `Breakpoint` |
-| `apps/tui/src/hooks/useBreakpoint.ts` | ✅ Exists | Verified — matches spec exactly |
-| `apps/tui/src/hooks/useResponsiveValue.ts` | ✅ Exists | Verified — matches spec exactly |
-| `apps/tui/src/hooks/useSidebarState.ts` | ⚠️ Exists | **Update needed** — export `resolveSidebarVisibility` for direct testing |
-| `apps/tui/src/hooks/useLayout.ts` | ✅ Exists | Verified — matches spec exactly |
-| `apps/tui/src/hooks/index.ts` | ⚠️ Exists | **Update needed** — add `resolveSidebarVisibility` to barrel export |
-| `apps/tui/src/components/AppShell.tsx` | ✅ Exists | Verified — uses `useLayout()` with null check |
+### 6.2 Step-by-step implementation order
 
-### 6.2 Required changes
+The implementation order matters due to import dependencies:
 
-#### Change 1: Export `resolveSidebarVisibility` from `useSidebarState.ts`
+1. **Create `useBreakpoint.ts`** — depends only on `@opentui/react` and `types/breakpoint.ts` (both exist)
+2. **Create `useResponsiveValue.ts`** — depends on `useBreakpoint.ts` (just created)
+3. **Create `useSidebarState.ts`** — depends on `useBreakpoint.ts` (just created)
+4. **Modify `useLayout.ts`** — depends on `useSidebarState.ts` (just created)
+5. **Modify `hooks/index.ts`** — add barrel exports for all three new hooks
+6. **Modify `AppShell.tsx`** — replace `getBreakpoint()` with `useLayout()`
+7. **Run `tsc --noEmit`** to verify type safety
+8. **Write tests** in `e2e/tui/app-shell.test.ts`
 
-The `resolveSidebarVisibility` function is currently module-private. For the `HOOK-SB-*` tests to import it via `bunEval`, it must be exported:
+### 6.3 Impact on existing tests
 
-**File:** `apps/tui/src/hooks/useSidebarState.ts`
-```diff
--function resolveSidebarVisibility(
-+export function resolveSidebarVisibility(
-```
+**Tests that may need updating:**
 
-#### Change 2: Add `resolveSidebarVisibility` to hooks barrel export
+The existing test `HOOK-LAY-025` tests `getSidebarWidth` with the OLD signature (breakpoint only). After Step 4, `getSidebarWidth` takes `(breakpoint, sidebarVisible)`. Since `getSidebarWidth` is module-private and the test reimplements the logic inline via `bunEval`, the test is unaffected — it tests its own inline implementation, not the module's. However, the behavioral contract it documents is now incomplete. Consider updating the test description or adding `HOOK-LAY-039` (defined in section 5.1.4) as the authoritative test for the new signature.
 
-**File:** `apps/tui/src/hooks/index.ts`
-```diff
--export { useSidebarState, type SidebarState } from "./useSidebarState.js";
-+export { useSidebarState, resolveSidebarVisibility, type SidebarState } from "./useSidebarState.js";
-```
+The existing test `HOOK-LAY-022` through `HOOK-LAY-024` test `sidebarVisible` derivation using the OLD logic (`breakpoint !== null && breakpoint !== "minimum"`). After Step 4, the same logic still produces the same results when `userPreference` is `null` (the default). These tests remain valid because they test the default behavior path. No changes needed.
 
-Both changes are non-breaking — adding exports does not affect existing consumers.
-
-### 6.3 Migration of direct `getBreakpoint()` callers
-
-Three files call `getBreakpoint()` directly instead of using hooks. These should be migrated for consistency, but are not blockers for this ticket:
-
-| File | Priority | Migration path | Risk |
-|------|----------|---------------|------|
-| `TabbedDetailView.tsx` | Medium | Replace `getBreakpoint(termWidth, termHeight)` with `useBreakpoint()` | Low — component already renders within provider stack |
-| `AgentChatScreen.tsx` | Medium | Replace `getBreakpoint(width, height) as Breakpoint` with `useBreakpoint()` + null guard | Low — the `as Breakpoint` cast is unsafe but benign because AppShell already gates null |
-| `AgentSessionReplayScreen.tsx` | Medium | Same as AgentChatScreen | Low — same reasoning |
-| `ErrorScreen.tsx` | N/A | Acceptable — renders outside provider stack | N/A |
+The existing test `HOOK-LAY-030` checks that existing exports remain in the hooks barrel. After Step 5, new exports are added but existing ones are unchanged. This test remains valid.
 
 ### 6.4 Performance validation
 
-- **No debounce**: Resize events trigger synchronous re-render via `useTerminalDimensions`'s internal `useOnResize` subscription. The `RESP-LAY-026` rapid resize test verifies this doesn't crash.
+- **No debounce**: Resize events trigger synchronous re-render via `useTerminalDimensions`'s internal `useOnResize` subscription. The existing `RESP-LAY-015` rapid resize test (and new `RESP-SB-004` resize-through-minimum test) verifies this doesn't crash.
 - **Memoization**: All hooks use `useMemo` to prevent unnecessary re-renders:
   - `useBreakpoint`: `useMemo([width, height])` — stable when dimensions are within same breakpoint band
   - `useResponsiveValue`: `useMemo([breakpoint, values, fallback])` — stable when breakpoint hasn't changed
@@ -1285,16 +1158,6 @@ Three files call `getBreakpoint()` directly instead of using hooks. These should
 ### 6.5 Tree-shaking
 
 All exports are named exports (no default exports). The barrel re-export in `hooks/index.ts` uses named re-exports. Bun's bundler can tree-shake unused hooks. Consumers that only need `useBreakpoint` won't pull in `useSidebarState`'s `useState` import.
-
-### 6.6 Testing the hooks in isolation
-
-The pure functions (`getBreakpoint`, `resolveSidebarVisibility`) are tested directly without React via `bunEval` (Bun subprocess evaluation from `e2e/tui/helpers.ts`). The layout derivation helpers (`getSidebarWidth`, `getModalWidth`, `getModalHeight`) are module-private and tested by reimplementing the logic inline in `bunEval` expressions to verify contract compliance.
-
-The React hooks are tested via E2E scenarios that launch the real TUI at specific dimensions and verify the rendered output reflects the expected breakpoint behavior.
-
-**`bunEval` mechanics:** The `bunEval` function from `e2e/tui/helpers.ts` runs `bun -e <expression>` as a subprocess. Bun supports `require()` on TypeScript files natively, so `require("../../apps/tui/src/types/breakpoint.ts")` works without compilation. The CWD for `bunEval` is the TUI root directory (`apps/tui`), making relative paths from test files resolve correctly.
-
-Per project policy: **Tests that fail due to unimplemented backends are left failing. They are never skipped or commented out.**
 
 ---
 
@@ -1308,20 +1171,16 @@ Per project policy: **Tests that fail due to unimplemented backends are left fai
         │     └── useSidebarState()
         │           └── useLayout() ←── also reads useTerminalDimensions() directly
         │                 │
-        │                 ├── AppShell.tsx
+        │                 ├── AppShell.tsx (migrated from getBreakpoint())
         │                 ├── HeaderBar.tsx
         │                 ├── StatusBar.tsx
         │                 ├── FullScreenLoading.tsx
         │                 ├── FullScreenError.tsx
         │                 ├── PaginationIndicator.tsx
         │                 ├── SkeletonList.tsx
-        │                 ├── SkeletonDetail.tsx
-        │                 └── WorkspaceStatusBadge.tsx
+        │                 └── SkeletonDetail.tsx
         │
         └── getBreakpoint() direct callers (bypassing hooks):
-            ├── TabbedDetailView.tsx (migration candidate)
-            ├── AgentChatScreen.tsx (migration candidate, unsafe cast)
-            ├── AgentSessionReplayScreen.tsx (migration candidate, unsafe cast)
             └── ErrorScreen.tsx (acceptable — outside provider stack)
 ```
 
@@ -1331,49 +1190,50 @@ Per project policy: **Tests that fail due to unimplemented backends are left fai
 
 ### Production files
 
-| File | Lines (approx) | Purpose | Status |
-|------|-------|--------|--------|
-| `apps/tui/src/types/breakpoint.ts` | 33 | `Breakpoint` type + `getBreakpoint()` pure function | ✅ Complete |
-| `apps/tui/src/types/index.ts` | 2 | Re-export barrel | ✅ Complete |
-| `apps/tui/src/hooks/useBreakpoint.ts` | 22 | Reactive breakpoint hook | ✅ Complete |
-| `apps/tui/src/hooks/useResponsiveValue.ts` | 48 | Generic breakpoint-to-value mapper | ✅ Complete |
-| `apps/tui/src/hooks/useSidebarState.ts` | 103 | Sidebar visibility state machine | ⚠️ Needs `resolveSidebarVisibility` export |
-| `apps/tui/src/hooks/useLayout.ts` | 137 | Composite layout context hook | ✅ Complete |
-| `apps/tui/src/hooks/index.ts` | 85 | Hook barrel exports | ⚠️ Needs `resolveSidebarVisibility` in barrel |
-| `apps/tui/src/components/AppShell.tsx` | 27 | Root shell consuming `useLayout()` | ✅ Complete |
+| File | Action | Lines (approx) | Status |
+|------|--------|--------|--------|
+| `apps/tui/src/types/breakpoint.ts` | None | 33 | ✅ Complete |
+| `apps/tui/src/types/index.ts` | None | 2 | ✅ Complete |
+| `apps/tui/src/hooks/useBreakpoint.ts` | **Create** | 20 | ❌ New |
+| `apps/tui/src/hooks/useResponsiveValue.ts` | **Create** | 45 | ❌ New |
+| `apps/tui/src/hooks/useSidebarState.ts` | **Create** | 100 | ❌ New |
+| `apps/tui/src/hooks/useLayout.ts` | **Modify** | 140 | ⚠️ Evolve to integrate sidebar |
+| `apps/tui/src/hooks/index.ts` | **Modify** | +3 lines | ⚠️ Add barrel exports |
+| `apps/tui/src/components/AppShell.tsx` | **Modify** | 26 | ⚠️ Migrate to useLayout() |
 
 ### Test additions to existing file
 
 | File | Test groups added | Test count |
 |------|-------------------|------------|
-| `e2e/tui/app-shell.test.ts` | `getBreakpoint — boundary exhaustive` | 14 |
-| | `useResponsiveValue — value selection logic` | 6 |
-| | `resolveSidebarVisibility — state resolution` | 8 |
-| | `useLayout — derived layout value computation` | 3 |
-| | `TUI Responsive Layout — sidebar toggle E2E` | 5 |
-| | `TUI Responsive Layout — resize transitions` | 7 |
+| `e2e/tui/app-shell.test.ts` | `TUI_APP_SHELL — useBreakpoint hook` | 7 |
+| | `TUI_APP_SHELL — useResponsiveValue hook` | 9 |
+| | `TUI_APP_SHELL — resolveSidebarVisibility pure function` | 12 |
+| | `TUI_APP_SHELL — useLayout sidebar integration` | 8 |
+| | `TUI_APP_SHELL — sidebar toggle E2E` | 6 |
 
-**Total new tests: 43**  
-**Existing tests in file: 67**  
-**Total after merge: 110**
+**Total new tests: 42**  
+**Existing tests in file: 412**  
+**Total after merge: 454**
 
 ---
 
 ## 9. Acceptance Criteria
 
-1. ✅ `getBreakpoint(cols, rows)` returns `null` for <80×24, `"minimum"` for 80×24–119×39, `"standard"` for 120×40–199×59, `"large"` for 200×60+.
-2. ✅ `useBreakpoint()` returns the current breakpoint reactively, updating on terminal resize with no debounce.
-3. ✅ `useResponsiveValue({ minimum, standard, large })` returns the correct value for the current breakpoint, or fallback/undefined below minimum.
-4. ✅ `useSidebarState()` tracks user toggle preference separately from auto-collapse. `resolveSidebarVisibility` is exported for direct testing.
-5. ✅ Sidebar is auto-hidden at minimum/unsupported and Ctrl+B toggle is no-op.
-6. ✅ User sidebar preference survives resize transitions through minimum and back.
-7. ✅ `useLayout()` returns a composite object with all layout values: `width`, `height`, `breakpoint`, `contentHeight`, `sidebarVisible`, `sidebarWidth`, `modalWidth`, `modalHeight`, `sidebar`.
-8. ✅ All layout recalculations are synchronous — no debounce, no animation, no `useEffect` in the hot path.
-9. ✅ All hooks are memoized and return stable references when inputs haven't changed.
-10. ✅ All 43 tests pass (or fail only due to unimplemented backend features, never skipped).
-11. ✅ No new runtime dependencies introduced. Only imports from `react`, `@opentui/react`, and local `../types/breakpoint.js`.
-12. ✅ `AppShell.tsx` consumes `useLayout()` with `!layout.breakpoint` null check.
-13. ✅ `resolveSidebarVisibility` pure function is exported from `useSidebarState.ts` for direct unit testing.
-14. ✅ `resolveSidebarVisibility` added to `hooks/index.ts` barrel export.
-15. ✅ Migration path documented for 3 files still calling `getBreakpoint()` directly (with note about unsafe `as Breakpoint` casts in agent screens).
-16. ✅ Test IDs (`HOOK-BP-*`, `HOOK-RV-*`, `HOOK-SB-*`, `HOOK-LAY-*`, `RESP-SB-*`, `RESP-LAY-*`) do not collide with existing test IDs in `e2e/tui/app-shell.test.ts` (`LOAD-SNAP-*`, `LOAD-KEY-*`, `LOAD-RSP-*`, `KEY-SNAP-*`, `KEY-KEY-*`, `KEY-RSP-*`, `KEY-INT-*`, `KEY-EDGE-*`).
+1. `getBreakpoint(cols, rows)` returns `null` for <80×24, `"minimum"` for 80×24–119×39, `"standard"` for 120×40–199×59, `"large"` for 200×60+. (Already passing — no changes.)
+2. `useBreakpoint()` exists at `apps/tui/src/hooks/useBreakpoint.ts` and returns the current breakpoint reactively, updating on terminal resize with no debounce.
+3. `useResponsiveValue({ minimum, standard, large })` exists at `apps/tui/src/hooks/useResponsiveValue.ts` and returns the correct value for the current breakpoint, or fallback/undefined below minimum.
+4. `useSidebarState()` exists at `apps/tui/src/hooks/useSidebarState.ts` and tracks user toggle preference separately from auto-collapse. `resolveSidebarVisibility` is exported for direct testing.
+5. Sidebar is auto-hidden at minimum/unsupported and Ctrl+B toggle is a no-op at those breakpoints.
+6. User sidebar preference survives resize transitions through minimum and back.
+7. `useLayout()` returns a composite object with all layout values including the new `sidebar: SidebarState` field.
+8. `useLayout()` integrates `useSidebarState()` — `sidebarVisible` reflects both auto-collapse AND user toggle.
+9. `getSidebarWidth` returns `"0%"` when user has toggled sidebar off (not just when breakpoint forces it).
+10. `AppShell.tsx` is migrated to use `useLayout()` instead of calling `getBreakpoint()` directly.
+11. `ErrorScreen.tsx` continues to call `getBreakpoint()` directly (intentional — renders outside provider stack).
+12. All layout recalculations are synchronous — no debounce, no animation, no `useEffect` in the hot path.
+13. All hooks are memoized and return stable references when inputs haven't changed.
+14. All three new hooks are exported from `apps/tui/src/hooks/index.ts` barrel.
+15. All 42 new tests pass (or fail only due to unimplemented backend features, never skipped).
+16. `tsc --noEmit` passes with all new files.
+17. No new runtime dependencies introduced. Only imports from `react`, `@opentui/react`, and local modules.
+18. Test IDs (`HOOK-BP-*`, `HOOK-RV-*`, `HOOK-SB-*`, `HOOK-LAY-039+`, `RESP-SB-*`) do not collide with existing test IDs.

@@ -19,3 +19,6 @@ export { useLoading } from "./useLoading.js";
 export { useScreenLoading } from "./useScreenLoading.js";
 export { useOptimisticMutation } from "./useOptimisticMutation.js";
 export { usePaginationLoading } from "./usePaginationLoading.js";
+export { useBreakpoint } from "./useBreakpoint.js";
+export { useResponsiveValue, type ResponsiveValues } from "./useResponsiveValue.js";
+export { useSidebarState, resolveSidebarVisibility, type SidebarState } from "./useSidebarState.js";
