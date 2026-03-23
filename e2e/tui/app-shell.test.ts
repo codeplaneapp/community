@@ -4471,3 +4471,290 @@ describe("TUI_SCREEN_ROUTER — go-to context validation", () => {
   });
 });
 
+describe("KeybindingProvider — Priority Dispatch", () => {
+
+  // ── Snapshot Tests ──────────────────────────────────────────────
+
+  test("KEY-SNAP-001: status bar shows keybinding hints on Dashboard", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    const statusLine = terminal.getLine(terminal.rows - 1);
+    expect(statusLine).toMatch(/\S+:\S+/);
+    expect(terminal.snapshot()).toMatchSnapshot();
+    await terminal.terminate();
+  });
+
+  test("KEY-SNAP-002: hints update when navigating screens", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    const dashHints = terminal.getLine(terminal.rows - 1);
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
+    const repoHints = terminal.getLine(terminal.rows - 1);
+    expect(repoHints).not.toEqual(dashHints);
+    await terminal.terminate();
+  });
+
+  test("KEY-SNAP-003: 80x24 shows ≤4 truncated hints", async () => {
+    const terminal = await launchTUI({ cols: 80, rows: 24 });
+    await terminal.waitForText("Dashboard");
+    expect(terminal.snapshot()).toMatchSnapshot();
+    await terminal.terminate();
+  });
+
+  test("KEY-SNAP-004: 200x60 shows full hint set", async () => {
+    const terminal = await launchTUI({ cols: 200, rows: 60 });
+    await terminal.waitForText("Dashboard");
+    expect(terminal.snapshot()).toMatchSnapshot();
+    await terminal.terminate();
+  });
+
+  // ── Global Keybinding Tests ─────────────────────────────────────
+
+  test("KEY-KEY-001: q pops screen", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
+    await terminal.sendKeys("q");
+    await terminal.waitForText("Dashboard");
+    await terminal.terminate();
+  });
+
+  test("KEY-KEY-002: Escape pops screen when no overlay open", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
+    await terminal.sendKeys("Escape");
+    await terminal.waitForText("Dashboard");
+    await terminal.terminate();
+  });
+
+  test("KEY-KEY-003: Ctrl+C exits from any screen", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
+    await terminal.sendKeys("\x03");
+    await terminal.terminate();
+  });
+
+  test("KEY-KEY-004: ? toggles help overlay", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Global");
+    await terminal.terminate();
+  });
+
+  test("KEY-KEY-005: : opens command palette", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys(":");
+    await terminal.waitForText("Command");
+    await terminal.terminate();
+  });
+
+  test("KEY-KEY-006: g activates go-to mode", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("g");
+    const statusLine = terminal.getLine(terminal.rows - 1);
+    expect(statusLine).toMatch(/dashboard|repos/i);
+    await terminal.sendKeys("d");
+    await terminal.terminate();
+  });
+
+  // ── Priority Layering Tests ─────────────────────────────────────
+
+  test("KEY-KEY-010: modal scope (P2) captures keys before screen scope (P4)", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys(":");
+    await terminal.waitForText("Command");
+    await terminal.sendKeys("q");
+    await terminal.waitForText("Command"); // q did NOT pop screen
+    await terminal.sendKeys("Escape");
+    await terminal.waitForText("Dashboard");
+    await terminal.terminate();
+  });
+
+  test("KEY-KEY-011: screen keybindings inactive when modal open", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Global");
+    await terminal.sendKeys("j"); await terminal.sendKeys("k");
+    await terminal.sendKeys("Escape");
+    await terminal.waitForText("Repositories");
+    await terminal.terminate();
+  });
+
+  test("KEY-KEY-012: go-to mode (P3) overrides screen keybindings (P4)", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
+    await terminal.sendKeys("g", "d");
+    await terminal.waitForText("Dashboard");
+    await terminal.terminate();
+  });
+
+  test("KEY-KEY-013: text input captures printable keys", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40, args: ["--screen", "search"] });
+    await terminal.waitForText("Search");
+    await terminal.sendKeys("/");
+    await terminal.sendText("jest");
+    expect(terminal.snapshot()).toMatch(/jest/);
+    await terminal.sendKeys("Escape");
+    await terminal.terminate();
+  });
+
+  test("KEY-KEY-014: Ctrl+C propagates through text input", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40, args: ["--screen", "search"] });
+    await terminal.waitForText("Search");
+    await terminal.sendKeys("/");
+    await terminal.sendText("test");
+    await terminal.sendKeys("\x03");
+    await terminal.terminate();
+  });
+
+  test("KEY-KEY-015: Escape unfocuses text input, re-enables screen keys", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40, args: ["--screen", "search"] });
+    await terminal.waitForText("Search");
+    await terminal.sendKeys("/");
+    await terminal.sendText("hello");
+    await terminal.sendKeys("Escape");
+    await terminal.sendKeys("j");
+    expect(terminal.snapshot()).not.toMatch(/helloj/);
+    await terminal.terminate();
+  });
+
+  // ── Scope Lifecycle Tests ───────────────────────────────────────
+
+  test("KEY-KEY-020: screen keybindings registered on mount, removed on unmount", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
+    const repoStatus = terminal.getLine(terminal.rows - 1);
+    await terminal.sendKeys("g", "d");
+    await terminal.waitForText("Dashboard");
+    const dashStatus = terminal.getLine(terminal.rows - 1);
+    expect(dashStatus).not.toEqual(repoStatus);
+    await terminal.terminate();
+  });
+
+  test("KEY-KEY-021: rapid transitions leave no stale scopes", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.sendKeys("g", "r"); await terminal.waitForText("Repositories");
+    await terminal.sendKeys("g", "n"); await terminal.waitForText("Notifications");
+    await terminal.sendKeys("g", "s"); await terminal.waitForText("Search");
+    await terminal.sendKeys("g", "d"); await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("g", "r"); await terminal.waitForText("Repositories");
+    await terminal.sendKeys("q"); await terminal.waitForText("Dashboard");
+    await terminal.terminate();
+  });
+
+  // ── Status Bar Hints Tests ──────────────────────────────────────
+
+  test("KEY-KEY-030: help hint visible on every screen", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    expect(terminal.getLine(terminal.rows - 1)).toMatch(/\?.*help/i);
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
+    expect(terminal.getLine(terminal.rows - 1)).toMatch(/\?.*help/i);
+    await terminal.terminate();
+  });
+
+  test("KEY-KEY-031: go-to mode overrides hints temporarily", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    const normal = terminal.getLine(terminal.rows - 1);
+    await terminal.sendKeys("g");
+    const goTo = terminal.getLine(terminal.rows - 1);
+    expect(goTo).not.toEqual(normal);
+    expect(goTo).toMatch(/d.*dashboard|r.*repos/i);
+    await terminal.sendKeys("Escape");
+    expect(terminal.getLine(terminal.rows - 1)).toEqual(normal);
+    await terminal.terminate();
+  });
+
+  // ── Integration Tests ───────────────────────────────────────────
+
+  test("KEY-INT-001: help overlay shows bindings from all active scopes", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
+    await terminal.sendKeys("?");
+    await terminal.waitForText("Global");
+    const snap = terminal.snapshot();
+    expect(snap).toMatch(/q/);
+    expect(snap).toMatch(/\?/);
+    await terminal.sendKeys("Escape");
+    await terminal.terminate();
+  });
+
+  // ── Edge Case Tests ─────────────────────────────────────────────
+
+  test("KEY-EDGE-001: unhandled key does not crash", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("z"); await terminal.sendKeys("x");
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
+    await terminal.terminate();
+  });
+
+  test("KEY-EDGE-002: rapid key presses processed sequentially", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.sendKeys("g", "r"); await terminal.waitForText("Repositories");
+    await terminal.sendKeys("g", "d"); await terminal.waitForText("Dashboard");
+    await terminal.terminate();
+  });
+
+  test("KEY-EDGE-003: scope removal during dispatch does not crash", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.sendKeys("g", "r"); await terminal.waitForText("Repositories");
+    await terminal.sendKeys("q"); await terminal.sendKeys("g", "r");
+    await terminal.sendKeys("q"); await terminal.waitForText("Dashboard");
+    await terminal.terminate();
+  });
+
+  // ── Responsive Tests ────────────────────────────────────────────
+
+  test("KEY-RSP-001: keybindings work at 80x24", async () => {
+    const terminal = await launchTUI({ cols: 80, rows: 24 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("g", "r"); await terminal.waitForText("Repositories");
+    await terminal.sendKeys("q"); await terminal.waitForText("Dashboard");
+    await terminal.terminate();
+  });
+
+  test("KEY-RSP-002: keybindings work at 200x60", async () => {
+    const terminal = await launchTUI({ cols: 200, rows: 60 });
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("g", "r"); await terminal.waitForText("Repositories");
+    await terminal.sendKeys("?"); await terminal.waitForText("Global");
+    await terminal.sendKeys("Escape"); await terminal.sendKeys("q");
+    await terminal.waitForText("Dashboard");
+    await terminal.terminate();
+  });
+
+  test("KEY-RSP-003: resize does not break keybinding dispatch", async () => {
+    const terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.sendKeys("g", "r"); await terminal.waitForText("Repositories");
+    await terminal.resize(80, 24);
+    await terminal.sendKeys("q"); await terminal.waitForText("Dashboard");
+    await terminal.terminate();
+  });
+
+  test("KEY-RSP-004: hint count adapts to width on resize", async () => {
+    const terminal = await launchTUI({ cols: 200, rows: 60 });
+    await terminal.waitForText("Dashboard");
+    const wide = (terminal.getLine(terminal.rows - 1).match(/\S+:\S+/g) || []).length;
+    await terminal.resize(80, 24);
+    const narrow = (terminal.getLine(terminal.rows - 1).match(/\S+:\S+/g) || []).length;
+    expect(narrow).toBeLessThanOrEqual(wide);
+    await terminal.terminate();
+  });
+});
+

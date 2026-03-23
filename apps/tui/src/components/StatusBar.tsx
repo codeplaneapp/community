@@ -7,12 +7,15 @@ import { useLoading } from "../hooks/useLoading.js";
 import { STATUS_BAR_ERROR_PADDING } from "../loading/constants.js";
 import { truncateRight } from "../util/text.js";
 import type { AuthStatus } from "../providers/AuthProvider.js";
+import { useStatusBarHints } from "../hooks/useStatusBarHints.js";
 
 export function StatusBar() {
   const { width, breakpoint } = useLayout();
   const theme = useTheme();
   const { status, user, tokenSource } = useAuth();
   const { statusBarError, currentScreenLoading } = useLoading();
+  const { hints } = useStatusBarHints();
+
   const showRetryHint =
     currentScreenLoading?.status === "error" ||
     currentScreenLoading?.status === "timeout";
@@ -49,8 +52,11 @@ export function StatusBar() {
   const syncColor = theme[statusToToken(syncState)];
   const syncLabel = syncState === "connected" ? "synced" : syncState;
 
+  // At minimum width, maybe we limit the number of hints or don't show full hints
   const showFullHints = breakpoint !== "minimum";
   const maxErrorWidth = Math.max(10, width - STATUS_BAR_ERROR_PADDING);
+
+  const displayedHints = showFullHints ? hints : hints.slice(0, 4);
 
   return (
     <box flexDirection="row" height={1} width="100%" borderColor={theme.border} border={["top"]} justifyContent="space-between">
@@ -59,21 +65,14 @@ export function StatusBar() {
           <text fg={theme.error}>{truncateRight(statusBarError, maxErrorWidth)}</text>
         ) : (
           <>
-            {showFullHints && (
-              <>
-                <text fg={theme.primary}>j/k</text>
-                <text fg={theme.muted}>:navigate  </text>
-                <text fg={theme.primary}>Enter</text>
-                <text fg={theme.muted}>:select  </text>
-              </>
-            )}
-            <text fg={theme.primary}>q</text>
-            <text fg={theme.muted}>:back  </text>
-            <text fg={theme.primary}>?</text>
-            <text fg={theme.muted}>:help</text>
+            {displayedHints.map((hint, i) => (
+              <React.Fragment key={i}>
+                <text fg={theme.primary}>{hint.keys}</text>
+                <text fg={theme.muted}>{`:${hint.label}  `}</text>
+              </React.Fragment>
+            ))}
             {showRetryHint && (
               <>
-                <text fg={theme.muted}>  </text>
                 <text fg={theme.primary}>R</text>
                 <text fg={theme.muted}>:retry</text>
               </>

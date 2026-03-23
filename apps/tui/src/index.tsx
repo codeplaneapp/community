@@ -14,6 +14,7 @@ import React, { useState, useCallback, useRef } from "react";
 
 import { ErrorBoundary } from "./components/ErrorBoundary.js";
 import { ThemeProvider } from "./providers/ThemeProvider.js";
+import { KeybindingProvider } from "./providers/KeybindingProvider.js";
 import { AuthProvider } from "./providers/AuthProvider.js";
 import { APIClientProvider } from "./providers/APIClientProvider.js";
 import { SSEProvider } from "./providers/SSEProvider.js";
@@ -60,24 +61,26 @@ function App() {
       noColor={noColor}
     >
       <ThemeProvider>
-        <AuthProvider token={launchOptions.token} apiUrl={launchOptions.apiUrl}>
-          <APIClientProvider>
-            <SSEProvider>
-              <NavigationProvider
-                key={navResetKey}
-                initialStack={initialStack}
-              >
-                <LoadingProvider>
-                  <GlobalKeybindings>
-                    <AppShell>
-                      <ScreenRouter />
-                    </AppShell>
-                  </GlobalKeybindings>
-                </LoadingProvider>
-              </NavigationProvider>
-            </SSEProvider>
-          </APIClientProvider>
-        </AuthProvider>
+        <KeybindingProvider>
+          <AuthProvider token={launchOptions.token} apiUrl={launchOptions.apiUrl}>
+            <APIClientProvider>
+              <SSEProvider>
+                <NavigationProvider
+                  key={navResetKey}
+                  initialStack={initialStack}
+                >
+                  <LoadingProvider>
+                    <GlobalKeybindings>
+                      <AppShell>
+                        <ScreenRouter />
+                      </AppShell>
+                    </GlobalKeybindings>
+                  </LoadingProvider>
+                </NavigationProvider>
+              </SSEProvider>
+            </APIClientProvider>
+          </AuthProvider>
+        </KeybindingProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
