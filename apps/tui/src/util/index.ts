@@ -23,3 +23,5 @@ export {
   CRASH_LOOP_WINDOW_MS,
   CRASH_LOOP_MAX_RESTARTS,
 } from "./constants.js";
+
+export { truncateBreadcrumb, truncateRight, fitWidth } from "./text.js";

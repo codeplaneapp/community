@@ -13,3 +13,5 @@ export {
 } from "./useSpinner.js";
 export { useLayout } from "./useLayout.js";
 export type { LayoutContext } from "./useLayout.js";
+export { useNavigation } from "./useNavigation.js";
+export { useAuth } from "./useAuth.js";

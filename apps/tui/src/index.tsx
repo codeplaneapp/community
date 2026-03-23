@@ -1,17 +1,75 @@
+#!/usr/bin/env bun
 /**
  * Codeplane TUI — Entry point
  *
- * Planned bootstrap sequence:
- *   1. Terminal setup
- *   2. Auth token resolution
- *   3. Renderer init
- *   4. Provider stack mount
- *   5. Token validation
- *   6. SSE connection
- *   7. Initial screen render
+ * Bootstrap sequence:
+ *   1. TTY assertion (< 5ms)
+ *   2. CLI arg parsing (< 1ms)
+ *   3. Terminal setup via createCliRenderer() (< 50ms)
+ *   4. React root creation via createRoot() (< 10ms)
+ *   5. Provider stack mount + render (< 50ms)
+ *   6. Signal handler registration (< 1ms)
+ *   7. First meaningful paint target: < 200ms total
  */
 
-import type { CliRenderer } from "@opentui/core";
-import type { Root } from "@opentui/react";
+import { assertTTY, parseCLIArgs } from "./lib/terminal.js";
 
-export type { CliRenderer, Root };
+assertTTY();
+const launchOptions = parseCLIArgs(process.argv.slice(2));
+
+import { createCliRenderer } from "@opentui/core";
+import { createRoot } from "@opentui/react";
+import React from "react";
+
+import { ErrorBoundary } from "./components/ErrorBoundary.js";
+import { AuthProvider } from "./providers/AuthProvider.js";
+import { ThemeProvider } from "./providers/ThemeProvider.js";
+import { NavigationProvider } from "./providers/NavigationProvider.js";
+import { SSEProvider } from "./providers/SSEProvider.js";
+import { AppShell } from "./components/AppShell.js";
+import { GlobalKeybindings } from "./components/GlobalKeybindings.js";
+import { registerSignalHandlers } from "./lib/signals.js";
+import { resolveDeepLink } from "./navigation/deepLinks.js";
+
+const renderer = await createCliRenderer({
+  exitOnCtrlC: false,
+});
+
+registerSignalHandlers(renderer);
+
+const initialStack = resolveDeepLink({
+  screen: launchOptions.screen,
+  repo: launchOptions.repo,
+});
+
+const root = createRoot(renderer);
+
+root.render(
+  <ErrorBoundary>
+    <ThemeProvider>
+      <AuthProvider token={launchOptions.token} apiUrl={launchOptions.apiUrl}>
+        <SSEProvider>
+          <NavigationProvider initialStack={initialStack}>
+            <GlobalKeybindings>
+              <AppShell />
+            </GlobalKeybindings>
+          </NavigationProvider>
+        </SSEProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  </ErrorBoundary>
+);
+
+if (launchOptions.debug) {
+  const { width, height } = renderer;
+  process.stderr.write(
+    JSON.stringify({
+      component: "tui",
+      phase: "bootstrap",
+      level: "info",
+      message: "TUI bootstrap started",
+      terminal_width: width,
+      terminal_height: height,
+    }) + "\n"
+  );
+}

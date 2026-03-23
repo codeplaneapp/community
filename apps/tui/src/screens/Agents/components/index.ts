@@ -1,2 +1,2 @@
-export * from "./MessageBlock";
-export * from "./ToolBlock";
+export * from "./MessageBlock.js";
+export * from "./ToolBlock.js";

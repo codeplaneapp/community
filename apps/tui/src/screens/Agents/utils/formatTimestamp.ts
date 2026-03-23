@@ -1,5 +1,5 @@
 
-import { Breakpoint } from "../types";
+import { Breakpoint } from "../types.js";
 
 export function formatTimestamp(
   isoString: string,
