@@ -1,7 +1,7 @@
 import { describe, test, expect } from "bun:test"
-import { existsSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
-import { TUI_ROOT, TUI_SRC, run, bunEval } from "./helpers.ts"
+import { TUI_ROOT, TUI_SRC, run, bunEval, createTestCredentialStore, createMockAPIEnv, launchTUI } from "./helpers.ts"
 
 // ---------------------------------------------------------------------------
 // TUI_APP_SHELL — Package scaffold
@@ -217,5 +217,94 @@ describe("TUI_APP_SHELL — Dependency resolution", () => {
     )
     expect(result.exitCode).toBe(0)
     expect(result.stdout.trim()).toBe("ok")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// TUI_APP_SHELL — E2E test infrastructure
+// ---------------------------------------------------------------------------
+
+describe("TUI_APP_SHELL — E2E test infrastructure", () => {
+  test("createTestCredentialStore creates valid credential file", () => {
+    const creds = createTestCredentialStore("test-token-123")
+    try {
+      const content = JSON.parse(readFileSync(creds.path, "utf-8"))
+      expect(content.version).toBe(1)
+      expect(content.tokens).toBeArray()
+      expect(content.tokens[0].token).toBe("test-token-123")
+      expect(content.tokens[0].host).toBe("localhost")
+      expect(creds.token).toBe("test-token-123")
+    } finally {
+      creds.cleanup()
+    }
+  })
+
+  test("createTestCredentialStore generates random token when none provided", () => {
+    const creds = createTestCredentialStore()
+    try {
+      expect(creds.token).toMatch(/^codeplane_test_/)
+      const content = JSON.parse(readFileSync(creds.path, "utf-8"))
+      expect(content.tokens[0].token).toBe(creds.token)
+    } finally {
+      creds.cleanup()
+    }
+  })
+
+  test("createTestCredentialStore cleanup removes files", () => {
+    const creds = createTestCredentialStore()
+    const path = creds.path
+    creds.cleanup()
+    expect(existsSync(path)).toBe(false)
+  })
+
+  test("createMockAPIEnv returns correct default values", () => {
+    const env = createMockAPIEnv()
+    expect(env.CODEPLANE_API_URL).toBe("http://localhost:13370")
+    expect(env.CODEPLANE_TOKEN).toBe("test-token-for-e2e")
+    expect(env.CODEPLANE_DISABLE_SSE).toBeUndefined()
+  })
+
+  test("createMockAPIEnv respects custom options", () => {
+    const env = createMockAPIEnv({
+      apiBaseUrl: "http://custom:9999",
+      token: "custom-token",
+      disableSSE: true,
+    })
+    expect(env.CODEPLANE_API_URL).toBe("http://custom:9999")
+    expect(env.CODEPLANE_TOKEN).toBe("custom-token")
+    expect(env.CODEPLANE_DISABLE_SSE).toBe("1")
+  })
+
+  test("launchTUI is a function", () => {
+    expect(typeof launchTUI).toBe("function")
+  })
+
+  test("@microsoft/tui-test is importable", async () => {
+    const result = await bunEval(
+      "import('@microsoft/tui-test').then(() => console.log('ok')).catch(e => { console.error(e.message); process.exit(1) })",
+    )
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout.trim()).toBe("ok")
+  })
+
+  test("TUITestInstance interface matches expected shape", async () => {
+    const result = await bunEval([
+      "import type { TUITestInstance } from '../../e2e/tui/helpers.ts';",
+      "const check: TUITestInstance = {} as TUITestInstance;",
+      "const methods: (keyof TUITestInstance)[] = [",
+      "  'sendKeys', 'sendText', 'waitForText', 'waitForNoText',",
+      "  'snapshot', 'getLine', 'resize', 'terminate', 'rows', 'cols',",
+      "];",
+      "console.log(methods.length);",
+    ].join(" "))
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout.trim()).toBe("10")
+  })
+
+  test("TERMINAL_SIZES matches design.md breakpoints", async () => {
+    const { TERMINAL_SIZES: sizes } = await import("./helpers.ts")
+    expect(sizes.minimum).toEqual({ width: 80, height: 24 })
+    expect(sizes.standard).toEqual({ width: 120, height: 40 })
+    expect(sizes.large).toEqual({ width: 200, height: 60 })
   })
 })

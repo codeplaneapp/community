@@ -1,4 +1,4 @@
-import { createTestTui } from "@microsoft/tui-test"
+import { launchTUI, TUITestInstance, TERMINAL_SIZES } from "./helpers.ts"
 
 describe("TUI_DIFF_SYNTAX_HIGHLIGHT — SyntaxStyle lifecycle", () => {
   test("SNAP-SYN-010: renders syntax highlighting at 80x24 minimum", async () => {

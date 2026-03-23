@@ -5,7 +5,7 @@
 **Ticket ID:** `tui-e2e-test-infra`  
 **Type:** Engineering  
 **Depends on:** `tui-foundation-scaffold` (completed)  
-**Estimate:** 4 hours  
+**Estimate:** 6 hours  
 
 ---
 
@@ -13,172 +13,48 @@
 
 ### What exists today
 
-| File | State | Notes |
-|------|-------|-------|
-| `e2e/tui/helpers.ts` | Implemented (buggy) | 353 lines. Exports `TUITestInstance` interface and `launchTUI()` using `Bun.spawn()` with raw stdout pipe buffering. Imports `createTestTui` from `@microsoft/tui-test` at line 6 but **never uses it** — the `launchTUI()` implementation uses `Bun.spawn()` directly. Three critical bugs: (1) `sendKeys()` writes literal key names to stdin, (2) no `COLUMNS`/`LINES` env vars, (3) `createTestTui` import is dead code. |
-| `e2e/tui/app-shell.test.ts` | Populated | 875 lines, 2 top-level describe blocks: `TUI_LOADING_STATES` (45 tests across 8 sub-describes) and `KeybindingProvider — Priority Dispatch` (31 tests across 7 sub-describes). All tests use `launchTUI()` from `./helpers`. All fail because TUI process exits immediately or cannot connect to API. |
-| `e2e/tui/agents.test.ts` | Populated | Imports from `./helpers`. Contains agent session, chat, and SSE streaming tests. |
-| `e2e/tui/agents-registry.test.ts` | Populated | Agent navigation and registry tests. |
-| `e2e/tui/organizations.test.ts` | Populated | Tab bar rendering, content display, filtering tests. |
-| `e2e/tui/diff.test.ts` | Mixed | Imports pure functions from `../../apps/tui/src/lib/diff-parse`. Unit tests for diff parsing — does not depend on `@microsoft/tui-test`. |
-| `e2e/tui/clipboard.test.ts` | Working | Unit-style tests using `bun:test` only — does not depend on `@microsoft/tui-test`. |
-| `e2e/tui/workflows.test.ts` | Populated | Workflow feature tests. Imports from `./helpers.js`. |
-| `e2e/tui/workflow-sse.test.ts` | Populated | Workflow SSE streaming tests. Imports from `./helpers.js` and `./helpers/workflows.js`. |
-| `e2e/tui/workflow-utils.test.ts` | Populated | Workflow utility function unit tests. |
-| `e2e/tui/workspaces.test.ts` | Populated | Workspace feature tests. Imports from `./helpers`. |
-| `e2e/tui/workspaces-sse.test.ts` | Populated | Workspace SSE status streaming tests. Imports from `./helpers`. |
-| `e2e/tui/keybinding-normalize.test.ts` | Populated | Key event normalization unit tests — no TUI launch. |
-| `e2e/tui/streaming/sse-constants.test.ts` | Working | SSE constants validation. Imports from `apps/tui/src/streaming/types`. |
-| `e2e/tui/streaming/event-deduplicator.test.ts` | Working | Event deduplication logic unit tests. |
-| `e2e/tui/helpers/index.ts` | Working | 3 lines. Re-exports from `./workspaces.js` and `./workflows.js`. |
-| `e2e/tui/helpers/workspaces.ts` | Working | 352 lines. Workspace fixtures (`WORKSPACE_IDS`, `WORKSPACE_FIXTURES`), `launchTUIWithWorkspaceContext()`, `waitForStatusTransition()`, SSE injection helpers, assertion helpers (`assertWorkspaceRow()`, `stripAnsi()`, `hasReverseVideo()`). Imports `launchTUI`, `TUITestInstance`, `LaunchTUIOptions` from `../helpers.js`. |
-| `e2e/tui/helpers/workflows.ts` | Working | 63 lines. `navigateToWorkflowRunDetail()`, `waitForLogStreaming()`, `createSSEInjectFile()`. |
-| `e2e/tui/helpers/workspace-sse.ts` | Working | 83 lines. `createWorkspaceSSEEvent()`, `createSSEInjectionFile()`, `waitForWorkspaceStatus()`, `assertConnectionIndicator()`. Imports from `@codeplane/ui-core/types/workspaces`. |
-| `e2e/tui/helpers/__tests__/workspaces.test.ts` | Working | 292 lines. Self-tests for the test infrastructure — validates fixtures, SSE events, injection files, string utilities. |
-| `e2e/tui/bunfig.toml` | Working | Sets `timeout = 30000` for tests. |
-| `e2e/tui/__snapshots__/` | Directory | Exists with `agents.test.ts.snap` (empty placeholder). |
-| `packages/tui-test/package.json` | Stub | `{"name": "@microsoft/tui-test", "version": "0.3.0", "main": "index.js", "types": "index.d.ts"}` |
-| `packages/tui-test/index.js` | Stub | `export async function createTestTui(opts) { return {}; }` |
-| `packages/tui-test/index.d.ts` | Stub | `export declare function createTestTui(opts?: any): Promise<any>;` |
-| `apps/tui/package.json` | Working | Has `@microsoft/tui-test: "workspace:*"` in devDependencies, `test:e2e` script: `bun test ../../e2e/tui/ --timeout 30000`. |
-| `apps/tui/src/index.tsx` | Implemented | 88 lines. Full bootstrap: `assertTTY()`, `parseCLIArgs()`, `createCliRenderer()`, `createRoot()`, renders provider stack (ErrorBoundary → ThemeProvider → KeybindingProvider → AuthProvider → APIClientProvider → SSEProvider → NavigationProvider → LoadingProvider → GlobalKeybindings → AppShell). |
+| File | State | Lines | Notes |
+|------|-------|-------|-------|
+| `e2e/tui/helpers.ts` | Stub | 92 | Exports `TUITestInstance` interface, path constants (`TUI_ROOT`, `TUI_SRC`, `TUI_ENTRY`, `BUN`), server config constants (`API_URL`, `WRITE_TOKEN`, `READ_TOKEN`, `OWNER`, `ORG`), `TERMINAL_SIZES` breakpoints, `run()` subprocess helper, `bunEval()` helper. **`launchTUI()` is a stub that throws `"Not yet implemented"`**. No credential store helper, no mock API helper. No key mapping. |
+| `e2e/tui/app-shell.test.ts` | Working | 221 | 3 describe blocks: `TUI_APP_SHELL — Package scaffold` (19 tests), `TUI_APP_SHELL — TypeScript compilation` (3 tests), `TUI_APP_SHELL — Dependency resolution` (6 tests). Tests validate package.json, tsconfig.json, directory structure, dependency resolution. Does NOT use `launchTUI()`. Uses `run()`, `bunEval()`, `existsSync()`. |
+| `e2e/tui/agents.test.ts` | Failing | 4,331 | Imports `launchTUI` and `TUITestInstance` from `./helpers`. Contains fixture interfaces, fixture data, and extensive test cases for agent sessions, chat, SSE streaming. All tests fail because `launchTUI()` throws "Not yet implemented". |
+| `e2e/tui/diff.test.ts` | Broken | 216 | **Imports `createTestTui` from `@microsoft/tui-test`** — this package does NOT exist in the workspace. Contains 4 describe blocks for diff syntax highlighting tests. All test bodies are comment-only stubs (no actual assertions). Module resolution fails at import. |
+| `apps/tui/package.json` | Working | 22 | Has `@opentui/core: "0.1.90"`, `@opentui/react: "0.1.90"`, `react: "19.2.4"`, `@codeplane/sdk: "workspace:*"` in dependencies. **Does NOT have `@microsoft/tui-test` in devDependencies**. Has `dev` and `check` scripts but no `test:e2e` script. |
+| `apps/tui/src/index.tsx` | Stub | 17 | Type-only entry point that re-exports `CliRenderer` and `Root` types. Not functional — no bootstrap sequence, no `assertTTY()`, no `createCliRenderer()`, no `createRoot()`, no provider stack. |
+| `packages/tui-test/` | **Does not exist** | — | No `packages/tui-test/` directory. The spec references this but it was never created. |
+| `e2e/tui/bunfig.toml` | **Does not exist** | — | No bunfig.toml for test configuration. |
+| `e2e/tui/helpers/` | **Does not exist** | — | No helpers subdirectory. All helpers are in the single `helpers.ts` file. |
+| `e2e/tui/__snapshots__/` | **Does not exist** | — | No snapshots directory. |
 
-### Review findings (from `tui-e2e-test-infra-iteration-0.md`)
+### Available tooling
 
-The P0 issues identified in the iteration-0 review:
+**Real `@microsoft/tui-test` v0.0.3** is available in the specs cache at `specs/tui/.bun-cache/@microsoft/tui-test@0.0.3@@@1/`. It provides:
+- `Terminal` class with PTY-backed terminal emulation via `@xterm/headless`
+- `spawn()` to create Terminal instances with PTY
+- `Key` enum (Home, End, Tab, Enter, Escape, F1-F12, etc.)
+- `Locator` pattern with `getByText()`, `toBeVisible()`, `toHaveBgColor()`, `toHaveFgColor()`
+- `toMatchSnapshot()` for terminal serialization
+- `getBuffer()`, `getViewableBuffer()`, `serialize()` for screen state
+- `keyPress()`, `keyUp()`, `keyDown()`, `write()`, `submit()`, `resize()`, etc.
+- `test.use()` for per-file/group configuration (shell, rows, columns, env, program)
+- Bun PTY backend at `lib/terminal/pty-bun.js`
 
-1. **[P0] No PTY** — `launchTUI` uses `Bun.spawn` with `stdout: "pipe"`/`stdin: "pipe"` instead of a PTY, so rendered screen state is not properly captured. The raw stdout buffer accumulates ANSI cursor movement sequences without terminal emulation to reconstruct a 2D grid.
+**`@opentui/react/test-utils`** is available in node_modules. It provides:
+- `testRender(node, options)` — in-process React component testing with virtual terminal
+- Returns `{ renderer, mockInput, mockMouse, renderOnce, captureCharFrame, captureSpans, resize }`
+- `MockInput` with `pressKey()`, `typeText()`, `pressEnter()`, `pressEscape()`, `pressTab()`, `pressBackspace()`, `pressArrow()`, `pressCtrlC()`, `pasteBracketedText()`
+- `CapturedFrame` with structured span data (text, fg, bg, attributes)
+- `captureCharFrame()` returns clean grid-formatted text string
 
-2. **[P0] Key simulation is wrong** — `sendKeys()` writes literal strings like `"Enter"` and `"Tab"` to stdin instead of terminal control sequences (`\r`, `\t`, `\x1b[A`, etc.).
+### Analysis: Which testing approach to use
 
-3. **[P0] `@microsoft/tui-test` is a no-op** — `createTestTui()` returns `{}` with no methods.
+The TUI has **two distinct testing needs**:
 
-4. **[P1] `launchTimeoutMs` is exposed but unused** — No timeout behavior is implemented.
+1. **Out-of-process E2E tests** — Launch the actual TUI binary with a real PTY, interact via key sequences, assert on rendered terminal output. This is the primary E2E testing path. `@microsoft/tui-test` v0.0.3 provides exactly this via its `Terminal` class with PTY backend (`pty-bun.js` for Bun support).
 
-5. **[P1] App bootstrap exists but needs PTY** — `index.tsx` has full runtime code (confirmed: 88 lines with `createCliRenderer()`, `createRoot()`, provider stack) but the test harness doesn't provide a PTY, so `assertTTY()` may fail or the renderer may detect non-TTY and behave differently.
+2. **In-process component tests** — Render individual React components in a virtual terminal, assert on layout and content without launching a subprocess. `@opentui/react/test-utils`'s `testRender()` provides this.
 
-### What's broken — root causes
-
-1. **`@microsoft/tui-test` is a stub package.** `packages/tui-test/index.js` exports `createTestTui(opts) { return {}; }`. Any test depending on the returned object gets nothing.
-
-2. **`helpers.ts` imports `createTestTui` but never uses it.** Line 6: `import { createTestTui } from "@microsoft/tui-test"` — the import resolves (stub package exists) but the symbol is dead code. The `launchTUI()` implementation on line 180 uses `Bun.spawn()` directly.
-
-3. **The `Bun.spawn()` approach has no PTY.** Without a pseudo-terminal:
-   - The TUI process may fail `assertTTY()` (line ~17 of `index.tsx`) and exit immediately.
-   - OpenTUI's `createCliRenderer()` detects non-TTY stdout and may skip alternate screen buffer, cursor hiding, etc.
-   - `snapshot()` returns raw accumulated stdout bytes — a stream of writes with cursor movement sequences, not a 2D terminal grid.
-   - `resize()` sends `SIGWINCH` but without a PTY, the process cannot query new dimensions.
-   - `getLine()` splits by `\n` on a non-grid buffer, producing unreliable results.
-
-4. **Key mapping is missing.** `sendKeys("Enter")` writes the literal string `"Enter"` (5 characters) to stdin instead of `"\r"`. Same for `"Tab"`, `"Escape"`, arrow keys, etc. See line 232-237 of `helpers.ts`:
-   ```typescript
-   async sendKeys(...keys: string[]): Promise<void> {
-     for (const key of keys) {
-       if (proc.stdin) {
-         proc.stdin.write(key);  // BUG: writes literal "Enter" not "\r"
-       }
-       await sleep(50);
-     }
-   },
-   ```
-
-5. **`@opentui/react/test-utils` exists but is unused.** OpenTUI ships `testRender()` which creates a proper in-process test renderer with `captureCharFrame()`, `captureSpans()`, `resize()`, and `MockInput` (with `typeText()`, `pressKey()`, `pressKeys()`, `pressEnter()`, `pressEscape()`, `pressTab()`, `pressBackspace()`, `pressArrow()`, `pressCtrlC()`, `pasteBracketedText()`). This is the correct tool for component-level and screen-level TUI testing.
-
-### Verified OpenTUI test-utils API surface
-
-The following was confirmed by reading the actual type declarations and implementation from `.bun-cache/@opentui/react@0.1.90@@@1/`:
-
-**`testRender(node, options)` from `@opentui/react/test-utils`:**
-```typescript
-function testRender(
-  node: ReactNode,
-  testRendererOptions: TestRendererOptions
-): Promise<{
-  renderer: TestRenderer;
-  mockInput: MockInput;
-  mockMouse: MockMouse;
-  renderOnce: () => Promise<void>;
-  captureCharFrame: () => string;       // returns grid-formatted text string
-  captureSpans: () => CapturedFrame;    // returns structured frame with color/attribute data
-  resize: (width: number, height: number) => void;
-}>;
-```
-
-**Implementation detail (from `test-utils.js`):**
-```javascript
-async function testRender(node, testRendererOptions) {
-  let root = null;
-  setIsReactActEnvironment(true);
-  const testSetup = await createTestRenderer({
-    ...testRendererOptions,
-    onDestroy() {
-      act(() => { if (root) { root.unmount(); root = null; } });
-      testRendererOptions.onDestroy?.();
-      setIsReactActEnvironment(false);
-    }
-  });
-  root = createRoot(testSetup.renderer);
-  act(() => { if (root) { root.render(node); } });
-  return testSetup;
-}
-```
-
-**`MockInput` methods (from `mock-keys.d.ts`):**
-- `pressKeys(keys: KeyInput[], delayMs?: number): Promise<void>` — Send multiple keys with optional delay
-- `pressKey(key: KeyInput, modifiers?: Modifiers): void` — Send a single key with optional modifiers
-- `typeText(text: string, delayMs?: number): Promise<void>` — Type text character by character
-- `pressEnter(modifiers?: Modifiers): void`
-- `pressEscape(modifiers?: Modifiers): void`
-- `pressTab(modifiers?: Modifiers): void`
-- `pressBackspace(modifiers?: Modifiers): void`
-- `pressArrow(direction: "up" | "down" | "left" | "right", modifiers?: Modifiers): void`
-- `pressCtrlC(): void`
-- `pasteBracketedText(text: string): Promise<void>`
-
-**`Modifiers` interface:**
-```typescript
-interface Modifiers {
-  shift?: boolean;
-  ctrl?: boolean;
-  meta?: boolean;
-  super?: boolean;
-  hyper?: boolean;
-}
-```
-
-**`KeyCodes` constants:**
-```typescript
-const KeyCodes = {
-  RETURN: "\r", LINEFEED: "\n", TAB: "\t", BACKSPACE: "\b",
-  DELETE: "\x1b[3~", HOME: "\x1b[H", END: "\x1b[F", ESCAPE: "\x1b",
-  ARROW_UP: "\x1b[A", ARROW_DOWN: "\x1b[B", ARROW_RIGHT: "\x1b[C", ARROW_LEFT: "\x1b[D",
-  F1: "\x1bOP", F2: "\x1bOQ", F3: "\x1bOR", F4: "\x1bOS",
-  F5: "\x1b[15~", F6: "\x1b[17~", F7: "\x1b[18~", F8: "\x1b[19~",
-  F9: "\x1b[20~", F10: "\x1b[21~", F11: "\x1b[23~", F12: "\x1b[24~"
-};
-```
-
-**`CapturedFrame` structure (from `types.d.ts`):**
-```typescript
-interface CapturedFrame {
-  cols: number;
-  rows: number;
-  cursor: [number, number];
-  lines: CapturedLine[];
-}
-
-interface CapturedLine {
-  spans: CapturedSpan[];
-}
-
-interface CapturedSpan {
-  text: string;
-  fg: RGBA;
-  bg: RGBA;
-  attributes: number;
-  width: number;
-}
-```
+The `launchTUI()` helper in `e2e/tui/helpers.ts` serves the out-of-process path. It should wrap `@microsoft/tui-test`'s `Terminal` class (which uses a real PTY via `@xterm/headless`) to provide the `TUITestInstance` interface.
 
 ---
 
@@ -186,428 +62,190 @@ interface CapturedSpan {
 
 | # | Goal |
 |---|------|
-| G1 | Replace the `packages/tui-test/` stub with a real `@microsoft/tui-test` implementation that wraps `@opentui/react/test-utils` to provide `createTestTui()` with full virtual terminal emulation for in-process rendering. |
-| G2 | Upgrade `launchTUI()` in `e2e/tui/helpers.ts` to support a dual-mode architecture: in-process mode via `@opentui/react/test-utils`'s `testRender()` (high fidelity, virtual terminal buffer, proper keyboard simulation) and out-of-process mode via `Bun.spawn()` (improved with key sequence mapping and `COLUMNS`/`LINES` env vars). |
-| G3 | Fix the key simulation bug by adding `mapKeyToSequence()` that converts human-readable key names to proper terminal escape sequences for the out-of-process path. |
-| G4 | Preserve all existing helper exports and test files unchanged. No test body modifications. |
-| G5 | Validate that all test files resolve imports correctly after the package upgrade. |
-| G6 | Tests that fail due to unimplemented backend features or missing TUI runtime remain failing — never skipped or commented out. |
+| G1 | Install the real `@microsoft/tui-test` v0.0.3 as a devDependency in `apps/tui/package.json`. |
+| G2 | Implement `launchTUI()` in `e2e/tui/helpers.ts` by wrapping `@microsoft/tui-test`'s PTY-backed `Terminal` class to provide full terminal emulation with proper key input, screen buffer capture, and resize support. |
+| G3 | Add `createTestCredentialStore()` helper for test-isolated auth token setup. |
+| G4 | Add `createMockAPIEnv()` helper for configuring test API server connections. |
+| G5 | Create `e2e/tui/bunfig.toml` for test runner configuration (timeout, preload). |
+| G6 | Add `test:e2e` script to `apps/tui/package.json`. |
+| G7 | Add infrastructure verification tests to `e2e/tui/app-shell.test.ts` validating that the test helpers work correctly. |
+| G8 | Fix `e2e/tui/diff.test.ts` import to use the installed `@microsoft/tui-test` (currently broken). |
+| G9 | Preserve all existing exports from `helpers.ts` unchanged. No test body modifications to `agents.test.ts` or any other test file. |
+| G10 | Tests that fail due to unimplemented backends or missing TUI runtime remain failing — never skipped or commented out. |
 
 ---
 
 ## 3. Implementation Plan
 
-### Step 1: Implement the `@microsoft/tui-test` workspace package
+### Step 1: Install `@microsoft/tui-test` as a devDependency
 
-**Files:**
-- `packages/tui-test/package.json` — modify: add dependencies, change `main` to `index.ts`
-- `packages/tui-test/index.ts` — new: real implementation wrapping `@opentui/react/test-utils`
-- `packages/tui-test/index.d.ts` — modify: replace stub types with full declarations
-- `packages/tui-test/index.js` — delete: replaced by `index.ts`
+**File:** `apps/tui/package.json`
 
-#### `packages/tui-test/package.json`
+Add `@microsoft/tui-test` to devDependencies. The real package at v0.0.3 provides PTY-backed terminal testing with `@xterm/headless` for screen emulation.
 
 ```json
 {
-  "name": "@microsoft/tui-test",
-  "version": "0.3.0",
-  "type": "module",
-  "main": "index.ts",
-  "types": "index.d.ts",
-  "dependencies": {
-    "@opentui/react": "0.1.90",
-    "@opentui/core": "0.1.90",
-    "react": "19.2.4"
+  "devDependencies": {
+    "@microsoft/tui-test": "^0.0.3",
+    "typescript": "^5",
+    "@types/react": "^19.0.0",
+    "bun-types": "^1.3.11"
+  },
+  "scripts": {
+    "dev": "bun run src/index.tsx",
+    "check": "tsc --noEmit",
+    "test:e2e": "bun test ../../e2e/tui/ --timeout 30000"
   }
 }
 ```
 
-**Rationale:** Pin exact versions matching `apps/tui/package.json` to ensure rendering-critical dependency consistency per architecture doc ("Pin exact versions for rendering-critical dependencies"). Use `.ts` as main entry since Bun executes TypeScript directly without transpilation.
+**Rationale:** Use the real npm package rather than a workspace stub. The `^0.0.3` range allows patch updates. The `test:e2e` script standardizes test invocation with a 30-second timeout per the architecture doc.
 
-#### `packages/tui-test/index.ts`
-
-This file wraps `@opentui/react/test-utils`'s `testRender()` to provide the `createTestTui()` API. The wrapper adapts the OpenTUI test-utils API surface into the `TestTuiInstance` contract consumed by `e2e/tui/helpers.ts`.
-
-```typescript
-import { testRender } from "@opentui/react/test-utils";
-import type { ReactNode } from "react";
-
-export interface CreateTestTuiOptions {
-  /** Terminal width in columns. Default: 120. */
-  cols?: number;
-  /** Terminal height in rows. Default: 40. */
-  rows?: number;
-  /** React element to render in-process via testRender(). */
-  node?: ReactNode;
-  /** Executable path (for out-of-process mode — reserved, not implemented). */
-  executable?: string;
-  /** Command args (for out-of-process mode — reserved, not implemented). */
-  args?: string[];
-  /** Environment variables. */
-  env?: Record<string, string>;
-  /** Timeout in ms. Default: 15000. */
-  timeout?: number;
-}
-
-export interface TestTuiInstance {
-  /** Send a single key press. Accepts human-readable names
-   * (Enter, Escape, Tab, ctrl+c, etc.) or single characters. */
-  sendKey(key: string): Promise<void>;
-  /** Type text character by character. */
-  type(text: string): Promise<void>;
-  /** Get full screen text. When includeAnsi is true, ANSI escape
-   * codes are preserved via CapturedFrame span reconstruction. */
-  getScreenText(options?: { includeAnsi?: boolean }): string;
-  /** Resize the virtual terminal. */
-  resize(cols: number, rows: number): Promise<void>;
-  /** Dispose of the virtual terminal and clean up resources. */
-  dispose(): Promise<void>;
-  /** Force a render cycle and wait for it to complete. */
-  renderOnce(): Promise<void>;
-}
-
-/**
- * Create a virtual terminal test instance wrapping @opentui/react test-utils.
- *
- * For in-process testing: pass `node` — a React element to render inside
- * testRender(). This gives you a virtual terminal buffer with proper layout,
- * input handling, and frame capture.
- *
- * For out-of-process testing: use `launchTUI()` from `e2e/tui/helpers.ts`
- * directly. The `executable`/`args` parameters are reserved for future use.
- */
-export async function createTestTui(
-  opts?: CreateTestTuiOptions
-): Promise<TestTuiInstance> {
-  const width = opts?.cols ?? 120;
-  const height = opts?.rows ?? 40;
-
-  if (opts?.node) {
-    // testRender() internally:
-    // 1. Creates a TestRenderer via createTestRenderer()
-    // 2. Creates a React root via createRoot(renderer)
-    // 3. Uses act() to render the provided node
-    // 4. Returns { renderer, mockInput, mockMouse, renderOnce,
-    //              captureCharFrame, captureSpans, resize }
-    const result = await testRender(opts.node, { width, height });
-
-    return {
-      async sendKey(key: string): Promise<void> {
-        const { mockInput } = result;
-        // Map human-readable key names to MockInput methods.
-        // MockInput uses OpenTUI's native key handling which
-        // correctly generates the terminal sequences internally.
-        switch (key) {
-          case "Enter":
-          case "Return":
-            mockInput.pressEnter();
-            break;
-          case "Escape":
-          case "Esc":
-            mockInput.pressEscape();
-            break;
-          case "Tab":
-            mockInput.pressTab();
-            break;
-          case "Backspace":
-            mockInput.pressBackspace();
-            break;
-          case "Up":
-          case "ArrowUp":
-            mockInput.pressArrow("up");
-            break;
-          case "Down":
-          case "ArrowDown":
-            mockInput.pressArrow("down");
-            break;
-          case "Left":
-          case "ArrowLeft":
-            mockInput.pressArrow("left");
-            break;
-          case "Right":
-          case "ArrowRight":
-            mockInput.pressArrow("right");
-            break;
-          case "ctrl+c":
-          case "\x03":
-            mockInput.pressCtrlC();
-            break;
-          case "shift+Tab":
-            mockInput.pressTab({ shift: true });
-            break;
-          default:
-            // Handle ctrl+X patterns (e.g., ctrl+b, ctrl+d, ctrl+s)
-            if (key.startsWith("ctrl+") && key.length === 6) {
-              mockInput.pressKey(key[5], { ctrl: true });
-            } else if (key.startsWith("shift+")) {
-              mockInput.pressKey(key.slice(6), { shift: true });
-            } else if (key.length === 1) {
-              // Single character — typeText for printable chars.
-              // typeText() is async but for single chars it's
-              // effectively synchronous.
-              mockInput.typeText(key);
-            } else {
-              // Fallback: try pressKey with the raw key string.
-              // KeyInput accepts string | keyof typeof KeyCodes.
-              mockInput.pressKey(key);
-            }
-        }
-        // Flush the render pipeline so the screen reflects the key press.
-        await result.renderOnce();
-      },
-
-      async type(text: string): Promise<void> {
-        await result.mockInput.typeText(text);
-        await result.renderOnce();
-      },
-
-      getScreenText(options?: { includeAnsi?: boolean }): string {
-        if (options?.includeAnsi) {
-          // captureSpans() returns a CapturedFrame with structured
-          // color/attribute data per span per line.
-          const frame = result.captureSpans();
-          return frame.lines
-            .map((line) =>
-              line.spans.map((span) => span.text).join("")
-            )
-            .join("\n");
-        }
-        // captureCharFrame() returns a clean text string
-        // representing the terminal grid — no ANSI codes.
-        return result.captureCharFrame();
-      },
-
-      async resize(cols: number, rows: number): Promise<void> {
-        result.resize(cols, rows);
-        await result.renderOnce();
-      },
-
-      async dispose(): Promise<void> {
-        // testRender() sets up an onDestroy callback that unmounts
-        // the React root and resets the act environment.
-        try {
-          result.renderer.destroy();
-        } catch {
-          // Best-effort cleanup
-        }
-      },
-
-      async renderOnce(): Promise<void> {
-        await result.renderOnce();
-      },
-    };
-  }
-
-  // Out-of-process mode is not implemented in this package.
-  // Use launchTUI() from e2e/tui/helpers.ts for out-of-process testing.
-  throw new Error(
-    "createTestTui: out-of-process mode (executable + args) is not yet implemented. " +
-    "Use the launchTUI() helper from e2e/tui/helpers.ts for out-of-process testing, " +
-    "or pass a React node for in-process testing."
-  );
-}
-```
-
-#### `packages/tui-test/index.d.ts`
-
-Full type declarations replacing the single-line stub:
-
-```typescript
-import type { ReactNode } from "react";
-
-export interface CreateTestTuiOptions {
-  cols?: number;
-  rows?: number;
-  node?: ReactNode;
-  executable?: string;
-  args?: string[];
-  env?: Record<string, string>;
-  timeout?: number;
-}
-
-export interface TestTuiInstance {
-  sendKey(key: string): Promise<void>;
-  type(text: string): Promise<void>;
-  getScreenText(options?: { includeAnsi?: boolean }): string;
-  resize(cols: number, rows: number): Promise<void>;
-  dispose(): Promise<void>;
-  renderOnce(): Promise<void>;
-}
-
-export declare function createTestTui(
-  opts?: CreateTestTuiOptions
-): Promise<TestTuiInstance>;
-```
-
-**Verification criteria:**
-- `import { createTestTui } from "@microsoft/tui-test"` resolves to the new `.ts` file via workspace resolution.
-- `typeof createTestTui === "function"` returns `true`.
-- `createTestTui({ node: React.createElement("text", null, "hello"), cols: 80, rows: 24 })` returns a `TestTuiInstance` where `getScreenText()` includes `"hello"`.
-- `createTestTui()` (no args, no node) throws the descriptive error about out-of-process mode.
+**Verification:**
+- `bun install` succeeds without resolution errors
+- `import { test, expect, Key, Shell } from "@microsoft/tui-test"` resolves
+- `import { Terminal } from "@microsoft/tui-test/lib/terminal/term.js"` resolves (internal, used by helpers)
 
 ---
 
-### Step 2: Upgrade `e2e/tui/helpers.ts` — dual-mode `launchTUI()` with key mapping fix
+### Step 2: Create `e2e/tui/bunfig.toml`
+
+**File:** `e2e/tui/bunfig.toml` — new
+
+```toml
+[test]
+timeout = 30000
+```
+
+**Rationale:** Terminal interaction tests need longer timeouts than unit tests. The 30s timeout matches the `--timeout 30000` in the `test:e2e` script and provides a safety net for PTY spawn time, process initialization, and screen rendering.
+
+---
+
+### Step 3: Implement `e2e/tui/helpers.ts` — full `launchTUI()` with PTY
 
 **File:** `e2e/tui/helpers.ts`
 
-The existing `launchTUI()` has three critical bugs to fix:
-1. `sendKeys()` writes literal key names (`"Enter"`, `"Tab"`) to stdin instead of escape sequences
-2. No `COLUMNS`/`LINES` environment variables for terminal dimension detection
-3. The `createTestTui` import is dead code
+The current file exports constants, `run()`, `bunEval()`, the `TUITestInstance` interface, and a stub `launchTUI()`. The upgrade:
 
-The upgrade adds:
-1. A `render` option in `LaunchTUIOptions` for in-process mode via `createTestTui()`
-2. A `mapKeyToSequence()` function for proper key mapping in out-of-process mode
-3. `COLUMNS`/`LINES` env vars in the spawned process environment
-4. All existing exports preserved identically
+1. Implements `launchTUI()` using `@microsoft/tui-test`'s PTY-backed `Terminal` class
+2. Adds `createTestCredentialStore()` for isolated auth token setup
+3. Adds `createMockAPIEnv()` for test API configuration
+4. Preserves all existing exports identically
 
-#### Complete upgraded `e2e/tui/helpers.ts`
+#### Complete `e2e/tui/helpers.ts`
 
 ```typescript
 // e2e/tui/helpers.ts
 
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
-import {
-  createTestTui,
-  type TestTuiInstance as InternalTestTuiInstance,
-} from "@microsoft/tui-test";
-import type { ReactNode } from "react";
+import { join } from "node:path"
+import { tmpdir } from "node:os"
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs"
 
-// ── Constants ────────────────────────────────────────────────────────────────
+/** Absolute path to the TUI app root */
+export const TUI_ROOT = join(import.meta.dir, "../../apps/tui")
 
-export const TUI_ROOT = join(import.meta.dir, "../../apps/tui");
-export const TUI_SRC = join(TUI_ROOT, "src");
-export const TUI_ENTRY = join(TUI_ROOT, "src/index.tsx");
-export const BUN = Bun.which("bun") ?? process.execPath;
+/** Absolute path to the TUI source directory */
+export const TUI_SRC = join(TUI_ROOT, "src")
 
-// ── Default terminal dimensions ──────────────────────────────────────────────
+/** TUI entry point for spawning in tests */
+export const TUI_ENTRY = join(TUI_SRC, "index.tsx")
 
-const DEFAULT_COLS = 120;
-const DEFAULT_ROWS = 40;
+/** Bun binary path */
+export const BUN = Bun.which("bun") ?? process.execPath
+
+// Server config (shared with CLI e2e tests)
+export const API_URL = process.env.API_URL ?? "http://localhost:3000"
+export const WRITE_TOKEN = process.env.CODEPLANE_WRITE_TOKEN ?? "codeplane_deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+export const READ_TOKEN = process.env.CODEPLANE_READ_TOKEN ?? "codeplane_feedfacefeedfacefeedfacefeedfacefeedface"
+export const OWNER = process.env.CODEPLANE_E2E_OWNER ?? "alice"
+export const ORG = process.env.CODEPLANE_E2E_ORG ?? "acme"
+
+/** Standard terminal sizes for snapshot tests (matches design.md § 8.1 Breakpoints) */
+export const TERMINAL_SIZES = {
+  minimum: { width: 80, height: 24 },
+  standard: { width: 120, height: 40 },
+  large: { width: 200, height: 60 },
+} as const
 
 // ── Default timeouts ─────────────────────────────────────────────────────────
 
-const DEFAULT_WAIT_TIMEOUT_MS = 10_000;
-const DEFAULT_LAUNCH_TIMEOUT_MS = 15_000;
-
-// ── Agent navigation helpers ─────────────────────────────────────────────────
-
-export async function navigateToAgents(
-  terminal: TUITestInstance,
-): Promise<void> {
-  await terminal.sendKeys("g", "a");
-  await terminal.waitForText("Agent Sessions");
-}
-
-export async function waitForSessionListReady(
-  terminal: TUITestInstance,
-): Promise<void> {
-  const startTime = Date.now();
-  while (Date.now() - startTime < 10_000) {
-    const content = terminal.snapshot();
-    if (
-      !content.includes("Loading sessions") &&
-      (content.includes("sessions") || content.includes("No sessions"))
-    ) {
-      return;
-    }
-    await sleep(100);
-  }
-}
-
-export async function navigateToAgentChat(
-  terminal: TUITestInstance,
-  sessionIndex: number = 0,
-): Promise<void> {
-  await navigateToAgents(terminal);
-  await waitForSessionListReady(terminal);
-  for (let i = 0; i < sessionIndex; i++) {
-    await terminal.sendKeys("j");
-  }
-  await terminal.sendKeys("Enter");
-  await waitForChatReady(terminal);
-}
-
-export async function waitForChatReady(
-  terminal: TUITestInstance,
-): Promise<void> {
-  const startTime = Date.now();
-  while (Date.now() - startTime < 10_000) {
-    const content = terminal.snapshot();
-    if (
-      content.includes("Type a message") ||
-      content.includes("Read-only replay mode") ||
-      content.includes("Session not found")
-    ) {
-      return;
-    }
-    await sleep(100);
-  }
-  throw new Error("waitForChatReady: chat screen not ready within 10s");
-}
+const DEFAULT_WAIT_TIMEOUT_MS = 10_000
+const DEFAULT_LAUNCH_TIMEOUT_MS = 15_000
+const POLL_INTERVAL_MS = 100
 
 // ── TUITestInstance interface ────────────────────────────────────────────────
 
 export interface TUITestInstance {
   /** Send one or more key sequences to the TUI process. */
-  sendKeys(...keys: string[]): Promise<void>;
+  sendKeys(...keys: string[]): Promise<void>
   /** Send literal text input to the TUI process. */
-  sendText(text: string): Promise<void>;
+  sendText(text: string): Promise<void>
   /** Wait until the given text appears anywhere in the terminal buffer. */
-  waitForText(text: string, timeoutMs?: number): Promise<void>;
+  waitForText(text: string, timeoutMs?: number): Promise<void>
   /** Wait until the given text is no longer present in the terminal buffer. */
-  waitForNoText(text: string, timeoutMs?: number): Promise<void>;
-  /** Capture the full terminal buffer as a string (ANSI codes preserved). */
-  snapshot(): string;
+  waitForNoText(text: string, timeoutMs?: number): Promise<void>
+  /** Capture the full terminal buffer as a string. */
+  snapshot(): string
   /** Get a specific line from the terminal buffer (0-indexed). */
-  getLine(lineNumber: number): string;
-  /** Resize the virtual terminal. Triggers SIGWINCH in the TUI process. */
-  resize(cols: number, rows: number): Promise<void>;
+  getLine(lineNumber: number): string
+  /** Resize the virtual terminal. */
+  resize(cols: number, rows: number): Promise<void>
   /** Terminate the TUI process and clean up resources. */
-  terminate(): Promise<void>;
+  terminate(): Promise<void>
   /** Current terminal height in rows. */
-  rows: number;
+  rows: number
   /** Current terminal width in columns. */
-  cols: number;
+  cols: number
 }
 
 // ── Launch options ────────────────────────────────────────────────────────────
 
 export interface LaunchTUIOptions {
   /** Terminal width in columns. Default: 120. */
-  cols?: number;
+  cols?: number
   /** Terminal height in rows. Default: 40. */
-  rows?: number;
+  rows?: number
   /** Additional environment variables merged with defaults. */
-  env?: Record<string, string>;
+  env?: Record<string, string>
   /** Additional CLI arguments passed to the TUI process. */
-  args?: string[];
+  args?: string[]
   /** Timeout for the TUI process to be ready (ms). Default: 15000. */
-  launchTimeoutMs?: number;
-  /**
-   * Optional React node for in-process rendering via @opentui/react test-utils.
-   * When provided, bypasses Bun.spawn() and uses testRender() directly.
-   * This gives a high-fidelity virtual terminal with proper layout engine,
-   * input handling, and grid-based screen capture.
-   */
-  render?: ReactNode;
+  launchTimeoutMs?: number
 }
 
 // ── Credential store helper ──────────────────────────────────────────────────
 
+/**
+ * Create a temporary credential store file for test isolation.
+ * Returns the file path, the generated token, and a cleanup function.
+ *
+ * Usage:
+ * ```typescript
+ * const creds = createTestCredentialStore("valid-test-token")
+ * try {
+ *   const tui = await launchTUI({
+ *     env: {
+ *       CODEPLANE_TEST_CREDENTIAL_STORE_FILE: creds.path,
+ *       CODEPLANE_TOKEN: creds.token,
+ *     },
+ *   })
+ *   await tui.waitForText("Dashboard")
+ *   await tui.terminate()
+ * } finally {
+ *   creds.cleanup()
+ * }
+ * ```
+ */
 export function createTestCredentialStore(token?: string): {
-  path: string;
-  token: string;
-  cleanup: () => void;
+  path: string
+  token: string
+  cleanup: () => void
 } {
   const testToken =
     token ??
-    `codeplane_test_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  const dir = mkdtempSync(join(tmpdir(), "codeplane-tui-test-"));
-  const storePath = join(dir, "credentials.json");
+    `codeplane_test_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  const dir = mkdtempSync(join(tmpdir(), "codeplane-tui-test-"))
+  const storePath = join(dir, "credentials.json")
   writeFileSync(
     storePath,
     JSON.stringify({
@@ -620,503 +258,550 @@ export function createTestCredentialStore(token?: string): {
         },
       ],
     }),
-  );
+  )
   return {
     path: storePath,
     token: testToken,
     cleanup: () => {
       try {
-        rmSync(dir, { recursive: true, force: true });
+        rmSync(dir, { recursive: true, force: true })
       } catch {
         // Best-effort cleanup
       }
     },
-  };
+  }
 }
 
 // ── Mock API server helper ───────────────────────────────────────────────────
 
+/**
+ * Create environment variables that configure the TUI to point at a test API server.
+ *
+ * This helper does NOT start a server. It only configures the environment.
+ * Different test files need different responses, and some tests run against
+ * a real API server.
+ *
+ * Usage:
+ * ```typescript
+ * const env = createMockAPIEnv({ apiBaseUrl: "http://localhost:13370" })
+ * const tui = await launchTUI({ env })
+ * ```
+ */
 export function createMockAPIEnv(options?: {
-  apiBaseUrl?: string;
-  token?: string;
-  disableSSE?: boolean;
+  apiBaseUrl?: string
+  token?: string
+  disableSSE?: boolean
 }): Record<string, string> {
   const env: Record<string, string> = {
     CODEPLANE_API_URL: options?.apiBaseUrl ?? "http://localhost:13370",
     CODEPLANE_TOKEN: options?.token ?? "test-token-for-e2e",
-  };
-  if (options?.disableSSE) {
-    env.CODEPLANE_DISABLE_SSE = "1";
   }
-  return env;
+  if (options?.disableSSE) {
+    env.CODEPLANE_DISABLE_SSE = "1"
+  }
+  return env
 }
 
-// ── Key sequence mapping for out-of-process mode ─────────────────────────────
+// ── Key name to Key enum mapping ─────────────────────────────────────────────
 
 /**
- * Maps human-readable key names to proper terminal escape sequences.
+ * Maps human-readable key names used in test code to the
+ * @microsoft/tui-test Key enum or special handling.
  *
- * Used by the out-of-process (Bun.spawn) mode to convert key names
- * like "Enter", "Tab", "Escape", "ctrl+c" into the byte sequences
- * that a real terminal would send. Without this mapping, sendKeys("Enter")
- * would write the literal string "Enter" (5 bytes) instead of "\r" (1 byte).
+ * The Terminal.keyPress() method accepts either a single character string
+ * or a Key enum value, plus optional modifiers { ctrl, alt, shift }.
  *
- * The in-process mode does NOT use this function — MockInput handles
- * key mapping natively via pressKey(), pressEnter(), etc.
- *
- * Sequences match the VT100/xterm standard as defined in OpenTUI's
- * KeyCodes constant (from @opentui/core/testing/mock-keys).
+ * This mapping allows test code to use readable names like:
+ *   await terminal.sendKeys("Enter", "j", "j", "Enter")
+ *   await terminal.sendKeys("ctrl+c")
+ *   await terminal.sendKeys("Escape")
  */
-function mapKeyToSequence(key: string): string {
+interface KeyAction {
+  type: "press"
+  key: string  // single char or Key enum value
+  modifiers?: { ctrl?: boolean; alt?: boolean; shift?: boolean }
+}
+
+interface SpecialKeyAction {
+  type: "special"
+  method: string  // method name on Terminal (e.g., "keyUp", "keyDown")
+}
+
+type ResolvedKey = KeyAction | SpecialKeyAction
+
+function resolveKey(key: string): ResolvedKey {
+  // Import Key enum values as string constants to avoid top-level
+  // import dependency issues. These match the Key enum in
+  // @microsoft/tui-test/lib/terminal/ansi.js
   switch (key) {
-    // ── Editing keys ──
-    case "Enter":     return "\r";
-    case "Return":    return "\r";
-    case "Escape":    return "\x1b";
-    case "Esc":       return "\x1b";
-    case "Tab":       return "\t";
-    case "shift+Tab": return "\x1b[Z";
-    case "Backspace": return "\x7f";
-    case "Delete":    return "\x1b[3~";
+    // Named keys that map to Key enum
+    case "Enter":     return { type: "press", key: "Enter" }
+    case "Return":    return { type: "press", key: "Enter" }
+    case "Escape":    return { type: "press", key: "Escape" }
+    case "Esc":       return { type: "press", key: "Escape" }
+    case "Tab":       return { type: "press", key: "Tab" }
+    case "Space":     return { type: "press", key: "Space" }
+    case "Backspace": return { type: "press", key: "Backspace" }
+    case "Delete":    return { type: "press", key: "Delete" }
+    case "Home":      return { type: "press", key: "Home" }
+    case "End":       return { type: "press", key: "End" }
+    case "PageUp":    return { type: "press", key: "PageUp" }
+    case "PageDown":  return { type: "press", key: "PageDown" }
+    case "Insert":    return { type: "press", key: "Insert" }
 
-    // ── Navigation keys ──
-    case "Up":        return "\x1b[A";
-    case "Down":      return "\x1b[B";
-    case "Right":     return "\x1b[C";
-    case "Left":      return "\x1b[D";
-    case "Home":      return "\x1b[H";
-    case "End":       return "\x1b[F";
+    // Arrow keys — use dedicated Terminal methods for reliability
+    case "Up":        return { type: "special", method: "keyUp" }
+    case "ArrowUp":   return { type: "special", method: "keyUp" }
+    case "Down":      return { type: "special", method: "keyDown" }
+    case "ArrowDown": return { type: "special", method: "keyDown" }
+    case "Left":      return { type: "special", method: "keyLeft" }
+    case "ArrowLeft": return { type: "special", method: "keyLeft" }
+    case "Right":     return { type: "special", method: "keyRight" }
+    case "ArrowRight":return { type: "special", method: "keyRight" }
 
-    // ── Named Ctrl combinations ──
-    case "ctrl+a":    return "\x01";
-    case "ctrl+b":    return "\x02";
-    case "ctrl+c":    return "\x03";
-    case "ctrl+d":    return "\x04";
-    case "ctrl+e":    return "\x05";
-    case "ctrl+k":    return "\x0b";
-    case "ctrl+l":    return "\x0c";
-    case "ctrl+n":    return "\x0e";
-    case "ctrl+p":    return "\x10";
-    case "ctrl+s":    return "\x13";
-    case "ctrl+u":    return "\x15";
-    case "ctrl+w":    return "\x17";
+    // Shift+Tab
+    case "shift+Tab": return { type: "press", key: "Tab", modifiers: { shift: true } }
 
-    // ── Function keys (VT100/xterm sequences) ──
-    case "F1":        return "\x1bOP";
-    case "F2":        return "\x1bOQ";
-    case "F3":        return "\x1bOR";
-    case "F4":        return "\x1bOS";
-    case "F5":        return "\x1b[15~";
-    case "F6":        return "\x1b[17~";
-    case "F7":        return "\x1b[18~";
-    case "F8":        return "\x1b[19~";
-    case "F9":        return "\x1b[20~";
-    case "F10":       return "\x1b[21~";
-    case "F11":       return "\x1b[23~";
-    case "F12":       return "\x1b[24~";
+    // Function keys
+    case "F1":  return { type: "press", key: "F1" }
+    case "F2":  return { type: "press", key: "F2" }
+    case "F3":  return { type: "press", key: "F3" }
+    case "F4":  return { type: "press", key: "F4" }
+    case "F5":  return { type: "press", key: "F5" }
+    case "F6":  return { type: "press", key: "F6" }
+    case "F7":  return { type: "press", key: "F7" }
+    case "F8":  return { type: "press", key: "F8" }
+    case "F9":  return { type: "press", key: "F9" }
+    case "F10": return { type: "press", key: "F10" }
+    case "F11": return { type: "press", key: "F11" }
+    case "F12": return { type: "press", key: "F12" }
+
+    // Named ctrl combinations
+    case "ctrl+c": return { type: "special", method: "keyCtrlC" }
+    case "ctrl+d": return { type: "special", method: "keyCtrlD" }
 
     default:
       // Handle ctrl+X patterns dynamically
       if (key.startsWith("ctrl+") && key.length === 6) {
-        const charCode = key.charCodeAt(5) - 96; // 'a' = 1, 'b' = 2, etc.
-        if (charCode >= 1 && charCode <= 26) {
-          return String.fromCharCode(charCode);
-        }
+        return { type: "press", key: key[5], modifiers: { ctrl: true } }
       }
-      // Single printable characters (j, k, q, :, ?, /, G, etc.)
-      // and raw escape sequences (\x03) pass through unchanged.
-      return key;
+      // Handle shift+X patterns
+      if (key.startsWith("shift+")) {
+        return { type: "press", key: key.slice(6), modifiers: { shift: true } }
+      }
+      // Handle alt+X patterns
+      if (key.startsWith("alt+")) {
+        return { type: "press", key: key.slice(4), modifiers: { alt: true } }
+      }
+      // Single printable character — pass through
+      if (key.length === 1) {
+        return { type: "press", key }
+      }
+      // Unknown key — attempt to pass through
+      return { type: "press", key }
   }
 }
 
 // ── launchTUI implementation ─────────────────────────────────────────────────
 
+/**
+ * Launch the TUI process with a real PTY via @microsoft/tui-test.
+ *
+ * Each call creates a fresh TUI instance with:
+ * - Isolated temp directory for CODEPLANE_CONFIG_DIR
+ * - Real PTY via @xterm/headless for proper terminal emulation
+ * - Deterministic environment (TERM, COLORTERM, LANG, etc.)
+ * - Proper key input via Terminal.keyPress() and dedicated key methods
+ * - Screen buffer capture via Terminal.getViewableBuffer()
+ *
+ * The returned TUITestInstance provides the standard interface for
+ * all TUI E2E tests.
+ */
 export async function launchTUI(
   options?: LaunchTUIOptions,
 ): Promise<TUITestInstance> {
-  const cols = options?.cols ?? DEFAULT_COLS;
-  const rows = options?.rows ?? DEFAULT_ROWS;
+  // Dynamic import to avoid top-level import issues when
+  // @microsoft/tui-test is not installed yet
+  const { spawn: spawnTerminal } = await import(
+    "@microsoft/tui-test/lib/terminal/term.js"
+  )
+  const { Shell } = await import("@microsoft/tui-test/lib/terminal/shell.js")
+  const { EventEmitter } = await import("node:events")
 
-  // ── In-process mode ──
-  if (options?.render) {
-    return createInProcessInstance(options.render, cols, rows);
-  }
-
-  // ── Out-of-process mode (Bun.spawn) ──
-  return createOutOfProcessInstance(cols, rows, options);
-}
-
-// ── In-process mode via @opentui/react test-utils ────────────────────────────
-
-async function createInProcessInstance(
-  node: ReactNode,
-  cols: number,
-  rows: number,
-): Promise<TUITestInstance> {
-  const testTui = await createTestTui({ node, cols, rows });
-  let currentCols = cols;
-  let currentRows = rows;
-
-  return {
-    get cols() {
-      return currentCols;
-    },
-    get rows() {
-      return currentRows;
-    },
-
-    async sendKeys(...keys: string[]): Promise<void> {
-      for (const key of keys) {
-        await testTui.sendKey(key);
-      }
-    },
-
-    async sendText(text: string): Promise<void> {
-      await testTui.type(text);
-    },
-
-    async waitForText(
-      text: string,
-      timeoutMs?: number,
-    ): Promise<void> {
-      const timeout = timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS;
-      const startTime = Date.now();
-      while (Date.now() - startTime < timeout) {
-        await testTui.renderOnce();
-        const content = testTui.getScreenText();
-        if (content.includes(text)) return;
-        await sleep(50);
-      }
-      throw new Error(
-        `waitForText: "${text}" not found within ${timeout}ms.\n` +
-          `Terminal content:\n${testTui.getScreenText()}`,
-      );
-    },
-
-    async waitForNoText(
-      text: string,
-      timeoutMs?: number,
-    ): Promise<void> {
-      const timeout = timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS;
-      const startTime = Date.now();
-      while (Date.now() - startTime < timeout) {
-        await testTui.renderOnce();
-        const content = testTui.getScreenText();
-        if (!content.includes(text)) return;
-        await sleep(50);
-      }
-      throw new Error(
-        `waitForNoText: "${text}" still present after ${timeout}ms.\n` +
-          `Terminal content:\n${testTui.getScreenText()}`,
-      );
-    },
-
-    snapshot(): string {
-      return testTui.getScreenText({ includeAnsi: true });
-    },
-
-    getLine(lineNumber: number): string {
-      const lines = testTui
-        .getScreenText({ includeAnsi: true })
-        .split("\n");
-      if (lineNumber < 0 || lineNumber >= lines.length) {
-        throw new Error(
-          `getLine: line ${lineNumber} out of range (0-${lines.length - 1})`,
-        );
-      }
-      return lines[lineNumber];
-    },
-
-    async resize(
-      newCols: number,
-      newRows: number,
-    ): Promise<void> {
-      currentCols = newCols;
-      currentRows = newRows;
-      await testTui.resize(newCols, newRows);
-    },
-
-    async terminate(): Promise<void> {
-      await testTui.dispose();
-    },
-  };
-}
-
-// ── Out-of-process mode via Bun.spawn ────────────────────────────────────────
-
-async function createOutOfProcessInstance(
-  cols: number,
-  rows: number,
-  options?: LaunchTUIOptions,
-): Promise<TUITestInstance> {
-  const args = [BUN, "run", TUI_ENTRY, ...(options?.args ?? [])];
+  const cols = options?.cols ?? TERMINAL_SIZES.standard.width
+  const rows = options?.rows ?? TERMINAL_SIZES.standard.height
 
   const configDir = mkdtempSync(
     join(tmpdir(), "codeplane-tui-config-"),
-  );
+  )
 
-  const env: Record<string, string> = {
-    ...(process.env as Record<string, string>),
+  const env: Record<string, string | undefined> = {
+    ...process.env,
     TERM: "xterm-256color",
-    NO_COLOR: "",
+    NO_COLOR: undefined, // ensure color is enabled
     COLORTERM: "truecolor",
     LANG: "en_US.UTF-8",
     CODEPLANE_TOKEN: "e2e-test-token",
     CODEPLANE_CONFIG_DIR: configDir,
-    COLUMNS: String(cols),
-    LINES: String(rows),
+    CODEPLANE_API_URL: API_URL,
     ...options?.env,
-  };
-
-  const proc = Bun.spawn(args, {
-    cwd: TUI_ROOT,
-    stdin: "pipe",
-    stdout: "pipe",
-    stderr: "inherit",
-    env,
-  });
-
-  let buffer = "";
-  if (proc.stdout) {
-    const reader = proc.stdout.getReader();
-    const readLoop = async () => {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          if (value) {
-            buffer += new TextDecoder().decode(value);
-          }
-        }
-      } catch {
-        // stream closed
-      }
-    };
-    readLoop();
   }
 
-  let currentCols = cols;
-  let currentRows = rows;
+  const traceEmitter = new EventEmitter()
+
+  // @microsoft/tui-test's spawn() creates a real PTY via node-pty
+  // (or pty-bun for Bun), wraps it with @xterm/headless for
+  // terminal emulation, and returns a Terminal instance.
+  const terminal = await spawnTerminal(
+    {
+      rows,
+      cols,
+      shell: Shell.Bash,
+      program: {
+        file: BUN,
+        args: ["run", TUI_ENTRY, ...(options?.args ?? [])],
+      },
+      env,
+    },
+    false, // trace disabled
+    traceEmitter,
+  )
+
+  let currentCols = cols
+  let currentRows = rows
+
+  /**
+   * Get the full terminal buffer as a flat string.
+   * Uses getViewableBuffer() which returns the visible terminal grid.
+   */
+  function getBufferText(): string {
+    const buffer = terminal.getViewableBuffer()
+    return buffer.map((row: string[]) => row.join("")).join("\n")
+  }
 
   const instance: TUITestInstance = {
     get cols() {
-      return currentCols;
+      return currentCols
     },
     get rows() {
-      return currentRows;
+      return currentRows
     },
 
     async sendKeys(...keys: string[]): Promise<void> {
       for (const key of keys) {
-        const seq = mapKeyToSequence(key);
-        if (proc.stdin) {
-          proc.stdin.write(seq);
+        const resolved = resolveKey(key)
+        if (resolved.type === "special") {
+          // Call dedicated Terminal method (keyUp, keyDown, etc.)
+          ;(terminal as any)[resolved.method]()
+        } else {
+          terminal.keyPress(resolved.key, resolved.modifiers)
         }
-        await sleep(50);
+        // Small delay between keys for terminal processing
+        await sleep(50)
       }
     },
 
     async sendText(text: string): Promise<void> {
-      for (const char of text) {
-        if (proc.stdin) {
-          proc.stdin.write(char);
-        }
-        await sleep(20);
-      }
+      terminal.write(text)
+      await sleep(50)
     },
 
     async waitForText(
       text: string,
       timeoutMs?: number,
     ): Promise<void> {
-      const timeout = timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS;
-      const startTime = Date.now();
+      const timeout = timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS
+      const startTime = Date.now()
       while (Date.now() - startTime < timeout) {
-        if (buffer.includes(text)) return;
-        await sleep(100);
+        const content = getBufferText()
+        if (content.includes(text)) return
+        await sleep(POLL_INTERVAL_MS)
       }
       throw new Error(
-        `waitForText: "${text}" not found within ${timeout}ms.\nTerminal content:\n${buffer}`,
-      );
+        `waitForText: "${text}" not found within ${timeout}ms.\n` +
+          `Terminal content:\n${getBufferText()}`,
+      )
     },
 
     async waitForNoText(
       text: string,
       timeoutMs?: number,
     ): Promise<void> {
-      const timeout = timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS;
-      const startTime = Date.now();
+      const timeout = timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS
+      const startTime = Date.now()
       while (Date.now() - startTime < timeout) {
-        if (!buffer.includes(text)) return;
-        await sleep(100);
+        const content = getBufferText()
+        if (!content.includes(text)) return
+        await sleep(POLL_INTERVAL_MS)
       }
       throw new Error(
-        `waitForNoText: "${text}" still present after ${timeout}ms.\nTerminal content:\n${buffer}`,
-      );
+        `waitForNoText: "${text}" still present after ${timeout}ms.\n` +
+          `Terminal content:\n${getBufferText()}`,
+      )
     },
 
     snapshot(): string {
-      return buffer;
+      return getBufferText()
     },
 
     getLine(lineNumber: number): string {
-      const lines = buffer.split("\n");
-      if (lineNumber < 0 || lineNumber >= lines.length) {
+      const buffer = terminal.getViewableBuffer()
+      if (lineNumber < 0 || lineNumber >= buffer.length) {
         throw new Error(
-          `getLine: line ${lineNumber} out of range (0-${lines.length - 1})`,
-        );
+          `getLine: line ${lineNumber} out of range (0-${buffer.length - 1})`,
+        )
       }
-      return lines[lineNumber];
+      return buffer[lineNumber].join("")
     },
 
     async resize(
       newCols: number,
       newRows: number,
     ): Promise<void> {
-      currentCols = newCols;
-      currentRows = newRows;
-      // Update env for any code that re-reads process.env
-      env.COLUMNS = String(newCols);
-      env.LINES = String(newRows);
-      proc.kill("SIGWINCH");
-      await sleep(200);
+      currentCols = newCols
+      currentRows = newRows
+      terminal.resize(newCols, newRows)
+      // Allow time for the TUI to respond to SIGWINCH
+      await sleep(200)
     },
 
     async terminate(): Promise<void> {
       try {
-        proc.kill();
+        terminal.kill()
       } catch {
         // Best-effort
       }
       try {
-        rmSync(configDir, { recursive: true, force: true });
+        rmSync(configDir, { recursive: true, force: true })
       } catch {
-        // Best-effort
+        // Best-effort cleanup
       }
     },
-  };
+  }
 
-  // Give process a bit of time to spin up
-  await sleep(100);
+  // Give the process time to start and render initial screen
+  await sleep(500)
 
-  return instance;
+  return instance
 }
 
 // ── Subprocess helpers ───────────────────────────────────────────────────────
 
+/**
+ * Run a command in a subprocess and capture output.
+ * Used for tsc, bun eval, and other verification commands.
+ */
 export async function run(
   cmd: string[],
-  opts: {
-    cwd?: string;
-    env?: Record<string, string>;
-    timeout?: number;
-  } = {},
-) {
+  opts: { cwd?: string; env?: Record<string, string>; timeout?: number } = {},
+): Promise<{ exitCode: number; stdout: string; stderr: string }> {
   const proc = Bun.spawn(cmd, {
     cwd: opts.cwd ?? TUI_ROOT,
     stdout: "pipe",
     stderr: "pipe",
-    env: { ...(process.env as Record<string, string>), ...opts.env },
-  });
+    env: { ...process.env as Record<string, string>, ...opts.env },
+  })
 
-  const timeout = opts.timeout ?? 30_000;
-  const timer = setTimeout(() => proc.kill(), timeout);
+  const timeout = opts.timeout ?? 30_000
+  const timer = setTimeout(() => proc.kill(), timeout)
 
   const [stdout, stderr] = await Promise.all([
     new Response(proc.stdout).text(),
     new Response(proc.stderr).text(),
-  ]);
-  const exitCode = await proc.exited;
-  clearTimeout(timer);
+  ])
+  const exitCode = await proc.exited
+  clearTimeout(timer)
 
-  return { exitCode, stdout, stderr };
+  return { exitCode, stdout, stderr }
 }
 
-export async function bunEval(expression: string) {
-  return run([BUN, "-e", expression]);
+/**
+ * Run a `bun -e` expression in the TUI package context.
+ * Useful for verifying runtime import resolution.
+ */
+export async function bunEval(expression: string): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+  return run([BUN, "-e", expression])
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 ```
 
-**Key changes from current implementation:**
+**Key design decisions:**
 
-| Change | Before | After | Why |
-|--------|--------|-------|-----|
-| Key mapping | `sendKeys("Enter")` writes literal `"Enter"` (5 chars) to stdin | `sendKeys("Enter")` writes `"\r"` via `mapKeyToSequence()` | Fixes P0 bug: non-printable keys must be escape sequences |
-| Terminal dimensions | Not communicated to process | `COLUMNS` and `LINES` env vars set | Process can detect terminal size even without PTY |
-| In-process mode | Not available | `render` option creates in-process instance via `createTestTui()` | High-fidelity path with proper virtual terminal buffer |
-| `createTestTui` import | Dead code (imported but unused) | Used by `createInProcessInstance()` | No longer dead code |
-| Config dir cleanup | References `env.CODEPLANE_CONFIG_DIR` variable | Uses dedicated `configDir` variable | Cleaner cleanup, avoids closure issues |
-| `LaunchTUIOptions` | 5 fields | 6 fields (added `render?: ReactNode`) | Backward compatible — `render` is optional |
+| Decision | Rationale |
+|----------|-----------|
+| Use `@microsoft/tui-test`'s `spawn()` (not `Bun.spawn()`) | `spawn()` creates a real PTY via `node-pty`/`pty-bun` and wraps it with `@xterm/headless` for proper terminal emulation. This gives us a true 2D grid buffer via `getViewableBuffer()` instead of raw stdout bytes. |
+| Use `terminal.keyPress()` for key input | `keyPress()` generates correct VT100/xterm escape sequences internally. No manual `mapKeyToSequence()` needed — the Terminal class handles it. |
+| Use `terminal.getViewableBuffer()` for screen capture | Returns a `string[][]` (rows × cols) representing the visible terminal grid. This is what `@xterm/headless` renders — proper terminal emulation, not raw ANSI byte accumulation. |
+| Dynamic import of `@microsoft/tui-test` | Avoids top-level import failures when the package is being installed. Also allows the module to be loaded only when `launchTUI()` is called, not when helpers are imported for structural tests. |
+| `resolveKey()` maps to Key enum + modifiers | The `Terminal.keyPress()` method accepts `Key` enum values (strings like `"Enter"`, `"Escape"`) or single characters, plus optional `{ ctrl, alt, shift }`. `resolveKey()` maps our human-readable key names to this format. |
+| `sleep(500)` after spawn | The PTY-backed process needs time to start the Bun runtime, initialize OpenTUI, and render the first frame. 500ms is generous but safe. |
+| Use `Shell.Bash` with `program` option | `@microsoft/tui-test` allows specifying a program to run instead of an interactive shell. We set `program.file = bun` and `program.args = ["run", TUI_ENTRY, ...]`. |
 
-**All existing exports preserved identically:**
-- `TUI_ROOT`, `TUI_SRC`, `TUI_ENTRY`, `BUN` (constants)
+**All existing exports preserved:**
+- `TUI_ROOT`, `TUI_SRC`, `TUI_ENTRY`, `BUN` (path constants)
+- `API_URL`, `WRITE_TOKEN`, `READ_TOKEN`, `OWNER`, `ORG` (server config constants)
+- `TERMINAL_SIZES` (breakpoint dimensions)
 - `TUITestInstance` (interface — unchanged)
-- `LaunchTUIOptions` (interface — extended with optional `render`)
-- `launchTUI()` (function — same signature, backward compatible)
-- `navigateToAgents()`, `waitForSessionListReady()`, `navigateToAgentChat()`, `waitForChatReady()` (agent helpers — unchanged)
-- `createTestCredentialStore()` (credential helper — unchanged)
-- `createMockAPIEnv()` (mock API helper — unchanged)
+- `launchTUI()` (function — same signature, now implemented)
 - `run()`, `bunEval()` (subprocess helpers — unchanged)
 
+**New exports:**
+- `LaunchTUIOptions` (interface — for typed options)
+- `createTestCredentialStore()` (credential helper)
+- `createMockAPIEnv()` (mock API env helper)
+
 ---
 
-### Step 3: Validate existing test configuration (no changes needed)
+### Step 4: Add infrastructure verification tests to `app-shell.test.ts`
 
-**File:** `e2e/tui/bunfig.toml` — no change
+**File:** `e2e/tui/app-shell.test.ts`
 
-```toml
-[test]
-timeout = 30000
-preload = []
+Append a new describe block that validates the E2E test infrastructure. These tests verify that the helpers work without actually testing TUI functionality.
+
+```typescript
+// Append to end of e2e/tui/app-shell.test.ts
+
+import { createTestCredentialStore, createMockAPIEnv, launchTUI } from "./helpers.ts"
+import { readFileSync } from "node:fs"
+
+// ---------------------------------------------------------------------------
+// TUI_APP_SHELL — E2E test infrastructure
+// ---------------------------------------------------------------------------
+
+describe("TUI_APP_SHELL — E2E test infrastructure", () => {
+  test("createTestCredentialStore creates valid credential file", () => {
+    const creds = createTestCredentialStore("test-token-123")
+    try {
+      const content = JSON.parse(readFileSync(creds.path, "utf-8"))
+      expect(content.version).toBe(1)
+      expect(content.tokens).toBeArray()
+      expect(content.tokens[0].token).toBe("test-token-123")
+      expect(content.tokens[0].host).toBe("localhost")
+      expect(creds.token).toBe("test-token-123")
+    } finally {
+      creds.cleanup()
+    }
+  })
+
+  test("createTestCredentialStore generates random token when none provided", () => {
+    const creds = createTestCredentialStore()
+    try {
+      expect(creds.token).toMatch(/^codeplane_test_/)
+      const content = JSON.parse(readFileSync(creds.path, "utf-8"))
+      expect(content.tokens[0].token).toBe(creds.token)
+    } finally {
+      creds.cleanup()
+    }
+  })
+
+  test("createTestCredentialStore cleanup removes files", () => {
+    const creds = createTestCredentialStore()
+    const path = creds.path
+    creds.cleanup()
+    expect(existsSync(path)).toBe(false)
+  })
+
+  test("createMockAPIEnv returns correct default values", () => {
+    const env = createMockAPIEnv()
+    expect(env.CODEPLANE_API_URL).toBe("http://localhost:13370")
+    expect(env.CODEPLANE_TOKEN).toBe("test-token-for-e2e")
+    expect(env.CODEPLANE_DISABLE_SSE).toBeUndefined()
+  })
+
+  test("createMockAPIEnv respects custom options", () => {
+    const env = createMockAPIEnv({
+      apiBaseUrl: "http://custom:9999",
+      token: "custom-token",
+      disableSSE: true,
+    })
+    expect(env.CODEPLANE_API_URL).toBe("http://custom:9999")
+    expect(env.CODEPLANE_TOKEN).toBe("custom-token")
+    expect(env.CODEPLANE_DISABLE_SSE).toBe("1")
+  })
+
+  test("launchTUI is a function", () => {
+    expect(typeof launchTUI).toBe("function")
+  })
+
+  test("@microsoft/tui-test is importable", async () => {
+    const result = await bunEval(
+      "import('@microsoft/tui-test').then(() => console.log('ok')).catch(e => { console.error(e.message); process.exit(1) })",
+    )
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout.trim()).toBe("ok")
+  })
+
+  test("TUITestInstance interface matches expected shape", async () => {
+    // Verify the launchTUI return type is a TUITestInstance
+    // by checking it has all required methods/properties.
+    // This is a type-level check using bunEval to compile TypeScript.
+    const result = await bunEval([
+      "import type { TUITestInstance } from '../../e2e/tui/helpers.ts';",
+      "const check: TUITestInstance = {} as TUITestInstance;",
+      "const methods: (keyof TUITestInstance)[] = [",
+      "  'sendKeys', 'sendText', 'waitForText', 'waitForNoText',",
+      "  'snapshot', 'getLine', 'resize', 'terminate', 'rows', 'cols',",
+      "];",
+      "console.log(methods.length);",
+    ].join(" "))
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout.trim()).toBe("10")
+  })
+
+  test("TERMINAL_SIZES matches design.md breakpoints", async () => {
+    const { TERMINAL_SIZES: sizes } = await import("./helpers.ts")
+    expect(sizes.minimum).toEqual({ width: 80, height: 24 })
+    expect(sizes.standard).toEqual({ width: 120, height: 40 })
+    expect(sizes.large).toEqual({ width: 200, height: 60 })
+  })
+})
 ```
 
-**File:** `apps/tui/package.json` — no change
-
-Already has:
-- `"@microsoft/tui-test": "workspace:*"` in devDependencies
-- `"test:e2e": "bun test ../../e2e/tui/ --timeout 30000"` in scripts
+**Note:** The `existsSync` import already exists at the top of the file. The `createTestCredentialStore`, `createMockAPIEnv`, and `launchTUI` imports are added alongside the existing imports from `./helpers.ts`.
 
 ---
 
-### Step 4: Verify all existing test files resolve imports
+### Step 5: Fix `diff.test.ts` import
 
-After implementing the `@microsoft/tui-test` workspace package, verify import resolution for all test files and helpers:
+**File:** `e2e/tui/diff.test.ts`
 
-| File | Import source | Expected state |
-|------|---------------|----------------|
-| `e2e/tui/helpers.ts` | `"@microsoft/tui-test"` | ✅ Resolves to `packages/tui-test/index.ts`. `createTestTui` is a real function. |
-| `e2e/tui/app-shell.test.ts` | `"./helpers"` | ✅ Resolves. `launchTUI`, `createMockAPIEnv`, `TUITestInstance` exported. |
-| `e2e/tui/agents.test.ts` | `"./helpers"` | ✅ Resolves. |
-| `e2e/tui/agents-registry.test.ts` | `"./helpers"` | ✅ Resolves. |
-| `e2e/tui/organizations.test.ts` | `"./helpers"` | ✅ Resolves. |
-| `e2e/tui/workflows.test.ts` | `"./helpers.js"` | ✅ Resolves. |
-| `e2e/tui/workflow-sse.test.ts` | `"./helpers.js"`, `"./helpers/workflows.js"` | ✅ Resolves. |
-| `e2e/tui/workflow-utils.test.ts` | Various `apps/tui/src/` imports | ✅ No change — doesn't use `@microsoft/tui-test`. |
-| `e2e/tui/workspaces.test.ts` | `"./helpers"` | ✅ Resolves. |
-| `e2e/tui/workspaces-sse.test.ts` | `"./helpers"` | ✅ Resolves. |
-| `e2e/tui/diff.test.ts` | `"../../apps/tui/src/lib/diff-parse"` | ✅ No change — doesn't use `@microsoft/tui-test`. |
-| `e2e/tui/clipboard.test.ts` | `"../../apps/tui/src/lib/clipboard"` | ✅ No change — doesn't use `@microsoft/tui-test`. |
-| `e2e/tui/keybinding-normalize.test.ts` | Various `apps/tui/src/` imports | ✅ No change — doesn't use `@microsoft/tui-test`. |
-| `e2e/tui/streaming/sse-constants.test.ts` | `"../../../apps/tui/src/streaming/types"` | ✅ No change. |
-| `e2e/tui/streaming/event-deduplicator.test.ts` | `"../../../apps/tui/src/streaming/EventDeduplicator"` | ✅ No change. |
-| `e2e/tui/helpers/workspaces.ts` | `"../helpers.js"`, `"@codeplane/ui-core"` | ✅ Resolves. `LaunchTUIOptions` type is backward-compatible (new `render` field is optional). |
-| `e2e/tui/helpers/workflows.ts` | `"../helpers.js"` | ✅ Resolves. |
-| `e2e/tui/helpers/workspace-sse.ts` | `"@codeplane/ui-core/types/workspaces"` | ✅ No change. |
-| `e2e/tui/helpers/__tests__/workspaces.test.ts` | `"../workspaces.js"`, `"../../helpers.js"` | ✅ Resolves. |
+The file currently has:
+```typescript
+import { createTestTui } from "@microsoft/tui-test"
+```
+
+The real `@microsoft/tui-test` v0.0.3 does NOT export `createTestTui`. It exports `test`, `expect`, `Shell`, `Key`, `MouseKey`, and `defineConfig`.
+
+Since the diff test bodies are comment-only stubs (no actual code uses `createTestTui`), the import should be removed or replaced. The import is dead code — none of the test functions reference `createTestTui`.
+
+**Change:** Replace the unused import with the correct import that will be needed when tests are implemented:
+
+```typescript
+// Before:
+import { createTestTui } from "@microsoft/tui-test"
+
+// After:
+import { launchTUI, TUITestInstance, TERMINAL_SIZES } from "./helpers"
+```
+
+**Rationale:** When diff tests are implemented, they will use `launchTUI()` (the standard helper) to launch the TUI and navigate to diff screens. This matches the pattern used by `agents.test.ts`.
 
 ---
 
-### Step 5: No modifications to existing test files
+### Step 6: Verify all test file imports resolve
 
-**No changes to any test file body.** The infrastructure changes are confined to:
-- `packages/tui-test/` (the `@microsoft/tui-test` workspace package)
-- `e2e/tui/helpers.ts` (the shared helper module)
+After implementation, verify import resolution:
 
-All test files and helper files continue to work with their existing imports and test bodies.
+| File | Import | Expected |
+|------|--------|----------|
+| `e2e/tui/helpers.ts` | `@microsoft/tui-test/lib/terminal/term.js` (dynamic) | ✅ Resolves to installed package |
+| `e2e/tui/helpers.ts` | `@microsoft/tui-test/lib/terminal/shell.js` (dynamic) | ✅ Resolves |
+| `e2e/tui/app-shell.test.ts` | `./helpers.ts` | ✅ Resolves (existing + new exports) |
+| `e2e/tui/agents.test.ts` | `./helpers` | ✅ Resolves. `launchTUI`, `TUITestInstance` exported. |
+| `e2e/tui/diff.test.ts` | `./helpers` (after fix) | ✅ Resolves |
 
 ---
 
@@ -1126,47 +811,22 @@ All test files and helper files continue to work with their existing imports and
 
 | File path | Change |
 |-----------|--------|
-| `packages/tui-test/package.json` | Add `type: "module"`, dependencies on `@opentui/react`, `@opentui/core`, `react`. Change `main` to `index.ts`. |
-| `packages/tui-test/index.d.ts` | Replace single-line stub with full type declarations for `CreateTestTuiOptions`, `TestTuiInstance`, and `createTestTui`. |
-| `e2e/tui/helpers.ts` | Add `mapKeyToSequence()` for key escape sequence mapping. Add `render` option to `LaunchTUIOptions`. Add `createInProcessInstance()` for in-process mode. Add `COLUMNS`/`LINES` env vars to out-of-process mode. Import `ReactNode` type. Refactor into `createOutOfProcessInstance()`. |
+| `apps/tui/package.json` | Add `@microsoft/tui-test: "^0.0.3"` to devDependencies. Add `test:e2e` script. |
+| `e2e/tui/helpers.ts` | Replace stub `launchTUI()` with PTY-backed implementation. Add `LaunchTUIOptions` interface. Add `createTestCredentialStore()`. Add `createMockAPIEnv()`. Add `resolveKey()` internal function. Add imports for `tmpdir`, `mkdtempSync`, `writeFileSync`, `rmSync`. |
+| `e2e/tui/app-shell.test.ts` | Add 4th describe block `TUI_APP_SHELL — E2E test infrastructure` with 9 infrastructure validation tests. Add imports for `createTestCredentialStore`, `createMockAPIEnv`, `launchTUI`, `readFileSync`. |
+| `e2e/tui/diff.test.ts` | Replace broken `import { createTestTui } from "@microsoft/tui-test"` with `import { launchTUI, TUITestInstance, TERMINAL_SIZES } from "./helpers"`. No test body changes. |
 
 ### New files
 
 | File path | Purpose |
 |-----------|--------|
-| `packages/tui-test/index.ts` | Real implementation wrapping `@opentui/react/test-utils`'s `testRender()` into `createTestTui()` API. |
+| `e2e/tui/bunfig.toml` | Bun test runner configuration with 30s timeout. |
 
-### Deleted files
-
-| File path | Reason |
-|-----------|--------|
-| `packages/tui-test/index.js` | Replaced by `index.ts` with real implementation. |
-
-### Unchanged files (full list of all test files)
+### Unchanged files
 
 | File path | Reason |
 |-----------|--------|
-| `e2e/tui/app-shell.test.ts` | 875 lines, 76 tests. No modifications. |
-| `e2e/tui/agents.test.ts` | No changes needed. |
-| `e2e/tui/agents-registry.test.ts` | No changes needed. |
-| `e2e/tui/organizations.test.ts` | No changes needed. |
-| `e2e/tui/diff.test.ts` | Does not depend on `@microsoft/tui-test`. |
-| `e2e/tui/clipboard.test.ts` | Does not depend on `@microsoft/tui-test`. |
-| `e2e/tui/workflows.test.ts` | No changes needed. |
-| `e2e/tui/workflow-sse.test.ts` | No changes needed. |
-| `e2e/tui/workflow-utils.test.ts` | No changes needed. |
-| `e2e/tui/workspaces.test.ts` | No changes needed. |
-| `e2e/tui/workspaces-sse.test.ts` | No changes needed. |
-| `e2e/tui/keybinding-normalize.test.ts` | No changes needed. |
-| `e2e/tui/streaming/sse-constants.test.ts` | No changes needed. |
-| `e2e/tui/streaming/event-deduplicator.test.ts` | No changes needed. |
-| `e2e/tui/helpers/index.ts` | No changes needed. |
-| `e2e/tui/helpers/workspaces.ts` | No changes needed. `LaunchTUIOptions` is backward-compatible. |
-| `e2e/tui/helpers/workflows.ts` | No changes needed. |
-| `e2e/tui/helpers/workspace-sse.ts` | No changes needed. |
-| `e2e/tui/helpers/__tests__/workspaces.test.ts` | No changes needed. |
-| `e2e/tui/bunfig.toml` | Already configured. |
-| `apps/tui/package.json` | Already has `@microsoft/tui-test` devDependency and `test:e2e` script. |
+| `e2e/tui/agents.test.ts` | 4,331 lines. No modifications. Uses `launchTUI()` which now works. |
 | `apps/tui/src/**/*` | No source code changes. |
 
 ---
@@ -1175,270 +835,198 @@ All test files and helper files continue to work with their existing imports and
 
 | Package | Version | Location | Type | Reason |
 |---------|---------|----------|------|--------|
-| `@microsoft/tui-test` | `workspace:*` | `packages/tui-test/` | workspace devDependency | Local workspace package wrapping `@opentui/react/test-utils`. |
-| `@opentui/react` | `0.1.90` | dependency of `packages/tui-test/` | dependency | Provides `testRender()` from `@opentui/react/test-utils` for in-process virtual terminal testing. |
-| `@opentui/core` | `0.1.90` | dependency of `packages/tui-test/` | dependency | Provides `createTestRenderer()`, `createMockKeys()`, `MockInput`, `KeyCodes` from `@opentui/core/testing`. |
-| `react` | `19.2.4` | dependency of `packages/tui-test/` | dependency | Required peer for `@opentui/react`. |
+| `@microsoft/tui-test` | `^0.0.3` | `apps/tui/package.json` devDeps | devDependency | Real PTY-backed terminal testing framework. Provides `Terminal` class with `@xterm/headless`, `Key` enum, `Locator` pattern, `toMatchSnapshot()`. |
+| `@xterm/headless` | (transitive via tui-test) | — | transitive | Terminal emulation engine. Provides the virtual terminal buffer that `getViewableBuffer()` and `getBuffer()` read from. |
+| `node-pty` | (transitive via tui-test, optional) | — | optional transitive | PTY backend for Node.js. `@microsoft/tui-test` also ships `pty-bun.js` for Bun runtime support. |
 
 ### Dependency validation
 
-1. **`@opentui/react/test-utils` confirmed.** Type declaration at `.bun-cache/@opentui/react@0.1.90@@@1/src/test-utils.d.ts` exports `testRender(node: ReactNode, testRendererOptions: TestRendererOptions)` returning `Promise<{ renderer, mockInput, mockMouse, renderOnce, captureCharFrame, captureSpans, resize }>`. Implementation at `.bun-cache/@opentui/react@0.1.90@@@1/test-utils.js` confirmed — calls `createTestRenderer()`, creates React root via `createRoot()`, renders via `act()`.
+1. **`@microsoft/tui-test` v0.0.3 confirmed.** Package exists in cache at `specs/tui/.bun-cache/@microsoft/tui-test@0.0.3@@@1/`. Exports `test`, `expect`, `Shell`, `Key`, `MouseKey`, `defineConfig` from entry point. Internal `lib/terminal/term.js` exports `Terminal` class and `spawn()` function.
 
-2. **`@opentui/core/testing` confirmed.** Type declarations at `.bun-cache/@opentui/core@0.1.90@@@1/testing/` export `createTestRenderer()`, `MockInput` (via `createMockKeys()`), `KeyCodes`, `TestRendererOptions`, `TestRenderer`, `MockMouse`, `ManualClock`, `MockTreeSitterClient`, `TestRecorder`.
+2. **`Terminal` API confirmed.** Methods: `write()`, `submit()`, `keyPress(key, opts?)`, `keyUp()`, `keyDown()`, `keyLeft()`, `keyRight()`, `keyEscape()`, `keyDelete()`, `keyBackspace()`, `keyCtrlC()`, `keyCtrlD()`, `mouseDown()`, `mouseUp()`, `mousePress()`, `mouseTo()`, `getBuffer()`, `getViewableBuffer()`, `getCursor()`, `getByText()`, `serialize()`, `resize()`, `kill()`, `onExit()`.
 
-3. **MockInput API confirmed.** Methods: `pressKeys()`, `pressKey()`, `typeText()`, `pressEnter()`, `pressEscape()`, `pressTab()`, `pressBackspace()`, `pressArrow()`, `pressCtrlC()`, `pasteBracketedText()`. All methods that accept modifiers use the interface `{ shift?: boolean; ctrl?: boolean; meta?: boolean; super?: boolean; hyper?: boolean }`. `typeText()` returns `Promise<void>`. `pressKey()` is synchronous and returns `void`.
+3. **`Key` enum confirmed.** Values: `Home`, `End`, `PageUp`, `PageDown`, `Insert`, `Delete`, `Backspace`, `Tab`, `Enter`, `Space`, `Escape`, `F1`-`F12`.
 
-4. **No new native addons.** Both `@opentui/react` and `@opentui/core` are already in the dependency tree via `apps/tui/`. The `packages/tui-test/` workspace adds no new native code.
+4. **Bun PTY backend confirmed.** `lib/terminal/pty-bun.js` exists in the package, providing native PTY support for Bun runtime.
 
-5. **Exact version pinning.** Rendering-critical deps pinned at exact versions matching `apps/tui/package.json` (not `^` ranges) to ensure snapshot test stability per architecture doc.
+5. **`TestFunction` signature confirmed.** Tests receive `({ terminal: Terminal }) => void | Promise<void>`. This is for tests authored with tui-test's own `test()` function. Our tests use `bun:test` and `launchTUI()` instead, which wraps `Terminal` into `TUITestInstance`.
 
 ---
 
 ## 6. `launchTUI()` Architecture Details
 
-### Dual-mode decision flow
+### Terminal lifecycle
 
 ```
 launchTUI(options)
   │
-  ├── options.render provided?
-  │   │
-  │   ├─ YES → In-process mode
-  │   │   ├── createTestTui({ node, cols, rows })
-  │   │   │   └── internally: testRender(node, { width, height })
-  │   │   │       └── createTestRenderer() + createRoot() + act(render)
-  │   │   ├── Screen buffer: captureCharFrame() (clean text) / captureSpans() (with attributes)
-  │   │   ├── Key input: mockInput.pressKey() / typeText() / pressEnter() / etc.
-  │   │   ├── Resize: result.resize(cols, rows) + renderOnce()
-  │   │   └── Returns TUITestInstance adapter
-  │   │
-  │   └─ NO → Out-of-process mode
-  │       ├── Bun.spawn([bun, run, index.tsx, ...args])
-  │       ├── Screen buffer: raw stdout accumulation (known limitation)
-  │       ├── Key input: mapKeyToSequence() → write to proc.stdin
-  │       ├── Resize: SIGWINCH + COLUMNS/LINES env vars
-  │       └── Returns TUITestInstance adapter
+  ├── Create temp directory for CODEPLANE_CONFIG_DIR
+  ├── Merge environment variables (TERM, COLORTERM, LANG, token, ...)
   │
-  └── Both modes implement identical TUITestInstance interface
+  ├── Dynamic import @microsoft/tui-test/lib/terminal/term.js
+  │   └── spawn(options)
+  │       ├── Detect PTY backend (node-pty or pty-bun)
+  │       ├── Create PTY with rows × cols
+  │       ├── Spawn [bun, run, index.tsx, ...args] in PTY
+  │       ├── Create @xterm/headless instance connected to PTY
+  │       └── Return Terminal instance
+  │
+  ├── Wrap Terminal → TUITestInstance adapter
+  │   ├── sendKeys() → resolveKey() → terminal.keyPress() / terminal.keyUp() etc.
+  │   ├── sendText() → terminal.write()
+  │   ├── waitForText() → poll getViewableBuffer() until text found
+  │   ├── waitForNoText() → poll getViewableBuffer() until text gone
+  │   ├── snapshot() → getViewableBuffer() → join rows
+  │   ├── getLine() → getViewableBuffer()[n].join("")
+  │   ├── resize() → terminal.resize()
+  │   └── terminate() → terminal.kill() + rmSync(configDir)
+  │
+  └── sleep(500ms) for initial render
+      └── Return TUITestInstance
 ```
 
-### Key mapping table (out-of-process mode)
+### Key mapping
 
-| Key name | Escape sequence | Notes |
-|----------|-----------------|-------|
-| `Enter` / `Return` | `\r` | Carriage return (matches `KeyCodes.RETURN`) |
-| `Escape` / `Esc` | `\x1b` | ESC byte (matches `KeyCodes.ESCAPE`) |
-| `Tab` | `\t` | Horizontal tab (matches `KeyCodes.TAB`) |
-| `shift+Tab` | `\x1b[Z` | Reverse tab (CSI Z) |
-| `Backspace` | `\x7f` | DEL byte |
-| `Delete` | `\x1b[3~` | CSI sequence (matches `KeyCodes.DELETE`) |
-| `Up` | `\x1b[A` | Arrow up (matches `KeyCodes.ARROW_UP`) |
-| `Down` | `\x1b[B` | Arrow down (matches `KeyCodes.ARROW_DOWN`) |
-| `Right` | `\x1b[C` | Arrow right (matches `KeyCodes.ARROW_RIGHT`) |
-| `Left` | `\x1b[D` | Arrow left (matches `KeyCodes.ARROW_LEFT`) |
-| `Home` | `\x1b[H` | Home key (matches `KeyCodes.HOME`) |
-| `End` | `\x1b[F` | End key (matches `KeyCodes.END`) |
-| `ctrl+c` | `\x03` | ETX |
-| `ctrl+d` | `\x04` | EOT |
-| `ctrl+b` | `\x02` | STX (toggle sidebar) |
-| `ctrl+s` | `\x13` | XOFF (form submit) |
-| `ctrl+u` | `\x15` | NAK (page up) |
-| `F1`-`F12` | Standard VT sequences | Match `KeyCodes.F1` through `KeyCodes.F12` |
-| Single char (e.g., `j`, `k`, `q`, `:`, `?`, `/`, `G`) | The character itself | Passed through |
-| Raw escape sequences (e.g., `\x03`) | Passed through | For tests that send raw sequences |
+The `resolveKey()` function maps human-readable key names to `Terminal.keyPress()` calls or dedicated methods:
 
-In in-process mode, key mapping is handled by `@opentui/react/test-utils`'s `MockInput` which supports all keys natively via `pressKey()`, `typeText()`, and convenience methods. The `sendKey()` method on `TestTuiInstance` dispatches to the appropriate MockInput method based on the key name.
+| Key name | Method called | Notes |
+|----------|--------------|-------|
+| `"j"`, `"k"`, `"q"`, `":"`, `"?"`, `"/"`, `"G"` | `keyPress(char)` | Single printable characters |
+| `"Enter"` / `"Return"` | `keyPress("Enter")` | Key enum value |
+| `"Escape"` / `"Esc"` | `keyPress("Escape")` | Key enum value |
+| `"Tab"` | `keyPress("Tab")` | Key enum value |
+| `"Backspace"` | `keyPress("Backspace")` | Key enum value |
+| `"Space"` | `keyPress("Space")` | Key enum value |
+| `"Up"` / `"ArrowUp"` | `keyUp()` | Dedicated method |
+| `"Down"` / `"ArrowDown"` | `keyDown()` | Dedicated method |
+| `"Left"` / `"ArrowLeft"` | `keyLeft()` | Dedicated method |
+| `"Right"` / `"ArrowRight"` | `keyRight()` | Dedicated method |
+| `"ctrl+c"` | `keyCtrlC()` | Dedicated method |
+| `"ctrl+d"` | `keyCtrlD()` | Dedicated method |
+| `"ctrl+b"` | `keyPress("b", { ctrl: true })` | Dynamic ctrl pattern |
+| `"ctrl+s"` | `keyPress("s", { ctrl: true })` | Dynamic ctrl pattern |
+| `"ctrl+u"` | `keyPress("u", { ctrl: true })` | Dynamic ctrl pattern |
+| `"shift+Tab"` | `keyPress("Tab", { shift: true })` | Explicit mapping |
+| `"F1"`–`"F12"` | `keyPress("F1")` ... `keyPress("F12")` | Key enum values |
+| `"Home"`, `"End"`, `"PageUp"`, `"PageDown"` | `keyPress("Home")` etc. | Key enum values |
+| `"Delete"`, `"Insert"` | `keyPress("Delete")` etc. | Key enum values |
 
 ### Test isolation guarantees
 
 Each `launchTUI()` call creates:
 
-1. **Fresh temp directory** for `CODEPLANE_CONFIG_DIR` (out-of-process mode only) via `mkdtempSync()` — unique per invocation
-2. **Fresh process** (out-of-process) or **fresh React tree** (in-process) — no shared state
-3. **Deterministic environment** — `TERM=xterm-256color`, `COLORTERM=truecolor`, `LANG=en_US.UTF-8`, `COLUMNS`, `LINES` set to known values
+1. **Fresh temp directory** for `CODEPLANE_CONFIG_DIR` via `mkdtempSync()` — unique per invocation
+2. **Fresh PTY + process** — `spawn()` creates a new PTY and process
+3. **Deterministic environment** — `TERM=xterm-256color`, `COLORTERM=truecolor`, `LANG=en_US.UTF-8`
 4. **Known auth token** — `CODEPLANE_TOKEN=e2e-test-token` unless overridden via `env`
-5. **Process cleanup** — `terminate()` kills the process AND removes the temp config dir (out-of-process), or destroys the renderer (in-process)
+5. **Process cleanup** — `terminate()` calls `terminal.kill()` AND removes the temp config dir
+
+### Screen buffer vs raw stdout
+
+| Approach | What you get | Our implementation |
+|----------|-------------|--------------------|
+| `Bun.spawn()` stdout pipe | Raw ANSI byte stream — cursor movement sequences mixed with content. Not a 2D grid. | ❌ Previous approach (broken) |
+| `@xterm/headless` via tui-test | Proper VT100 terminal emulation. `getViewableBuffer()` returns a `string[][]` grid matching what a user would see. Cursor movement, alternate screen buffer, line wrapping all handled correctly. | ✅ Our implementation |
 
 ---
 
-## 7. Credential Store Helper Details
+## 7. Unit & Integration Tests
 
-**File:** `e2e/tui/helpers.ts` — preserved unchanged from existing implementation.
+### Infrastructure tests in `app-shell.test.ts`
 
-`createTestCredentialStore()` creates a temporary JSON file matching the CLI keychain format:
+The new `TUI_APP_SHELL — E2E test infrastructure` describe block adds 9 tests:
 
-```json
-{
-  "version": 1,
-  "tokens": [
-    {
-      "host": "localhost",
-      "token": "codeplane_test_1711234567890_abc123",
-      "created_at": "2026-03-22T10:00:00.000Z"
-    }
-  ]
-}
-```
-
-Returns `{ path, token, cleanup() }`. Usage:
-
-```typescript
-const creds = createTestCredentialStore("valid-test-token");
-try {
-  const tui = await launchTUI({
-    env: {
-      CODEPLANE_TEST_CREDENTIAL_STORE_FILE: creds.path,
-      CODEPLANE_TOKEN: creds.token,
-    },
-  });
-  await tui.waitForText("Dashboard");
-  await tui.terminate();
-} finally {
-  creds.cleanup();
-}
-```
-
----
-
-## 8. Mock API Server Helper Details
-
-**File:** `e2e/tui/helpers.ts` — preserved unchanged.
-
-`createMockAPIEnv()` returns environment variables that configure the TUI to point at a test API server:
-
-```typescript
-const env = createMockAPIEnv({
-  apiBaseUrl: "http://localhost:13370",
-  token: "test-token",
-  disableSSE: true,
-});
-// Returns: { CODEPLANE_API_URL, CODEPLANE_TOKEN, CODEPLANE_DISABLE_SSE }
-```
-
-**Design rationale:** This helper does NOT start a server. It only configures the environment. Different test files need different responses, and some tests run against a real API server. A `createMockAPIServer()` function can be added in a follow-up ticket when data-dependent feature tests require it.
-
----
-
-## 9. Unit & Integration Tests
-
-### Test file: `e2e/tui/app-shell.test.ts`
-
-The existing test file contains 76 tests across 2 top-level describe blocks and 15 nested sub-describes. All tests use `launchTUI()` from `./helpers` in out-of-process mode.
-
-#### Describe: `TUI_LOADING_STATES` (45 tests)
-
-| Sub-describe | Tests | IDs |
-|-------------|-------|-----|
-| Full-screen loading spinner | 6 | LOAD-SNAP-001 to LOAD-SNAP-006 |
-| Skeleton rendering | 5 | LOAD-SNAP-010 to LOAD-SNAP-014 |
-| Inline pagination loading | 3 | LOAD-SNAP-020 to LOAD-SNAP-022 |
-| Action loading | 2 | LOAD-SNAP-030 to LOAD-SNAP-031 |
-| Full-screen error | 4 | LOAD-SNAP-040 to LOAD-SNAP-043 |
-| Optimistic UI revert | 1 | LOAD-SNAP-050 |
-| No-color terminal | 2 | LOAD-SNAP-060 to LOAD-SNAP-061 |
-| Loading timeout | 1 | LOAD-SNAP-070 |
-| Keyboard interactions during loading | 11 | LOAD-KEY-001 to LOAD-KEY-011 |
-| Responsive behavior | 8 | LOAD-RSP-001 to LOAD-RSP-008 |
-
-#### Describe: `KeybindingProvider — Priority Dispatch` (31 tests)
-
-| Sub-describe | Tests | IDs |
-|-------------|-------|-----|
-| Snapshot Tests | 4 | KEY-SNAP-001 to KEY-SNAP-004 |
-| Global Keybinding Tests | 6 | KEY-KEY-001 to KEY-KEY-006 |
-| Priority Layering Tests | 6 | KEY-KEY-010 to KEY-KEY-015 |
-| Scope Lifecycle Tests | 2 | KEY-KEY-020 to KEY-KEY-021 |
-| Status Bar Hints Tests | 2 | KEY-KEY-030 to KEY-KEY-031 |
-| Integration Tests | 1 | KEY-INT-001 |
-| Edge Case Tests | 3 | KEY-EDGE-001 to KEY-EDGE-003 |
-| Responsive Tests | 4 | KEY-RSP-001 to KEY-RSP-004 |
+| Test | ID | What it validates |
+|------|----|-------------------|
+| `createTestCredentialStore creates valid credential file` | INFRA-001 | File exists, JSON parses, has version/tokens structure, token matches input |
+| `createTestCredentialStore generates random token when none provided` | INFRA-002 | Token starts with `codeplane_test_`, stored in file |
+| `createTestCredentialStore cleanup removes files` | INFRA-003 | Temp dir and file removed after `cleanup()` |
+| `createMockAPIEnv returns correct default values` | INFRA-004 | Default API URL, token, no SSE disable flag |
+| `createMockAPIEnv respects custom options` | INFRA-005 | Custom URL, token, SSE disable flag |
+| `launchTUI is a function` | INFRA-006 | `typeof launchTUI === "function"` |
+| `@microsoft/tui-test is importable` | INFRA-007 | Dynamic import resolves successfully |
+| `TUITestInstance interface matches expected shape` | INFRA-008 | TypeScript compiles with all 10 required members |
+| `TERMINAL_SIZES matches design.md breakpoints` | INFRA-009 | minimum=80×24, standard=120×40, large=200×60 |
 
 ### Expected test state after this ticket
 
-**All tests in `app-shell.test.ts` will still fail** because:
-- Out-of-process mode: The TUI process launches via `Bun.spawn()` without a PTY. `assertTTY()` in `index.tsx` may reject the non-TTY stdin/stdout, or the renderer may behave differently without a real terminal.
-- The key mapping fix means keys are now sent correctly as escape sequences, but the process may not produce readable output without PTY terminal emulation.
-- No API server is running during tests, so data-dependent screens cannot render.
+**Tests that should PASS:**
 
-Per project policy and `feedback_failing_tests.md`, these tests are **never skipped or commented out**. They remain as failing signals that track progress toward full E2E coverage.
+| Test file | Tests | Why |
+|-----------|-------|-----|
+| `e2e/tui/app-shell.test.ts` — Package scaffold | 19 | Validates file existence, package.json, tsconfig |
+| `e2e/tui/app-shell.test.ts` — TypeScript compilation | 3 | Runs `tsc --noEmit` |
+| `e2e/tui/app-shell.test.ts` — Dependency resolution | 6 | Runtime import checks |
+| `e2e/tui/app-shell.test.ts` — E2E test infrastructure | 9 (new) | Validates helpers work |
 
-### Infrastructure self-test files (expected to pass)
+**Tests that will FAIL (expected, per policy):**
 
-These test files validate test infrastructure and pure functions — they do NOT launch a TUI process:
+| Test file | Tests | Reason |
+|-----------|-------|--------|
+| `e2e/tui/agents.test.ts` | ~200+ | `launchTUI()` now runs but TUI process exits immediately because `apps/tui/src/index.tsx` is a type-only stub (no bootstrap, no renderer, no screen rendering). The process starts in the PTY but produces no meaningful output. `waitForText()` calls will timeout. |
+| `e2e/tui/diff.test.ts` | 30 | Test bodies are comment-only stubs — no assertions. After import fix, tests will pass vacuously (empty test bodies) OR fail if `bun:test` requires at least one assertion. However, these tests also need `launchTUI()` functionality which depends on a working TUI runtime. |
 
-| Test file | Tests | Expected state |
-|-----------|-------|----------------|
-| `e2e/tui/helpers/__tests__/workspaces.test.ts` | ~20 | ✅ Pass — validates fixture data, SSE events, injection files, string utilities |
-| `e2e/tui/streaming/sse-constants.test.ts` | ~10 | ✅ Pass — validates SSE constants from `apps/tui/src/streaming/types` |
-| `e2e/tui/streaming/event-deduplicator.test.ts` | ~10 | ✅ Pass — validates EventDeduplicator logic |
-| `e2e/tui/keybinding-normalize.test.ts` | ~15 | ✅ Pass — validates key normalization functions |
-| `e2e/tui/clipboard.test.ts` | ~10 | ✅ Pass — validates clipboard provider detection |
-| `e2e/tui/diff.test.ts` | ~15 | ✅ Pass — validates diff parsing pure functions |
-
-### All test files with `launchTUI()` calls (expected to fail)
-
-| Test file | Tests | Expected state | Reason for failure |
-|-----------|-------|----------------|-------------------|
-| `e2e/tui/app-shell.test.ts` | 76 | ❌ Fail | No PTY; `assertTTY()` rejects non-TTY |
-| `e2e/tui/agents.test.ts` | ~50 | ❌ Fail | Same |
-| `e2e/tui/agents-registry.test.ts` | ~20 | ❌ Fail | Same |
-| `e2e/tui/organizations.test.ts` | ~30 | ❌ Fail | Same |
-| `e2e/tui/workflows.test.ts` | ~20 | ❌ Fail | Same |
-| `e2e/tui/workflow-sse.test.ts` | ~15 | ❌ Fail | Same |
-| `e2e/tui/workspaces.test.ts` | ~10 | ❌ Fail | Same |
-| `e2e/tui/workspaces-sse.test.ts` | ~20 | ❌ Fail | Same |
+Per project policy and `feedback_failing_tests.md`, these tests are **never skipped or commented out**. They remain as failing signals that track progress toward full E2E coverage. When `apps/tui/src/index.tsx` gains a real bootstrap sequence (renderer, provider stack, screen rendering), these tests will begin to pass incrementally.
 
 ---
 
-## 10. Acceptance Criteria
+## 8. Acceptance Criteria
 
 | # | Criterion | Verification |
 |---|-----------|-------------|
-| AC-1 | `packages/tui-test/index.ts` exports a functional `createTestTui()` | `import { createTestTui } from "@microsoft/tui-test"; typeof createTestTui === "function"` |
-| AC-2 | `createTestTui({ node })` returns a `TestTuiInstance` with working methods | Call with a `React.createElement("text", null, "hello")` element; `getScreenText()` returns a string containing `"hello"` |
-| AC-3 | `createTestTui()` without a node throws descriptive error | Error message includes `"out-of-process mode"` and `"launchTUI()"` |
-| AC-4 | `bun install` succeeds from monorepo root | Exit code 0, no resolution errors for `@microsoft/tui-test` workspace |
-| AC-5 | `e2e/tui/helpers.ts` exports `launchTUI()` as a function | `typeof launchTUI === "function"` |
-| AC-6 | `launchTUI({ render: node })` creates in-process TUI via testRender | Call with React element; `waitForText()` works against virtual buffer |
-| AC-7 | `launchTUI()` (out-of-process) maps key names to escape sequences | `sendKeys("Enter")` sends `"\r"`, not literal `"Enter"` |
-| AC-8 | `launchTUI()` (out-of-process) sets `COLUMNS`/`LINES` env vars | Process env includes `COLUMNS=120` and `LINES=40` (or custom values) |
-| AC-9 | `LaunchTUIOptions` includes optional `render` field | TypeScript compiles with `{ render: React.createElement("text") }` |
-| AC-10 | All existing exports from `helpers.ts` preserved | `navigateToAgents`, `waitForSessionListReady`, `navigateToAgentChat`, `waitForChatReady`, `createTestCredentialStore`, `createMockAPIEnv`, `run`, `bunEval`, `TUI_ROOT`, `TUI_SRC`, `TUI_ENTRY`, `BUN` all exported |
-| AC-11 | All test files resolve imports without `ModuleNotFoundError` | `bun test e2e/tui/ --bail 0` — no import resolution errors |
-| AC-12 | `mapKeyToSequence()` covers all TUI keybindings from design spec | Handles Enter, Escape, Tab, shift+Tab, Backspace, Delete, all arrows, Home, End, ctrl+a/b/c/d/e/k/l/n/p/s/u/w, F1-F12, single chars, raw sequences |
-| AC-13 | Each `launchTUI()` call creates isolated state | Unique temp dirs per invocation via `mkdtempSync()`; no shared state between tests |
-| AC-14 | No changes to any `apps/tui/src/` file | Verified by `git diff apps/tui/src/` showing no changes |
-| AC-15 | No changes to any existing test body | All test files byte-identical before/after (only `helpers.ts` and `packages/tui-test/` changed) |
-| AC-16 | `packages/tui-test/index.js` is deleted | File no longer exists; replaced by `index.ts` |
+| AC-1 | `@microsoft/tui-test` installed as devDependency | `apps/tui/package.json` has `"@microsoft/tui-test": "^0.0.3"` in devDependencies |
+| AC-2 | `bun install` succeeds from monorepo root | Exit code 0, no resolution errors |
+| AC-3 | `@microsoft/tui-test` is importable at runtime | `bunEval("import('@microsoft/tui-test').then(() => console.log('ok'))")` returns `"ok"` |
+| AC-4 | `launchTUI()` is a callable function (no longer throws stub error) | `typeof launchTUI === "function"` and calling it doesn't throw `"Not yet implemented"` |
+| AC-5 | `launchTUI()` creates a PTY-backed terminal via `@microsoft/tui-test` | Process is spawned with real PTY; `getViewableBuffer()` returns a grid |
+| AC-6 | `sendKeys()` sends proper key sequences via `Terminal.keyPress()` | `sendKeys("Enter")` calls `terminal.keyPress("Enter")`, not `write("Enter")` |
+| AC-7 | `snapshot()` returns grid-formatted text from `getViewableBuffer()` | Returns string with rows joined by `\n`, each row being character cells joined |
+| AC-8 | `getLine(n)` returns the nth row from the terminal buffer | Returns `getViewableBuffer()[n].join("")` |
+| AC-9 | `resize()` calls `terminal.resize()` | Terminal dimensions update; TUI process receives SIGWINCH |
+| AC-10 | `terminate()` kills the process AND cleans up temp dir | Process killed, config dir removed |
+| AC-11 | `createTestCredentialStore()` creates valid credential JSON file | File parses as JSON with version and tokens array |
+| AC-12 | `createTestCredentialStore().cleanup()` removes temp files | Directory and file deleted |
+| AC-13 | `createMockAPIEnv()` returns correct env vars | CODEPLANE_API_URL, CODEPLANE_TOKEN, optional CODEPLANE_DISABLE_SSE |
+| AC-14 | `e2e/tui/bunfig.toml` exists with `timeout = 30000` | File exists and has correct content |
+| AC-15 | `apps/tui/package.json` has `test:e2e` script | `"test:e2e": "bun test ../../e2e/tui/ --timeout 30000"` |
+| AC-16 | All existing exports from `helpers.ts` preserved | `TUI_ROOT`, `TUI_SRC`, `TUI_ENTRY`, `BUN`, `API_URL`, `WRITE_TOKEN`, `READ_TOKEN`, `OWNER`, `ORG`, `TERMINAL_SIZES`, `TUITestInstance`, `launchTUI`, `run`, `bunEval` all exported |
+| AC-17 | `diff.test.ts` import fixed — no longer references non-existent `createTestTui` | Imports from `./helpers` instead of `@microsoft/tui-test` |
+| AC-18 | Infrastructure tests pass | 9 new tests in `TUI_APP_SHELL — E2E test infrastructure` pass |
+| AC-19 | No changes to `apps/tui/src/` files | `git diff apps/tui/src/` shows no changes |
+| AC-20 | No changes to `agents.test.ts` test bodies | File unchanged except possibly for CI-facing test count |
+| AC-21 | Each `launchTUI()` call creates isolated state | Unique temp dirs via `mkdtempSync()`; no shared state between tests |
 
 ---
 
-## 11. Risks and Mitigations
+## 9. Risks and Mitigations
 
 | Risk | Impact | Likelihood | Mitigation |
 |------|--------|-----------|------------|
-| `@opentui/react/test-utils` API differs from type declarations at runtime | Adapter code in `createTestTui()` crashes with method-not-found | Low — types were confirmed from `.bun-cache` declarations AND implementation was read from `test-utils.js` | `TestTuiInstance` interface is the adapter layer. Internal impl can change without affecting test files. Implementation verified at `.bun-cache/@opentui/react@0.1.90@@@1/test-utils.js`. |
-| `testRender()` does not support full provider stack (AuthProvider, SSEProvider, etc.) | In-process mode cannot test screens that require API data or SSE connections | Medium | In-process mode is for component-level and screen isolation tests. Full E2E tests use out-of-process mode. Both modes coexist via the same `TUITestInstance` interface. Provider composition in tests would use test-specific wrappers. |
-| Out-of-process mode without PTY produces unreliable screen buffers | `getLine()` and `snapshot()` return garbled output in out-of-process mode | Known (existing, pre-existing limitation) | This is the existing behavior and a known limitation. In-process mode is the high-fidelity path. Future enhancement: PTY support via `node-pty` or Bun native PTY to fix out-of-process fidelity. |
-| `captureCharFrame()` line count differs from terminal row count | `getLine(terminal.rows - 1)` may be out of bounds in in-process mode | Low | `captureCharFrame()` returns a grid-formatted string with dimensions matching the configured width/height. Line count equals configured rows. |
-| `captureSpans()` span text concatenation may not include ANSI codes | `snapshot()` in in-process mode returns text without ANSI escape codes | Low-Medium | Current implementation concatenates span text without ANSI wrapping. For tests that assert ANSI codes, the span attributes (fg, bg, attributes) are available in the CapturedFrame. If ANSI codes are needed, the implementation can be enhanced to emit ANSI from span attributes. |
-| `LaunchTUIOptions.render` addition breaks downstream types | `helpers/workspaces.ts` imports `LaunchTUIOptions` | None | The new `render` field is `optional` (`render?: ReactNode`). Existing code that doesn't set it continues to work identically. Verified: `WorkspaceContextOptions` in `helpers/workspaces.ts` extends `LaunchTUIOptions`. |
-| Tests importing directly from `@microsoft/tui-test` break | If any test file uses `createTestTui` API directly | None — confirmed only `helpers.ts` imports from it | All test files import from `./helpers` or `./helpers/*`. Only `e2e/tui/helpers.ts` imports from `@microsoft/tui-test`. |
-| `assertTTY()` in `index.tsx` rejects non-TTY stdin/stdout | Out-of-process tests fail at process startup | Known (existing) | This is the expected behavior. Tests are left failing per policy. |
-| `typeText()` is async in MockInput but `sendKey()` awaits renderOnce after each call | Potential timing issues with rapid key sequences | Low | `sendKey()` awaits `renderOnce()` after each key press, ensuring the render pipeline is flushed. For `sendKeys(...keys)`, each key is processed sequentially with a render flush between them. |
-| `pressKey()` is synchronous but `typeText()` is async | Inconsistent async behavior in `sendKey()` default branch | Low | For single characters, `typeText(char)` is called without await before `renderOnce()`, but since it's a single character with no delay, the key is injected synchronously before the render flush. If issues arise, the default branch can be updated to `await mockInput.typeText(key)`. |
+| `node-pty` unavailable in Bun runtime | `spawn()` fails to create PTY | Low — `@microsoft/tui-test` ships `pty-bun.js` backend | Package includes Bun-native PTY support. Verified `lib/terminal/pty-bun.js` exists. If issues arise, can fall back to Node.js PTY with Bun's Node compat. |
+| `@xterm/headless` version incompatibility with Bun | Terminal emulation crashes or renders incorrectly | Low | `@xterm/headless` is a pure JS package (no native deps). It's a transitive dep of `@microsoft/tui-test` so versions are locked by tui-test's lockfile. |
+| TUI process exits immediately in PTY (index.tsx is stub) | All `waitForText()` calls timeout; tests fail | Expected (known) | This is the expected behavior. `apps/tui/src/index.tsx` is a type-only stub. Tests are left failing per policy. When bootstrap is implemented, tests will start passing. |
+| `getViewableBuffer()` returns empty rows for unrendered terminal | `snapshot()` returns whitespace-only string | Medium | The 500ms sleep after spawn provides time for initial render. If the process exits before rendering, the buffer will reflect what was rendered. For stub TUI, this means an empty or error screen — which is correct. |
+| `terminal.keyPress()` with Key enum string doesn't match actual Key enum value | Keys not recognized by Terminal | Low | The Key enum uses string values (`"Enter"`, `"Escape"`, etc.) that match the strings we pass. `keyPress()` internally resolves these. Confirmed by reading `ansi.d.ts`. |
+| Dynamic import path `@microsoft/tui-test/lib/terminal/term.js` changes in future versions | Import fails | Low | We pin `^0.0.3` which limits to patch updates. The internal path structure was verified from the v0.0.3 package. If it changes, only `helpers.ts` needs updating. |
+| `spawn()` function signature changes | `launchTUI()` breaks | Low | `spawn(options, trace, traceEmitter)` verified from `term.d.ts`. Pinned version range limits exposure. |
+| Test timeout at 30s too short for PTY spawn + TUI render | Tests fail with timeout instead of meaningful error | Medium | `waitForText()` has its own 10s timeout with descriptive error messages. The 30s bunfig timeout is the outer safety net. Can be increased per-test with `test(name, fn, timeout)`. |
+| Multiple `launchTUI()` calls in one test file cause PTY resource exhaustion | Later tests fail with "too many open files" | Low | Each test should call `terminate()` in an `afterEach` or `finally` block. The `terminal.kill()` call closes the PTY file descriptors. |
 
 ---
 
-## 12. Productionization Notes
+## 10. Productionization Notes
 
 ### What this ticket produces
 
 **Permanent infrastructure** — not POC code:
 
-1. **`packages/tui-test/index.ts`** — A workspace package that wraps `@opentui/react/test-utils` into the `@microsoft/tui-test` API contract. This is the permanent test dependency for all TUI E2E tests. The wrapper pattern (`createTestTui()` → `testRender()`) provides a stable adaptation layer that isolates tests from OpenTUI's internal API evolution. Any changes to OpenTUI's test-utils API are absorbed by this single file.
+1. **`@microsoft/tui-test` dependency** — The real npm package providing PTY-backed terminal testing. This is the permanent test dependency for all TUI E2E tests. Unlike the previously considered workspace stub approach, this uses the battle-tested framework with proper `@xterm/headless` terminal emulation.
 
-2. **`e2e/tui/helpers.ts`** — The permanent test helper module consumed by all 12+ test files in `e2e/tui/`. Every export is the stable API for feature tests. The `mapKeyToSequence()` function is the canonical key mapping for out-of-process mode. The in-process mode via `render` option is the high-fidelity testing path for component and screen tests.
+2. **`e2e/tui/helpers.ts`** — The permanent test helper module consumed by all test files in `e2e/tui/`. The `TUITestInstance` interface is the stable API contract. The internal implementation (wrapping `@microsoft/tui-test`'s `Terminal`) can change without affecting test files.
+
+3. **`e2e/tui/bunfig.toml`** — Permanent test runner configuration.
+
+4. **Infrastructure tests** — Permanent validation that test tooling works correctly.
 
 ### What this ticket does NOT produce
 
@@ -1446,76 +1034,73 @@ These test files validate test infrastructure and pure functions — they do NOT
 - No mock API server implementation (only env configuration helper)
 - No golden snapshot files (no successful TUI renders to snapshot yet)
 - No feature-level tests beyond what exists
-- No PTY-based out-of-process testing (future enhancement)
-- No changes to test bodies
+- No in-process component testing path (that's a separate concern using `@opentui/react/test-utils`)
 
 ### Transition path
 
-| What changes | When (ticket) | How |
-|-------------|---------------|-----|
-| Tests pass in out-of-process mode | When PTY support is added | Replace `Bun.spawn()` with PTY spawn (e.g., `node-pty` or Bun native PTY). `assertTTY()` passes, renderer uses alternate screen, screen buffer is a real 2D grid. `mapKeyToSequence()` remains correct. |
-| Tests use in-process mode for component testing | First feature screen ticket | Tests pass `render: <ScreenComponent />` to `launchTUI()`. Provider stack can be composed per-test with mock data providers. |
-| Golden snapshot files created | First passing render test | `toMatchSnapshot()` calls write golden files on first run. Snapshots committed to `e2e/tui/__snapshots__/`. |
-| Mock API server helper added | First data-dependent feature ticket | Add `createMockAPIServer()` to `helpers.ts` or a separate `e2e/tui/helpers/mock-server.ts` that starts an HTTP server with configurable response routes. |
-| SSE mock helper consolidated | SSE feature tickets | Currently 3 separate SSE helpers exist (`helpers/workspaces.ts`, `helpers/workspace-sse.ts`, `helpers/workflows.ts`). May need consolidation into a shared SSE mock infrastructure. |
+| What | When (ticket) | How |
+|------|---------------|-----|
+| Tests start passing | When `apps/tui/src/index.tsx` gains real bootstrap | TUI renders screens → `waitForText()` finds expected content → tests pass |
+| Snapshot testing enabled | First passing render test | Use `terminal.serialize()` or `snapshot()` to capture golden files. Can also use `@microsoft/tui-test`'s `toMatchSnapshot()` matcher with tui-test's own `test()` framework. |
+| Color assertions | Diff/theme tests | Use `Terminal.getByText().toHaveFgColor()` / `.toHaveBgColor()` from tui-test's Locator API |
+| In-process component tests | When isolated component testing is needed | Use `@opentui/react/test-utils`'s `testRender()` directly (no `launchTUI()` needed). Complementary to E2E tests. |
+| Mock API server | First data-dependent feature test | Add `createMockAPIServer()` that starts an HTTP server with configurable routes. Currently only `createMockAPIEnv()` exists for env configuration. |
 
 ### API stability contract
 
-The `TUITestInstance` interface is the contract. All 12+ test files depend on it. The internal implementation (which library renders, how the screen buffer is captured) can change without affecting any test file:
+The `TUITestInstance` interface is the contract. All test files depend on it:
 
 ```typescript
 export interface TUITestInstance {
-  sendKeys(...keys: string[]): Promise<void>;
-  sendText(text: string): Promise<void>;
-  waitForText(text: string, timeoutMs?: number): Promise<void>;
-  waitForNoText(text: string, timeoutMs?: number): Promise<void>;
-  snapshot(): string;
-  getLine(lineNumber: number): string;
-  resize(cols: number, rows: number): Promise<void>;
-  terminate(): Promise<void>;
-  rows: number;
-  cols: number;
+  sendKeys(...keys: string[]): Promise<void>
+  sendText(text: string): Promise<void>
+  waitForText(text: string, timeoutMs?: number): Promise<void>
+  waitForNoText(text: string, timeoutMs?: number): Promise<void>
+  snapshot(): string
+  getLine(lineNumber: number): string
+  resize(cols: number, rows: number): Promise<void>
+  terminate(): Promise<void>
+  rows: number
+  cols: number
 }
 ```
 
-The `@microsoft/tui-test` package's `createTestTui()` is consumed only by `e2e/tui/helpers.ts`. If the OpenTUI test-utils API changes, there is exactly one point of adaptation in `packages/tui-test/index.ts`.
+The internal implementation can change (different PTY library, different terminal emulator, different buffer capture method) without affecting any test file. The adapter layer in `launchTUI()` absorbs all such changes.
 
-The `LaunchTUIOptions` interface is consumed by `e2e/tui/helpers/workspaces.ts` (via `WorkspaceContextOptions extends LaunchTUIOptions`). The new `render` field is optional and backward-compatible.
+### Why `@microsoft/tui-test` (real) over a workspace stub wrapping `@opentui/react/test-utils`
 
-### Version management
+The previous spec proposed creating a `packages/tui-test/` workspace package that wraps `@opentui/react/test-utils`'s `testRender()`. This approach has critical limitations:
 
-The `packages/tui-test/` workspace package pins its dependencies at exact versions matching `apps/tui/package.json`:
-- `@opentui/react`: `0.1.90`
-- `@opentui/core`: `0.1.90`
-- `react`: `19.2.4`
+1. **`testRender()` is in-process** — It renders React components in a virtual buffer but does NOT spawn a process, create a PTY, or exercise the full TUI bootstrap sequence (`assertTTY()`, `createCliRenderer()`, `createRoot()`, provider stack).
 
-This ensures rendering consistency — minor version changes in OpenTUI could alter layout calculations or character rendering, breaking snapshot tests. When `apps/tui/package.json` upgrades these dependencies, `packages/tui-test/package.json` must be updated in lockstep.
+2. **No real terminal emulation** — `testRender()`'s `captureCharFrame()` gives a text grid from OpenTUI's layout engine, but doesn't exercise the actual ANSI rendering, alternate screen buffer, cursor management, or raw mode that the real TUI uses.
+
+3. **No process-level isolation** — E2E tests should exercise the TUI as a subprocess (like a user would run it), not as an in-process React tree.
+
+The real `@microsoft/tui-test` provides PTY-backed testing with `@xterm/headless` terminal emulation — exactly what E2E tests need. In-process testing with `@opentui/react/test-utils` remains available for component-level tests without requiring any wrapper.
 
 ---
 
-## 13. Implementation Checklist
+## 11. Implementation Checklist
 
-- [ ] Delete `packages/tui-test/index.js` (stub)
-- [ ] Create `packages/tui-test/index.ts` with `createTestTui()` wrapping `@opentui/react/test-utils`
-- [ ] Update `packages/tui-test/package.json`: add `type: "module"`, dependencies, change `main` to `index.ts`
-- [ ] Update `packages/tui-test/index.d.ts` with full type declarations
+- [ ] Add `"@microsoft/tui-test": "^0.0.3"` to `apps/tui/package.json` devDependencies
+- [ ] Add `"test:e2e": "bun test ../../e2e/tui/ --timeout 30000"` to `apps/tui/package.json` scripts
 - [ ] Run `bun install` from monorepo root; verify success
-- [ ] Add `mapKeyToSequence()` to `e2e/tui/helpers.ts`
-- [ ] Update `sendKeys()` in out-of-process mode to use `mapKeyToSequence()`
-- [ ] Add `COLUMNS`/`LINES` env vars to out-of-process mode
-- [ ] Add `render` option to `LaunchTUIOptions` interface
-- [ ] Add `createInProcessInstance()` for in-process rendering mode
-- [ ] Add `createOutOfProcessInstance()` refactoring existing spawn code
-- [ ] Update `launchTUI()` to dispatch to in-process or out-of-process based on `render` option
-- [ ] Add `import type { ReactNode } from "react"` to helpers.ts
-- [ ] Change `createTestTui` import to also import `TestTuiInstance` type alias (renamed to `InternalTestTuiInstance` to avoid conflict with `TUITestInstance`)
-- [ ] Verify all test files resolve imports: `bun test e2e/tui/ --bail 0` — no `ModuleNotFoundError`
-- [ ] Verify `e2e/tui/helpers/__tests__/workspaces.test.ts` passes
-- [ ] Verify `e2e/tui/streaming/sse-constants.test.ts` passes
-- [ ] Verify `e2e/tui/streaming/event-deduplicator.test.ts` passes
-- [ ] Verify `e2e/tui/clipboard.test.ts` passes
-- [ ] Verify `e2e/tui/keybinding-normalize.test.ts` passes
-- [ ] Verify `e2e/tui/diff.test.ts` passes (pure function tests)
+- [ ] Create `e2e/tui/bunfig.toml` with `[test]` section and `timeout = 30000`
+- [ ] Implement `launchTUI()` in `e2e/tui/helpers.ts` using `@microsoft/tui-test`'s `spawn()`
+- [ ] Add `resolveKey()` internal function for key name → Terminal method mapping
+- [ ] Add `LaunchTUIOptions` interface
+- [ ] Add `createTestCredentialStore()` helper
+- [ ] Add `createMockAPIEnv()` helper
+- [ ] Add `node:os`, `node:fs` imports to `helpers.ts`
+- [ ] Add `sleep()` function to `helpers.ts`
+- [ ] Add `DEFAULT_WAIT_TIMEOUT_MS`, `DEFAULT_LAUNCH_TIMEOUT_MS`, `POLL_INTERVAL_MS` constants
+- [ ] Preserve all existing exports: `TUI_ROOT`, `TUI_SRC`, `TUI_ENTRY`, `BUN`, `API_URL`, `WRITE_TOKEN`, `READ_TOKEN`, `OWNER`, `ORG`, `TERMINAL_SIZES`, `run()`, `bunEval()`
+- [ ] Fix `e2e/tui/diff.test.ts` import: replace `@microsoft/tui-test` with `./helpers`
+- [ ] Add 9 infrastructure tests to `e2e/tui/app-shell.test.ts`
+- [ ] Add `createTestCredentialStore`, `createMockAPIEnv`, `launchTUI` imports to `app-shell.test.ts`
+- [ ] Verify `bun test e2e/tui/app-shell.test.ts` — all 37 tests pass (28 existing + 9 new)
+- [ ] Verify `bun test e2e/tui/agents.test.ts` — tests fail with timeout (not "Not yet implemented")
+- [ ] Verify `bun test e2e/tui/diff.test.ts` — no import resolution errors
 - [ ] Verify NO changes to any `apps/tui/src/` file
-- [ ] Verify NO changes to existing test file bodies (only `helpers.ts` and `packages/tui-test/` changed)
-- [ ] Verify `packages/tui-test/index.js` is deleted
+- [ ] Verify NO changes to `agents.test.ts` test bodies
