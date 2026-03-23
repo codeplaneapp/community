@@ -1,29 +1,40 @@
 import { useLayout } from "../hooks/useLayout.js";
 import { useTheme } from "../hooks/useTheme.js";
-import { truncateRight } from "../util/text.js";
+import { statusToToken } from "../theme/tokens.js";
 
 export function StatusBar() {
   const { width, breakpoint } = useLayout();
   const theme = useTheme();
 
-  const allHints = "j/k:navigate  Enter:select  q:back  ?:help  ::command";
-  const minHints = "q:back  ?:help";
-  const hints = breakpoint === "minimum" ? minHints : allHints;
+  const syncState = "connected"; // placeholder
+  const syncColor = theme[statusToToken(syncState)];
+  const syncLabel = syncState === "connected" ? "synced" : syncState;
 
-  const syncStatus = "synced";
-  const rightText = `${syncStatus}  ? help`;
-  const maxLeftWidth = Math.max(10, width - rightText.length - 2);
+  const showFullHints = breakpoint !== "minimum";
 
   return (
-    <box flexDirection="row" height={1} width="100%">
-      <box flexGrow={1}>
-        <text fg={theme.muted}>{truncateRight(hints, maxLeftWidth)}</text>
+    <box flexDirection="row" height={1} width="100%" borderColor={theme.border} border={["top"]}>
+      <box flexGrow={1} flexDirection="row">
+        {showFullHints && (
+          <>
+            <text fg={theme.primary}>j/k</text>
+            <text fg={theme.muted}>:navigate  </text>
+            <text fg={theme.primary}>Enter</text>
+            <text fg={theme.muted}>:select  </text>
+          </>
+        )}
+        <text fg={theme.primary}>q</text>
+        <text fg={theme.muted}>:back  </text>
+        <text fg={theme.primary}>?</text>
+        <text fg={theme.muted}>:help</text>
       </box>
       <box>
-        <text fg={theme.success}>{syncStatus}</text>
+        <text fg={syncColor}>{syncLabel}</text>
       </box>
       <box>
-        <text fg={theme.muted}>  ? help</text>
+        <text fg={theme.muted}>  </text>
+        <text fg={theme.primary}>?</text>
+        <text fg={theme.muted}> help</text>
       </box>
     </box>
   );

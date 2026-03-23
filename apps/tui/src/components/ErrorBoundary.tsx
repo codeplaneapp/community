@@ -1,4 +1,8 @@
 import React from "react";
+import { detectColorCapability } from "../theme/detect.js";
+import { createTheme, TextAttributes } from "../theme/tokens.js";
+
+const fallbackTheme = createTheme(detectColorCapability());
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -67,15 +71,15 @@ function ErrorBoundaryScreen({
 
   return (
     <box flexDirection="column" width="100%" height="100%" padding={2}>
-      <text fg="#DC2626" attributes={1}>Something went wrong</text>
-      <text fg="#DC2626">{error?.message ?? "Unknown error"}</text>
+      <text fg={fallbackTheme.error} attributes={TextAttributes.BOLD}>Something went wrong</text>
+      <text fg={fallbackTheme.error}>{error?.message ?? "Unknown error"}</text>
       {showStack && error?.stack && (
         <box marginTop={1}>
-          <text fg="#A3A3A3">{error.stack}</text>
+          <text fg={fallbackTheme.muted}>{error.stack}</text>
         </box>
       )}
       <box marginTop={1}>
-        <text fg="#A3A3A3">
+        <text fg={fallbackTheme.muted}>
           Press `r` to restart — Press `q` to quit — Press `s` to {showStack ? "hide" : "show"} stack trace
         </text>
       </box>
