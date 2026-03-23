@@ -47,6 +47,8 @@ export interface TUITestInstance {
   waitForText(text: string, timeoutMs?: number): Promise<void>
   /** Wait until the given text is no longer present in the terminal buffer. */
   waitForNoText(text: string, timeoutMs?: number): Promise<void>
+  /** Wait until the given regex pattern matches the terminal buffer. */
+  waitForMatch(pattern: RegExp, timeoutMs?: number): Promise<void>
   /** Capture the full terminal buffer as a string. */
   snapshot(): string
   /** Get a specific line from the terminal buffer (0-indexed). */
@@ -280,172 +282,324 @@ function resolveKey(key: string): ResolvedKey {
  * The returned TUITestInstance provides the standard interface for
  * all TUI E2E tests.
  */
+
+// ── Backends ─────────────────────────────────────────────────────────────────
+
+class TuiTestBackend implements TUITestInstance {
+  private currentCols: number;
+  private currentRows: number;
+  
+  constructor(
+    private terminal: any,
+    public configDir: string,
+    cols: number,
+    rows: number
+  ) {
+    this.currentCols = cols;
+    this.currentRows = rows;
+  }
+
+  get cols() { return this.currentCols; }
+  get rows() { return this.currentRows; }
+
+  private getBufferText(): string {
+    const buffer = this.terminal.getViewableBuffer();
+    return buffer.map((row: string[]) => row.join("")).join("\n");
+  }
+
+  async sendKeys(...keys: string[]): Promise<void> {
+    for (const key of keys) {
+      const resolved = resolveKey(key);
+      if (resolved.type === "special") {
+        ;(this.terminal as any)[resolved.method]();
+      } else {
+        this.terminal.keyPress(resolved.key, resolved.modifiers);
+      }
+      await sleep(50);
+    }
+  }
+
+  async sendText(text: string): Promise<void> {
+    this.terminal.write(text);
+    await sleep(50);
+  }
+
+  async waitForText(text: string, timeoutMs?: number): Promise<void> {
+    const timeout = timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS;
+    const startTime = Date.now();
+    while (Date.now() - startTime < timeout) {
+      const content = this.getBufferText();
+      if (content.includes(text)) return;
+      await sleep(POLL_INTERVAL_MS);
+    }
+    throw new Error(
+      `waitForText: "${text}" not found within ${timeout}ms.\n` +
+        `Terminal content:\n${this.getBufferText()}`
+    );
+  }
+
+  async waitForNoText(text: string, timeoutMs?: number): Promise<void> {
+    const timeout = timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS;
+    const startTime = Date.now();
+    while (Date.now() - startTime < timeout) {
+      const content = this.getBufferText();
+      if (!content.includes(text)) return;
+      await sleep(POLL_INTERVAL_MS);
+    }
+    throw new Error(
+      `waitForNoText: "${text}" still present after ${timeout}ms.\n` +
+        `Terminal content:\n${this.getBufferText()}`
+    );
+  }
+
+  async waitForMatch(pattern: RegExp, timeoutMs?: number): Promise<void> {
+    const timeout = timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS;
+    const startTime = Date.now();
+    while (Date.now() - startTime < timeout) {
+      const content = this.getBufferText();
+      if (pattern.test(content)) return;
+      await sleep(POLL_INTERVAL_MS);
+    }
+    throw new Error(
+      `waitForMatch: pattern ${pattern} not matched within ${timeout}ms.\n` +
+        `Terminal content:\n${this.getBufferText()}`
+    );
+  }
+
+  snapshot(): string {
+    return this.getBufferText();
+  }
+
+  getLine(lineNumber: number): string {
+    const buffer = this.terminal.getViewableBuffer();
+    if (lineNumber < 0 || lineNumber >= buffer.length) {
+      throw new Error(
+        `getLine: line ${lineNumber} out of range (0-${buffer.length - 1})`
+      );
+    }
+    return buffer[lineNumber].join("");
+  }
+
+  async resize(newCols: number, newRows: number): Promise<void> {
+    this.currentCols = newCols;
+    this.currentRows = newRows;
+    this.terminal.resize(newCols, newRows);
+    await sleep(200);
+  }
+
+  async terminate(): Promise<void> {
+    try { this.terminal.kill(); } catch {}
+    try { rmSync(this.configDir, { recursive: true, force: true }); } catch {}
+  }
+}
+
+class BunSpawnBackend implements TUITestInstance {
+  private buffer: string = "";
+  private currentCols: number;
+  private currentRows: number;
+  private proc: any;
+
+  constructor(
+    proc: any,
+    public configDir: string,
+    cols: number,
+    rows: number
+  ) {
+    this.proc = proc;
+    this.currentCols = cols;
+    this.currentRows = rows;
+    
+    // Asynchronously read stdout
+    this.readStdout();
+  }
+
+  private async readStdout() {
+    try {
+      const reader = this.proc.stdout.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        this.buffer += decoder.decode(value, { stream: true });
+      }
+    } catch {
+      // Stream closed or error
+    }
+  }
+
+  get cols() { return this.currentCols; }
+  get rows() { return this.currentRows; }
+
+  private getBufferText(): string {
+    // Basic stripping of ANSI escape sequences for text matching
+    // Note: this is a simple fallback and won't be perfect.
+    return this.buffer.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
+  }
+
+  async sendKeys(...keys: string[]): Promise<void> {
+    for (const key of keys) {
+      // In the fallback backend, we just try to write the raw key strings or simple mapping
+      let seq = key;
+      if (key === "Enter") seq = "\r";
+      else if (key === "Escape") seq = "\x1b";
+      else if (key === "j") seq = "j";
+      else if (key === "k") seq = "k";
+      else if (key === "q") seq = "q";
+      else if (key === "?") seq = "?";
+      // This is extremely rudimentary and primarily to prevent test crashes
+      if (this.proc.stdin) {
+        const writer = this.proc.stdin.getWriter();
+        await writer.write(new TextEncoder().encode(seq));
+        writer.releaseLock();
+      }
+      await sleep(50);
+    }
+  }
+
+  async sendText(text: string): Promise<void> {
+    if (this.proc.stdin) {
+      const writer = this.proc.stdin.getWriter();
+      await writer.write(new TextEncoder().encode(text));
+      writer.releaseLock();
+    }
+    await sleep(50);
+  }
+
+  async waitForText(text: string, timeoutMs?: number): Promise<void> {
+    const timeout = timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS;
+    const startTime = Date.now();
+    while (Date.now() - startTime < timeout) {
+      const content = this.getBufferText();
+      if (content.includes(text)) return;
+      await sleep(POLL_INTERVAL_MS);
+    }
+    throw new Error(
+      `waitForText: "${text}" not found within ${timeout}ms.\n` +
+        `Terminal content:\n${this.getBufferText()}`
+    );
+  }
+
+  async waitForNoText(text: string, timeoutMs?: number): Promise<void> {
+    const timeout = timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS;
+    const startTime = Date.now();
+    while (Date.now() - startTime < timeout) {
+      const content = this.getBufferText();
+      if (!content.includes(text)) return;
+      await sleep(POLL_INTERVAL_MS);
+    }
+    throw new Error(
+      `waitForNoText: "${text}" still present after ${timeout}ms.\n` +
+        `Terminal content:\n${this.getBufferText()}`
+    );
+  }
+
+  async waitForMatch(pattern: RegExp, timeoutMs?: number): Promise<void> {
+    const timeout = timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS;
+    const startTime = Date.now();
+    while (Date.now() - startTime < timeout) {
+      const content = this.getBufferText();
+      if (pattern.test(content)) return;
+      await sleep(POLL_INTERVAL_MS);
+    }
+    throw new Error(
+      `waitForMatch: pattern ${pattern} not matched within ${timeout}ms.\n` +
+        `Terminal content:\n${this.getBufferText()}`
+    );
+  }
+
+  snapshot(): string {
+    return this.getBufferText();
+  }
+
+  getLine(lineNumber: number): string {
+    const lines = this.getBufferText().split("\n");
+    if (lineNumber < 0 || lineNumber >= lines.length) {
+      throw new Error(
+        `getLine: line ${lineNumber} out of range (0-${lines.length - 1})`
+      );
+    }
+    return lines[lineNumber];
+  }
+
+  async resize(newCols: number, newRows: number): Promise<void> {
+    this.currentCols = newCols;
+    this.currentRows = newRows;
+    await sleep(200);
+  }
+
+  async terminate(): Promise<void> {
+    try { this.proc.kill(); } catch {}
+    try { rmSync(this.configDir, { recursive: true, force: true }); } catch {}
+  }
+}
+
 export async function launchTUI(
   options?: LaunchTUIOptions,
 ): Promise<TUITestInstance> {
-  // Dynamic import to avoid top-level import issues when
-  // @microsoft/tui-test is not installed yet
-  const { spawn: spawnTerminal } = await import(
-    "@microsoft/tui-test/lib/terminal/term.js"
-  )
-  const { Shell } = await import("@microsoft/tui-test/lib/terminal/shell.js")
-  const { EventEmitter } = await import("node:events")
-
-  const cols = options?.cols ?? TERMINAL_SIZES.standard.width
-  const rows = options?.rows ?? TERMINAL_SIZES.standard.height
+  const cols = options?.cols ?? TERMINAL_SIZES.standard.width;
+  const rows = options?.rows ?? TERMINAL_SIZES.standard.height;
 
   const configDir = mkdtempSync(
     join(tmpdir(), "codeplane-tui-config-"),
-  )
+  );
 
   const env: Record<string, string | undefined> = {
     ...process.env,
     TERM: "xterm-256color",
-    NO_COLOR: undefined, // ensure color is enabled
+    NO_COLOR: undefined,
     COLORTERM: "truecolor",
     LANG: "en_US.UTF-8",
     CODEPLANE_TOKEN: "e2e-test-token",
     CODEPLANE_CONFIG_DIR: configDir,
     CODEPLANE_API_URL: API_URL,
     ...options?.env,
-  }
+  };
 
-  const traceEmitter = new EventEmitter()
+  let backend: TUITestInstance;
 
-  // @microsoft/tui-test's spawn() creates a real PTY via node-pty
-  // (or pty-bun for Bun), wraps it with @xterm/headless for
-  // terminal emulation, and returns a Terminal instance.
-  const terminal = await spawnTerminal(
-    {
-      rows,
-      cols,
-      shell: Shell.Bash,
-      program: {
-        file: BUN,
-        args: ["run", TUI_ENTRY, ...(options?.args ?? [])],
+  try {
+    const { spawn: spawnTerminal } = await import(
+      "@microsoft/tui-test/lib/terminal/term.js"
+    );
+    const { Shell } = await import("@microsoft/tui-test/lib/terminal/shell.js");
+    const { EventEmitter } = await import("node:events");
+
+    const traceEmitter = new EventEmitter();
+
+    const terminal = await spawnTerminal(
+      {
+        rows,
+        cols,
+        shell: Shell.Bash,
+        program: {
+          file: BUN,
+          args: ["run", TUI_ENTRY, ...(options?.args ?? [])],
+        },
+        env,
       },
-      env,
-    },
-    false, // trace disabled
-    traceEmitter,
-  )
+      false,
+      traceEmitter,
+    );
 
-  let currentCols = cols
-  let currentRows = rows
+    backend = new TuiTestBackend(terminal, configDir, cols, rows);
+  } catch (err) {
+    console.warn("Failed to load @microsoft/tui-test or spawn terminal. Falling back to BunSpawnBackend.", err);
+    
+    // BunSpawnBackend
+    const proc = Bun.spawn([BUN, "run", TUI_ENTRY, ...(options?.args ?? [])], {
+      env: env as Record<string, string>,
+      stdin: "pipe",
+      stdout: "pipe",
+      stderr: "pipe",
+    });
 
-  /**
-   * Get the full terminal buffer as a flat string.
-   * Uses getViewableBuffer() which returns the visible terminal grid.
-   */
-  function getBufferText(): string {
-    const buffer = terminal.getViewableBuffer()
-    return buffer.map((row: string[]) => row.join("")).join("\n")
+    backend = new BunSpawnBackend(proc, configDir, cols, rows);
   }
 
-  const instance: TUITestInstance = {
-    get cols() {
-      return currentCols
-    },
-    get rows() {
-      return currentRows
-    },
+  // Allow time for the TUI to respond and render initial screen
+  await sleep(500);
 
-    async sendKeys(...keys: string[]): Promise<void> {
-      for (const key of keys) {
-        const resolved = resolveKey(key)
-        if (resolved.type === "special") {
-          // Call dedicated Terminal method (keyUp, keyDown, etc.)
-          ;(terminal as any)[resolved.method]()
-        } else {
-          terminal.keyPress(resolved.key, resolved.modifiers)
-        }
-        // Small delay between keys for terminal processing
-        await sleep(50)
-      }
-    },
-
-    async sendText(text: string): Promise<void> {
-      terminal.write(text)
-      await sleep(50)
-    },
-
-    async waitForText(
-      text: string,
-      timeoutMs?: number,
-    ): Promise<void> {
-      const timeout = timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS
-      const startTime = Date.now()
-      while (Date.now() - startTime < timeout) {
-        const content = getBufferText()
-        if (content.includes(text)) return
-        await sleep(POLL_INTERVAL_MS)
-      }
-      throw new Error(
-        `waitForText: "${text}" not found within ${timeout}ms.\n` +
-          `Terminal content:\n${getBufferText()}`,
-      )
-    },
-
-    async waitForNoText(
-      text: string,
-      timeoutMs?: number,
-    ): Promise<void> {
-      const timeout = timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS
-      const startTime = Date.now()
-      while (Date.now() - startTime < timeout) {
-        const content = getBufferText()
-        if (!content.includes(text)) return
-        await sleep(POLL_INTERVAL_MS)
-      }
-      throw new Error(
-        `waitForNoText: "${text}" still present after ${timeout}ms.\n` +
-          `Terminal content:\n${getBufferText()}`,
-      )
-    },
-
-    snapshot(): string {
-      return getBufferText()
-    },
-
-    getLine(lineNumber: number): string {
-      const buffer = terminal.getViewableBuffer()
-      if (lineNumber < 0 || lineNumber >= buffer.length) {
-        throw new Error(
-          `getLine: line ${lineNumber} out of range (0-${buffer.length - 1})`,
-        )
-      }
-      return buffer[lineNumber].join("")
-    },
-
-    async resize(
-      newCols: number,
-      newRows: number,
-    ): Promise<void> {
-      currentCols = newCols
-      currentRows = newRows
-      terminal.resize(newCols, newRows)
-      // Allow time for the TUI to respond to SIGWINCH
-      await sleep(200)
-    },
-
-    async terminate(): Promise<void> {
-      try {
-        terminal.kill()
-      } catch {
-        // Best-effort
-      }
-      try {
-        rmSync(configDir, { recursive: true, force: true })
-      } catch {
-        // Best-effort cleanup
-      }
-    },
-  }
-
-  // Give the process time to start and render initial screen
-  await sleep(500)
-
-  return instance
+  return backend;
 }
 
 // ── Subprocess helpers ───────────────────────────────────────────────────────
