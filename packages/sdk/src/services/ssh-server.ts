@@ -742,7 +742,7 @@ export class SSHServer {
 
       // Wait for git process to exit
       proc.exited
-        .then((exitCode) => {
+        .then((exitCode: number) => {
           if (exitCode !== 0) {
             finish(new Error(`git process exited with code ${exitCode}`));
           } else {

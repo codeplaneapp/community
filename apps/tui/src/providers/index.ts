@@ -10,7 +10,7 @@ export type { NavigationProviderProps } from "./NavigationProvider.js";
 export { SSEProvider, useSSE } from "./SSEProvider.js";
 export type { SSEEvent } from "./SSEProvider.js";
 export { AuthProvider, AuthContext } from "./AuthProvider.js";
-export type { AuthContextValue, AuthProviderProps, AuthState, AuthSource } from "./AuthProvider.js";
+export type { AuthContextValue, AuthProviderProps, AuthStatus } from "./AuthProvider.js";
 export { APIClientProvider, useAPIClient } from "./APIClientProvider.js";
 export { LoadingProvider, LoadingContext } from "./LoadingProvider.js";
 export { OverlayManager, OverlayContext } from "./OverlayManager.js";

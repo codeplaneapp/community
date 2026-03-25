@@ -1,4 +1,5 @@
 import { createContext, useMemo, useContext } from "react";
+import { AuthContext } from "./AuthProvider.js";
 
 // Mock implementation of APIClient since @codeplane/ui-core is missing
 export interface APIClient {
@@ -13,13 +14,24 @@ export function createAPIClient(opts: { baseUrl: string; token: string }): APICl
 const APIClientContext = createContext<APIClient | null>(null);
 
 export interface APIClientProviderProps {
-  baseUrl: string;
-  token: string;
+  baseUrl?: string;
+  token?: string | null;
   children: React.ReactNode;
 }
 
 export function APIClientProvider({ baseUrl, token, children }: APIClientProviderProps) {
-  const client = useMemo(() => createAPIClient({ baseUrl, token }), [baseUrl, token]);
+  const auth = useContext(AuthContext);
+  const resolvedBaseUrl = baseUrl ?? auth?.apiUrl;
+  const resolvedToken = token ?? auth?.token;
+
+  if (!resolvedBaseUrl || !resolvedToken) {
+    throw new Error("APIClientProvider requires an authenticated baseUrl and token");
+  }
+
+  const client = useMemo(
+    () => createAPIClient({ baseUrl: resolvedBaseUrl, token: resolvedToken }),
+    [resolvedBaseUrl, resolvedToken],
+  );
   return (
     <APIClientContext.Provider value={client}>
       {children}

@@ -40,105 +40,125 @@ export function OverlayManager({ children }: OverlayManagerProps) {
   const modalScopeIdRef = useRef<string | null>(null);
   const hintsCleanupRef = useRef<(() => void) | null>(null);
 
-  const closeOverlay = useCallback(() => {
-    setActiveOverlay((prev) => {
-      if (prev === null) return null;
-
-      if (modalScopeIdRef.current) {
-        keybindingCtx.removeScope(modalScopeIdRef.current);
-        modalScopeIdRef.current = null;
-      }
-
-      if (hintsCleanupRef.current) {
-        hintsCleanupRef.current();
-        hintsCleanupRef.current = null;
-      }
-
-      if (prev === "confirm") {
-        setConfirmPayload((p) => {
-          p?.onCancel?.();
-          return null;
-        });
-      } else {
-        setConfirmPayload(null);
-      }
-
-      return null;
-    });
+  const cleanupModalState = useCallback(() => {
+    if (modalScopeIdRef.current) {
+      keybindingCtx.removeScope(modalScopeIdRef.current);
+      modalScopeIdRef.current = null;
+    }
+    if (hintsCleanupRef.current) {
+      hintsCleanupRef.current();
+      hintsCleanupRef.current = null;
+    }
   }, [keybindingCtx]);
 
-  const closeOverlayRef = useRef(closeOverlay);
-  closeOverlayRef.current = closeOverlay;
+  const closeOverlay = useCallback(() => {
+    if (activeOverlay === "confirm") {
+      confirmPayload?.onCancel?.();
+    }
+    setConfirmPayload(null);
+    setActiveOverlay(null);
+  }, [activeOverlay, confirmPayload]);
 
   const openOverlay = useCallback(
     (type: OverlayType, payload?: ConfirmPayload) => {
-      setActiveOverlay((prev) => {
-        if (prev === type) {
-          if (modalScopeIdRef.current) {
-            keybindingCtx.removeScope(modalScopeIdRef.current);
-            modalScopeIdRef.current = null;
-          }
-          if (hintsCleanupRef.current) {
-            hintsCleanupRef.current();
-            hintsCleanupRef.current = null;
-          }
-          setConfirmPayload(null);
-          return null;
+      if (activeOverlay === type) {
+        if (type === "confirm") {
+          confirmPayload?.onCancel?.();
         }
+        setConfirmPayload(null);
+        setActiveOverlay(null);
+        return;
+      }
 
-        if (prev !== null && modalScopeIdRef.current) {
-          keybindingCtx.removeScope(modalScopeIdRef.current);
-          modalScopeIdRef.current = null;
-        }
-        if (hintsCleanupRef.current) {
-          hintsCleanupRef.current();
-          hintsCleanupRef.current = null;
-        }
+      if (activeOverlay === "confirm") {
+        confirmPayload?.onCancel?.();
+      }
 
-        if (type === "confirm" && payload) {
-          setConfirmPayload(payload);
-        } else {
-          setConfirmPayload(null);
-        }
-
-        const escapeBinding: KeyHandler = {
-          key: normalizeKeyDescriptor("escape"),
-          description: "Close overlay",
-          group: "Overlay",
-          handler: () => closeOverlayRef.current(),
-        };
-
-        const bindings = new Map<string, KeyHandler>();
-        bindings.set(escapeBinding.key, escapeBinding);
-
-        const scopeId = keybindingCtx.registerScope({
-          priority: PRIORITY.MODAL,
-          bindings,
-          active: true,
-        });
-        modalScopeIdRef.current = scopeId;
-
-        const overlayHints: StatusBarHint[] = [
-          { keys: "Esc", label: "close", order: 0 },
-        ];
-        hintsCleanupRef.current = statusBarCtx.overrideHints(overlayHints);
-
-        return type;
-      });
+      setConfirmPayload(type === "confirm" ? payload ?? null : null);
+      setActiveOverlay(type);
     },
-    [keybindingCtx, statusBarCtx],
+    [activeOverlay, confirmPayload],
   );
 
   useEffect(() => {
-    return () => {
-      if (modalScopeIdRef.current) {
-        keybindingCtx.removeScope(modalScopeIdRef.current);
-      }
-      if (hintsCleanupRef.current) {
-        hintsCleanupRef.current();
-      }
+    cleanupModalState();
+
+    if (!activeOverlay) {
+      return cleanupModalState;
+    }
+
+    const closeBinding: KeyHandler = {
+      key: normalizeKeyDescriptor("escape"),
+      description: "Close overlay",
+      group: "Overlay",
+      handler: closeOverlay,
     };
-  }, [keybindingCtx]);
+    const helpBinding: KeyHandler = {
+      key: normalizeKeyDescriptor("?"),
+      description: "Toggle help",
+      group: "Overlay",
+      handler: () => openOverlay("help"),
+    };
+    const commandPaletteBinding: KeyHandler = {
+      key: normalizeKeyDescriptor(":"),
+      description: "Toggle command palette",
+      group: "Overlay",
+      handler: () => openOverlay("command-palette"),
+    };
+    const forceQuitBinding: KeyHandler = {
+      key: normalizeKeyDescriptor("ctrl+c"),
+      description: "Quit TUI",
+      group: "Overlay",
+      handler: () => process.exit(0),
+    };
+    const consumeBindings: KeyHandler[] = [
+      {
+        key: normalizeKeyDescriptor("q"),
+        description: "Block global quit",
+        group: "Overlay",
+        handler: () => {},
+        consumeOnly: true,
+      },
+      {
+        key: normalizeKeyDescriptor("g"),
+        description: "Block go-to mode",
+        group: "Overlay",
+        handler: () => {},
+        consumeOnly: true,
+      },
+      {
+        key: normalizeKeyDescriptor("ctrl+b"),
+        description: "Block sidebar toggle",
+        group: "Overlay",
+        handler: () => {},
+        consumeOnly: true,
+      },
+    ];
+
+    const bindings = new Map<string, KeyHandler>();
+    bindings.set(closeBinding.key, closeBinding);
+    bindings.set(helpBinding.key, helpBinding);
+    bindings.set(commandPaletteBinding.key, commandPaletteBinding);
+    bindings.set(forceQuitBinding.key, forceQuitBinding);
+    for (const binding of consumeBindings) {
+      bindings.set(binding.key, binding);
+    }
+
+    modalScopeIdRef.current = keybindingCtx.registerScope({
+      priority: PRIORITY.MODAL,
+      bindings,
+      active: true,
+    });
+    hintsCleanupRef.current = statusBarCtx.overrideHints([
+      { keys: "Esc", label: "close", order: 0 },
+    ]);
+
+    return cleanupModalState;
+  }, [activeOverlay, cleanupModalState, closeOverlay, keybindingCtx, openOverlay, statusBarCtx]);
+
+  useEffect(() => {
+    return cleanupModalState;
+  }, [cleanupModalState]);
 
   const isOpen = useCallback(
     (type: OverlayType): boolean => activeOverlay === type,

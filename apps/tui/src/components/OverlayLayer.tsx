@@ -19,7 +19,7 @@ import { useTheme } from "../hooks/useTheme.js";
  * placeholder text indicating which overlay is active.
  */
 export function OverlayLayer() {
-  const { activeOverlay, closeOverlay, confirmPayload } = useOverlay();
+  const { activeOverlay, confirmPayload } = useOverlay();
   const layout = useLayout();
   const theme = useTheme();
 
@@ -40,50 +40,57 @@ export function OverlayLayer() {
   return (
     <box
       position="absolute"
-      top="auto"
-      left="auto"
-      width={width as any}
-      height={height as any}
+      top={0}
+      left={0}
+      width="100%"
+      height="100%"
       zIndex={100}
-      flexDirection="column"
-      border={true}
-      borderColor={theme.border}
-      backgroundColor={theme.surface}
-      padding={1}
+      justifyContent="center"
+      alignItems="center"
     >
-      {/* Title bar */}
-      <box flexDirection="row" width="100%">
-        <text fg={theme.primary}>
-          {title}
-        </text>
-        <box flexGrow={1} />
-        <text fg={theme.muted}>
-          Esc close
-        </text>
-      </box>
+      <box
+        width={width}
+        height={height}
+        flexDirection="column"
+        border={true}
+        borderColor={theme.border}
+        backgroundColor={theme.surface}
+        padding={1}
+      >
+        {/* Title bar */}
+        <box flexDirection="row" width="100%">
+          <text fg={theme.primary}>
+            {title}
+          </text>
+          <box flexGrow={1} />
+          <text fg={theme.muted}>
+            Esc close
+          </text>
+        </box>
 
-      {/* Separator */}
-      <text fg={theme.border}>
-        {"─".repeat(40)}
-      </text>
+        {/* Separator */}
+        <text fg={theme.border}>
+          {"─".repeat(40)}
+        </text>
 
-      {/* Content area — placeholder until overlay content components land */}
-      <box flexGrow={1} flexDirection="column">
-        {activeOverlay === "help" && (
-          <text fg={theme.muted}>[Help overlay content — pending TUI_HELP_OVERLAY implementation]</text>
-        )}
-        {activeOverlay === "command-palette" && (
-          <text fg={theme.muted}>[Command palette content — pending TUI_COMMAND_PALETTE implementation]</text>
-        )}
-        {activeOverlay === "confirm" && confirmPayload && (
-          <box flexDirection="column" gap={1}>
-            <text>{confirmPayload.message}</text>
-            <box flexDirection="row" gap={2}>
-              <text fg={theme.error}>[{confirmPayload.confirmLabel ?? "Confirm"}]</text>
-              <text fg={theme.muted}>[{confirmPayload.cancelLabel ?? "Cancel"}]</text>
+        {/* Content area — placeholder until overlay content components land */}
+        <box flexGrow={1} flexDirection="column">
+          {activeOverlay === "help" && (
+            <text fg={theme.muted}>[Help overlay content — pending TUI_HELP_OVERLAY implementation]</text>
+          )}
+          {activeOverlay === "command-palette" && (
+            <text fg={theme.muted}>[Command palette content — pending TUI_COMMAND_PALETTE implementation]</text>
+          )}
+          {activeOverlay === "confirm" && confirmPayload && (
+            <box flexDirection="column" gap={1}>
+              <text>{confirmPayload.message}</text>
+              <box flexDirection="row" gap={2}>
+                <text fg={theme.error}>[{confirmPayload.confirmLabel ?? "Confirm"}]</text>
+                <text fg={theme.muted}>[{confirmPayload.cancelLabel ?? "Cancel"}]</text>
+              </box>
             </box>
-          </box>
-        )}
+          )}
+        </box>
       </box>
     </box>
   );

@@ -795,7 +795,7 @@ export class ConfigSyncService {
     // Apply the plan (using sql transactions via BEGIN)
     try {
       await this.sql.begin(async (tx) => {
-        await applyPlan(tx, plan);
+        await applyPlan(tx as unknown as Sql, plan);
       });
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));

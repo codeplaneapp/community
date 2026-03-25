@@ -12,6 +12,13 @@
     "codeplane": "nx build codeplane && bun apps/cli/src/main.ts"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "5.8.3",
     "nx": "^22.6.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "typescript": "5.8.3"
+    }
   }
 }

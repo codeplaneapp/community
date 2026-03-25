@@ -1,10 +1,8 @@
 import React, { createContext, useState, useEffect, useMemo, useCallback } from "react";
-import { resolveAuthToken, resolveAuthTarget, type AuthTokenSource } from "@codeplane/cli/auth-state";
+import { resolveAuthToken, resolveAuthTarget, type AuthTokenSource } from "../../../cli/src/auth-state.js";
 import { setGlobalAbort } from "../lib/signals.js";
 import { AuthLoadingScreen } from "../components/AuthLoadingScreen.js";
 import { AuthErrorScreen } from "../components/AuthErrorScreen.js";
-// Assume telemetry and logger exists, we'll try to import or omit if they don't.
-// Wait, the plan asks to emit telemetry.
 import { emit } from "../lib/telemetry.js";
 import { logger } from "../lib/logger.js";
 
@@ -44,8 +42,9 @@ export function AuthProvider({ children, apiUrl: apiUrlProp, token: tokenProp }:
   }, [apiUrlProp]);
 
   const resolveToken = useCallback(() => {
-    if (tokenProp) {
-      return { token: tokenProp, source: "env" as AuthTokenSource };
+    const explicitToken = tokenProp?.trim();
+    if (explicitToken) {
+      return { token: explicitToken, source: "env" as AuthTokenSource };
     }
     const resolved = resolveAuthToken({ apiUrl });
     if (!resolved) return null;
@@ -62,10 +61,8 @@ export function AuthProvider({ children, apiUrl: apiUrlProp, token: tokenProp }:
         headers: { Authorization: `token ${authToken}` },
         signal: controller.signal,
       });
-      clearTimeout(timeout);
-      setGlobalAbort(null as any); // Actually we should reset it, but `setGlobalAbort` doesn't handle null strictly.
       if (res.ok) {
-        const data = await res.json();
+        const data = (await res.json()) as { login?: string; username?: string };
         return { valid: true, username: data.login ?? data.username ?? null };
       }
       if (res.status === 401) {
@@ -76,8 +73,10 @@ export function AuthProvider({ children, apiUrl: apiUrlProp, token: tokenProp }:
       }
       return { valid: false, reason: "expired" as const };
     } catch {
-      clearTimeout(timeout);
       return { valid: false, reason: "offline" as const };
+    } finally {
+      clearTimeout(timeout);
+      setGlobalAbort(null);
     }
   }, [apiUrl]);
 
@@ -90,7 +89,7 @@ export function AuthProvider({ children, apiUrl: apiUrlProp, token: tokenProp }:
 
     logger.debug(`auth: resolving token for ${host}`);
     const resolved = resolveToken();
-    
+
     if (!resolved) {
       logger.debug(`auth: no token found for ${host}`);
       emit("tui.auth.failed", { host, reason: "no_token", duration_ms: performance.now() - startTime });
@@ -112,7 +111,7 @@ export function AuthProvider({ children, apiUrl: apiUrlProp, token: tokenProp }:
     if (result.valid) {
       logger.info(`auth: authenticated as ${result.username} via ${resolved.source} on ${host}`);
       emit("tui.auth.validated", { host, source: resolved.source, valid: true, duration_ms: performance.now() - startTime, username_present: !!result.username });
-      setUser(result.username);
+      setUser(result.username ?? null);
       setStatus("authenticated");
     } else if (result.reason === "offline") {
       logger.warn(`auth: could not reach ${host} for token validation, proceeding optimistically`);

@@ -3,6 +3,8 @@ import { useTerminalDimensions } from "@opentui/react";
 import { getBreakpoint, type Breakpoint } from "../types/breakpoint.js";
 import { useSidebarState, type SidebarState } from "./useSidebarState.js";
 
+type Percent = `${number}%`;
+
 /**
  * Responsive layout context returned by useLayout().
  *
@@ -32,15 +34,15 @@ export interface LayoutContext {
   /**
    * Sidebar width as a percentage string for OpenTUI's <box width={...}>.
    */
-  sidebarWidth: string;
+  sidebarWidth: Percent;
   /**
    * Modal overlay width as a percentage string.
    */
-  modalWidth: string;
+  modalWidth: Percent;
   /**
    * Modal overlay height as a percentage string.
    */
-  modalHeight: string;
+  modalHeight: Percent;
   /**
    * Full sidebar state object for advanced consumers.
    * Exposes toggle(), userPreference, and autoOverride.
@@ -51,7 +53,7 @@ export interface LayoutContext {
 function getSidebarWidth(
   breakpoint: Breakpoint | null,
   sidebarVisible: boolean,
-): string {
+): Percent {
   if (!sidebarVisible) return "0%";
   switch (breakpoint) {
     case "large":    return "30%";
@@ -60,7 +62,7 @@ function getSidebarWidth(
   }
 }
 
-function getModalWidth(breakpoint: Breakpoint | null): string {
+function getModalWidth(breakpoint: Breakpoint | null): Percent {
   switch (breakpoint) {
     case "large":    return "50%";
     case "standard": return "60%";
@@ -68,7 +70,7 @@ function getModalWidth(breakpoint: Breakpoint | null): string {
   }
 }
 
-function getModalHeight(breakpoint: Breakpoint | null): string {
+function getModalHeight(breakpoint: Breakpoint | null): Percent {
   switch (breakpoint) {
     case "large":    return "50%";
     case "standard": return "60%";

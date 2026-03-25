@@ -10,6 +10,7 @@ export interface GlobalKeybindingActions {
   onHelp: () => void;
   onCommandPalette: () => void;
   onGoTo: () => void;
+  onToggleSidebar: () => void;
 }
 
 /**
@@ -26,6 +27,7 @@ export function useGlobalKeybindings(actions: GlobalKeybindingActions): void {
       { key: normalizeKeyDescriptor("q"),      description: "Back / Quit",     group: "Global", handler: actions.onQuit },
       { key: normalizeKeyDescriptor("escape"), description: "Close / Back",    group: "Global", handler: actions.onEscape },
       { key: normalizeKeyDescriptor("ctrl+c"), description: "Quit TUI",        group: "Global", handler: actions.onForceQuit },
+      { key: normalizeKeyDescriptor("ctrl+b"), description: "Toggle sidebar",  group: "Global", handler: actions.onToggleSidebar },
       { key: normalizeKeyDescriptor("?"),      description: "Toggle help",     group: "Global", handler: actions.onHelp },
       { key: normalizeKeyDescriptor(":"),      description: "Command palette", group: "Global", handler: actions.onCommandPalette },
       { key: normalizeKeyDescriptor("g"),      description: "Go-to mode",      group: "Global", handler: actions.onGoTo },

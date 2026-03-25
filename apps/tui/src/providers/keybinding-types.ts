@@ -19,6 +19,8 @@ export interface KeyHandler {
 
   /** Handler function called when this keybinding matches. */
   handler: () => void;
+  /** When true, consume the key without invoking additional scopes. */
+  consumeOnly?: boolean;
 
   /**
    * Optional predicate. Binding only matches when `when()` returns true.

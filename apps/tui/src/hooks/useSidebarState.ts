@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useMemo, useCallback, useSyncExternalStore } from "react";
 import { useBreakpoint } from "./useBreakpoint.js";
 import type { Breakpoint } from "../types/breakpoint.js";
 
@@ -31,6 +31,29 @@ export interface SidebarState {
   autoOverride: boolean;
   /** Toggle sidebar visibility. Sets userPreference explicitly. */
   toggle: () => void;
+}
+
+type SidebarListener = () => void;
+
+let globalUserPreference: boolean | null = null;
+const listeners = new Set<SidebarListener>();
+
+function subscribe(listener: SidebarListener): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function getSnapshot(): boolean | null {
+  return globalUserPreference;
+}
+
+function updateUserPreference(next: boolean | null): void {
+  globalUserPreference = next;
+  for (const listener of listeners) {
+    listener();
+  }
 }
 
 /**
@@ -73,7 +96,7 @@ export function resolveSidebarVisibility(
  */
 export function useSidebarState(): SidebarState {
   const breakpoint = useBreakpoint();
-  const [userPreference, setUserPreference] = useState<boolean | null>(null);
+  const userPreference = useSyncExternalStore(subscribe, getSnapshot);
 
   const { visible, autoOverride } = useMemo(
     () => resolveSidebarVisibility(breakpoint, userPreference),
@@ -85,11 +108,8 @@ export function useSidebarState(): SidebarState {
     // The user can't force the sidebar open at minimum.
     if (autoOverride) return;
 
-    setUserPreference((prev) => {
-      if (prev === null) return false; // default is visible, so toggle hides
-      return !prev;
-    });
-  }, [autoOverride]);
+    updateUserPreference(userPreference === null ? false : !userPreference);
+  }, [autoOverride, userPreference]);
 
   return useMemo(
     () => ({ visible, userPreference, autoOverride, toggle }),
