@@ -1,5 +1,6 @@
+import type { ComponentType, ReactNode } from "react";
+
 export enum ScreenName {
-  // Top-level screens (9)
   Dashboard = "Dashboard",
   RepoList = "RepoList",
   Search = "Search",
@@ -9,8 +10,6 @@ export enum ScreenName {
   Settings = "Settings",
   Organizations = "Organizations",
   Sync = "Sync",
-
-  // Repo-scoped screens (14)
   RepoOverview = "RepoOverview",
   Issues = "Issues",
   IssueDetail = "IssueDetail",
@@ -25,59 +24,54 @@ export enum ScreenName {
   WorkflowRunDetail = "WorkflowRunDetail",
   Wiki = "Wiki",
   WikiDetail = "WikiDetail",
-
-  // Workspace detail (2)
   WorkspaceDetail = "WorkspaceDetail",
   WorkspaceCreate = "WorkspaceCreate",
-
-  // Agent detail (4)
   AgentSessionList = "AgentSessionList",
   AgentChat = "AgentChat",
   AgentSessionCreate = "AgentSessionCreate",
   AgentSessionReplay = "AgentSessionReplay",
-
-  // Org detail (3)
   OrgOverview = "OrgOverview",
   OrgTeamDetail = "OrgTeamDetail",
   OrgSettings = "OrgSettings",
 }
 
 export interface ScreenEntry {
-  /** Unique instance ID — generated via crypto.randomUUID() at push time */
+  /** Unique instance ID for this stack entry. Generated at push time via crypto.randomUUID(). */
   id: string;
-  /** Which screen to render */
-  screen: ScreenName;
-  /** Screen-specific parameters (repo owner, repo name, issue number, etc.) */
-  params: Record<string, string>;
-  /** Display text for the breadcrumb trail in the header bar */
-  breadcrumb: string;
-  /** Cached scroll position for back-navigation restoration. Set by ScreenRouter on pop. */
-  scrollPosition?: number;
+  /** Screen identifier string (e.g. "Dashboard", "Issues", "IssueDetail"). */
+  screen: string;
+  /** Screen-specific parameters as string key/value pairs. */
+  params?: Record<string, string>;
 }
 
-export interface NavigationContext {
-  /** The full navigation stack, ordered bottom-to-top */
-  stack: readonly ScreenEntry[];
-  /** The top-of-stack entry (the currently visible screen) */
-  currentScreen: ScreenEntry;
-  /** Push a new screen onto the stack */
-  push(screen: ScreenName, params?: Record<string, string>): void;
-  /** Pop the top screen and return to the previous one */
+export interface NavigationContextType {
+  /** Push a new screen onto the stack. No-op if top of stack has same screen+params. */
+  push(screen: string, params?: Record<string, string>): void;
+  /** Pop the top screen from the stack. No-op if stack depth is 1 (root). */
   pop(): void;
-  /** Replace the top-of-stack screen without growing the stack */
-  replace(screen: ScreenName, params?: Record<string, string>): void;
-  /** Clear the stack and push a new root screen (go-to navigation) */
-  reset(screen: ScreenName, params?: Record<string, string>): void;
-  /** Whether there is a screen to go back to */
-  canGoBack: boolean;
-  /** Extracted repo context from the current stack, or null */
-  repoContext: { owner: string; repo: string } | null;
-  /** Extracted org context from the current stack, or null */
-  orgContext: { org: string } | null;
-  /** Save scroll position for an entry */
-  saveScrollPosition: (entryId: string, position: number) => void;
-  /** Get scroll position for an entry */
-  getScrollPosition: (entryId: string) => number | undefined;
+  /** Replace the top-of-stack entry with a new screen+params. */
+  replace(screen: string, params?: Record<string, string>): void;
+  /** Clear the stack and push a single new root entry. */
+  reset(screen: string, params?: Record<string, string>): void;
+  /** Returns true if the stack has more than one entry. */
+  canPop(): boolean;
+  /** Read-only view of the full navigation stack. */
+  readonly stack: readonly ScreenEntry[];
+  /** The current (top-of-stack) screen entry. */
+  readonly current: ScreenEntry;
+}
+
+export type NavigationContext = NavigationContextType;
+
+export interface NavigationProviderProps {
+  /** Initial screen to push as the root entry. Defaults to "Dashboard". */
+  initialScreen?: string;
+  /** Initial params for the root entry. */
+  initialParams?: Record<string, string>;
+  /** Pre-populated stack entries for deep-link launch. */
+  initialStack?: Array<{ screen: string; params?: Record<string, string> }>;
+  /** React children. */
+  children: ReactNode;
 }
 
 export interface ScreenComponentProps {
@@ -89,7 +83,7 @@ export interface ScreenComponentProps {
 
 export interface ScreenDefinition {
   /** The React component to render for this screen */
-  component: React.ComponentType<ScreenComponentProps>;
+  component: ComponentType<ScreenComponentProps>;
   /** Whether this screen requires repo context (owner + repo in params) */
   requiresRepo: boolean;
   /** Whether this screen requires org context (org in params) */
@@ -98,5 +92,30 @@ export interface ScreenDefinition {
   breadcrumbLabel: (params: Record<string, string>) => string;
 }
 
+/** Maximum number of entries in the navigation stack. */
 export const MAX_STACK_DEPTH = 32;
-export const DEFAULT_ROOT_SCREEN = ScreenName.Dashboard;
+/** Default root screen identifier. */
+export const DEFAULT_ROOT_SCREEN = "Dashboard";
+
+/**
+ * Compare two screen entries by screen name and params (ignoring id).
+ * Treats undefined params and {} as equivalent.
+ */
+export function screenEntriesEqual(
+  a: { screen: string; params?: Record<string, string> },
+  b: { screen: string; params?: Record<string, string> },
+): boolean {
+  if (a.screen !== b.screen) return false;
+
+  const aKeys = a.params ? Object.keys(a.params) : [];
+  const bKeys = b.params ? Object.keys(b.params) : [];
+
+  if (aKeys.length !== bKeys.length) return false;
+  if (aKeys.length === 0) return true;
+
+  for (const key of aKeys) {
+    if (a.params?.[key] !== b.params?.[key]) return false;
+  }
+
+  return true;
+}

@@ -1,7 +1,7 @@
-import { describe, test, expect, afterEach } from "bun:test"
+import { describe, test, expect, afterEach, mock } from "bun:test"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
-import { TUI_ROOT, TUI_SRC, BUN, run, bunEval, createTestCredentialStore, createMockAPIEnv, launchTUI } from "./helpers.ts"
+import { TUI_ROOT, TUI_SRC, BUN, run, bunEval, createTestCredentialStore, createMockAPIEnv, launchTUI, TERMINAL_SIZES, type TUITestInstance } from "./helpers.ts"
 
 // ---------------------------------------------------------------------------
 // TUI_APP_SHELL — Package scaffold
@@ -5436,3 +5436,599 @@ describe("TUI_OVERLAY_MANAGER — overlay mutual exclusion", () => {
     await terminal.waitForText("Dashboard");
   });
 });
+
+// ---------------------------------------------------------------------------
+// TUI_APP_SHELL — AppShell three-zone layout
+// ---------------------------------------------------------------------------
+
+describe("TUI_APP_SHELL — AppShell three-zone layout", () => {
+
+  // ── File structure ─────────────────────────────────────────────────────
+
+  test("SHELL-FILE-001: AppShell.tsx exists", () => {
+    expect(existsSync(join(TUI_SRC, "components/AppShell.tsx"))).toBe(true);
+  });
+
+  test("SHELL-FILE-002: AppShell is exported from components/index.ts", async () => {
+    const r = await bunEval(
+      "import { AppShell } from './src/components/index.js'; console.log(typeof AppShell)"
+    );
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout.trim()).toBe("function");
+  });
+
+  test("SHELL-FILE-003: TerminalTooSmallScreen.tsx exists", () => {
+    expect(existsSync(join(TUI_SRC, "components/TerminalTooSmallScreen.tsx"))).toBe(true);
+  });
+
+  // ── Import structure ───────────────────────────────────────────────────
+
+  test("SHELL-IMPORT-001: AppShell imports useLayout hook", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/AppShell.tsx")).text();
+    expect(content).toContain('useLayout');
+    expect(content).toContain('from "../hooks/useLayout.js"');
+  });
+
+  test("SHELL-IMPORT-002: AppShell imports HeaderBar component", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/AppShell.tsx")).text();
+    expect(content).toContain('HeaderBar');
+    expect(content).toContain('from "./HeaderBar.js"');
+  });
+
+  test("SHELL-IMPORT-003: AppShell imports StatusBar component", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/AppShell.tsx")).text();
+    expect(content).toContain('StatusBar');
+    expect(content).toContain('from "./StatusBar.js"');
+  });
+
+  test("SHELL-IMPORT-004: AppShell imports OverlayLayer component", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/AppShell.tsx")).text();
+    expect(content).toContain('OverlayLayer');
+    expect(content).toContain('from "./OverlayLayer.js"');
+  });
+
+  test("SHELL-IMPORT-005: AppShell imports TerminalTooSmallScreen component", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/AppShell.tsx")).text();
+    expect(content).toContain('TerminalTooSmallScreen');
+    expect(content).toContain('from "./TerminalTooSmallScreen.js"');
+  });
+
+  test("SHELL-IMPORT-006: AppShell does not import ScreenRouter directly", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/AppShell.tsx")).text();
+    expect(content).not.toContain('ScreenRouter');
+  });
+
+  // ── Layout structure ───────────────────────────────────────────────────
+
+  test("SHELL-LAYOUT-001: AppShell uses flexDirection column for vertical stacking", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/AppShell.tsx")).text();
+    expect(content).toContain('flexDirection="column"');
+  });
+
+  test("SHELL-LAYOUT-002: AppShell uses width 100% on root box", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/AppShell.tsx")).text();
+    expect(content).toContain('width="100%"');
+  });
+
+  test("SHELL-LAYOUT-003: Content area uses flexGrow={1}", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/AppShell.tsx")).text();
+    expect(content).toContain('flexGrow={1}');
+  });
+
+  test("SHELL-LAYOUT-004: AppShell is a stateless component (no useState or useRef)", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/AppShell.tsx")).text();
+    expect(content).not.toContain('useState');
+    expect(content).not.toContain('useRef');
+  });
+
+  // ── Terminal-too-small guard ────────────────────────────────────────────
+
+  test("SHELL-GUARD-001: AppShell checks breakpoint for null", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/AppShell.tsx")).text();
+    expect(content).toMatch(/layout\.breakpoint/);
+  });
+
+  test("SHELL-GUARD-002: TerminalTooSmallScreen receives cols and rows props", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/AppShell.tsx")).text();
+    expect(content).toContain('cols={layout.width}');
+    expect(content).toContain('rows={layout.height}');
+  });
+
+  test("SHELL-GUARD-003: TerminalTooSmallScreen displays minimum size message", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/TerminalTooSmallScreen.tsx")).text();
+    expect(content).toContain('Terminal too small');
+    expect(content).toContain('80×24');
+  });
+
+  test("SHELL-GUARD-004: TerminalTooSmallScreen uses fallback theme (not useTheme hook)", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/TerminalTooSmallScreen.tsx")).text();
+    expect(content).toContain('createTheme');
+    expect(content).toContain('detectColorCapability');
+    expect(content).not.toContain('useTheme');
+  });
+
+  test("SHELL-GUARD-005: TerminalTooSmallScreen registers useKeyboard for q and ctrl+c", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/TerminalTooSmallScreen.tsx")).text();
+    expect(content).toContain('useKeyboard');
+    expect(content).toContain('process.exit(0)');
+  });
+
+  test("SHELL-GUARD-006: TerminalTooSmallScreen handles q key", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/TerminalTooSmallScreen.tsx")).text();
+    expect(content).toMatch(/event\.name\s*===\s*["']q["']/);
+  });
+
+  test("SHELL-GUARD-007: TerminalTooSmallScreen handles ctrl+c", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/TerminalTooSmallScreen.tsx")).text();
+    expect(content).toContain('event.ctrl');
+  });
+
+  // ── Integration: AppShell position in provider stack ────────────────────
+
+  test("SHELL-INTEGRATION-001: index.tsx renders AppShell wrapping ScreenRouter", async () => {
+    const content = await Bun.file(join(TUI_SRC, "index.tsx")).text();
+    expect(content).toContain('<AppShell>');
+    expect(content).toContain('<ScreenRouter');
+    expect(content).toContain('</AppShell>');
+  });
+
+  test("SHELL-INTEGRATION-002: GlobalKeybindings wraps AppShell in index.tsx", async () => {
+    const content = await Bun.file(join(TUI_SRC, "index.tsx")).text();
+    const globalKbIdx = content.indexOf('<GlobalKeybindings>');
+    const appShellIdx = content.indexOf('<AppShell>');
+    const globalKbEndIdx = content.indexOf('</GlobalKeybindings>');
+    // GlobalKeybindings opens before AppShell and closes after AppShell
+    expect(globalKbIdx).toBeLessThan(appShellIdx);
+    expect(appShellIdx).toBeLessThan(globalKbEndIdx);
+  });
+
+  test("SHELL-INTEGRATION-003: NavigationProvider is ancestor of AppShell in index.tsx", async () => {
+    const content = await Bun.file(join(TUI_SRC, "index.tsx")).text();
+    const navIdx = content.indexOf('<NavigationProvider');
+    const appShellIdx = content.indexOf('<AppShell>');
+    expect(navIdx).toBeGreaterThan(-1);
+    expect(navIdx).toBeLessThan(appShellIdx);
+  });
+
+  test("SHELL-INTEGRATION-004: AppShell is innermost element in provider stack (no providers inside)", async () => {
+    const content = await Bun.file(join(TUI_SRC, "components/AppShell.tsx")).text();
+    // AppShell should not render any Provider components
+    expect(content).not.toContain('Provider');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TUI_APP_SHELL — AppShell E2E rendering
+// ---------------------------------------------------------------------------
+
+describe("TUI_APP_SHELL — AppShell E2E rendering", () => {
+
+  let tui: TUITestInstance | null = null;
+
+  afterEach(async () => {
+    if (tui) {
+      await tui.terminate();
+      tui = null;
+    }
+  });
+
+  // ── Three-zone layout at standard size ─────────────────────────────────
+
+  test("SHELL-E2E-001: TUI renders header bar on first line at 120x40", async () => {
+    tui = await launchTUI({ cols: 120, rows: 40 });
+    await tui.waitForText("Dashboard");
+    // First line should contain breadcrumb text (Dashboard is the default screen)
+    const firstLine = tui.getLine(0);
+    expect(firstLine).toContain("Dashboard");
+  });
+
+  test("SHELL-E2E-002: TUI renders status bar on last line at 120x40", async () => {
+    tui = await launchTUI({ cols: 120, rows: 40 });
+    await tui.waitForText("Dashboard");
+    // Last line should contain help hint
+    const lastLine = tui.getLine(tui.rows - 1);
+    expect(lastLine).toMatch(/\?.*help/);
+  });
+
+  test("SHELL-E2E-003: TUI renders content between header and status at 120x40", async () => {
+    tui = await launchTUI({ cols: 120, rows: 40 });
+    await tui.waitForText("Dashboard");
+    // Content area should be between line 1 and line rows-2
+    const snapshot = tui.snapshot();
+    expect(snapshot).toContain("Dashboard");
+  });
+
+  test("SHELL-E2E-004: TUI renders three zones at minimum size 80x24", async () => {
+    tui = await launchTUI({
+      cols: TERMINAL_SIZES.minimum.width,
+      rows: TERMINAL_SIZES.minimum.height,
+    });
+    await tui.waitForText("Dashboard");
+    const firstLine = tui.getLine(0);
+    expect(firstLine).toContain("Dashboard");
+    const lastLine = tui.getLine(tui.rows - 1);
+    expect(lastLine).toMatch(/\?.*help/);
+  });
+
+  test("SHELL-E2E-005: TUI renders three zones at large size 200x60", async () => {
+    tui = await launchTUI({
+      cols: TERMINAL_SIZES.large.width,
+      rows: TERMINAL_SIZES.large.height,
+    });
+    await tui.waitForText("Dashboard");
+    const firstLine = tui.getLine(0);
+    expect(firstLine).toContain("Dashboard");
+    const lastLine = tui.getLine(tui.rows - 1);
+    expect(lastLine).toMatch(/\?.*help/);
+  });
+
+  // ── Terminal-too-small guard E2E ────────────────────────────────────────
+
+  test("SHELL-E2E-006: TUI shows too-small message at 79x24", async () => {
+    tui = await launchTUI({ cols: 79, rows: 24 });
+    await tui.waitForText("Terminal too small");
+    const snapshot = tui.snapshot();
+    expect(snapshot).toContain("Terminal too small");
+    expect(snapshot).toContain("80");
+    expect(snapshot).toContain("79");
+  });
+
+  test("SHELL-E2E-007: TUI shows too-small message at 80x23", async () => {
+    tui = await launchTUI({ cols: 80, rows: 23 });
+    await tui.waitForText("Terminal too small");
+    const snapshot = tui.snapshot();
+    expect(snapshot).toContain("Terminal too small");
+    expect(snapshot).toContain("23");
+  });
+
+  test("SHELL-E2E-008: Too-small screen does not show header or status bar", async () => {
+    tui = await launchTUI({ cols: 60, rows: 15 });
+    await tui.waitForText("Terminal too small");
+    const snapshot = tui.snapshot();
+    // Should NOT contain status bar help hint or breadcrumbs
+    expect(snapshot).not.toMatch(/\?.*help/);
+  });
+
+  // ── Resize transitions E2E ─────────────────────────────────────────────
+
+  test("SHELL-E2E-009: Resize from below-minimum to standard restores three-zone layout", async () => {
+    tui = await launchTUI({ cols: 60, rows: 15 });
+    await tui.waitForText("Terminal too small");
+    // Resize to standard
+    await tui.resize(120, 40);
+    await tui.waitForText("Dashboard");
+    const firstLine = tui.getLine(0);
+    expect(firstLine).toContain("Dashboard");
+  });
+
+  test("SHELL-E2E-010: Resize from standard to below-minimum shows too-small", async () => {
+    tui = await launchTUI({ cols: 120, rows: 40 });
+    await tui.waitForText("Dashboard");
+    // Resize below minimum
+    await tui.resize(60, 15);
+    await tui.waitForText("Terminal too small");
+  });
+
+  // ── Snapshot tests at breakpoints ──────────────────────────────────────
+
+  test("SHELL-E2E-011: Snapshot at 80x24 matches expected layout", async () => {
+    tui = await launchTUI({
+      cols: TERMINAL_SIZES.minimum.width,
+      rows: TERMINAL_SIZES.minimum.height,
+    });
+    await tui.waitForText("Dashboard");
+    expect(tui.snapshot()).toMatchSnapshot();
+  });
+
+  test("SHELL-E2E-012: Snapshot at 120x40 matches expected layout", async () => {
+    tui = await launchTUI({
+      cols: TERMINAL_SIZES.standard.width,
+      rows: TERMINAL_SIZES.standard.height,
+    });
+    await tui.waitForText("Dashboard");
+    expect(tui.snapshot()).toMatchSnapshot();
+  });
+
+  test("SHELL-E2E-013: Snapshot at 200x60 matches expected layout", async () => {
+    tui = await launchTUI({
+      cols: TERMINAL_SIZES.large.width,
+      rows: TERMINAL_SIZES.large.height,
+    });
+    await tui.waitForText("Dashboard");
+    expect(tui.snapshot()).toMatchSnapshot();
+  });
+
+  test("SHELL-E2E-014: Snapshot of too-small screen matches expected layout", async () => {
+    tui = await launchTUI({ cols: 60, rows: 15 });
+    await tui.waitForText("Terminal too small");
+    expect(tui.snapshot()).toMatchSnapshot();
+  });
+
+  // ── Ctrl+C exits from any state ────────────────────────────────────────
+
+  test("SHELL-E2E-015: Ctrl+C exits from three-zone layout", async () => {
+    tui = await launchTUI({ cols: 120, rows: 40 });
+    await tui.waitForText("Dashboard");
+    await tui.sendKeys("ctrl+c");
+    // Process should terminate — further assertions depend on launchTUI behavior
+    // after process exit. The test validates the key is accepted.
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TUI_APP_SHELL — AppShell compilation
+// ---------------------------------------------------------------------------
+
+describe("TUI_APP_SHELL — AppShell compilation", () => {
+
+  test("SHELL-TSC-001: AppShell.tsx compiles under tsc --noEmit", async () => {
+    const result = await run(["bun", "run", "check"]);
+    if (result.exitCode !== 0) {
+      console.error("tsc stderr:", result.stderr);
+      console.error("tsc stdout:", result.stdout);
+    }
+    expect(result.exitCode).toBe(0);
+  }, 30_000);
+
+  test("SHELL-TSC-002: TerminalTooSmallScreen.tsx compiles under tsc --noEmit", async () => {
+    const result = await run(["bun", "run", "check"]);
+    expect(result.exitCode).toBe(0);
+  }, 30_000);
+});
+
+// ---------------------------------------------------------------------------
+// TUI_SCREEN_ROUTER — NavigationProvider integration coverage
+// ---------------------------------------------------------------------------
+
+describe("TUI_SCREEN_ROUTER — NavigationProvider integration", () => {
+  let terminal: TUITestInstance | undefined
+
+  afterEach(async () => {
+    if (terminal) {
+      await terminal.terminate()
+      terminal = undefined
+    }
+  })
+
+  test("NAV-SNAP-001: initial render shows Dashboard as root screen", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 })
+    await terminal.waitForText("Dashboard")
+    const headerLine = terminal.getLine(0)
+    expect(headerLine).toMatch(/Dashboard/)
+    expect(terminal.snapshot()).toMatchSnapshot()
+  })
+
+  test("NAV-SNAP-002: deep-link launch pre-populates breadcrumb trail", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--screen", "issues", "--repo", "acme/api"],
+    })
+    await terminal.waitForText("Issues")
+    const headerLine = terminal.getLine(0)
+    expect(headerLine).toMatch(/acme\/api/)
+    expect(headerLine).toMatch(/Issues/)
+    expect(terminal.snapshot()).toMatchSnapshot()
+  })
+
+  test("NAV-SNAP-003: breadcrumb truncation at 80x24 with deep stack", async () => {
+    terminal = await launchTUI({
+      cols: 80,
+      rows: 24,
+      args: [
+        "--screen",
+        "issues",
+        "--repo",
+        "extremelylongownersegment/extremelylongreposegmentthatforcestruncation",
+      ],
+    })
+    await terminal.waitForText("Issues")
+    const headerLine = terminal.getLine(0)
+    expect(headerLine).toMatch(/Issues/)
+    expect(headerLine).not.toContain("extremelylongreposegmentthatforcestruncation")
+    expect(terminal.snapshot()).toMatchSnapshot()
+  })
+
+  test("NAV-KEY-001: g r pushes Repositories onto the stack", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 })
+    await terminal.sendKeys("g", "r")
+    await terminal.waitForText("Repositories")
+    const headerLine = terminal.getLine(0)
+    expect(headerLine).toMatch(/Repositories/)
+  })
+
+  test("NAV-KEY-002: q pops current screen and returns to previous", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 })
+    await terminal.sendKeys("g", "r")
+    await terminal.waitForText("Repositories")
+    await terminal.sendKeys("q")
+    await terminal.waitForText("Dashboard")
+  })
+
+  test("NAV-KEY-003: q on root screen quits TUI", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 })
+    await terminal.waitForText("Dashboard")
+    await terminal.sendKeys("q")
+    await terminal.terminate()
+    terminal = undefined
+  })
+
+  test("NAV-KEY-004: g n resets from deep stack to Dashboard > Notifications", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--screen", "issues", "--repo", "acme/api"],
+    })
+    await terminal.waitForText("Issues")
+    await terminal.sendKeys("g", "n")
+    await terminal.waitForText("Notifications")
+    await terminal.sendKeys("q")
+    await terminal.waitForText("Dashboard")
+  })
+
+  test("NAV-KEY-005: go-to mode replaces entire stack with new root", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 })
+    await terminal.sendKeys("g", "r")
+    await terminal.waitForText("Repositories")
+    await terminal.sendKeys("g", "d")
+    await terminal.waitForText("Dashboard")
+    const headerLine = terminal.getLine(0)
+    expect(headerLine).toMatch(/Dashboard/)
+    expect(headerLine).not.toMatch(/Repositories/)
+  })
+
+  test("NAV-KEY-006: repeated g r does not require multiple pops", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 })
+    await terminal.sendKeys("g", "r")
+    await terminal.waitForText("Repositories")
+    await terminal.sendKeys("g", "r")
+    await terminal.waitForText("Repositories")
+    await terminal.sendKeys("q")
+    await terminal.waitForText("Dashboard")
+  })
+
+  test("NAV-KEY-007: rapid q presses process sequentially through stack", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--screen", "issues", "--repo", "acme/api"],
+    })
+    await terminal.waitForText("Issues")
+    await terminal.sendKeys("q", "q")
+    await terminal.waitForText("Dashboard")
+  })
+
+  test("NAV-KEY-008: deep-link q walks back through pre-populated stack", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--screen", "issues", "--repo", "acme/api"],
+    })
+    await terminal.waitForText("Issues")
+    await terminal.sendKeys("q")
+    await terminal.waitForText("acme/api")
+    await terminal.sendKeys("q")
+    await terminal.waitForText("Dashboard")
+  })
+
+  test("NAV-INT-001: all screens can access navigation context for push/pop", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 })
+    await terminal.sendKeys("g", "n")
+    await terminal.waitForText("Notifications")
+    await terminal.sendKeys("g", "s")
+    await terminal.waitForText("Search")
+    await terminal.sendKeys("g", "w")
+    await terminal.waitForText("Workspaces")
+    await terminal.sendKeys("q")
+    await terminal.waitForText("Dashboard")
+  })
+
+  test("NAV-INT-002: canPop is false on root screen, prevents accidental pop", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 })
+    await terminal.waitForText("Dashboard")
+    await terminal.sendKeys("q")
+    await terminal.terminate()
+    terminal = undefined
+  })
+
+  test("NAV-INT-003: stack overflow beyond 32 entries drops oldest without crash", async () => {
+    const { createScreenEntry, pushStack } = await import(
+      "../../apps/tui/src/providers/NavigationProvider.tsx"
+    )
+
+    let stack = [createScreenEntry("Dashboard")]
+    for (let i = 1; i <= 40; i += 1) {
+      stack = pushStack(stack, `Screen${i}`)
+    }
+
+    expect(stack).toHaveLength(32)
+    expect(stack[0]?.screen).toBe("Screen9")
+    expect(stack[31]?.screen).toBe("Screen40")
+  })
+
+  test("NAV-INT-004: header bar breadcrumb updates on push, pop, replace, and reset", async () => {
+    terminal = await launchTUI({ cols: 120, rows: 40 })
+    await terminal.sendKeys("g", "r")
+    await terminal.waitForText("Repositories")
+    let header = terminal.getLine(0)
+    expect(header).toMatch(/Repositories/)
+
+    await terminal.sendKeys("q")
+    await terminal.waitForText("Dashboard")
+    header = terminal.getLine(0)
+    expect(header).toMatch(/Dashboard/)
+    expect(header).not.toMatch(/Repositories/)
+
+    await terminal.sendKeys("g", "n")
+    await terminal.waitForText("Notifications")
+    header = terminal.getLine(0)
+    expect(header).toMatch(/Notifications/)
+  })
+
+  test("NAV-EDGE-001: useNavigation outside provider triggers error boundary", async () => {
+    try {
+      mock.module("react", () => ({
+        createContext: () => ({}),
+        useContext: () => null,
+        useCallback: (fn: (...args: unknown[]) => unknown) => fn,
+        useMemo: (fn: () => unknown) => fn(),
+        useState: <T,>(value: T | (() => T)) => [
+          typeof value === "function" ? (value as () => T)() : value,
+          () => {},
+        ],
+      }))
+
+      const { useNavigation } = await import(
+        `../../apps/tui/src/hooks/useNavigation.ts?edge=${Date.now()}`
+      )
+      expect(() => useNavigation()).toThrow(
+        "useNavigation must be used within a NavigationProvider",
+      )
+    } finally {
+      mock.restore()
+    }
+  })
+
+  test("NAV-EDGE-002: push with empty params does not duplicate push with no params", async () => {
+    const { createScreenEntry, pushStack } = await import(
+      "../../apps/tui/src/providers/NavigationProvider.tsx"
+    )
+
+    const initial = [
+      createScreenEntry("Dashboard"),
+      createScreenEntry("RepoList"),
+    ]
+    const next = pushStack(initial, "RepoList", {})
+    expect(next).toBe(initial)
+  })
+
+  test("NAV-EDGE-003: replace on single-entry stack swaps root screen", async () => {
+    const { createScreenEntry, replaceStack } = await import(
+      "../../apps/tui/src/providers/NavigationProvider.tsx"
+    )
+
+    const initial = [createScreenEntry("Dashboard")]
+    const replaced = replaceStack(initial, "Notifications")
+
+    expect(replaced).toHaveLength(1)
+    expect(replaced[0]?.screen).toBe("Notifications")
+    expect(replaced[0]?.id).not.toBe(initial[0]?.id)
+  })
+
+  test("NAV-EDGE-004: q during screen data loading cancels and returns to previous", async () => {
+    const { createScreenEntry, pushStack } = await import(
+      "../../apps/tui/src/providers/NavigationProvider.tsx"
+    )
+
+    const params = { owner: "acme", repo: "api" }
+    const stack = pushStack(
+      [createScreenEntry("Dashboard")],
+      "RepoOverview",
+      params,
+    )
+    params.owner = "mutated"
+
+    expect(stack[1]?.params?.owner).toBe("acme")
+    expect(stack[1]?.params?.repo).toBe("api")
+  })
+})

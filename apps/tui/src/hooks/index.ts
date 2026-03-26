@@ -13,7 +13,7 @@ export {
 } from "./useSpinner.js";
 export { useLayout } from "./useLayout.js";
 export type { LayoutContext } from "./useLayout.js";
-export { useNavigation } from "../providers/NavigationProvider.js";
+export { useNavigation } from "./useNavigation.js";
 export { useAuth } from "./useAuth.js";
 export { useLoading } from "./useLoading.js";
 export { useScreenLoading } from "./useScreenLoading.js";
@@ -23,3 +23,13 @@ export { useBreakpoint } from "./useBreakpoint.js";
 export { useResponsiveValue, type ResponsiveValues } from "./useResponsiveValue.js";
 export { useSidebarState, resolveSidebarVisibility, type SidebarState } from "./useSidebarState.js";
 export { useOverlay } from "./useOverlay.js";
+export { useKeyboardNavigation } from "./useKeyboardNavigation.js";
+export type {
+  UseKeyboardNavigationOptions,
+  UseKeyboardNavigationReturn,
+} from "./useKeyboardNavigation.js";
+export { useListSelection } from "./useListSelection.js";
+export type {
+  UseListSelectionOptions,
+  UseListSelectionReturn,
+} from "./useListSelection.js";
