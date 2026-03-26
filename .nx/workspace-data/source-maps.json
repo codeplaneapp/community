@@ -32,6 +32,10 @@
       "apps/cli/package.json",
       "nx/core/package-json"
     ],
+    "metadata.targetGroups.NPM Scripts.2": [
+      "apps/cli/package.json",
+      "nx/core/package-json"
+    ],
     "metadata.js": [
       "apps/cli/package.json",
       "nx/core/package-json"
@@ -104,6 +108,34 @@
       "apps/cli/package.json",
       "nx/core/package-json"
     ],
+    "targets.check": [
+      "apps/cli/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.executor": [
+      "apps/cli/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.options": [
+      "apps/cli/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.metadata": [
+      "apps/cli/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.options.script": [
+      "apps/cli/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.metadata.scriptContent": [
+      "apps/cli/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.metadata.runCommand": [
+      "apps/cli/package.json",
+      "nx/core/package-json"
+    ],
     "targets.build.dependsOn": [
       "nx.json",
       "nx/target-defaults"
@@ -147,6 +179,10 @@
       "nx/core/package-json"
     ],
     "metadata.targetGroups.NPM Scripts.1": [
+      "apps/codeplanectl/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups.NPM Scripts.2": [
       "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ],
@@ -223,6 +259,34 @@
       "nx/core/package-json"
     ],
     "targets.typecheck.metadata.runCommand": [
+      "apps/codeplanectl/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check": [
+      "apps/codeplanectl/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.executor": [
+      "apps/codeplanectl/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.options": [
+      "apps/codeplanectl/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.metadata": [
+      "apps/codeplanectl/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.options.script": [
+      "apps/codeplanectl/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.metadata.scriptContent": [
+      "apps/codeplanectl/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.metadata.runCommand": [
       "apps/codeplanectl/package.json",
       "nx/core/package-json"
     ]
@@ -422,6 +486,10 @@
       "apps/tui/package.json",
       "nx/core/package-json"
     ],
+    "metadata.targetGroups.NPM Scripts.3": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
     "metadata.js": [
       "apps/tui/package.json",
       "nx/core/package-json"
@@ -527,6 +595,34 @@
       "nx/core/package-json"
     ],
     "targets.test:e2e.metadata.runCommand": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:e2e:full": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:e2e:full.executor": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:e2e:full.options": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:e2e:full.metadata": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:e2e:full.options.script": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:e2e:full.metadata.scriptContent": [
+      "apps/tui/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:e2e:full.metadata.runCommand": [
       "apps/tui/package.json",
       "nx/core/package-json"
     ]
@@ -752,6 +848,14 @@
       "packages/workflow/package.json",
       "nx/core/package-json"
     ],
+    "metadata.targetGroups.NPM Scripts": [
+      "packages/workflow/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups.NPM Scripts.0": [
+      "packages/workflow/package.json",
+      "nx/core/package-json"
+    ],
     "metadata.js": [
       "packages/workflow/package.json",
       "nx/core/package-json"
@@ -773,6 +877,34 @@
       "nx/core/package-json"
     ],
     "targets": [
+      "packages/workflow/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check": [
+      "packages/workflow/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.executor": [
+      "packages/workflow/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.options": [
+      "packages/workflow/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.metadata": [
+      "packages/workflow/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.options.script": [
+      "packages/workflow/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.metadata.scriptContent": [
+      "packages/workflow/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.check.metadata.runCommand": [
       "packages/workflow/package.json",
       "nx/core/package-json"
     ]

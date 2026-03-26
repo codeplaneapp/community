@@ -1,18 +1,73 @@
 {
   "run": {
-    "command": "nx run @codeplane/tui:test:e2e",
-    "startTime": "2026-03-23T14:48:32.915Z",
-    "endTime": "2026-03-23T14:48:41.354Z",
+    "command": "nx run-many --target=check --all",
+    "startTime": "2026-03-26T21:03:17.938Z",
+    "endTime": "2026-03-26T21:03:19.317Z",
     "inner": false
   },
   "tasks": [
     {
-      "taskId": "@codeplane/tui:test:e2e",
-      "target": "test:e2e",
+      "taskId": "@codeplane-ai/workflow:check",
+      "target": "check",
+      "projectName": "@codeplane-ai/workflow",
+      "hash": "17462629183138946621",
+      "startTime": "2026-03-26T21:03:17.985Z",
+      "endTime": "2026-03-26T21:03:18.661Z",
+      "params": "",
+      "cacheStatus": "cache-miss",
+      "status": 1
+    },
+    {
+      "taskId": "@codeplane/server:check",
+      "target": "check",
+      "projectName": "@codeplane/server",
+      "hash": "14591085624347651402",
+      "startTime": "2026-03-26T21:03:17.985Z",
+      "endTime": "2026-03-26T21:03:18.695Z",
+      "params": "",
+      "cacheStatus": "cache-miss",
+      "status": 1
+    },
+    {
+      "taskId": "@codeplane/sdk:check",
+      "target": "check",
+      "projectName": "@codeplane/sdk",
+      "hash": "1110772026712194921",
+      "startTime": "2026-03-26T21:03:17.985Z",
+      "endTime": "2026-03-26T21:03:18.762Z",
+      "params": "",
+      "cacheStatus": "cache-miss",
+      "status": 1
+    },
+    {
+      "taskId": "@codeplane/tui:check",
+      "target": "check",
       "projectName": "@codeplane/tui",
-      "hash": "2603077953676999519",
-      "startTime": "2026-03-23T14:48:32.962Z",
-      "endTime": "2026-03-23T14:48:41.353Z",
+      "hash": "9787964091526351162",
+      "startTime": "2026-03-26T21:03:18.762Z",
+      "endTime": "2026-03-26T21:03:19.165Z",
+      "params": "",
+      "cacheStatus": "cache-miss",
+      "status": 1
+    },
+    {
+      "taskId": "codeplane:check",
+      "target": "check",
+      "projectName": "codeplane",
+      "hash": "11354432820817931020",
+      "startTime": "2026-03-26T21:03:18.738Z",
+      "endTime": "2026-03-26T21:03:19.248Z",
+      "params": "",
+      "cacheStatus": "cache-miss",
+      "status": 1
+    },
+    {
+      "taskId": "codeplanectl:check",
+      "target": "check",
+      "projectName": "codeplanectl",
+      "hash": "18302009123947941744",
+      "startTime": "2026-03-26T21:03:18.739Z",
+      "endTime": "2026-03-26T21:03:19.317Z",
       "params": "",
       "cacheStatus": "cache-miss",
       "status": 1
