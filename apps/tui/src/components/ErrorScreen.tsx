@@ -368,25 +368,25 @@ export function ErrorScreen({
       {/* Action hints */}
       <box paddingX={config.paddingX} paddingBottom={1}>
         <box flexDirection="row" gap={2}>
-          <text>
+          <box flexDirection="row">
             <text fg={primaryColor} attributes={TextAttributes.BOLD}>r</text>
             <text fg={mutedColor}>:restart</text>
-          </text>
-          <text>
+          </box>
+          <box flexDirection="row">
             <text fg={primaryColor} attributes={TextAttributes.BOLD}>q</text>
             <text fg={mutedColor}>:quit</text>
-          </text>
+          </box>
           {hasStack && (
-            <text>
+            <box flexDirection="row">
               <text fg={primaryColor} attributes={TextAttributes.BOLD}>s</text>
               <text fg={mutedColor}>:trace</text>
-            </text>
+            </box>
           )}
           <box flexGrow={1} />
-          <text>
+          <box flexDirection="row">
             <text fg={primaryColor} attributes={TextAttributes.BOLD}>?</text>
             <text fg={mutedColor}>:help</text>
-          </text>
+          </box>
         </box>
       </box>
 
@@ -405,17 +405,17 @@ export function ErrorScreen({
         >
           <text attributes={TextAttributes.BOLD}>Error Screen Keybindings</text>
           <text fg={mutedColor}>──────────────────────</text>
-          <text><text attributes={TextAttributes.BOLD} fg={primaryColor}>r</text>       Restart TUI</text>
-          <text><text attributes={TextAttributes.BOLD} fg={primaryColor}>q</text>       Quit TUI</text>
-          <text><text attributes={TextAttributes.BOLD} fg={primaryColor}>Ctrl+C</text>  Quit immediately</text>
-          <text><text attributes={TextAttributes.BOLD} fg={primaryColor}>s</text>       Toggle stack trace</text>
-          <text><text attributes={TextAttributes.BOLD} fg={primaryColor}>j/↓</text>    Scroll trace down</text>
-          <text><text attributes={TextAttributes.BOLD} fg={primaryColor}>k/↑</text>    Scroll trace up</text>
-          <text><text attributes={TextAttributes.BOLD} fg={primaryColor}>G</text>       Jump to trace bottom</text>
-          <text><text attributes={TextAttributes.BOLD} fg={primaryColor}>gg</text>      Jump to trace top</text>
-          <text><text attributes={TextAttributes.BOLD} fg={primaryColor}>Ctrl+D</text>  Page down</text>
-          <text><text attributes={TextAttributes.BOLD} fg={primaryColor}>Ctrl+U</text>  Page up</text>
-          <text><text attributes={TextAttributes.BOLD} fg={primaryColor}>?</text>       Close this help</text>
+          <box flexDirection="row"><text attributes={TextAttributes.BOLD} fg={primaryColor}>r</text><text>       Restart TUI</text></box>
+          <box flexDirection="row"><text attributes={TextAttributes.BOLD} fg={primaryColor}>q</text><text>       Quit TUI</text></box>
+          <box flexDirection="row"><text attributes={TextAttributes.BOLD} fg={primaryColor}>Ctrl+C</text><text>  Quit immediately</text></box>
+          <box flexDirection="row"><text attributes={TextAttributes.BOLD} fg={primaryColor}>s</text><text>       Toggle stack trace</text></box>
+          <box flexDirection="row"><text attributes={TextAttributes.BOLD} fg={primaryColor}>j/↓</text><text>    Scroll trace down</text></box>
+          <box flexDirection="row"><text attributes={TextAttributes.BOLD} fg={primaryColor}>k/↑</text><text>    Scroll trace up</text></box>
+          <box flexDirection="row"><text attributes={TextAttributes.BOLD} fg={primaryColor}>G</text><text>       Jump to trace bottom</text></box>
+          <box flexDirection="row"><text attributes={TextAttributes.BOLD} fg={primaryColor}>gg</text><text>      Jump to trace top</text></box>
+          <box flexDirection="row"><text attributes={TextAttributes.BOLD} fg={primaryColor}>Ctrl+D</text><text>  Page down</text></box>
+          <box flexDirection="row"><text attributes={TextAttributes.BOLD} fg={primaryColor}>Ctrl+U</text><text>  Page up</text></box>
+          <box flexDirection="row"><text attributes={TextAttributes.BOLD} fg={primaryColor}>?</text><text>       Close this help</text></box>
           <box flexGrow={1} />
           <text fg={mutedColor}>Press ? or Esc to close</text>
         </box>

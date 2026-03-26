@@ -61,16 +61,16 @@ function App() {
       currentScreen={screenRef.current}
       noColor={noColor}
     >
-      <ThemeProvider>
-        <KeybindingProvider>
-          <OverlayManager>
-            <AuthProvider token={launchOptions.token} apiUrl={launchOptions.apiUrl}>
-              <APIClientProvider>
-                <SSEProvider>
-                  <NavigationProvider
-                    key={navResetKey}
-                    initialStack={initialStack}
-                  >
+      <AuthProvider token={launchOptions.token} apiUrl={launchOptions.apiUrl}>
+        <APIClientProvider>
+          <SSEProvider>
+            <NavigationProvider
+              key={navResetKey}
+              initialStack={initialStack}
+            >
+              <ThemeProvider>
+                <KeybindingProvider>
+                  <OverlayManager>
                     <LoadingProvider>
                       <GlobalKeybindings>
                         <AppShell>
@@ -78,13 +78,13 @@ function App() {
                         </AppShell>
                       </GlobalKeybindings>
                     </LoadingProvider>
-                  </NavigationProvider>
-                </SSEProvider>
-              </APIClientProvider>
-            </AuthProvider>
-          </OverlayManager>
-        </KeybindingProvider>
-      </ThemeProvider>
+                  </OverlayManager>
+                </KeybindingProvider>
+              </ThemeProvider>
+            </NavigationProvider>
+          </SSEProvider>
+        </APIClientProvider>
+      </AuthProvider>
     </ErrorBoundary>
   );
 }

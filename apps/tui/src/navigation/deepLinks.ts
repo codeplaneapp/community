@@ -1,6 +1,7 @@
-import type { ScreenEntry } from "../router/types.js";
+import type { NavigationProviderProps } from "../router/types.js";
 import { ScreenName } from "../router/types.js";
-import { createEntry } from "../providers/NavigationProvider.js";
+
+type DeepLinkStackEntry = NonNullable<NavigationProviderProps["initialStack"]>[number];
 
 export interface DeepLinkArgs {
   screen?: string;
@@ -11,7 +12,7 @@ export interface DeepLinkArgs {
 
 export interface DeepLinkResult {
   /** Pre-populated stack entries */
-  stack: ScreenEntry[];
+  stack: DeepLinkStackEntry[];
   /** Non-empty when validation failed */
   error?: string;
 }
@@ -40,7 +41,7 @@ function resolveScreenName(input: string): ScreenName | null {
 }
 
 export function buildInitialStack(args: DeepLinkArgs): DeepLinkResult {
-  const dashboardEntry = () => createEntry(ScreenName.Dashboard);
+  const dashboardEntry = (): DeepLinkStackEntry => ({ screen: ScreenName.Dashboard });
 
   if (!args.screen && !args.repo) {
     return { stack: [dashboardEntry()] };
@@ -70,10 +71,13 @@ export function buildInitialStack(args: DeepLinkArgs): DeepLinkResult {
     repoName = parts[1];
   }
 
-  const stack: ScreenEntry[] = [dashboardEntry()];
+  const stack: DeepLinkStackEntry[] = [dashboardEntry()];
 
   if (owner && repoName) {
-    stack.push(createEntry(ScreenName.RepoOverview, { owner, repo: repoName }));
+    stack.push({
+      screen: ScreenName.RepoOverview,
+      params: { owner, repo: repoName },
+    });
   }
 
   if (screenName && screenName !== ScreenName.Dashboard) {
@@ -107,7 +111,10 @@ export function buildInitialStack(args: DeepLinkArgs): DeepLinkResult {
 
     // avoid pushing duplicates if RepoOverview is the target
     if (screenName !== ScreenName.RepoOverview || !owner) {
-      stack.push(createEntry(screenName, params));
+      stack.push({
+        screen: screenName,
+        params,
+      });
     }
   }
 
