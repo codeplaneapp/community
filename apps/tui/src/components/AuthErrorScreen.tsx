@@ -1,7 +1,7 @@
 import React, { useRef, useCallback } from "react";
 import { useKeyboard } from "@opentui/react";
-import { useTheme } from "../hooks/useTheme.js";
-import { TextAttributes } from "../theme/tokens.js";
+import { detectColorCapability } from "../theme/detect.js";
+import { createTheme, TextAttributes } from "../theme/tokens.js";
 import type { AuthTokenSource } from "../../../cli/src/auth-state.js";
 
 export interface AuthErrorScreenProps {
@@ -12,7 +12,7 @@ export interface AuthErrorScreenProps {
 }
 
 export function AuthErrorScreen({ variant, host, tokenSource, onRetry }: AuthErrorScreenProps) {
-  const theme = useTheme();
+  const theme = createTheme(detectColorCapability());
 
   const lastRetryRef = useRef(0);
   const handleRetry = useCallback(() => {
@@ -40,15 +40,13 @@ export function AuthErrorScreen({ variant, host, tokenSource, onRetry }: AuthErr
         <box flexDirection="column" flexGrow={1} justifyContent="center" paddingX={2}>
           <text fg={theme.error} attributes={TextAttributes.BOLD}>✗ Not authenticated</text>
           <text />
-          <text>No token found for <text fg={theme.muted}>{host}</text>.</text>
+          <text>{`No token found for ${host}.`}</text>
           <text />
           <text>Run the following command to log in:</text>
           <text />
           <text fg={theme.primary} attributes={TextAttributes.BOLD}>  codeplane auth login</text>
           <text />
-          <text>
-            Or set the <text attributes={TextAttributes.BOLD}>CODEPLANE_TOKEN</text> environment variable.
-          </text>
+          <text>Or set the CODEPLANE_TOKEN environment variable.</text>
         </box>
         <box height={1} border={["top"]} borderStyle="single" borderColor={theme.border}>
           <text fg={theme.muted}>q quit │ R retry │ Ctrl+C quit</text>
@@ -66,7 +64,7 @@ export function AuthErrorScreen({ variant, host, tokenSource, onRetry }: AuthErr
       <box flexDirection="column" flexGrow={1} justifyContent="center" paddingX={2}>
         <text fg={theme.error} attributes={TextAttributes.BOLD}>✗ Session expired</text>
         <text />
-        <text>Stored token for <text fg={theme.muted}>{host}</text> from {sourceLabel} is invalid or expired.</text>
+        <text>{`Stored token for ${host} from ${sourceLabel} is invalid or expired.`}</text>
         <text />
         <text>Run the following command to re-authenticate:</text>
         <text />

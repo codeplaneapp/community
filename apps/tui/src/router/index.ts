@@ -4,9 +4,12 @@ export {
   ScreenName,
   MAX_STACK_DEPTH,
   DEFAULT_ROOT_SCREEN,
+  screenEntriesEqual,
 } from "./types.js";
 export type {
   ScreenEntry,
+  NavigationContextType,
+  NavigationProviderProps,
   NavigationContext,
   ScreenDefinition,
   ScreenComponentProps,

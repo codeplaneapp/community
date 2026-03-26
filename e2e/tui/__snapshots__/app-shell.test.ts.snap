@@ -1,0 +1,317 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`TUI_SCREEN_ROUTER — NavigationProvider integration NAV-SNAP-001: initial render shows Dashboard as root screen 1`] = `
+"Dashboard──────────────────────────────────────────────────────────────────────────────────────────────────────────────●
+                             │                                                                                          
+ Navigation                  │ Dashboard                                                                                
+ Dashboard                   │ This screen is not yet implemented.                                                      
+ Repositories                │                                                                                          
+ Search                      │                                                                                          
+ Workspaces                  │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"
+`;
+
+exports[`TUI_SCREEN_ROUTER — NavigationProvider integration NAV-SNAP-002: deep-link launch pre-populates breadcrumb trail 1`] = `
+"Issuesard─›─acme/api─›────────────────────────────────────────────────────────────────────────────────────────acme/api─●
+                             │                                                                                          
+ Navigation                  │ Issues                                                                                   
+ Dashboard                   │ This screen is not yet implemented.                                                      
+ Repositories                │                                                                                          
+ Search                      │ Params:                                                                                  
+ Workspaces                  │   owner: acme                                                                            
+                             │   repo: api                                                                              
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"
+`;
+
+exports[`TUI_SCREEN_ROUTER — snapshot tests SNAP-NAV-001: Dashboard placeholder at 80x24 1`] = `
+"Dashboard                                                                     ─●
+                                                                                
+ Dashboard                                                                      
+ This screen is not yet implemented.                                            
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                  Authenticating…                               
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+──────────────────────────────────────────────────────────────────────────────��
+─                                                                               "
+`;
+
+exports[`TUI_SCREEN_ROUTER — snapshot tests SNAP-NAV-002: Dashboard placeholder at 120x40 1`] = `
+"Dashboard──────────────────────────────────────────────────────────────────────────────────────────────────────────────●
+                             │                                                                                          
+ Navigation                  │ Dashboard                                                                                
+ Dashboard                   │ This screen is not yet implemented.                                                      
+ Repositories                │                                                                                          
+ Search                      │                                                                                          
+ Workspaces                  │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"
+`;
+
+exports[`TUI_SCREEN_ROUTER — snapshot tests SNAP-NAV-003: deep-linked Agents at 80x24 1`] = `
+"Agentsard─›─acme/api─›─                                                       ─●
+                                                                                
+ Agents                                                                         
+ This screen is not yet implemented.                                            
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                  Authenticating…                               
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+──────────────────────────────────────────────────────────────────────────────��
+─                                                                               "
+`;
+
+exports[`TUI_SCREEN_ROUTER — snapshot tests SNAP-NAV-004: deep-linked Agents at 120x40 1`] = `
+"Agentsard─›─acme/api─›────────────────────────────────────────────────────────────────────────────────────────acme/api─●
+                             │                                                                                          
+ Navigation                  │ Agents                                                                                   
+ Dashboard                   │ This screen is not yet implemented.                                                      
+ Repositories                │                                                                                          
+ Search                      │                                                                                          
+ Workspaces                  │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+                             │                                                                                          
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"
+`;
+
+exports[`TUI_SCREEN_ROUTER — snapshot tests SNAP-NAV-005: Dashboard at 200x60 (large breakpoint) 1`] = `
+"Dashboard──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────●
+                                                           │                                                                                                                                            
+ Navigation                                                │ Dashboard                                                                                                                                  
+ Dashboard                                                 │ This screen is not yet implemented.                                                                                                        
+ Repositories                                              │                                                                                                                                            
+ Search                                                    │                                                                                                                                            
+ Workspaces                                                │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+                                                           │                                                                                                                                            
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"
+`;
+
+exports[`TUI_SCREEN_ROUTER — NavigationProvider integration NAV-SNAP-003: breadcrumb truncation at 80x24 with deep stack 1`] = `
+"Issues───                                                                     ─●
+                                                                                
+ Issues                                                                         
+ This screen is not yet implemented.                                            
+                                                                                
+ Params:                                                                        
+   owner: extremelylongownersegment                                             
+   repo: extremelylongreposegmentthatforcestruncation                           
+                                                                                
+                                                                                
+                                  Authenticating…                               
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+──────────────────────────────────────────────────────────────────────────────��
+─                                                                               "
+`;

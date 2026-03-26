@@ -2,7 +2,8 @@
 
 import { join } from "node:path"
 import { tmpdir } from "node:os"
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs"
+import { mkdtempSync, writeFileSync, rmSync, existsSync } from "node:fs"
+import { pathToFileURL } from "node:url"
 
 /** Absolute path to the TUI app root */
 export const TUI_ROOT = join(import.meta.dir, "../../apps/tui")
@@ -12,6 +13,26 @@ export const TUI_SRC = join(TUI_ROOT, "src")
 
 /** TUI entry point for spawning in tests */
 export const TUI_ENTRY = join(TUI_SRC, "index.tsx")
+
+/** Potential @microsoft/tui-test terminal module directories. */
+const TUI_TEST_TERMINAL_ROOTS = [
+  join(TUI_ROOT, "node_modules/@microsoft/tui-test/lib/terminal"),
+  join(import.meta.dir, "../../node_modules/@microsoft/tui-test/lib/terminal"),
+]
+
+function resolveTuiTestModule(moduleFile: string): string {
+  for (const root of TUI_TEST_TERMINAL_ROOTS) {
+    const candidate = join(root, moduleFile)
+    if (existsSync(candidate)) {
+      return pathToFileURL(candidate).href
+    }
+  }
+
+  throw new Error(
+    `Unable to resolve @microsoft/tui-test terminal module "${moduleFile}" from: ` +
+      TUI_TEST_TERMINAL_ROOTS.join(", "),
+  )
+}
 
 /** Bun binary path */
 export const BUN = Bun.which("bun") ?? process.execPath
@@ -286,9 +307,9 @@ export async function launchTUI(
   // Dynamic import to avoid top-level import issues when
   // @microsoft/tui-test is not installed yet
   const { spawn: spawnTerminal } = await import(
-    "@microsoft/tui-test/lib/terminal/term.js"
+    resolveTuiTestModule("term.js")
   )
-  const { Shell } = await import("@microsoft/tui-test/lib/terminal/shell.js")
+  const { Shell } = await import(resolveTuiTestModule("shell.js"))
   const { EventEmitter } = await import("node:events")
 
   const cols = options?.cols ?? TERMINAL_SIZES.standard.width

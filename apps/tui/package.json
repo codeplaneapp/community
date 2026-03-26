@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "bun run src/index.tsx",
     "check": "tsc --noEmit",
-    "test:e2e": "bun test ../../e2e/tui/keybinding-normalize.test.ts ../../e2e/tui/util-text.test.ts ../../e2e/tui/diff.test.ts --timeout 30000",
+    "test:e2e": "bun test ../../e2e/tui/keybinding-normalize.test.ts ../../e2e/tui/util-text.test.ts ../../e2e/tui/diff.test.ts --timeout 30000 && bun test ../../e2e/tui/app-shell.test.ts --test-name-pattern \"NAV-(SNAP|KEY|INT|EDGE)-\" --timeout 30000",
     "test:e2e:full": "bun test ../../e2e/tui/ --timeout 30000"
   },
   "dependencies": {

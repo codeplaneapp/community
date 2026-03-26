@@ -1,8 +1,8 @@
 import React from "react";
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import { useSpinner } from "../hooks/useSpinner.js";
-import { useTheme } from "../hooks/useTheme.js";
-import { TextAttributes } from "../theme/tokens.js";
+import { detectColorCapability } from "../theme/detect.js";
+import { createTheme, TextAttributes } from "../theme/tokens.js";
 import { truncateText } from "../util/text.js";
 
 export interface AuthLoadingScreenProps {
@@ -12,7 +12,7 @@ export interface AuthLoadingScreenProps {
 export function AuthLoadingScreen({ host }: AuthLoadingScreenProps) {
   const { width } = useTerminalDimensions();
   const spinnerFrame = useSpinner(true);
-  const theme = useTheme();
+  const theme = createTheme(detectColorCapability());
 
   const displayHost = truncateText(host, width - 4);
 
@@ -32,10 +32,10 @@ export function AuthLoadingScreen({ host }: AuthLoadingScreenProps) {
         justifyContent="center"
         alignItems="center"
       >
-        <text>
+        <box flexDirection="row">
           <text fg={theme.primary}>{spinnerFrame}</text>
           <text> Authenticating…</text>
-        </text>
+        </box>
         <text fg={theme.muted}>{displayHost}</text>
       </box>
 

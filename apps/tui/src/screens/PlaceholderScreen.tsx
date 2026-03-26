@@ -2,7 +2,7 @@ import type { ScreenComponentProps } from "../router/types.js";
 import { TextAttributes } from "../theme/tokens.js";
 
 export function PlaceholderScreen({ entry }: ScreenComponentProps) {
-  const paramEntries = Object.entries(entry.params);
+  const paramEntries = Object.entries(entry.params ?? {});
 
   return (
     <box flexDirection="column" padding={1} width="100%" height="100%">
