@@ -53,24 +53,25 @@ The native `<tab-select>` is appropriate for simple choice-style tabs. The `Tabb
 
 ### In scope
 
-1. `apps/tui/src/components/TabbedDetailView.tsx` — the main component
-2. `apps/tui/src/components/TabbedDetailView.types.ts` — TypeScript interfaces
-3. `apps/tui/src/components/TabbedDetailView.test-helpers.ts` — test utility exports for E2E tests
-4. `apps/tui/src/hooks/useTabs.ts` — tab state management hook (active tab, cycling, direct jump, tab visibility)
-5. `apps/tui/src/hooks/useTabScrollState.ts` — per-tab scroll position and focus index preservation
-6. `apps/tui/src/hooks/useTabFilter.ts` — per-tab filter input state with client-side substring matching
-7. `apps/tui/src/types/breakpoint.ts` — shared `Breakpoint` type and `getBreakpoint()` utility
-8. Barrel export creation: `apps/tui/src/components/index.ts` (new file) and `apps/tui/src/hooks/index.ts` (new file)
-9. E2E test file: `e2e/tui/organizations.test.ts` — tests for the TabbedDetailView component behavior as exercised through org screens
+1. `apps/tui/src/components/TabbedDetailView.tsx` — the main component (new file)
+2. `apps/tui/src/components/TabbedDetailView.types.ts` — TypeScript interfaces (new file)
+3. `apps/tui/src/components/TabbedDetailView.test-helpers.ts` — test utility exports for E2E tests (new file)
+4. `apps/tui/src/hooks/useTabs.ts` — tab state management hook (new file)
+5. `apps/tui/src/hooks/useTabScrollState.ts` — per-tab scroll position and focus index preservation (new file)
+6. `apps/tui/src/hooks/useTabFilter.ts` — per-tab filter input state with client-side substring matching (new file)
+7. `apps/tui/src/components/index.ts` — update existing barrel export to include TabbedDetailView
+8. `apps/tui/src/hooks/index.ts` — update existing barrel export to include new hooks
+9. `apps/tui/src/screens/Agents/types.ts` — update to re-export Breakpoint from shared location (deduplication)
+10. E2E test file: `e2e/tui/organizations.test.ts` — tests for the TabbedDetailView component behavior as exercised through org screens (new file)
 
 ### Out of scope
 
 - Organization Overview screen implementation (TUI_ORG_OVERVIEW — separate ticket)
 - Team Detail screen implementation (TUI_ORG_TEAM_DETAIL — separate ticket)
 - Data hooks (`useOrg`, `useOrgRepos`, `useTeam`, etc.) — will be provided by `@codeplane/ui-core` (package not yet implemented; backend service methods exist in `packages/sdk/src/services/org.ts`)
-- Navigation stack integration (NavigationProvider — separate ticket)
+- Navigation stack integration (NavigationProvider — already implemented in `apps/tui/src/providers/NavigationProvider.tsx`)
 - Mutation actions (add/remove/delete) — screen-level concerns
-- Command palette, help overlay — separate infrastructure tickets
+- Command palette, help overlay — already implemented in `apps/tui/src/providers/OverlayManager.tsx`
 - SSE streaming — not used by detail views (REST only)
 
 ---
@@ -130,7 +131,6 @@ All JSX props verified against the actual OpenTUI source code in `context/opentu
 - `borderStyle` accepts `"single" | "double" | "rounded" | "heavy"`
 - `borderColor` accepts `string | RGBA`
 - `gap` accepts `number | \`${number}%\``
-- `rowGap` and `columnGap` also available
 - Full Yoga flexbox: `flexDirection`, `flexGrow`, `flexShrink`, `justifyContent`, `alignItems`, `alignSelf`
 - Sizing: `width`, `height` accept `number | "auto" | \`${number}%\``
 - Spacing: `padding`, `paddingX`, `paddingY`, `margin`, `marginX`, `marginY`, `marginRight`, etc.
@@ -183,9 +183,10 @@ Consumer Screen (OrgOverview / TeamDetail)
   │
   └─► TabbedDetailView
         │
-        ├─ useTabs(tabConfig) → activeTabId, setActiveTab, visibleTabs, activatedTabs
-        ├─ useTabScrollState() → getScrollState, saveScrollState per tab
         ├─ useTabFilter() → filterText, isFiltering, activateFilter, clearFilter, switchTab
+        ├─ useTabs(tabConfig) → activeTabId, setActiveTab, visibleTabs, activatedTabs
+        │   └─ onTabChange calls filterState.switchTab(from, to)
+        ├─ useTabScrollState() → getScrollState, saveScrollState per tab
         │
         ├─ Registers keyboard handler via useKeyboard() from @opentui/react
         │   ├─ Tab/Shift+Tab → cycleForward/cycleBackward
@@ -195,6 +196,8 @@ Consumer Screen (OrgOverview / TeamDetail)
         ├─ Renders header, tab bar, active tab content via render prop
         └─ Passes TabContentContext to content renderer
 ```
+
+**Critical ordering note:** `useTabFilter()` must be called BEFORE `useTabs()` in the component body so that `filterState.switchTab` is available in the `useTabs` `onTabChange` callback without stale closure risk. This differs from the reference implementation in `specs/tui/` which calls `useTabFilter()` after `useTabs()` and can cause stale closure bugs.
 
 ### 3.4 Lazy Loading Pattern
 
@@ -216,7 +219,7 @@ Alternatively, consumers can use the `onFirstActivation` callback on `TabDefinit
 The backend service methods exist in `packages/sdk/src/services/org.ts` (OrgService). Verified against source:
 
 | Endpoint | Method | Returns |
-|----------|--------|--------|
+|----------|--------|---------|
 | `GET /api/orgs/:org` | `getOrg(viewer, orgName)` | `Organization` |
 | `GET /api/orgs/:org/repos` | `listOrgRepos(viewer, orgName, page, perPage)` | `{items: Repository[], total: number}` |
 | `GET /api/orgs/:org/members` | `listOrgMembers(viewer, orgName, page, perPage)` | `{items: ListOrgMembersRow[], total: number}` |
@@ -275,95 +278,49 @@ interface Repository {
 
 ### 3.6 Current Codebase State
 
-The production `apps/tui/src/` directory currently contains:
+The production `apps/tui/src/` directory currently contains 86 TypeScript files with established infrastructure:
 
-```
-apps/tui/src/
-├── hooks/
-│   └── useDiffSyntaxStyle.ts       # Only existing hook
-├── lib/
-│   └── diff-syntax.ts              # Color tier detection + syntax palettes
-└── screens/
-    └── Agents/
-        ├── types.ts                 # Contains Breakpoint type (to be extracted)
-        ├── components/
-        │   ├── index.ts             # Barrel: MessageBlock, ToolBlock
-        │   ├── MessageBlock.tsx      # Empty stub
-        │   └── ToolBlock.tsx         # Empty stub
-        └── utils/
-            └── formatTimestamp.ts    # Imports Breakpoint from "../types"
-```
+**Already exists — no creation needed:**
+- `apps/tui/src/types/breakpoint.ts` — Breakpoint type + `getBreakpoint()` function (exact content matches spec)
+- `apps/tui/src/types/index.ts` — barrel export: `{ getBreakpoint, Breakpoint }`
+- `apps/tui/src/components/index.ts` — barrel with 13 component exports (AppShell, HeaderBar, StatusBar, etc.)
+- `apps/tui/src/hooks/index.ts` — barrel with 14 hook exports (useDiffSyntaxStyle, useTheme, useColorTier, useSpinner, useLayout, useNavigation, useAuth, useLoading, useScreenLoading, useOptimisticMutation, usePaginationLoading, useBreakpoint, useResponsiveValue, useSidebarState)
+- `apps/tui/src/providers/` — full provider stack (ThemeProvider, NavigationProvider, SSEProvider, AuthProvider, APIClientProvider, LoadingProvider, KeybindingProvider, OverlayManager)
 
-Notably:
-- No `apps/tui/src/components/` directory exists — must be created
-- No `apps/tui/src/types/` directory exists — must be created
-- No `apps/tui/src/hooks/index.ts` barrel export exists — must be created
-- No `apps/tui/src/components/index.ts` barrel export exists — must be created
-- The `Breakpoint` type lives in `apps/tui/src/screens/Agents/types.ts` line 16
-- `formatTimestamp.ts` imports it as `import { Breakpoint } from "../types"` (line 2)
+**Needs modification:**
+- `apps/tui/src/screens/Agents/types.ts` — line 16 has duplicate `Breakpoint = "minimum" | "standard" | "large"` that must be changed to re-export from `../../types/breakpoint.js`
+- `apps/tui/src/components/index.ts` — append TabbedDetailView exports
+- `apps/tui/src/hooks/index.ts` — append new tab hook exports
 
-The reference implementation exists in `specs/tui/apps/tui/src/` and provides the implementation blueprint. Key differences between reference and production are documented in Section 12.
+**New files to create:**
+- `apps/tui/src/components/TabbedDetailView.tsx`
+- `apps/tui/src/components/TabbedDetailView.types.ts`
+- `apps/tui/src/components/TabbedDetailView.test-helpers.ts`
+- `apps/tui/src/hooks/useTabs.ts`
+- `apps/tui/src/hooks/useTabScrollState.ts`
+- `apps/tui/src/hooks/useTabFilter.ts`
+- `e2e/tui/organizations.test.ts`
 
 ---
 
 ## 4. Implementation Plan
 
-### Step 1: Create the `types/` directory and shared `Breakpoint` type
+### Step 1: Deduplicate the `Breakpoint` type in Agents screen
 
-**File**: `apps/tui/src/types/breakpoint.ts` (new file — directory must be created)
+**File**: `apps/tui/src/screens/Agents/types.ts` (existing file — line 16 modification)
 
-The `Breakpoint` type is currently defined inline in `apps/tui/src/screens/Agents/types.ts` (line 16). Extract it to a shared location so both the Agents screen and TabbedDetailView use the same type without circular imports.
-
-```typescript
-/**
- * Terminal size breakpoint classification.
- *
- * Ranges (both cols AND rows must meet the threshold):
- * - minimum: 80×24 – 119×39
- * - standard: 120×40 – 199×59
- * - large: 200×60+
- *
- * Below 80×24 returns null (unsupported).
- */
-export type Breakpoint = "minimum" | "standard" | "large";
-
-/**
- * Compute the breakpoint from terminal dimensions.
- *
- * Returns null when the terminal is below the minimum supported size
- * (cols < 80 OR rows < 24). The caller is responsible for rendering
- * the "terminal too small" screen when this returns null.
- *
- * The threshold logic uses OR for downgrade: if EITHER dimension
- * is below the threshold for a breakpoint, the terminal falls to
- * the next lower breakpoint. This prevents usability issues where
- * a terminal is wide but very short (or vice versa).
- */
-export function getBreakpoint(
-  cols: number,
-  rows: number,
-): Breakpoint | null {
-  if (cols < 80 || rows < 24) return null;
-  if (cols < 120 || rows < 40) return "minimum";
-  if (cols < 200 || rows < 60) return "standard";
-  return "large";
-}
-```
-
-**Design decision — `null` over `"unsupported"`**: The architecture spec uses `"unsupported"` as a return value. We use `null` instead because: (a) it forces callers to handle the unsupported case via null-check rather than string comparison, which TypeScript enforces more reliably; (b) the unsupported state is fundamentally different from a valid breakpoint — it means "do not render content at all"; (c) `null` is idiomatic for "absent value" in TypeScript.
-
-Then update `apps/tui/src/screens/Agents/types.ts` to re-export from the shared location:
+The `Breakpoint` type is currently defined inline in this file as a duplicate of `apps/tui/src/types/breakpoint.ts`. Change line 16 from a standalone type definition to a re-export:
 
 ```diff
 -export type Breakpoint = "minimum" | "standard" | "large";
 +export type { Breakpoint } from "../../types/breakpoint.js";
 ```
 
-This is a non-breaking change. `apps/tui/src/screens/Agents/utils/formatTimestamp.ts` imports `Breakpoint` from `"../types"` (verified: line 2 of that file) which will continue to resolve correctly via the re-export.
+This is a non-breaking change. `apps/tui/src/screens/Agents/utils/formatTimestamp.ts` imports `Breakpoint` from `"../types.js"` (line 1) which will continue to resolve correctly via the re-export.
 
 ### Step 2: Define TypeScript interfaces
 
-**File**: `apps/tui/src/components/TabbedDetailView.types.ts` (new file — directory must be created)
+**File**: `apps/tui/src/components/TabbedDetailView.types.ts` (new file)
 
 ```typescript
 import type { ReactNode } from "react";
@@ -939,9 +896,6 @@ export const TabbedDetailView = forwardRef<
   }));
 
   // --- Keyboard handler ---
-  // Uses the actual @opentui/react useKeyboard API.
-  // KeyEvent has: name (string), shift (boolean), ctrl (boolean),
-  //               stopPropagation(), preventDefault()
   useKeyboard((event) => {
     // When filter input is active, only Esc propagates from this handler.
     // All printable keys are captured by <input focused> natively.
@@ -1186,9 +1140,11 @@ export function formatCount(count: number | null): string {
 }
 ```
 
-### Step 8: Create barrel exports
+### Step 8: Update barrel exports
 
-**File**: `apps/tui/src/components/index.ts` (new file — directory already created in Step 2)
+**File**: `apps/tui/src/components/index.ts` (existing file — append lines)
+
+Append after the existing `export { OverlayLayer }` line:
 
 ```typescript
 export { TabbedDetailView, formatCount } from "./TabbedDetailView.js";
@@ -1203,10 +1159,11 @@ export type {
 } from "./TabbedDetailView.types.js";
 ```
 
-**File**: `apps/tui/src/hooks/index.ts` (new file)
+**File**: `apps/tui/src/hooks/index.ts` (existing file — append lines)
+
+Append after the existing `useSidebarState` export line:
 
 ```typescript
-export { useDiffSyntaxStyle } from "./useDiffSyntaxStyle.js";
 export { useTabs } from "./useTabs.js";
 export type { UseTabsOptions, UseTabsReturn } from "./useTabs.js";
 export { useTabScrollState } from "./useTabScrollState.js";
@@ -1356,9 +1313,9 @@ When filter is active: all printable keys captured by `<input focused>` natively
 
 All tests use `@microsoft/tui-test` + `bun:test`. Tests that fail due to unimplemented backends are left failing — never skipped or commented out. No mocking of implementation details.
 
-The test file uses the `launchTUI()` helper from `e2e/tui/helpers.ts` which spawns a real TUI process with terminal emulation.
+The test file uses the `launchTUI()` helper from `e2e/tui/helpers.ts` which spawns a real TUI process with terminal emulation via `@microsoft/tui-test`.
 
-**Test cleanup pattern:** Every test assigns to a shared `tui` variable per describe block. `afterEach` calls `tui.terminate()` to prevent leaked child processes. This is critical because each test spawns a real subprocess.
+**Test cleanup pattern:** Every test assigns to a shared `tui` variable per describe block. `afterEach` calls `tui.terminate()` to prevent leaked child processes. This is critical because each test spawns a real subprocess via `@microsoft/tui-test`.
 
 **Test inventory (49 tests across 10 describe blocks):**
 
@@ -1378,9 +1335,8 @@ The test file uses the `launchTUI()` helper from `e2e/tui/helpers.ts` which spaw
 ### Full Test Source
 
 ```typescript
-import { createTestTui } from "@microsoft/tui-test";
 import { describe, test, expect, afterEach } from "bun:test";
-import { launchTUI, type TUITestInstance } from "./helpers.js";
+import { launchTUI, type TUITestInstance } from "./helpers.ts";
 
 // =============================================================================
 // Tab Bar Rendering
@@ -2163,6 +2119,7 @@ If PoC tests pass, their assertions graduate into the E2E suite. If they fail, t
 - [ ] Import paths use `.js` extension consistently (matching existing convention: `from "../lib/diff-syntax.js"` in `useDiffSyntaxStyle.ts`)
 - [ ] `tsc --noEmit` passes with zero errors on all new files
 - [ ] No circular imports between `types/breakpoint.ts` ← `hooks/useTabs.ts` ← `components/TabbedDetailView.tsx`
+- [ ] `jsxImportSource: "@opentui/react"` in tsconfig.json is respected (verified: `apps/tui/tsconfig.json` line 7)
 
 ### 10.3 OpenTUI Prop Correctness
 
@@ -2188,9 +2145,10 @@ If PoC tests pass, their assertions graduate into the E2E suite. If they fail, t
 
 ### 10.5 Breakpoint Deduplication
 
-- [ ] `Breakpoint` type lives in `apps/tui/src/types/breakpoint.ts`
-- [ ] `apps/tui/src/screens/Agents/types.ts` re-exports from `../../types/breakpoint.js`
-- [ ] `apps/tui/src/screens/Agents/utils/formatTimestamp.ts` continues to compile (imports `Breakpoint` from `"../types"` which re-exports)
+- [ ] `Breakpoint` type lives in `apps/tui/src/types/breakpoint.ts` (already exists — verified)
+- [ ] `apps/tui/src/types/index.ts` already re-exports from `./breakpoint.js` (verified)
+- [ ] `apps/tui/src/screens/Agents/types.ts` updated to re-export from `../../types/breakpoint.js`
+- [ ] `apps/tui/src/screens/Agents/utils/formatTimestamp.ts` continues to compile (imports `Breakpoint` from `"../types.js"` which re-exports)
 - [ ] No duplicate `Breakpoint` definitions remain in the codebase
 - [ ] `getBreakpoint()` returns `Breakpoint | null` (not `Breakpoint | "unsupported"`)
 
@@ -2208,21 +2166,20 @@ If PoC tests pass, their assertions graduate into the E2E suite. If they fail, t
 
 | File Path | Type | Lines (est.) | Description |
 |-----------|------|-------------|-------------|
-| `apps/tui/src/types/breakpoint.ts` | New | ~30 | Shared `Breakpoint` type + `getBreakpoint()` |
 | `apps/tui/src/components/TabbedDetailView.types.ts` | New | ~147 | All TypeScript interfaces |
 | `apps/tui/src/hooks/useTabs.ts` | New | ~133 | Tab state management hook |
 | `apps/tui/src/hooks/useTabScrollState.ts` | New | ~43 | Per-tab scroll preservation |
 | `apps/tui/src/hooks/useTabFilter.ts` | New | ~70 | Per-tab filter state |
 | `apps/tui/src/components/TabbedDetailView.tsx` | New | ~260 | Main component |
 | `apps/tui/src/components/TabbedDetailView.test-helpers.ts` | New | ~45 | Test utilities |
-| `apps/tui/src/components/index.ts` | New | ~10 | Barrel export for components |
-| `apps/tui/src/hooks/index.ts` | New | ~8 | Barrel export for hooks |
+| `apps/tui/src/components/index.ts` | Modified | ~9 lines appended | Barrel export additions |
+| `apps/tui/src/hooks/index.ts` | Modified | ~6 lines appended | Barrel export additions |
 | `apps/tui/src/screens/Agents/types.ts` | Modified | ~1 line change | Re-export Breakpoint |
 | `e2e/tui/organizations.test.ts` | New | ~788 | 49 E2E tests across 10 describe blocks |
 | `poc/tui-keyboard-propagation.tsx` | New (PoC) | ~60 | Keyboard event propagation validation |
 | `poc/tui-box-border.tsx` | New (PoC) | ~40 | Partial border rendering validation |
 
-**Total new source**: ~746 lines | **Total test**: ~788 lines | **Total PoC**: ~100 lines
+**Total new source**: ~698 lines | **Total test**: ~788 lines | **Total PoC**: ~100 lines
 
 ---
 
@@ -2233,14 +2190,14 @@ The `specs/tui/` directory contains a reference implementation of these files. T
 | File | specs/tui version | Production version | Reason |
 |------|-------------------|-------------------|--------|
 | `hooks/useTabs.ts` | `queueMicrotask()` for auto-correction (line 118) | `useEffect()` for auto-correction | React 19 warns on side effects during render. `useEffect` is the correct pattern. |
-| `types/breakpoint.ts` | `getBreakpoint()` returns `Breakpoint \| null` | Same: `Breakpoint \| null` | Consistent — `null` forces TypeScript null-check. |
 | `components/TabbedDetailView.tsx` | `formatCount` no negative/NaN guard | Added `count < 0 \|\| Number.isNaN(count)` guard | Defensive programming for unexpected API data. |
-| `components/TabbedDetailView.tsx` | `filterState` declared after `useTabs` | `filterState` declared before `useTabs` | Ensures `filterState.switchTab` is available in the `useTabs` `onTabChange` callback without stale closure risk. |
-| `components/index.ts` | Does NOT export TabbedDetailView | Exports TabbedDetailView + all types | Reference has TabbedDetailView in component dir but barrel doesn't re-export it. Production fixes this. |
-| `hooks/index.ts` | Full barrel with many hooks | Minimal barrel (only existing + new hooks) | Production only exports hooks that exist in `apps/tui/src/hooks/`. Reference barrel includes hooks from other tickets. |
+| `components/TabbedDetailView.tsx` | `filterState` declared after `useTabs` (line 154) | `filterState` declared before `useTabs` | Ensures `filterState.switchTab` is available in the `useTabs` `onTabChange` callback without stale closure risk. |
+| `components/index.ts` | Not read (may differ) | Appends to existing 13-export barrel | Production barrel already has 13 exports; we append rather than create. |
+| `hooks/index.ts` | Full barrel with many hooks | Appends to existing 14-export barrel | Production barrel already has 14 exports from other tickets. |
 | `components/TabbedDetailView.test-helpers.ts` | `formatCount` no negative/NaN guard | Added `count < 0 \|\| Number.isNaN(count)` guard | Matches production component logic. |
 | `e2e/tui/organizations.test.ts` | No `afterEach` cleanup | `afterEach` terminates TUI process | Prevents leaked child processes in test suite. |
 | `e2e/tui/organizations.test.ts` | `const tui = await launchTUI(...)` | `tui = await launchTUI(...)` (module-scoped `let`) | Enables `afterEach` cleanup via shared reference. |
+| `types/breakpoint.ts` | New file in spec | Already exists in production | `apps/tui/src/types/breakpoint.ts` was created by an earlier ticket. No creation needed. |
 
 ---
 
@@ -2255,12 +2212,13 @@ The `specs/tui/` directory contains a reference implementation of these files. T
 | `useEffect` auto-correction causes visible flicker on tab removal | Low — single frame correction | Low | Effect runs in React 19 commit phase before browser paint. No observable flicker. |
 | Rapid tab switching causes stale closures in `onTabChange` callback | Medium — incorrect filter save/restore | Low | `useCallback` deps include `filterText`. State updates use functional `setState` to avoid closure staleness. |
 | `height={1}` on `<box>` with `border={["bottom"]}` may consume 2 rows | Medium — layout miscalculation | Medium | PoC 2 validates. If border adds height, adjust to `height={2}` or use CSS-like `boxSizing` if available. |
+| Existing `Breakpoint` import in `formatTimestamp.ts` breaks after re-export change | Low — build failure caught immediately | Very Low | Re-export is type-compatible. `tsc --noEmit` run in CI catches any resolution issues. |
 
 ---
 
 ## 14. Definition of Done
 
-- [ ] All files in Section 11 exist and compile with `tsc --noEmit`
+- [ ] All new files in Section 11 exist and compile with `tsc --noEmit`
 - [ ] PoC tests in `poc/` pass for keyboard propagation and box borders
 - [ ] `Breakpoint` type deduplicated; Agents screen `formatTimestamp.ts` still compiles
 - [ ] Component renders correctly at 80×24, 120×40, 200×60
@@ -2277,3 +2235,4 @@ The `specs/tui/` directory contains a reference implementation of these files. T
 - [ ] OpenTUI props verified: `fg` not `color`, `wrapMode` not `wrap`, `<b>`/`<u>` not boolean props, `onInput` not `onChange`, `border` array syntax
 - [ ] `useTabs` uses `useEffect` for auto-correction (not `queueMicrotask`)
 - [ ] `formatCount` handles `null`, negative, `NaN`, 0, 1–999, 1000–9999, 10000+
+- [ ] Barrel exports updated: `apps/tui/src/components/index.ts` includes TabbedDetailView exports; `apps/tui/src/hooks/index.ts` includes tab hook exports

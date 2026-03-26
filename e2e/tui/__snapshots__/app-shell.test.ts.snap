@@ -315,3 +315,8 @@ exports[`TUI_SCREEN_ROUTER — NavigationProvider integration NAV-SNAP-003: brea
 ──────────────────────────────────────────────────────────────────────────────��
 ─                                                                               "
 `;
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`TUI_LOADING_STATES Responsive behavior LOAD-RSP-006: skeleton list adapts at 200x60 1`] = `""`;
+
+exports[`TUI_LOADING_STATES Responsive behavior LOAD-RSP-008: action button at 80x24 1`] = `""`;

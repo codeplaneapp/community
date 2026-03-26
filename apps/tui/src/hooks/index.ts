@@ -33,3 +33,19 @@ export type {
   UseListSelectionOptions,
   UseListSelectionReturn,
 } from "./useListSelection.js";
+
+// Repository tree and file content hooks
+export { useRepoTree } from "./useRepoTree.js";
+export { useFileContent } from "./useFileContent.js";
+export { useBookmarks } from "./useBookmarks.js";
+export type {
+  TreeEntry,
+  TreeEntryType,
+  Bookmark,
+  UseRepoTreeOptions,
+  UseRepoTreeReturn,
+  UseFileContentOptions,
+  UseFileContentReturn,
+  UseBookmarksOptions,
+  UseBookmarksReturn,
+} from "./repo-tree-types.js";

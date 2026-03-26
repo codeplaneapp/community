@@ -3,7 +3,7 @@ import { Task, Sequence } from "smithers-orchestrator";
 import { z } from "zod";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { specsDir } from "./utils";
+// specsDir is now passed as a prop (domain-aware)
 
 export const linkDependenciesSchemas = {
   linkResult: z.object({
@@ -34,12 +34,13 @@ export function LinkDependenciesPhase({
   ctx,
   featureGroups,
   outputs,
+  dir,
 }: {
   ctx: any;
   featureGroups: any[];
   outputs: any;
+  dir: string;
 }) {
-  const dir = specsDir();
   const allTicketsDone = ctx.outputMaybe(outputs.allTicketsDone, { nodeId: "all-tickets-done" });
   if (!allTicketsDone || featureGroups.length === 0) return null;
 
