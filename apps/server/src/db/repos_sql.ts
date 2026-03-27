@@ -297,7 +297,7 @@ export interface GetHighestTeamPermissionForRepoUserArgs {
 }
 
 export interface GetHighestTeamPermissionForRepoUserRow {
-    : string;
+    value: string;
 }
 
 export async function getHighestTeamPermissionForRepoUser(sql: Sql, args: GetHighestTeamPermissionForRepoUserArgs): Promise<GetHighestTeamPermissionForRepoUserRow | null> {
@@ -307,7 +307,7 @@ export async function getHighestTeamPermissionForRepoUser(sql: Sql, args: GetHig
     }
     const row = rows[0];
     return {
-        : row[0]
+        value: row[0]
     };
 }
 
@@ -2051,4 +2051,3 @@ export async function getCollaboratorPermissionForRepoUser(sql: Sql, args: GetCo
         permission: row[0]
     };
 }
-

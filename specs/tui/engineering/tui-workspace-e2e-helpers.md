@@ -14,7 +14,7 @@ The helpers provide five capabilities:
 1. **Workspace test fixtures** — deterministic `Workspace` objects for all workspace states
 2. **`launchTUIWithWorkspaceContext()`** — launches TUI with repo context and navigates to workspace screens
 3. **`waitForStatusTransition()`** — waits for SSE-driven status badge changes in the terminal
-4. **`mockSSEStatusEvent()`** — injects SSE workspace status events into the test environment via file-based injection
+4. **`mockSSEStatusEvent()` / `createWorkspaceStatusEvent()`** — injects SSE workspace status events into the test environment via file-based injection
 5. **`assertWorkspaceRow()`** — asserts workspace list row content by line number
 
 ---
@@ -25,7 +25,7 @@ The helpers provide five capabilities:
 e2e/tui/
 ├── helpers.ts                        # existing base test helpers (dependency: tui-e2e-test-infra)
 ├── helpers/
-│   ├── index.ts                      # barrel re-export
+│   ├── index.ts                      # NEW — barrel re-export
 │   ├── workspaces.ts                 # NEW — workspace-specific test helpers
 │   └── __tests__/
 │       └── workspaces.test.ts        # NEW — unit tests for workspace helpers
@@ -33,10 +33,10 @@ e2e/tui/
 
 apps/tui/src/
 └── providers/
-    └── SSEProvider.tsx               # MODIFIED — file-based SSE injection code path for tests
+    └── SSEProvider.tsx               # MODIFIED — add file-based SSE injection code path for tests
 ```
 
-**Decision: separate file, not inline in helpers.ts.** The base `helpers.ts` is feature-agnostic and shared across all test files. Workspace helpers are domain-specific and should not pollute the base module. A `helpers/` subdirectory allows future feature-specific helper modules (e.g., `helpers/workflows.ts`, `helpers/issues.ts`) without growing the base file.
+**Decision: separate file, not inline in helpers.ts.** The base `helpers.ts` is feature-agnostic and shared across all test files. Workspace helpers are domain-specific and should not pollute the base module. A `helpers/` subdirectory allows future feature-specific helper modules (e.g., `helpers/workflows.ts`, `helpers/issues.ts`) without growing the base file. This pattern is already established in the spec directory at `specs/tui/e2e/tui/helpers/` which includes `workspaces.ts`, `workflows.ts`, and a barrel `index.ts`.
 
 ---
 
@@ -46,9 +46,14 @@ apps/tui/src/
 
 **File:** `e2e/tui/helpers/workspaces.ts`
 
-Fixtures provide pre-built `Workspace` objects matching the `Workspace` interface from `@codeplane/ui-core` (`packages/ui-core/src/types/workspaces.ts`). All values are deterministic — no `Date.now()`, no `Math.random()`, no `crypto.randomUUID()`. This ensures snapshot stability and test reproducibility.
+Fixtures provide pre-built `Workspace` objects matching the `Workspace` interface from `@codeplane/ui-core` (`specs/tui/packages/ui-core/src/types/workspaces.ts`). All values are deterministic — no `Date.now()`, no `Math.random()`, no `crypto.randomUUID()`. This ensures snapshot stability and test reproducibility.
 
-**Important type note:** The fixtures use the `Workspace` type from `@codeplane/ui-core` (which has `status: WorkspaceStatus`), NOT the `WorkspaceResponse` type from `@codeplane/sdk` (which has `status: string`). The `Workspace` type is the canonical client-side representation consumed by TUI components via the shared data layer. The `WorkspaceStatus` union type enforces `"pending" | "starting" | "running" | "suspended" | "stopped" | "failed"` at the type level.
+**Type system alignment:**
+
+- The fixtures use the `Workspace` type from `@codeplane/ui-core` which has `status: WorkspaceStatus` — a union type of `"pending" | "starting" | "running" | "suspended" | "stopped" | "failed"`.
+- The `WorkspaceResponse` type from `@codeplane/sdk` (`packages/sdk/src/services/workspace.ts:60-76`) has `status: string` — a loose string type used at the server/transport layer.
+- Tests use the `Workspace` type because it is the client-side representation consumed by TUI components. The `WorkspaceStatus` union type provides compile-time safety against invalid states.
+- The `Workspace` interface fields map 1:1 to `WorkspaceResponse` but with typed `status`. Both have: `id`, `repository_id`, `user_id`, `name`, `status`, `is_fork`, `parent_workspace_id?`, `freestyle_vm_id`, `persistence`, `ssh_host?`, `snapshot_id?`, `idle_timeout_seconds`, `suspended_at: string | null`, `created_at`, `updated_at`.
 
 ```typescript
 import type { Workspace } from "@codeplane/ui-core";
@@ -158,7 +163,7 @@ export function createWorkspaceFixture(
 - `"stopped"` is included as a sixth state beyond the five specified in the ticket description, because the `WorkspaceStatus` enum in `@codeplane/ui-core` includes it and tests will need it for lifecycle assertions.
 - The `createWorkspaceFixture()` builder allows tests to create one-off variants without adding them to the canonical fixture set.
 - The `status` parameter on `createWorkspaceFixture` is typed as `Workspace["status"]` (i.e., `WorkspaceStatus`), not `string`, providing compile-time safety against invalid states.
-- The `running` fixture is the only one with `ssh_host` set, reflecting reality: SSH connection info is only available for running workspaces.
+- The `running` fixture is the only one with `ssh_host` set, reflecting reality: SSH connection info is only available for running workspaces. This matches the server behavior where `ssh_host` is populated only after the Freestyle VM is ready.
 
 ### 3.2 `launchTUIWithWorkspaceContext()`
 
@@ -215,11 +220,12 @@ export async function launchTUIWithWorkspaceContext(
 ```
 
 **Design rationale:**
-- The default `repo` is `"acme/api"` — a standardized test repository name used consistently across test files.
+- The default `repo` is `"acme/api"` — aligned with the `ORG` constant (`"acme"`) defined in `e2e/tui/helpers.ts:24` and the standard test repository pattern.
 - `screen: "workspace-detail"` is supported for tests that navigate directly to a workspace detail view, passing the workspace ID via `--id`.
 - `skipReady` exists for tests that intentionally test loading/error states and don't want the helper to wait for success text.
 - The helper does not introduce new `TUITestInstance` methods — it returns the same interface from `helpers.ts`. This avoids a parallel type hierarchy.
-- The `cols` and `rows` defaults (120×40) match the standard breakpoint from the design spec, ensuring tests run at the optimal layout by default.
+- The `cols` and `rows` defaults (120×40) match `TERMINAL_SIZES.standard` from `e2e/tui/helpers.ts:28-29`, ensuring tests run at the optimal layout by default.
+- The `LaunchTUIOptions` base interface provides: `cols?`, `rows?`, `env?`, `args?`, `launchTimeoutMs?` — all inherited via `extends`.
 
 ### 3.3 `waitForStatusTransition()`
 
@@ -283,19 +289,22 @@ function sleep(ms: number): Promise<void> {
 
 **Design rationale:**
 - **Two-phase approach**: Phase 1 validates the starting state is actually rendered (catches test timing bugs where the initial state was never shown). Phase 2 waits for the target state.
-- Phase 1 uses `min(timeout/3, 5000ms)` — it should not consume more than a third of the total timeout waiting for the initial state, and capped at 5 seconds.
+- Phase 1 uses `min(timeout/3, 5000ms)` — it should not consume more than a third of the total timeout waiting for the initial state, and is capped at 5 seconds.
 - The helper is status-text-based, not ANSI-escape-based. It searches for human-readable status strings (e.g., `"running"`, `"suspended"`) that appear in the terminal buffer. Tests validate what the user sees, not implementation details.
 - The `options` parameter uses an object (not positional `timeoutMs`) for forward compatibility — matching the pattern used in `helpers.ts`.
-- Error messages include the terminal content snapshot for debuggability — directly mirroring the error pattern used by `waitForText()` in the base helpers.
+- Error messages include the terminal content snapshot for debuggability — directly mirroring the error pattern used by `waitForText()` in `helpers.ts:383-385`.
+- The `sleep()` helper is private to this module (not exported) to avoid conflict with any future base helpers utility. The base `helpers.ts:489-491` has its own private `sleep()`.
 
-### 3.4 `mockSSEStatusEvent()` / SSE Injection
+### 3.4 SSE Event Construction and Injection
 
 This subsystem constructs SSE workspace status event payloads and injects them into the test environment via a file-based injection mechanism. The TUI reads `CODEPLANE_SSE_INJECT_FILE` at runtime to simulate incoming SSE events without a real PostgreSQL LISTEN/NOTIFY backend.
 
-**Wire format alignment:** The SSE events constructed by these helpers match the exact format emitted by the server routes at `apps/server/src/routes/workspaces.ts` lines 464–472 (workspace status) and 504–512 (session status):
+**Wire format alignment:** The SSE events constructed by these helpers match the exact format emitted by the server routes at `apps/server/src/routes/workspaces.ts`:
 
-- **Workspace status**: `{ type: "workspace.status", data: JSON.stringify({ workspace_id, status }), id }` 
-- **Session status**: `{ type: "workspace.session", data: JSON.stringify({ session_id, status }), id }`
+- **Workspace status** (lines 464–472): `{ type: "workspace.status", data: JSON.stringify({ workspace_id, status }), id }`
+- **Session status** (lines 504–512): `{ type: "workspace.session", data: JSON.stringify({ session_id, status }), id }`
+
+This is cross-referenced against the `SSEEvent` interface from `@codeplane/sdk` (`packages/sdk/src/services/sse.ts:23`): `{ type?: string; data: string; id?: string }`.
 
 ```typescript
 import { writeFileSync, mkdtempSync, appendFileSync, rmSync } from "node:fs";
@@ -316,7 +325,8 @@ export interface SSESessionStatusEvent {
  * Create an SSE workspace status event in the format the TUI's SSE provider expects.
  * Returns the formatted event object matching the server's wire format.
  *
- * Server reference: apps/server/src/routes/workspaces.ts (workspace status SSE stream)
+ * Server reference: apps/server/src/routes/workspaces.ts lines 464-472
+ * SDK reference: packages/sdk/src/services/sse.ts SSEEvent interface
  */
 export function createWorkspaceStatusEvent(
   workspaceId: string,
@@ -333,7 +343,7 @@ export function createWorkspaceStatusEvent(
 /**
  * Create an SSE workspace session status event.
  *
- * Server reference: apps/server/src/routes/workspaces.ts (session status SSE stream)
+ * Server reference: apps/server/src/routes/workspaces.ts lines 504-512
  */
 export function createSessionStatusEvent(
   sessionId: string,
@@ -351,8 +361,7 @@ export function createSessionStatusEvent(
  * Write SSE events to a file that the TUI's test SSE injection mechanism reads.
  *
  * The TUI, when CODEPLANE_SSE_INJECT_FILE is set, watches this file for new lines
- * (100ms poll interval in SSEProvider) and dispatches them through its SSEProvider
- * as if they arrived over the network.
+ * and dispatches them through its SSEProvider as if they arrived over the network.
  *
  * Returns the file path and a cleanup function.
  */
@@ -413,12 +422,11 @@ export async function launchTUIWithSSEInjection(
 
 **Design rationale:**
 - **File-based injection, not mock server.** The test philosophy prohibits mocking implementation details. However, SSE is a transport mechanism, not business logic. The injection mechanism is a test-only code path in the TUI's SSEProvider that reads events from a file when `CODEPLANE_SSE_INJECT_FILE` is set.
-- **JSONL format** (one JSON object per line) is used because it's append-friendly and trivially parseable. The SSEProvider's file watcher (100ms interval at `apps/tui/src/providers/SSEProvider.tsx` line 41) reads only new bytes since last check, then splits on newlines and JSON-parses each line.
-- The event type field (`"workspace.status"`, `"workspace.session"`) is the channel key used by the SSEProvider's subscriber dispatch. The SSEProvider dispatches events to subscribers registered for that exact type string (line 60-63 of SSEProvider.tsx).
-- `createWorkspaceStatusEvent()` and `createSessionStatusEvent()` match the exact wire format from the server's SSE routes.
-- The default event ID uses `Date.now()` for uniqueness in tests that don't care about the ID. Tests requiring deterministic IDs pass an explicit `eventId` parameter.
+- **JSONL format** (one JSON object per line) is used because it's append-friendly and trivially parseable.
+- The event type field (`"workspace.status"`, `"workspace.session"`) is the channel key used by the SSEProvider's subscriber dispatch.
+- **Top-level ESM imports**: Uses `import { appendFileSync, rmSync } from "node:fs"` rather than inline `require()` calls. The spec reference implementation at `specs/tui/e2e/tui/helpers/workspaces.ts:232-233` uses `require("node:fs")` inside closures — the production implementation MUST use top-level ESM imports instead since the codebase is Bun-native ESM. This is a known improvement over the spec reference.
 - The `launchTUIWithSSEInjection()` convenience function combines workspace context launching with SSE injection setup, reducing boilerplate in test files.
-- **Import style**: Uses top-level ESM imports (`import { appendFileSync, rmSync } from "node:fs"`) rather than inline `require()` calls. The codebase is Bun-native ESM.
+- The default event ID uses `Date.now()` for uniqueness in tests that don't care about the ID. Tests requiring deterministic IDs pass an explicit `eventId` parameter.
 
 ### 3.5 `assertWorkspaceRow()`
 
@@ -535,64 +543,196 @@ export function assertWorkspaceRow(
 - **ANSI stripping** for content assertions because the workspace list renders with color codes (status badges use semantic color tokens from the theme). Tests validate semantic content, not ANSI sequences.
 - **Raw ANSI preserved** for `focused` check because reverse video (`\x1b[7m`) is the standard focus indicator per the TUI design spec (Section 5.1: "Focused row highlighted with reverse video").
 - **Partial matching** for `name`, `sshHost`, and `contains` because column alignment and truncation vary by terminal width. At 80-column minimum, text may be truncated.
-- **Case-insensitive status matching** because the UI may capitalize status text (e.g., "Running" vs "running").
-- **Error messages include the actual line content** for debuggability — matching the error pattern used throughout the base helpers.
+- **Case-insensitive status matching** because the UI may capitalize status text (e.g., "Running" vs "running"). The `WorkspaceStatusBadge` component (tested in `e2e/tui/workspaces.test.ts:27`) confirms labels are capitalized (e.g., `cfg.label === "Running"`).
+- **Error messages include the actual line content** for debuggability — matching the error pattern used by `waitForText()` in `helpers.ts:384-385` and `getLine()` in `helpers.ts:413`.
 - The function throws rather than returning boolean to integrate naturally with Bun's test runner — failed assertions produce descriptive stack traces.
 
 ---
 
 ## 4. Implementation Plan
 
-### Step 1: Verify SSEProvider file-based injection support
+### Step 1: Implement file-based SSE injection in SSEProvider
 
-**File:** `apps/tui/src/providers/SSEProvider.tsx` (verification)
+**File:** `apps/tui/src/providers/SSEProvider.tsx`
 
-The SSEProvider already contains the file-based injection code path. Verify that:
+The current SSEProvider is a minimal stub (17 lines — context/null provider returning `null`). It needs the file-based injection code path added for test support.
 
-1. When `process.env.NODE_ENV === "test"` AND `process.env.CODEPLANE_SSE_INJECT_FILE` is set, the provider watches the file with a 100ms interval
-2. New JSONL lines are parsed and dispatched to subscribers keyed by `event.type`
-3. The watcher cleans up on unmount via the effect's cleanup function
-4. Normal SSE behavior is completely unchanged when env vars are not set
+**Current state** (from `apps/tui/src/providers/SSEProvider.tsx`):
+```typescript
+import { createContext, useContext } from "react";
 
-**Current state:** Already implemented at `apps/tui/src/providers/SSEProvider.tsx` (96 lines). The file watcher uses `setInterval(100)`, reads only new bytes since `lastSize`, parses JSONL, and dispatches to channel subscribers. No modifications needed.
+export interface SSEEvent {
+  type: string;
+  data: any;
+}
 
-**Improvement needed:** The current implementation guards with `process.env.NODE_ENV === "test"`. Ensure the production build step dead-code-eliminates this path. Add a comment documenting this is test infrastructure:
+const SSEContext = createContext<null>(null);
+
+export function SSEProvider({ children }: { children: React.ReactNode }) {
+  return <SSEContext.Provider value={null}>{children}</SSEContext.Provider>;
+}
+
+export function useSSE(channel: string) {
+  return null;
+}
+```
+
+**Required modifications:**
+
+1. Expand `SSEContext` value type to include `connectionState` and `subscribe` method
+2. Add file-based injection code path guarded by `process.env.NODE_ENV === "test"` AND `process.env.CODEPLANE_SSE_INJECT_FILE`
+3. The injection path uses `setInterval(100)` to poll the JSONL file for new bytes, parses them as SSE events, and dispatches to channel subscribers
+4. Add subscriber registry: `Map<string, Set<(event: SSEEvent) => void>>` keyed by event type
+5. Add `useSSEChannel(channel, handler)` hook for screens to subscribe to specific event types
+6. Add cleanup on unmount (clear interval, remove file watcher)
+
+**Expanded SSEProvider shape:**
 
 ```typescript
-// ── Test-only SSE injection ──────────────────────────────────────────────
-// When NODE_ENV=test and CODEPLANE_SSE_INJECT_FILE is set, this provider
-// reads SSE events from a JSONL file instead of opening an EventSource.
-// This enables E2E tests to inject workspace status events without a
-// real PostgreSQL LISTEN/NOTIFY backend.
-// See: e2e/tui/helpers/workspaces.ts — createSSEInjectionFile()
+import { createContext, useContext, useEffect, useRef, useCallback, useState } from "react";
+import { readFileSync, statSync, existsSync } from "node:fs";
+
+export interface SSEEvent {
+  type: string;
+  data: string;
+  id?: string;
+}
+
+interface SSEContextValue {
+  connectionState: "connecting" | "connected" | "reconnecting" | "disconnected";
+  subscribe: (channel: string, handler: (event: SSEEvent) => void) => () => void;
+}
+
+const SSEContext = createContext<SSEContextValue | null>(null);
+
+export function SSEProvider({ children }: { children: React.ReactNode }) {
+  const subscribersRef = useRef<Map<string, Set<(event: SSEEvent) => void>>>(new Map());
+  const [connectionState, setConnectionState] = useState<SSEContextValue["connectionState"]>("connecting");
+
+  const subscribe = useCallback((channel: string, handler: (event: SSEEvent) => void) => {
+    if (!subscribersRef.current.has(channel)) {
+      subscribersRef.current.set(channel, new Set());
+    }
+    subscribersRef.current.get(channel)!.add(handler);
+    return () => {
+      subscribersRef.current.get(channel)?.delete(handler);
+    };
+  }, []);
+
+  const dispatch = useCallback((event: SSEEvent) => {
+    const handlers = subscribersRef.current.get(event.type);
+    if (handlers) {
+      for (const handler of handlers) {
+        handler(event);
+      }
+    }
+  }, []);
+
+  // ── Test-only SSE injection ──────────────────────────────────────────────
+  // When NODE_ENV=test and CODEPLANE_SSE_INJECT_FILE is set, this provider
+  // reads SSE events from a JSONL file instead of opening an EventSource.
+  // This enables E2E tests to inject workspace status events without a
+  // real PostgreSQL LISTEN/NOTIFY backend.
+  // See: e2e/tui/helpers/workspaces.ts — createSSEInjectionFile()
+  useEffect(() => {
+    const injectFile = process.env.CODEPLANE_SSE_INJECT_FILE;
+    if (process.env.NODE_ENV !== "test" || !injectFile) return;
+
+    let lastSize = 0;
+    setConnectionState("connected");
+
+    const interval = setInterval(() => {
+      try {
+        if (!existsSync(injectFile)) return;
+        const stat = statSync(injectFile);
+        if (stat.size <= lastSize) return;
+
+        const content = readFileSync(injectFile, "utf-8");
+        const newContent = content.slice(lastSize);
+        lastSize = stat.size;
+
+        const lines = newContent.split("\n").filter(Boolean);
+        for (const line of lines) {
+          try {
+            const event = JSON.parse(line) as SSEEvent;
+            dispatch(event);
+          } catch {
+            // Ignore malformed lines
+          }
+        }
+      } catch {
+        // Ignore read errors
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [dispatch]);
+
+  const value: SSEContextValue = { connectionState, subscribe };
+
+  return <SSEContext.Provider value={value}>{children}</SSEContext.Provider>;
+}
+
+export function useSSE() {
+  const ctx = useContext(SSEContext);
+  return ctx ?? { connectionState: "disconnected" as const, subscribe: () => () => {} };
+}
+
+export function useSSEChannel(channel: string, handler: (event: SSEEvent) => void) {
+  const { subscribe } = useSSE();
+  useEffect(() => {
+    return subscribe(channel, handler);
+  }, [channel, handler, subscribe]);
+}
 ```
+
+**Guard for production:**
+- The injection path only activates when `process.env.NODE_ENV === "test"` AND `process.env.CODEPLANE_SSE_INJECT_FILE` is set. Both conditions must be true.
+- Production builds dead-code-eliminate this path when built with `NODE_ENV=production`.
+- The `node:fs` imports are used only inside the effect — if dead-code elimination does not remove them, they are still safe as they are no-ops without the env var.
+
+**Acceptance criteria:**
+- `useSSE()` returns `{ connectionState, subscribe }` (not `null`)
+- `useSSEChannel(channel, handler)` subscribes and auto-unsubscribes on unmount
+- When `CODEPLANE_SSE_INJECT_FILE` is set in test mode, events written to the file appear dispatched within ~200ms
+- When env vars are not set, no file watching occurs — normal SSE behavior unchanged
 
 ### Step 2: Create the helpers directory and workspace helpers file
 
 **File:** `e2e/tui/helpers/workspaces.ts`
 
-1. Create `e2e/tui/helpers/` directory (if not exists)
-2. Create `workspaces.ts` with all exports:
-   - `WORKSPACE_IDS` constant
-   - `WORKSPACE_FIXTURES` record
-   - `createWorkspaceFixture()` builder
-   - `launchTUIWithWorkspaceContext()`
-   - `waitForStatusTransition()`
-   - `createWorkspaceStatusEvent()`
-   - `createSessionStatusEvent()`
-   - `createSSEInjectionFile()`
-   - `launchTUIWithSSEInjection()`
-   - `assertWorkspaceRow()`
-   - `stripAnsi()` (exported for reuse)
-   - `hasReverseVideo()` (exported for reuse)
-   - Type exports: `WorkspaceFixtureName`, `WorkspaceContextOptions`, `StatusTransitionOptions`, `WorkspaceRowExpectation`, `SSEStatusEvent`, `SSESessionStatusEvent`
+1. Create `e2e/tui/helpers/` directory
+2. Create `workspaces.ts` with all exports from Section 3
+3. All imports use top-level ESM: `import { appendFileSync } from "node:fs"` (NOT `require("node:fs")`)
+4. Import `launchTUI`, `TUITestInstance`, `LaunchTUIOptions` from `"../helpers.js"`
+5. Import `Workspace` type from `"@codeplane/ui-core"`
+
+**Full export list:**
+- `WORKSPACE_IDS` — const object with deterministic UUIDs
+- `WORKSPACE_FIXTURES` — const record of all 6 workspace state fixtures
+- `WorkspaceFixtureName` — type union
+- `createWorkspaceFixture()` — builder function
+- `WorkspaceContextOptions` — interface
+- `launchTUIWithWorkspaceContext()` — async function
+- `StatusTransitionOptions` — interface
+- `waitForStatusTransition()` — async function
+- `SSEStatusEvent` — interface
+- `SSESessionStatusEvent` — interface
+- `createWorkspaceStatusEvent()` — function
+- `createSessionStatusEvent()` — function
+- `createSSEInjectionFile()` — function
+- `launchTUIWithSSEInjection()` — async function
+- `WorkspaceRowExpectation` — interface
+- `assertWorkspaceRow()` — function
+- `stripAnsi()` — function (exported for reuse by other helper modules)
+- `hasReverseVideo()` — function (exported for reuse)
 
 **Acceptance criteria:**
 - File compiles with `bun build --dry-run`
 - All types align with `Workspace` from `@codeplane/ui-core` (not `WorkspaceResponse` from SDK)
 - All fixture IDs are deterministic (no `Date.now()`, no `Math.random()`)
 - `launchTUIWithWorkspaceContext()` delegates to `launchTUI()` from `../helpers.ts`
-- Uses top-level ESM imports, not inline `require()` calls
+- Uses top-level ESM imports throughout
 
 ### Step 3: Create barrel export
 
@@ -602,7 +742,7 @@ The SSEProvider already contains the file-based injection code path. Verify that
 export * from "./workspaces.js";
 ```
 
-This barrel allows clean imports: `import { WORKSPACE_FIXTURES } from "./helpers/workspaces.js"` or bulk import via `import * from "./helpers/index.js"`.
+This barrel allows clean imports: `import { WORKSPACE_FIXTURES } from "./helpers/workspaces.js"` or bulk import via `import * from "./helpers/index.js"`. Follows the established pattern from `specs/tui/e2e/tui/helpers/index.ts` which also re-exports from `workspaces.js` and `workflows.js`.
 
 ### Step 4: Create unit tests for helpers
 
@@ -614,7 +754,7 @@ Unit tests for the helper functions themselves. These validate determinism, type
 
 **File:** `e2e/tui/workspaces.test.ts` (modification)
 
-Update imports to use the new helpers module and add integration tests that exercise the helpers against a real TUI process. These tests will fail if the workspace screen is not implemented — that is by design per the testing philosophy.
+The existing `e2e/tui/workspaces.test.ts` tests the `WorkspaceStatusBadge` component directly via dynamic imports. Add a new `describe` block that imports and exercises the workspace helpers against a real TUI process. These tests will fail if the workspace screen is not implemented — that is by design per the testing philosophy.
 
 ---
 
@@ -803,6 +943,7 @@ describe("SSE Event Construction", () => {
 ```typescript
 import { describe, test, expect } from "bun:test";
 import { readFileSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
 import {
   createSSEInjectionFile,
   createWorkspaceStatusEvent,
@@ -876,8 +1017,7 @@ describe("SSE Injection File", () => {
   test("SSE-INJ-006: file is created in system temp directory", () => {
     const { filePath, cleanup } = createSSEInjectionFile();
     try {
-      const tmpDir = require("node:os").tmpdir();
-      expect(filePath.startsWith(tmpDir)).toBe(true);
+      expect(filePath.startsWith(tmpdir())).toBe(true);
     } finally {
       cleanup();
     }
@@ -1018,7 +1158,9 @@ describe("assertWorkspaceRow", () => {
 
 ### 5.5 E2E Integration Tests (in `e2e/tui/workspaces.test.ts`)
 
-These tests validate the helpers work correctly in the full TUI E2E context. They run against a real TUI process and **will fail if the workspace screen is not implemented** — that is by design per the testing philosophy.
+These tests validate the helpers work correctly in the full TUI E2E context. They run against a real TUI process and **will fail if the workspace screen is not implemented** — that is by design per the testing philosophy (PRD Section 7.3, Architecture doc Testing Philosophy principle 1).
+
+These are added as a new `describe` block in the existing `e2e/tui/workspaces.test.ts`, alongside the existing `TUI_WORKSPACES — WorkspaceStatusBadge` tests:
 
 ```typescript
 import { describe, test, expect } from "bun:test";
@@ -1031,7 +1173,7 @@ import {
   assertWorkspaceRow,
 } from "./helpers/workspaces.js";
 
-describe("Workspace E2E Helper Integration", () => {
+describe("TUI_WORKSPACES — Workspace E2E Helper Integration", () => {
 
   test("HELPER-INT-001: launchTUIWithWorkspaceContext reaches workspace list screen", async () => {
     const terminal = await launchTUIWithWorkspaceContext();
@@ -1077,13 +1219,14 @@ describe("Workspace E2E Helper Integration", () => {
   test("HELPER-INT-006: assertWorkspaceRow validates first list row", async () => {
     const terminal = await launchTUIWithWorkspaceContext();
     await terminal.waitForText("Workspaces");
+    // Row 2 is first data row (row 0 = header bar, row 1 = column headers)
     assertWorkspaceRow(terminal, 2, { status: "running" });
     await terminal.terminate();
   });
 });
 ```
 
-**Note on HELPER-INT tests:** These tests launch real TUI processes and require the workspace screen implementation to be present. Per the testing philosophy (PRD Section 7.3, Architecture doc Testing Philosophy principle 1): "Tests that fail due to unimplemented backend features are left failing. They are never skipped or commented out." If the workspace list screen is not yet implemented, these tests will fail — that is the expected state.
+**Note on HELPER-INT tests:** These tests launch real TUI processes and require the workspace screen implementation to be present. Per the testing philosophy: "Tests that fail due to unimplemented backend features are left failing. They are never skipped or commented out." If the workspace list screen is not yet implemented, these tests will fail — that is the expected state.
 
 ---
 
@@ -1094,7 +1237,7 @@ describe("Workspace E2E Helper Integration", () => {
 The `CODEPLANE_SSE_INJECT_FILE` code path in `SSEProvider.tsx` is a test-only feature. To prevent accidental use in production:
 
 1. **Guard with `NODE_ENV` check**: The injection path only activates when `process.env.NODE_ENV === "test"` AND `CODEPLANE_SSE_INJECT_FILE` is set. Both conditions must be true.
-2. **Log a warning**: When the injection path activates, log `"[SSEProvider] Using file-based SSE injection (test mode)"` to stderr (already implemented).
+2. **Log a warning**: When the injection path activates, log `"[SSEProvider] Using file-based SSE injection (test mode)"` to stderr.
 3. **Dead-code elimination**: Production builds should eliminate the injection code path. The `process.env.NODE_ENV === "test"` check enables Bun/bundler dead-code elimination when building with `NODE_ENV=production`.
 4. **No runtime overhead**: When the env var is not set, the `if` branch is never entered. The normal EventSource code path has zero additional overhead.
 
@@ -1110,7 +1253,7 @@ The regex (`/\x1b\[[0-9;]*[a-zA-Z]/g`) covers standard SGR sequences (colors, bo
 - Hyperlink sequences (`\x1b]8;;...\x1b\\`)
 - Kitty graphics protocol sequences
 
-Per the TUI design spec (Section 3.3: "No images, no bitmap rendering, no sixel") and the constraint that OpenTUI uses standard ANSI rendering, SGR coverage is sufficient. If OpenTUI introduces OSC or DCS sequences in the future, `stripAnsi()` must be extended. The `UTIL-005` test verifies combined SGR parameters work correctly.
+Per the TUI design spec (Section 3.3: "No images, no bitmap rendering, no sixel") and the constraint that OpenTUI uses standard ANSI rendering, SGR coverage is sufficient. If OpenTUI introduces OSC or DCS sequences in the future, `stripAnsi()` must be extended.
 
 ### 6.4 Performance Considerations
 
@@ -1119,17 +1262,36 @@ Per the TUI design spec (Section 3.3: "No images, no bitmap rendering, no sixel"
 - Each E2E test launches a fresh TUI process. No shared state between tests. Process cleanup (`terminal.terminate()`) and file cleanup (`sse.cleanup()`) must be called in every test to prevent resource leaks.
 - The `createSSEInjectionFile` temp directories use `mkdtempSync` which creates unique directories — parallel test execution is safe.
 
-### 6.5 Migration Path
+### 6.5 Import Pattern Fix: `require()` → ESM
 
-Once these helpers are available, existing workspace tests should migrate to use them. The migration is additive — existing tests continue to work with `launchTUI()`, but new tests should prefer `launchTUIWithWorkspaceContext()` for:
+The spec reference at `specs/tui/e2e/tui/helpers/workspaces.ts:232-233` uses inline `require("node:fs")` inside the `writeEvent` and `writeEvents` closures. The production implementation MUST replace these with top-level ESM imports:
+
+```typescript
+// ❌ Spec reference (non-idiomatic)
+writeEvent(event) {
+  const { appendFileSync } = require("node:fs");
+  appendFileSync(filePath, line);
+}
+
+// ✅ Production implementation (ESM)
+import { appendFileSync } from "node:fs";
+// ... then use directly in closure:
+writeEvent(event) {
+  appendFileSync(filePath, JSON.stringify(event) + "\n");
+}
+```
+
+The same applies to the `workspace-sse.ts` helper at `specs/tui/e2e/tui/helpers/workspace-sse.ts:43` which uses `require("fs")` instead of `import from "node:fs"`.
+
+### 6.6 Migration Path
+
+Once these helpers are available, existing workspace tests should migrate to use them. The migration is additive — existing tests in `e2e/tui/workspaces.test.ts` continue to work with `launchTUI()`, but new tests should prefer `launchTUIWithWorkspaceContext()` for:
 - Reduced boilerplate (no manual `--screen` and `--repo` arg construction)
-- Consistent default terminal dimensions
+- Consistent default terminal dimensions (120×40)
 - Built-in ready-state waiting
 - Composability with SSE injection via `launchTUIWithSSEInjection()`
 
-### 6.6 Import Pattern for Downstream Tests
-
-Future workspace feature tests should import helpers from the dedicated module:
+### 6.7 Import Pattern for Downstream Tests
 
 ```typescript
 // Preferred: direct module import
@@ -1186,27 +1348,48 @@ e2e/tui/helpers/__tests__/workspaces.test.ts
   ├── imports from: e2e/tui/helpers/workspaces.ts (all helpers)
   ├── imports from: e2e/tui/helpers.ts (TUITestInstance type)
   ├── imports from: node:fs (readFileSync, existsSync)
+  ├── imports from: node:os (tmpdir)
   └── imports from: bun:test (describe, test, expect)
 
-e2e/tui/workspaces.test.ts
+e2e/tui/workspaces.test.ts (additions)
   ├── imports from: e2e/tui/helpers/workspaces.ts (all helpers)
   └── imports from: bun:test (describe, test, expect)
 
-apps/tui/src/providers/SSEProvider.tsx (already implemented)
+apps/tui/src/providers/SSEProvider.tsx (modified)
+  ├── imports from: react (createContext, useContext, useEffect, useRef, useCallback, useState)
   ├── reads: CODEPLANE_SSE_INJECT_FILE env var (test-only code path)
   ├── reads: NODE_ENV env var (guard condition)
-  └── imports from: node:fs (existsSync, statSync, openSync, readSync, closeSync)
+  └── imports from: node:fs (existsSync, statSync, readFileSync)
 ```
 
 ---
 
-## 9. Verification Checklist
+## 9. Cross-references to Existing Code
+
+| Reference | Location | Relevance |
+|-----------|----------|-----------|
+| Base test helpers | `e2e/tui/helpers.ts` | `launchTUI()`, `TUITestInstance`, `LaunchTUIOptions`, `TERMINAL_SIZES` |
+| Existing workspace tests | `e2e/tui/workspaces.test.ts` | `WorkspaceStatusBadge` tests that new helper tests sit alongside |
+| Spec reference helpers | `specs/tui/e2e/tui/helpers/workspaces.ts` | Reference implementation (352 lines) with `require()` calls to fix |
+| Spec reference SSE helpers | `specs/tui/e2e/tui/helpers/workspace-sse.ts` | Alternative SSE helper with `WorkspaceStatus` typed status param |
+| Spec reference unit tests | `specs/tui/e2e/tui/helpers/__tests__/workspaces.test.ts` | Reference test suite (291 lines) |
+| Spec reference barrel | `specs/tui/e2e/tui/helpers/index.ts` | Barrel re-export pattern |
+| Workspace type definition | `specs/tui/packages/ui-core/src/types/workspaces.ts` | `Workspace`, `WorkspaceStatus`, `WorkspaceSession` types |
+| SDK WorkspaceResponse | `packages/sdk/src/services/workspace.ts:60-76` | Server-side type with `status: string` |
+| SDK SSEEvent | `packages/sdk/src/services/sse.ts:23-28` | `{ type?: string; data: string; id?: string }` |
+| Server SSE routes | `apps/server/src/routes/workspaces.ts:447-522` | Wire format for workspace and session status events |
+| Current SSEProvider | `apps/tui/src/providers/SSEProvider.tsx` | Minimal stub (17 lines) that needs expansion |
+| Workflow helpers | `specs/tui/e2e/tui/helpers/workflows.ts` | Pattern reference for domain-specific helper modules |
+
+---
+
+## 10. Verification Checklist
 
 - [ ] `e2e/tui/helpers/workspaces.ts` compiles with zero TypeScript errors
 - [ ] All fixture IDs are unique and valid UUID v4 format
 - [ ] All fixture timestamps are static (no `Date.now()`, no `new Date()`)
 - [ ] `WORKSPACE_FIXTURES` type matches `Record<WorkspaceFixtureName, Workspace>` from `@codeplane/ui-core`
-- [ ] `createWorkspaceFixture()` `status` param is typed as `WorkspaceStatus`, not `string`
+- [ ] `createWorkspaceFixture()` `status` param is typed as `Workspace["status"]`, not `string`
 - [ ] SSE event `type` fields match server wire format: `"workspace.status"` and `"workspace.session"`
 - [ ] SSE event `data` payloads match server format: `{ workspace_id, status }` and `{ session_id, status }`
 - [ ] `createSSEInjectionFile()` uses top-level ESM imports (no inline `require()`)
@@ -1215,5 +1398,7 @@ apps/tui/src/providers/SSEProvider.tsx (already implemented)
 - [ ] `assertWorkspaceRow()` strips ANSI for content checks but preserves for focus check
 - [ ] All unit tests in `helpers/__tests__/workspaces.test.ts` pass
 - [ ] E2E integration tests in `workspaces.test.ts` are present (may fail if backend not implemented — that is correct)
+- [ ] `SSEProvider.tsx` expanded from stub to support `subscribe()`, `useSSEChannel()`, and file-based injection
 - [ ] `SSEProvider.tsx` test injection path is guarded by both `NODE_ENV === "test"` and `CODEPLANE_SSE_INJECT_FILE`
 - [ ] Barrel export at `e2e/tui/helpers/index.ts` re-exports workspace helpers
+- [ ] No `require()` calls anywhere in production code — all ESM imports

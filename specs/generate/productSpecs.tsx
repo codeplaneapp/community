@@ -3,7 +3,7 @@ import { Task, Parallel, Sequence, Branch } from "smithers-orchestrator";
 import { z } from "zod";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { specsDir } from "./utils";
+// specsDir is now passed as a prop (domain-aware)
 
 export const productSpecsSchemas = {
   check: z.object({
@@ -31,12 +31,14 @@ export function ProductSpecsPhase({
   featureNames,
   specAgent,
   outputs,
+  dir,
 }: {
   ctx: any;
   impact: any;
   featureNames: string[];
   specAgent: any;
   outputs: any;
+  dir: string;
 }) {
   if (!impact) return null;
 
@@ -50,7 +52,7 @@ export function ProductSpecsPhase({
           <Sequence key={`prod-${feature}`}>
             <Task id={`check-${feature}`} output={outputs.check}>
               {async () => {
-                const p = path.join(specsDir(),`${feature}.md`);
+                const p = path.join(dir,`${feature}.md`);
                 let content = "";
                 try {
                   content = await fs.readFile(p, "utf-8");
@@ -140,7 +142,7 @@ export function ProductSpecsPhase({
                     {spec ? (
                       <Task id={`write-${feature}`} output={outputs.write}>
                         {async () => {
-                          const p = path.join(specsDir(),`${feature}.md`);
+                          const p = path.join(dir,`${feature}.md`);
                           const newContent =
                             check.existingContent.trim() +
                             `\n\n## High-Level User POV\n\n${spec.userPov}\n\n## Acceptance Criteria\n\n${spec.acceptanceCriteria}\n\n## Design\n\n${spec.design}\n\n## Permissions & Security\n\n${spec.permissions}\n\n## Telemetry & Product Analytics\n\n${spec.telemetry}\n\n## Observability\n\n${spec.observability}\n\n## Verification\n\n${spec.verification}\n`;

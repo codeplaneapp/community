@@ -3,7 +3,7 @@ import type { CliRenderer } from "@opentui/core";
 let isShuttingDown = false;
 let globalAbort: AbortController | null = null;
 
-export function setGlobalAbort(controller: AbortController) {
+export function setGlobalAbort(controller: AbortController | null) {
   globalAbort = controller;
 }
 

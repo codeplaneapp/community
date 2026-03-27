@@ -2,22 +2,45 @@
 
 ## Deep-link argument parser and stack builder
 
-**Ticket:** tui-nav-chrome-eng-08  
-**Status:** Not started  
-**Depends on:** tui-nav-chrome-eng-01 (NavigationProvider, ScreenEntry types, screen registry)  
-**Feature flag:** TUI_DEEP_LINK_LAUNCH (from TUI_APP_SHELL)  
+**Ticket:** tui-nav-chrome-eng-08
+**Status:** Not started
+**Depends on:** tui-nav-chrome-eng-01 (NavigationProvider, ScreenEntry types, screen registry)
+**Feature flag:** TUI_DEEP_LINK_LAUNCH (from TUI_APP_SHELL)
 
 ---
 
 ## 1. Overview
 
-This ticket implements the CLI argument parser for deep-link launch flags and the stack pre-population logic that determines the TUI's initial navigation state. When a user launches `codeplane tui --screen issues --repo acme/api`, three discrete units of work execute synchronously before the React tree mounts:
+This ticket refactors the TUI's deep-link launch system from a monolithic `buildInitialStack()` function in `navigation/deepLinks.ts` into a three-step pipeline of pure functions in a dedicated `deep-link/` module. When a user launches `codeplane tui --screen issues --repo acme/api`, three discrete units of work execute synchronously before the React tree mounts:
 
 1. **`parseDeepLinkArgs(argv)`** — Extracts `--screen`, `--repo`, and `--org` flag values from `process.argv`.
 2. **`validateDeepLinkArgs(args)`** — Validates extracted values against an allowlist (screen IDs), regex patterns (repo/org slugs), and boundary constraints (max length, control character stripping). Returns a structured result with normalized values or error diagnostics.
 3. **`buildInitialStack(validatedArgs)`** — Converts validated arguments into a `ScreenEntry[]` following the spec's stack pre-population rules, so backward navigation via `q` traverses the logical intermediate screens.
 
-These three functions are pure — no side effects, no React context, no API calls. They execute during the bootstrap sequence (step 2 in `index.tsx`) before the renderer is created. This separation enables comprehensive unit testing without any terminal or React infrastructure.
+These three functions are pure — no side effects, no React context, no API calls. They execute during the bootstrap sequence (between `assertTTY()` and renderer creation in `index.tsx`). This separation enables comprehensive unit testing without any terminal or React infrastructure.
+
+### 1.1 Current State
+
+The existing implementation lives in two files:
+- `apps/tui/src/lib/terminal.ts` — `parseCLIArgs()` extracts `--screen` and `--repo` (but not `--org`) alongside `--debug` and environment variables. Uses the unsafe `argv[++i]` pattern that unconditionally consumes the next token.
+- `apps/tui/src/navigation/deepLinks.ts` — `buildInitialStack()` does validation and stack construction in a single function. It handles repo format validation (simple slash-split check), unknown screen detection, and repo-scoped screen requirements. Exports `DeepLinkArgs` and `DeepLinkResult` interfaces.
+
+The existing implementation has these deficiencies that this ticket addresses:
+- **No `--org` support in the CLI parser**: `parseCLIArgs()` does not extract `--org`. The `DeepLinkArgs` interface accepts `org?: string` but it's only passed through as a param — never parsed from argv.
+- **No input length limits**: Pathologically long inputs could cause regex backtracking. The existing `args.repo.split("/")` has no length guard.
+- **No control character sanitization**: Crafted `--screen` or `--repo` values can inject ANSI escape sequences into error messages displayed in the status bar (e.g., `--screen "\x1B[31mmalicious\x1B[0m"`).
+- **Mixed concerns**: Parsing, validation, and stack building are combined in `buildInitialStack()`. Parsing is split between `parseCLIArgs()` and the deep-link function.
+- **Non-discriminated error result**: `DeepLinkResult` has `error?: string` which callers can forget to check. The `error` is currently computed but never displayed — `index.tsx` ignores `deepLinkResult.error`.
+- **Legacy aliases**: Includes `landing-requests`, `repositories`, `repo-detail` in the screen ID map — not in the 13-screen canonical set from the ticket description.
+- **Weak repo validation**: Only checks `parts.length !== 2 || !parts[0] || !parts[1]` — no character class restriction, allowing `inv@lid/r&po` through.
+
+### 1.2 Design Principles
+
+- **Parse → Validate → Build**: Three pure functions with explicit boundaries.
+- **Discriminated union for validation**: Callers cannot forget to check errors.
+- **Reuse `createEntry` from `NavigationProvider`**: No duplication of the entry creation logic. The existing `createEntry()` at `apps/tui/src/providers/NavigationProvider.tsx:18` generates UUIDs, looks up `screenRegistry` for breadcrumb labels, and returns proper `ScreenEntry` objects.
+- **Constants as single source of truth**: All screen ID mappings, regex patterns, and limits are centralized in `constants.ts`.
+- **Terminal injection prevention**: All error display values are sanitized before being shown.
 
 ---
 
@@ -25,16 +48,18 @@ These three functions are pure — no side effects, no React context, no API cal
 
 | File | Purpose | New/Existing |
 |------|---------|-------------|
+| `apps/tui/src/deep-link/types.ts` | Shared types: `RawDeepLinkArgs`, `DeepLinkValidationResult`, `DeepLinkStackResult` | New |
+| `apps/tui/src/deep-link/constants.ts` | Allowlists, regex patterns, truncation limits | New |
 | `apps/tui/src/deep-link/parser.ts` | `parseDeepLinkArgs(argv)` — flag extraction from argv | New |
-| `apps/tui/src/deep-link/validator.ts` | `validateDeepLinkArgs(args)` — input validation and normalization | New |
+| `apps/tui/src/deep-link/validator.ts` | `validateDeepLinkArgs(args)`, `sanitizeForDisplay()` — input validation and normalization | New |
 | `apps/tui/src/deep-link/stack-builder.ts` | `buildInitialStack(validatedArgs)` — stack pre-population | New |
 | `apps/tui/src/deep-link/index.ts` | Barrel exports | New |
-| `apps/tui/src/deep-link/types.ts` | Shared types for the deep-link module | New |
-| `apps/tui/src/deep-link/constants.ts` | Allowlists, regex patterns, truncation limits | New |
-| `apps/tui/src/index.tsx` | Updated bootstrap to use new deep-link module | Existing (modify) |
-| `apps/tui/src/navigation/deepLinks.ts` | **Replaced** by the new `deep-link/` module | Existing (deprecate/remove) |
-| `apps/tui/src/lib/terminal.ts` | Remove `--screen`/`--repo` parsing (moved to `deep-link/parser.ts`) | Existing (modify) |
-| `e2e/tui/app-shell.test.ts` | E2E tests for deep-link launch behavior | New/Existing |
+| `apps/tui/src/index.tsx` | Updated bootstrap to use new deep-link module; pass error to `LoadingProvider` | Existing (modify) |
+| `apps/tui/src/lib/terminal.ts` | Remove `--screen`/`--repo` from `TUILaunchOptions` and `parseCLIArgs` | Existing (modify) |
+| `apps/tui/src/providers/LoadingProvider.tsx` | Add `initialStatusBarError` prop to display deep-link errors on launch | Existing (modify) |
+| `apps/tui/src/navigation/deepLinks.ts` | Mark `@deprecated`, keep temporarily for migration safety | Existing (modify) |
+| `apps/tui/src/navigation/index.ts` | Remove deprecated deep-link exports | Existing (modify) |
+| `e2e/tui/app-shell.test.ts` | Unit tests (pure function imports) and E2E tests for deep-link launch | Existing (append) |
 
 ---
 
@@ -60,7 +85,7 @@ export interface RawDeepLinkArgs {
 
 /**
  * Validation result from validateDeepLinkArgs().
- * Either valid (with normalized values) or invalid (with error message).
+ * Discriminated union: callers MUST check `valid` before accessing fields.
  */
 export type DeepLinkValidationResult =
   | {
@@ -87,16 +112,16 @@ export interface DeepLinkStackResult {
   stack: ScreenEntry[];
   /**
    * Non-empty when validation failed or screen requires missing context.
-   * Displayed in the status bar for 5 seconds on launch.
+   * Displayed in the status bar for 5 seconds on launch via LoadingProvider.
    */
   error?: string;
 }
 ```
 
-Design rationale:
+**Design rationale:**
 - `RawDeepLinkArgs` is intentionally stringly-typed. Validation converts raw strings into typed, normalized values.
-- `DeepLinkValidationResult` uses a discriminated union so callers must handle both valid and invalid cases.
-- `DeepLinkStackResult.stack` uses `ScreenEntry[]` (not the ad-hoc `{ screen: string; params? }` shape in the existing `deepLinks.ts`) to align with what `NavigationProvider.initialStack` actually expects.
+- `DeepLinkValidationResult` uses a discriminated union so TypeScript enforces error handling at call sites. The existing `DeepLinkResult` has `error?: string` which callers can silently ignore.
+- `DeepLinkStackResult.stack` returns `ScreenEntry[]` directly, matching what `NavigationProvider.initialStack` expects (see `NavigationProviderProps` at `providers/NavigationProvider.tsx:8-16`) — no coercion needed.
 
 ### 3.2 `apps/tui/src/deep-link/constants.ts` — Allowlists, Regex, Limits
 
@@ -107,6 +132,9 @@ import { ScreenName } from "../router/types.js";
  * Map of CLI-facing screen ID strings to internal ScreenName enum values.
  * Keys are lowercase. Case-insensitive matching is achieved by lowercasing
  * the user's input before lookup.
+ *
+ * This is the SINGLE SOURCE OF TRUTH for valid deep-link screen IDs.
+ * Adding a new deep-linkable screen requires adding one entry here.
  */
 export const SCREEN_ID_MAP: Readonly<Record<string, ScreenName>> = {
   dashboard:     ScreenName.Dashboard,
@@ -140,6 +168,9 @@ export const REPO_REQUIRED_SCREENS: ReadonlySet<string> = new Set([
  * Regex for validating --repo values.
  * Format: OWNER/REPO where each segment is [a-zA-Z0-9_.-]+
  * Max total length enforced separately (128 chars).
+ *
+ * Both anchored (^...$) and using character classes without quantifier nesting,
+ * making it immune to ReDoS.
  */
 export const REPO_REGEX = /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/;
 
@@ -182,11 +213,12 @@ export const ERROR_TRUNCATE_REPO = 64;
 export const ERROR_TRUNCATE_ORG = 32;
 ```
 
-Design rationale:
+**Design rationale:**
 - All constants are `Readonly` or `ReadonlySet` to prevent accidental mutation.
 - Regex patterns are precompiled module-level constants, not constructed per call.
-- The `SCREEN_ID_MAP` is the single source of truth for valid deep-link screen IDs. Adding a new deep-linkable screen requires adding one entry here.
+- The existing `navigation/deepLinks.ts` includes legacy aliases (`landing-requests`, `repositories`, `repo-detail`). The new module drops these — only the 13 canonical screen IDs from the ticket description are supported.
 - `CONTROL_CHAR_REGEX` strips both raw control characters and ANSI escape sequences to prevent terminal injection via crafted `--screen` or `--repo` values.
+- The existing `deepLinks.ts` `resolveScreenName()` uses 16 entries. This reduces to exactly 13 — matching the ticket's supported screen list.
 
 ### 3.3 `apps/tui/src/deep-link/parser.ts` — Argument Parsing
 
@@ -257,11 +289,14 @@ export function parseDeepLinkArgs(argv: string[]): RawDeepLinkArgs {
 }
 ```
 
-Design rationale:
+**Design rationale:**
 - **Flag-then-value convention**: Each deep-link flag expects the next argv token as its value. If the next token starts with `--`, it's treated as another flag and the current flag gets `undefined`.
+- **Last-occurrence wins**: If `--screen` appears twice, the second value overwrites the first. This is standard POSIX behavior.
 - **No lowercasing here**: Case normalization is the validator's job, not the parser's. Parser is dumb extraction.
 - **No side effects**: This function is pure. No `process.exit()`, no console output, no mutations.
-- **Separate from `parseCLIArgs`**: The existing `parseCLIArgs` in `lib/terminal.ts` handles `--debug`, env vars, etc. Deep-link parsing is isolated into its own module for single-responsibility and testability. After migration, `parseCLIArgs` will stop parsing `--screen`/`--repo` (those fields will be removed from `TUILaunchOptions`).
+- **Separate from `parseCLIArgs`**: The existing `parseCLIArgs` in `lib/terminal.ts` handles `--debug`, env vars, etc. Deep-link parsing is isolated into its own module for single-responsibility and testability.
+
+**Behavioral difference from existing `parseCLIArgs`:** The existing parser uses `argv[++i]` (line 29-32 in `terminal.ts`) which unconditionally increments `i` and consumes the next token even if it's another flag. The new parser checks `hasValue` before consuming, which is safer — `--screen --repo acme/api` correctly leaves `screen` as undefined and parses `repo`.
 
 ### 3.4 `apps/tui/src/deep-link/validator.ts` — Input Validation
 
@@ -299,21 +334,18 @@ export function sanitizeForDisplay(raw: string, maxLen: number): string {
 /**
  * Validate parsed deep-link arguments.
  *
- * Checks:
- * 1. --screen against the allowlist (case-insensitive)
- * 2. --screen length (max 32 chars)
- * 3. --repo against regex pattern and length constraints
- * 4. --repo segment lengths (owner ≤ 64, name ≤ 64)
- * 5. --org against regex pattern and length constraints
- * 6. Repo-required screens have --repo provided
+ * Validation order (matters for error priority):
+ * 1. --screen format: length check → allowlist lookup
+ * 2. --repo format: length check → regex check → segment length check
+ * 3. --org format: length check → regex check
+ * 4. Context dependency: repo-required screens must have --repo
  *
- * Validation order matters: format errors are reported before
- * context-dependency errors. If --repo is malformed AND --screen
- * requires repo, the format error takes precedence.
+ * Format errors are reported before context-dependency errors.
+ * If --repo is malformed AND --screen requires repo, the format error
+ * takes precedence.
  *
  * @param args - Raw parsed arguments from parseDeepLinkArgs()
- * @returns Validation result: either valid with normalized values
- *          or invalid with a human-readable error message
+ * @returns Discriminated union: valid with normalized values, or invalid with error
  */
 export function validateDeepLinkArgs(
   args: RawDeepLinkArgs,
@@ -404,7 +436,6 @@ export function validateDeepLinkArgs(
   }
 
   // --- Context dependency check ---
-  // Screens that require --repo
   if (normalizedScreen && REPO_REQUIRED_SCREENS.has(normalizedScreen) && !parsedRepo) {
     return {
       valid: false,
@@ -421,41 +452,26 @@ export function validateDeepLinkArgs(
 }
 ```
 
-Design rationale:
-- **Validation order**: Screen format → repo format → org format → context dependency. This ensures the most specific error is returned. If `--screen issues --repo inv@lid`, the repo format error is shown, not "--repo required for issues".
+**Design rationale:**
+- **Validation order**: Screen format → repo format → org format → context dependency. This ensures the most specific error is returned. If `--screen issues --repo inv@lid`, the repo format error is shown, not `--repo required for issues`.
 - **`sanitizeForDisplay`** is exported as a public function for reuse in status bar error rendering and for testing.
 - **Case-insensitive screen matching**: The user's input is lowercased before lookup. `--screen Issues`, `--screen ISSUES`, and `--screen issues` all resolve to the same screen.
 - **Length limits are checked first** within each validation block. This prevents regex backtracking on pathologically long inputs.
+- **Stronger repo validation than existing**: The existing `deepLinks.ts` only checks `parts.length !== 2 || !parts[0] || !parts[1]`, allowing `inv@lid/r&po` through. The new validator uses `REPO_REGEX` to enforce `[a-zA-Z0-9_.-]+` character classes.
 
 ### 3.5 `apps/tui/src/deep-link/stack-builder.ts` — Stack Pre-Population
 
 ```typescript
 import type { ScreenEntry } from "../router/types.js";
 import { ScreenName } from "../router/types.js";
-import { screenRegistry } from "../router/registry.js";
+import { createEntry } from "../providers/NavigationProvider.js";
 import type { DeepLinkValidationResult, DeepLinkStackResult } from "./types.js";
-import { SCREEN_ID_MAP } from "./constants.js";
-
-/**
- * Create a ScreenEntry with a generated ID and breadcrumb from the registry.
- */
-function createEntry(
-  screen: ScreenName,
-  params: Record<string, string> = {},
-): ScreenEntry {
-  const definition = screenRegistry[screen];
-  return {
-    id: crypto.randomUUID(),
-    screen,
-    params,
-    breadcrumb: definition.breadcrumbLabel(params),
-  };
-}
+import { SCREEN_ID_MAP, REPO_REQUIRED_SCREENS } from "./constants.js";
 
 /**
  * Build the initial navigation stack from validated deep-link arguments.
  *
- * Stack pre-population rules (from specs/tui/TUI_DEEP_LINK_LAUNCH.md):
+ * Stack pre-population rules:
  *
  * | Scenario                              | Stack                                        | Depth |
  * |----------------------------------------|----------------------------------------------|-------|
@@ -553,7 +569,7 @@ export function buildInitialStack(
   // Repo-context screens: [Dashboard, RepoOverview, Screen]
   // repo is guaranteed to exist here because validateDeepLinkArgs
   // already checked that repo-required screens have --repo.
-  if (repo && REPO_REQUIRED_SCREENS_SET.has(normalizedScreen)) {
+  if (repo && REPO_REQUIRED_SCREENS.has(normalizedScreen)) {
     const repoParams = { owner: repo.owner, repo: repo.name };
     return {
       stack: [
@@ -584,16 +600,13 @@ export function buildInitialStack(
     ],
   };
 }
-
-// Re-import for the check above (avoids circular import by using the constant directly)
-import { REPO_REQUIRED_SCREENS as REPO_REQUIRED_SCREENS_SET } from "./constants.js";
 ```
 
-Design rationale:
-- **Accepts `DeepLinkValidationResult`, not `RawDeepLinkArgs`**: The stack builder never receives unvalidated input. This is enforced at the type level — you cannot pass a `RawDeepLinkArgs` to `buildInitialStack`.
-- **`createEntry` uses the screen registry's `breadcrumbLabel`**: Breadcrumb text is derived from the same source as manual navigation, ensuring consistency between deep-linked and manually-navigated screens.
-- **`crypto.randomUUID()` for entry IDs**: Each `ScreenEntry.id` is globally unique. This enables scroll position caching and prevents stale references when the same screen is pushed multiple times.
+**Design rationale:**
+- **Reuses `createEntry` from `NavigationProvider.tsx`**: The existing `createEntry` (line 18-29) already generates UUIDs via `crypto.randomUUID()`, looks up `screenRegistry` for breadcrumb labels via `definition.breadcrumbLabel(params)`, and returns proper `ScreenEntry` objects. No duplication.
+- **Accepts `DeepLinkValidationResult`, not `RawDeepLinkArgs`**: The stack builder never receives unvalidated input. This is enforced at the type level.
 - **Org + screen override**: `--screen orgs --org acme` produces `[Dashboard, OrgOverview(acme)]`, not `[Dashboard, Organizations, OrgOverview(acme)]`. The `--org` flag promotes the destination to the org detail, skipping the list.
+- **Behavioral difference from existing**: The old `buildInitialStack()` pushes `agents` as a context-free screen with `{ owner, repo }` params. The new one does the same — but for the 4 repo-required screens (`issues`, `landings`, `workflows`, `wiki`), it correctly inserts `RepoOverview` as an intermediate stack entry, which the old one also does. The key difference: the new version separates `agents` (which IS context-free per registry) from true repo-required screens.
 
 ### 3.6 `apps/tui/src/deep-link/index.ts` — Barrel Exports
 
@@ -619,18 +632,29 @@ export {
 
 ### 3.7 Changes to `apps/tui/src/index.tsx` — Bootstrap Integration
 
-The existing bootstrap calls `buildInitialStack` from `./navigation/deepLinks.js` with `{ screen, repo }` extracted by `parseCLIArgs`. This must be updated to use the new three-step pipeline:
+The existing bootstrap sequence (lines 6-9, 28, 36-41):
 
 ```typescript
-// Before (existing):
+import { assertTTY, parseCLIArgs } from "./lib/terminal.js";
+assertTTY();
+const launchOptions = parseCLIArgs(process.argv.slice(2));
+// ...
 import { buildInitialStack } from "./navigation/deepLinks.js";
+// ...
 const deepLinkResult = buildInitialStack({
   screen: launchOptions.screen,
   repo: launchOptions.repo,
 });
 const initialStack = deepLinkResult.stack;
+```
 
-// After (new):
+Updated to:
+
+```typescript
+import { assertTTY, parseCLIArgs } from "./lib/terminal.js";
+assertTTY();
+const launchOptions = parseCLIArgs(process.argv.slice(2));
+
 import {
   parseDeepLinkArgs,
   validateDeepLinkArgs,
@@ -641,24 +665,29 @@ const rawArgs = parseDeepLinkArgs(process.argv.slice(2));
 const validated = validateDeepLinkArgs(rawArgs);
 const deepLinkResult = buildInitialStack(validated);
 const initialStack = deepLinkResult.stack;
-// deepLinkResult.error is passed to AppShell for transient status bar display
+const deepLinkError = deepLinkResult.error ?? null;
 ```
 
-The `launchOptions.screen` and `launchOptions.repo` fields are removed from `TUILaunchOptions` in `lib/terminal.ts`. The `parseCLIArgs` function in `lib/terminal.ts` retains `--debug`, `apiUrl`, and `token` parsing.
+The old `import { buildInitialStack } from "./navigation/deepLinks.js"` (line 28) is removed. The `launchOptions.screen` and `launchOptions.repo` fields are no longer accessed.
+
+Additionally, the `deepLinkError` is threaded into the component tree via `LoadingProvider`:
+
+```typescript
+// In the App component JSX (around line 74):
+<LoadingProvider initialStatusBarError={deepLinkError}>
+```
 
 ### 3.8 Changes to `apps/tui/src/lib/terminal.ts`
 
 Remove `--screen` and `--repo` from `TUILaunchOptions` and `parseCLIArgs`:
 
 ```typescript
-// Updated interface:
 export interface TUILaunchOptions {
   debug?: boolean;        // --debug or CODEPLANE_TUI_DEBUG=true
   apiUrl?: string;        // CODEPLANE_API_URL
   token?: string;         // CODEPLANE_TOKEN
 }
 
-// Updated parser — no longer handles --screen or --repo:
 export function parseCLIArgs(argv: string[]): TUILaunchOptions {
   const opts: TUILaunchOptions = {};
   for (let i = 0; i < argv.length; i++) {
@@ -675,20 +704,83 @@ export function parseCLIArgs(argv: string[]): TUILaunchOptions {
 }
 ```
 
-### 3.9 Deprecation of `apps/tui/src/navigation/deepLinks.ts`
+### 3.9 Changes to `apps/tui/src/providers/LoadingProvider.tsx`
 
-The existing `navigation/deepLinks.ts` is functionally replaced by the new `deep-link/` module. It should be:
+The `LoadingProvider` currently has no mechanism to display the deep-link error on launch. The existing `deepLinkResult.error` in `index.tsx` is computed but never used. This ticket adds an `initialStatusBarError` prop:
 
-1. Marked with a `@deprecated` JSDoc comment pointing to `deep-link/index.ts`.
-2. Its exports removed from `navigation/index.ts`.
-3. Deleted in a follow-up cleanup once all consumers have migrated.
+```typescript
+// Updated interface (line 16):
+export function LoadingProvider({
+  children,
+  initialStatusBarError,
+}: {
+  children: React.ReactNode;
+  initialStatusBarError?: string | null;
+}) {
+  // ... existing state declarations ...
+  const [statusBarError, setStatusBarError] = useState<string | null>(
+    initialStatusBarError ?? null,
+  );
 
-The new module improves on the existing implementation in these ways:
-- **Separate validation step**: The existing code mixes parsing, validation, and stack building in a single `buildInitialStack` function. The new design separates these concerns.
-- **Proper `ScreenEntry[]` return type**: The existing code returns `{ screen: string; params? }[]` which must be coerced into `ScreenEntry[]` by the `NavigationProvider`. The new code returns proper `ScreenEntry[]` directly.
-- **Control character stripping**: The existing code does not sanitize error messages for terminal injection.
-- **Boundary constraints**: The existing code does not enforce length limits on `--screen`, `--repo`, or `--org` values.
-- **Discriminated union for validation result**: The existing code uses a single object with optional `error` field, which allows callers to forget to check for errors.
+  // Auto-clear initial status bar error after STATUS_BAR_ERROR_DURATION_MS
+  useEffect(() => {
+    if (initialStatusBarError) {
+      if (statusBarTimerRef.current) {
+        clearTimeout(statusBarTimerRef.current);
+      }
+      statusBarTimerRef.current = setTimeout(() => {
+        setStatusBarError(null);
+      }, STATUS_BAR_ERROR_DURATION_MS);
+    }
+  }, []); // only on mount
+  // ... rest unchanged ...
+}
+```
+
+This ensures that errors like "Unknown screen: foobar" or "--repo required for issues" are visible in the status bar for 5 seconds after launch, leveraging the same display mechanism as optimistic mutation errors.
+
+### 3.10 Deprecation of `apps/tui/src/navigation/deepLinks.ts`
+
+The file header receives a `@deprecated` JSDoc comment:
+
+```typescript
+/**
+ * @deprecated Use `deep-link/index.ts` instead.
+ * This module is retained temporarily for migration safety.
+ * Remove in a follow-up commit after all consumers have migrated.
+ */
+```
+
+The barrel export in `navigation/index.ts` is updated to remove deep-link exports:
+
+```typescript
+// Before:
+export { goToBindings, executeGoTo } from "./goToBindings.js";
+export type { GoToBinding } from "./goToBindings.js";
+export { buildInitialStack } from "./deepLinks.js";
+export type { DeepLinkArgs, DeepLinkResult } from "./deepLinks.js";
+
+// After:
+export { goToBindings, executeGoTo } from "./goToBindings.js";
+export type { GoToBinding } from "./goToBindings.js";
+// Deep-link exports removed — use @codeplane/tui/deep-link instead
+```
+
+**Key behavioral differences from the existing implementation:**
+
+| Aspect | Old (`navigation/deepLinks.ts`) | New (`deep-link/`) |
+|--------|--------------------------------|--------------------|
+| Separation of concerns | Single `buildInitialStack` does validation + building; parsing in separate `parseCLIArgs` | Three separate pure functions in dedicated module |
+| Error type | `{ error?: string }` — easy to forget check | Discriminated union with `valid: boolean` — TypeScript enforces |
+| Error display | Computed but never displayed (ignored in `index.tsx`) | Threaded to `LoadingProvider.initialStatusBarError`, shown for 5s |
+| Control char sanitization | None | `sanitizeForDisplay` strips ANSI + control chars |
+| Length limits | None | 32/128/64 char limits enforced before regex |
+| Repo validation | `parts.length !== 2 || !parts[0] || !parts[1]` (allows special chars) | `REPO_REGEX` with `[a-zA-Z0-9_.-]+` character class |
+| Screen ID allowlist | 16 entries including aliases (`landing-requests`, `repositories`, `repo-detail`) | 13 canonical entries only |
+| `--org` parser support | Not parsed by `parseCLIArgs` (only in `DeepLinkArgs` interface) | Parsed by `parseDeepLinkArgs` from argv |
+| Org stack building | `--org` only passed as param, no OrgOverview intermediate | `--org` without `--screen` → `[Dashboard, OrgOverview]` |
+| `--screen orgs --org acme` | `[Dashboard, Organizations]` with `{params: {org}}` | `[Dashboard, OrgOverview(acme)]` |
+| Flag-next-flag safety | `argv[++i]` consumes unconditionally | Checks `!value.startsWith("--")` before consuming |
 
 ---
 
@@ -703,11 +795,13 @@ The implementation is broken into vertical steps. Each step produces a working, 
 - `apps/tui/src/deep-link/constants.ts`
 
 **Work:**
-- Define `RawDeepLinkArgs`, `DeepLinkValidationResult`, `DeepLinkStackResult` types.
-- Define all constants: `SCREEN_ID_MAP`, `REPO_REQUIRED_SCREENS`, regex patterns, length limits, truncation limits.
-- Ensure `SCREEN_ID_MAP` keys exactly match the 13 supported screen IDs from the ticket description.
+1. Create the `apps/tui/src/deep-link/` directory.
+2. Implement `types.ts` with `RawDeepLinkArgs`, `DeepLinkValidationResult`, `DeepLinkStackResult` as specified in §3.1.
+3. Implement `constants.ts` with all 13 screen ID mappings, regex patterns, length limits, and truncation limits as specified in §3.2.
+4. Verify `SCREEN_ID_MAP` keys exactly match the 13 supported screen IDs: `dashboard`, `repos`, `issues`, `landings`, `workspaces`, `workflows`, `search`, `notifications`, `agents`, `settings`, `orgs`, `sync`, `wiki`.
+5. Verify `SCREEN_ID_MAP` values reference the correct `ScreenName` enum values from `router/types.ts` (all 13 must exist in the 32-member enum).
 
-**Verification:** TypeScript compiles without errors. Types are importable from sibling files.
+**Verification:** `tsc --noEmit` passes from `apps/tui/`. Types are importable from sibling files.
 
 ### Step 2: Implement `deep-link/parser.ts`
 
@@ -715,11 +809,11 @@ The implementation is broken into vertical steps. Each step produces a working, 
 - `apps/tui/src/deep-link/parser.ts`
 
 **Work:**
-- Implement `parseDeepLinkArgs(argv)` as specified in §3.3.
-- Handle edge cases: missing values, `--flag --flag` patterns, empty argv, trailing flags without values.
-- No validation — raw string pass-through only.
+1. Implement `parseDeepLinkArgs(argv)` as specified in §3.3.
+2. Handle edge cases: missing values, `--flag --flag` patterns, empty argv, trailing flags without values, duplicate flags (last wins).
+3. No validation — raw string pass-through only.
 
-**Verification:** Unit-testable in isolation with simple arrays.
+**Verification:** Unit-testable in isolation with simple arrays. Run parser tests (DL-PARSE-001 through DL-PARSE-012).
 
 ### Step 3: Implement `deep-link/validator.ts`
 
@@ -727,11 +821,11 @@ The implementation is broken into vertical steps. Each step produces a working, 
 - `apps/tui/src/deep-link/validator.ts`
 
 **Work:**
-- Implement `sanitizeForDisplay(raw, maxLen)` as specified.
-- Implement `validateDeepLinkArgs(args)` with the validation order: screen format → repo format → org format → context dependency.
-- Test control character stripping with ANSI escape sequences, null bytes, etc.
+1. Implement `sanitizeForDisplay(raw, maxLen)` as specified.
+2. Implement `validateDeepLinkArgs(args)` with the validation order: screen format → repo format → org format → context dependency.
+3. Ensure control character stripping works with ANSI escape sequences, null bytes, BEL character, etc.
 
-**Verification:** Unit-testable with constructed `RawDeepLinkArgs` objects.
+**Verification:** Unit-testable with constructed `RawDeepLinkArgs` objects. Run validator tests (DL-VAL-001 through DL-VAL-025, DL-SAN-001 through DL-SAN-005).
 
 ### Step 4: Implement `deep-link/stack-builder.ts`
 
@@ -739,11 +833,12 @@ The implementation is broken into vertical steps. Each step produces a working, 
 - `apps/tui/src/deep-link/stack-builder.ts`
 
 **Work:**
-- Implement `buildInitialStack(validated)` as specified in §3.5.
-- Cover all 17 stack pre-population scenarios from the table.
-- Ensure returned `ScreenEntry[]` has valid `id`, `screen`, `params`, `breadcrumb` fields.
+1. Implement `buildInitialStack(validated)` as specified in §3.5.
+2. Import `createEntry` from `../providers/NavigationProvider.js` — do NOT duplicate this function.
+3. Cover all 17 stack pre-population scenarios from the table in §3.5.
+4. Ensure returned `ScreenEntry[]` has valid `id`, `screen`, `params`, `breadcrumb` fields (all populated by `createEntry` via `screenRegistry` lookups).
 
-**Verification:** Unit-testable by passing `DeepLinkValidationResult` objects and inspecting returned stacks.
+**Verification:** Unit-testable by passing `DeepLinkValidationResult` objects and inspecting returned stacks. Run stack builder tests (DL-STACK-001 through DL-STACK-023).
 
 ### Step 5: Create barrel export and wire into bootstrap
 
@@ -751,25 +846,36 @@ The implementation is broken into vertical steps. Each step produces a working, 
 - `apps/tui/src/deep-link/index.ts`
 
 **Files modified:**
-- `apps/tui/src/index.tsx` — Use new pipeline.
-- `apps/tui/src/lib/terminal.ts` — Remove `--screen`/`--repo` from `TUILaunchOptions`.
-- `apps/tui/src/navigation/deepLinks.ts` — Add `@deprecated` JSDoc.
-- `apps/tui/src/navigation/index.ts` — Remove deprecated exports.
+- `apps/tui/src/index.tsx` — Replace old deep-link import with new three-step pipeline. Pass `deepLinkError` to `LoadingProvider`.
+- `apps/tui/src/lib/terminal.ts` — Remove `screen` and `repo` from `TUILaunchOptions` interface and `parseCLIArgs` function.
+- `apps/tui/src/providers/LoadingProvider.tsx` — Add `initialStatusBarError` prop.
+- `apps/tui/src/navigation/deepLinks.ts` — Add `@deprecated` JSDoc comment.
+- `apps/tui/src/navigation/index.ts` — Remove `buildInitialStack` and `DeepLinkArgs`/`DeepLinkResult` exports.
 
 **Work:**
-- Replace the old deep-link call in `index.tsx` with the new three-step pipeline.
-- Pass `deepLinkResult.error` through to `AppShell` (or a context) for transient status bar display.
-- Verify the TUI still launches correctly with and without deep-link flags.
+1. Create barrel export in `deep-link/index.ts`.
+2. Update `index.tsx` to use the new three-step pipeline (§3.7).
+3. Update `lib/terminal.ts` to remove `--screen`/`--repo` parsing (§3.8).
+4. Update `LoadingProvider` to accept `initialStatusBarError` prop (§3.9).
+5. Deprecate `navigation/deepLinks.ts` and update `navigation/index.ts` (§3.10).
 
-**Verification:** Manual smoke test: `codeplane tui`, `codeplane tui --screen repos`, `codeplane tui --screen issues --repo acme/api`, `codeplane tui --screen foobar`.
+**Verification:**
+- Manual smoke test: `bun run apps/tui/src/index.tsx` (no args → Dashboard)
+- `bun run apps/tui/src/index.tsx --screen repos` (→ Repositories with breadcrumb "Dashboard › Repositories")
+- `bun run apps/tui/src/index.tsx --screen issues --repo acme/api` (→ Issues with breadcrumb "Dashboard › acme/api › Issues")
+- `bun run apps/tui/src/index.tsx --screen foobar` (→ Dashboard with status bar error "Unknown screen: foobar")
+- `bun run apps/tui/src/index.tsx --screen issues` (→ Dashboard with status bar error "--repo required for issues")
+- TypeScript compilation (`tsc --noEmit` from `apps/tui/`) passes.
 
-### Step 6: Write E2E tests
+### Step 6: Write unit and E2E tests
 
-**Files created/modified:**
-- `e2e/tui/app-shell.test.ts` — Deep-link specific tests.
+**Files modified:**
+- `e2e/tui/app-shell.test.ts` — Add deep-link unit tests and E2E terminal tests.
 
 **Work:**
-- Write the tests specified in §5 below.
+- Write all tests specified in §5 below.
+- Verify existing deep-link tests (NAV-DEEP-001 through NAV-DEEP-006) still pass with the new pipeline.
+- Note: NAV-DEEP-001 uses `--screen agents --repo acme/widget` — agents is NOT repo-required, so the new pipeline should produce `[Dashboard, Agents]` with repo params, matching the existing behavior.
 
 ---
 
@@ -777,14 +883,13 @@ The implementation is broken into vertical steps. Each step produces a working, 
 
 ### Test File: `e2e/tui/app-shell.test.ts`
 
-All tests use `@microsoft/tui-test` with `createTestTui`. Tests that depend on a running API server (for auth validation, data fetching on deep-linked screens) are left failing until those backends are implemented. Tests are never skipped or commented out.
+All tests are appended to the existing `app-shell.test.ts` file. Tests use `bun:test` for pure function unit tests and `@microsoft/tui-test` (via `launchTUI` helper) for E2E terminal tests. Tests that depend on a running API server are left failing until backends are implemented — never skipped or commented out.
 
-#### 5.1 Parser Tests
+#### 5.1 Parser Unit Tests
 
-These test `parseDeepLinkArgs()` directly via import (pure function, no terminal needed).
+These test `parseDeepLinkArgs()` directly via import. No terminal needed — pure function tests.
 
 ```typescript
-import { describe, test, expect } from "bun:test";
 import { parseDeepLinkArgs } from "../../apps/tui/src/deep-link/parser.js";
 
 describe("TUI_DEEP_LINK_LAUNCH — parseDeepLinkArgs", () => {
@@ -866,14 +971,10 @@ describe("TUI_DEEP_LINK_LAUNCH — parseDeepLinkArgs", () => {
 });
 ```
 
-#### 5.2 Validator Tests
+#### 5.2 Sanitizer Unit Tests
 
 ```typescript
-import { describe, test, expect } from "bun:test";
-import {
-  validateDeepLinkArgs,
-  sanitizeForDisplay,
-} from "../../apps/tui/src/deep-link/validator.js";
+import { sanitizeForDisplay } from "../../apps/tui/src/deep-link/validator.js";
 
 describe("TUI_DEEP_LINK_LAUNCH — sanitizeForDisplay", () => {
   test("DL-SAN-001: returns input unchanged when under limit", () => {
@@ -900,13 +1001,18 @@ describe("TUI_DEEP_LINK_LAUNCH — sanitizeForDisplay", () => {
   });
 
   test("DL-SAN-005: strips then truncates in correct order", () => {
-    // 30 visible chars + escape sequences
     const input = "\x1B[31m" + "a".repeat(35) + "\x1B[0m";
     const result = sanitizeForDisplay(input, 32);
     expect(result).toHaveLength(32);
     expect(result).not.toContain("\x1B");
   });
 });
+```
+
+#### 5.3 Validator Unit Tests
+
+```typescript
+import { validateDeepLinkArgs } from "../../apps/tui/src/deep-link/validator.js";
 
 describe("TUI_DEEP_LINK_LAUNCH — validateDeepLinkArgs", () => {
   test("DL-VAL-001: no flags returns valid with no fields", () => {
@@ -1045,7 +1151,6 @@ describe("TUI_DEEP_LINK_LAUNCH — validateDeepLinkArgs", () => {
       "settings", "orgs", "sync", "wiki",
     ];
     for (const screen of screens) {
-      // Provide repo for repo-required screens
       const args: Record<string, string> = { screen };
       if (["issues", "landings", "workflows", "wiki"].includes(screen)) {
         (args as any).repo = "acme/api";
@@ -1069,7 +1174,6 @@ describe("TUI_DEEP_LINK_LAUNCH — validateDeepLinkArgs", () => {
     const result = validateDeepLinkArgs({ screen: longScreen });
     expect(result.valid).toBe(false);
     if (!result.valid) {
-      // Error message should contain truncated version, not the full 50 chars
       expect(result.error.length).toBeLessThan(80);
     }
   });
@@ -1108,10 +1212,9 @@ describe("TUI_DEEP_LINK_LAUNCH — validateDeepLinkArgs", () => {
 });
 ```
 
-#### 5.3 Stack Builder Tests
+#### 5.4 Stack Builder Unit Tests
 
 ```typescript
-import { describe, test, expect } from "bun:test";
 import { buildInitialStack } from "../../apps/tui/src/deep-link/stack-builder.js";
 import { ScreenName } from "../../apps/tui/src/router/types.js";
 import type { DeepLinkValidationResult } from "../../apps/tui/src/deep-link/types.js";
@@ -1346,8 +1449,6 @@ describe("TUI_DEEP_LINK_LAUNCH — buildInitialStack", () => {
     expect(result.error).toBeUndefined();
   });
 
-  // --- Context-free screen with --repo still passes repo as params ---
-
   test("DL-STACK-023: context-free screen with --repo stores repo in params", () => {
     const result = buildInitialStack({
       valid: true,
@@ -1362,179 +1463,229 @@ describe("TUI_DEEP_LINK_LAUNCH — buildInitialStack", () => {
 });
 ```
 
-#### 5.4 E2E Terminal Snapshot and Interaction Tests
+#### 5.5 E2E Terminal Snapshot and Interaction Tests
 
-These tests launch the actual TUI process and interact with it via `@microsoft/tui-test`. They require a built TUI binary and a running (or mocked at the infra level, not in test code) API server.
+These tests launch the actual TUI process and interact with it via `@microsoft/tui-test`. They extend the existing deep-link tests in `app-shell.test.ts`.
 
 ```typescript
-import { createTestTui } from "@microsoft/tui-test";
+import { launchTUI, type TUITestInstance } from "./helpers.ts";
 
 describe("TUI_DEEP_LINK_LAUNCH — E2E terminal tests", () => {
+  let terminal: TUITestInstance;
+
+  afterEach(async () => {
+    if (terminal) await terminal.terminate();
+  });
+
   // --- Snapshot tests ---
 
   test("DL-E2E-SNAP-001: no flags launches to Dashboard", async () => {
-    const tui = await createTestTui({ cols: 120, rows: 40 });
-    // Launch TUI with no deep-link flags
-    // Wait for Dashboard to render
-    // Assert: breadcrumb shows "Dashboard" only
-    // Assert: content area shows dashboard content
-    // Snapshot comparison
+    terminal = await launchTUI({ cols: 120, rows: 40 });
+    await terminal.waitForText("Dashboard");
+    const headerLine = terminal.getLine(0);
+    expect(headerLine).toContain("Dashboard");
   });
 
   test("DL-E2E-SNAP-002: --screen repos shows Repository list", async () => {
-    const tui = await createTestTui({
+    terminal = await launchTUI({
       cols: 120,
       rows: 40,
       args: ["--screen", "repos"],
     });
-    // Wait for RepoList to render
-    // Assert: breadcrumb shows "Dashboard > Repositories"
+    await terminal.waitForText("Repositories");
+    const headerLine = terminal.getLine(0);
+    expect(headerLine).toMatch(/Dashboard.*Repositories/);
   });
 
   test("DL-E2E-SNAP-003: --screen issues --repo acme/api shows Issues", async () => {
-    const tui = await createTestTui({
+    terminal = await launchTUI({
       cols: 120,
       rows: 40,
       args: ["--screen", "issues", "--repo", "acme/api"],
     });
-    // Assert: breadcrumb shows "Dashboard > acme/api > Issues"
+    await terminal.waitForText("Issues");
+    const headerLine = terminal.getLine(0);
+    expect(headerLine).toMatch(/acme\/api/);
   });
 
-  test("DL-E2E-SNAP-004: --screen foobar shows Dashboard with error", async () => {
-    const tui = await createTestTui({
+  test("DL-E2E-SNAP-004: --screen foobar shows Dashboard with error in status bar", async () => {
+    terminal = await launchTUI({
       cols: 120,
       rows: 40,
       args: ["--screen", "foobar"],
     });
-    // Assert: Dashboard rendered
-    // Assert: status bar contains "Unknown screen: foobar"
+    await terminal.waitForText("Dashboard");
+    const snapshot = terminal.snapshot();
+    expect(snapshot).toMatch(/Unknown screen.*foobar/);
   });
 
-  test("DL-E2E-SNAP-005: --screen issues without --repo shows error", async () => {
-    const tui = await createTestTui({
+  test("DL-E2E-SNAP-005: --screen issues without --repo shows error in status bar", async () => {
+    terminal = await launchTUI({
       cols: 120,
       rows: 40,
       args: ["--screen", "issues"],
     });
-    // Assert: Dashboard rendered
-    // Assert: status bar contains "--repo required for issues"
+    await terminal.waitForText("Dashboard");
+    const snapshot = terminal.snapshot();
+    expect(snapshot).toMatch(/--repo required/);
   });
 
-  test("DL-E2E-SNAP-006: --repo inv@lid shows format error", async () => {
-    const tui = await createTestTui({
+  test("DL-E2E-SNAP-006: --repo inv@lid shows format error in status bar", async () => {
+    terminal = await launchTUI({
       cols: 120,
       rows: 40,
       args: ["--repo", "inv@lid!!!"],
     });
-    // Assert: Dashboard rendered
-    // Assert: status bar contains "Invalid repository format"
+    await terminal.waitForText("Dashboard");
+    const snapshot = terminal.snapshot();
+    expect(snapshot).toMatch(/Invalid repository format/);
   });
 
-  test("DL-E2E-SNAP-007: 80x24 minimum truncates breadcrumb", async () => {
-    const tui = await createTestTui({
+  test("DL-E2E-SNAP-007: 80x24 minimum truncates breadcrumb from deep-link", async () => {
+    terminal = await launchTUI({
       cols: 80,
       rows: 24,
       args: ["--screen", "issues", "--repo", "acme/api"],
     });
-    // Assert: breadcrumb is truncated (starts with "…" or abbreviated)
+    await terminal.waitForText("Issues");
+    expect(terminal.snapshot()).toMatchSnapshot();
   });
 
   test("DL-E2E-SNAP-008: case-insensitive --screen Issues works", async () => {
-    const tui = await createTestTui({
+    terminal = await launchTUI({
       cols: 120,
       rows: 40,
       args: ["--screen", "Issues", "--repo", "acme/api"],
     });
-    // Assert: Issues screen rendered, not error
+    await terminal.waitForText("Issues");
+    const snapshot = terminal.snapshot();
+    expect(snapshot).not.toMatch(/Unknown screen/);
   });
 
   // --- Keyboard interaction tests ---
 
   test("DL-E2E-KEY-001: q walks back from deep-linked issues to repo overview", async () => {
-    const tui = await createTestTui({
+    terminal = await launchTUI({
       cols: 120,
       rows: 40,
       args: ["--screen", "issues", "--repo", "acme/api"],
     });
-    // Wait for issues screen
-    // Send q
-    // Assert: RepoOverview for acme/api shown
-    // Assert: breadcrumb shows "Dashboard > acme/api"
+    await terminal.waitForText("Issues");
+    await terminal.sendKeys("q");
+    const snapshot = terminal.snapshot();
+    expect(snapshot).toMatch(/acme\/api/);
+    // Should be on RepoOverview, not Issues
+    expect(snapshot).not.toMatch(/Issues.*not yet implemented/);
   });
 
   test("DL-E2E-KEY-002: q q walks back from repo overview to Dashboard", async () => {
-    const tui = await createTestTui({
+    terminal = await launchTUI({
       cols: 120,
       rows: 40,
       args: ["--screen", "issues", "--repo", "acme/api"],
     });
-    // Send q q
-    // Assert: Dashboard shown, stack depth 1
+    await terminal.waitForText("Issues");
+    await terminal.sendKeys("q");
+    await terminal.waitForText("acme/api");
+    await terminal.sendKeys("q");
+    await terminal.waitForText("Dashboard");
   });
 
   test("DL-E2E-KEY-003: q from context-free deep-link returns to Dashboard", async () => {
-    const tui = await createTestTui({
+    terminal = await launchTUI({
       cols: 120,
       rows: 40,
       args: ["--screen", "notifications"],
     });
-    // Send q
-    // Assert: Dashboard shown
+    await terminal.waitForText("Notifications");
+    await terminal.sendKeys("q");
+    await terminal.waitForText("Dashboard");
   });
 
   test("DL-E2E-KEY-004: go-to mode works from deep-linked screen", async () => {
-    const tui = await createTestTui({
+    terminal = await launchTUI({
       cols: 120,
       rows: 40,
       args: ["--screen", "notifications"],
     });
-    // Send g then r
-    // Assert: RepoList screen shown
+    await terminal.waitForText("Notifications");
+    await terminal.sendKeys("g", "r");
+    await terminal.waitForText("Repositories");
   });
 
-  test("DL-E2E-KEY-005: Ctrl+C exits from deep-linked screen", async () => {
-    const tui = await createTestTui({
-      cols: 120,
-      rows: 40,
-      args: ["--screen", "repos"],
-    });
-    // Send Ctrl+C
-    // Assert: TUI process exited
-  });
-
-  test("DL-E2E-KEY-006: error screen still navigable via go-to", async () => {
-    const tui = await createTestTui({
+  test("DL-E2E-KEY-005: error screen still navigable via go-to", async () => {
+    terminal = await launchTUI({
       cols: 120,
       rows: 40,
       args: ["--screen", "foobar"],
     });
-    // Assert: Dashboard with error
-    // Send g then n
-    // Assert: Notifications screen shown, error cleared
+    await terminal.waitForText("Dashboard");
+    await terminal.sendKeys("g", "n");
+    await terminal.waitForText("Notifications");
   });
 
   // --- Responsive tests ---
 
-  test("DL-E2E-RESP-001: resize after deep-link launch re-renders", async () => {
-    const tui = await createTestTui({
+  test("DL-E2E-RESP-001: resize after deep-link launch re-renders correctly", async () => {
+    terminal = await launchTUI({
       cols: 120,
       rows: 40,
       args: ["--screen", "issues", "--repo", "acme/api"],
     });
-    // Resize to 80x24
-    // Assert: breadcrumb truncated, content re-rendered
+    await terminal.waitForText("Issues");
+    await terminal.resize(80, 24);
+    await terminal.waitForText("Issues");
+    expect(terminal.snapshot()).toMatchSnapshot();
   });
 
   test("DL-E2E-RESP-002: resize to below minimum shows size warning", async () => {
-    const tui = await createTestTui({
+    terminal = await launchTUI({
       cols: 120,
       rows: 40,
       args: ["--screen", "repos"],
     });
-    // Resize to 60x20
-    // Assert: "Terminal too small" message shown
-    // Resize back to 120x40
-    // Assert: repos screen restored with stack intact
+    await terminal.waitForText("Repositories");
+    await terminal.resize(60, 20);
+    await terminal.waitForText("Terminal too small");
+    await terminal.resize(120, 40);
+    await terminal.waitForText("Repositories");
+  });
+
+  // --- --org E2E tests ---
+
+  test("DL-E2E-ORG-001: --org acme shows OrgOverview", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--org", "acme"],
+    });
+    await terminal.waitForText("acme");
+    const headerLine = terminal.getLine(0);
+    expect(headerLine).toContain("acme");
+  });
+
+  test("DL-E2E-ORG-002: --screen orgs --org acme shows OrgOverview not list", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--screen", "orgs", "--org", "acme"],
+    });
+    await terminal.waitForText("acme");
+  });
+
+  // --- Error auto-clear test ---
+
+  test("DL-E2E-ERR-001: status bar error clears after 5 seconds", async () => {
+    terminal = await launchTUI({
+      cols: 120,
+      rows: 40,
+      args: ["--screen", "foobar"],
+    });
+    await terminal.waitForText("Unknown screen");
+    // Wait for STATUS_BAR_ERROR_DURATION_MS (5000ms) + buffer
+    await new Promise((resolve) => setTimeout(resolve, 6000));
+    const snapshot = terminal.snapshot();
+    expect(snapshot).not.toMatch(/Unknown screen.*foobar/);
   });
 });
 ```
@@ -1545,32 +1696,55 @@ describe("TUI_DEEP_LINK_LAUNCH — E2E terminal tests", () => {
 
 ### 6.1 Dependency: tui-nav-chrome-eng-01
 
-This ticket depends on the following artifacts from `tui-nav-chrome-eng-01`:
+This ticket depends on the following artifacts from `tui-nav-chrome-eng-01`, all of which are already implemented:
 
-| Artifact | Usage |
-|----------|-------|
-| `ScreenName` enum | Used in `SCREEN_ID_MAP` to map CLI screen IDs to internal enum values |
-| `ScreenEntry` interface | Return type of `buildInitialStack()` |
-| `screenRegistry` | Used by `createEntry()` to generate breadcrumb labels |
-| `NavigationProvider.initialStack` prop | Consumes the `ScreenEntry[]` returned by `buildInitialStack()` |
-
-If any of these types change, the deep-link module must be updated accordingly. The `SCREEN_ID_MAP` must be kept in sync with `ScreenName` additions.
+| Artifact | File | Usage |
+|----------|------|-------|
+| `ScreenName` enum (32 members) | `apps/tui/src/router/types.ts` | Used in `SCREEN_ID_MAP` to map CLI screen IDs to internal enum values |
+| `ScreenEntry` interface | `apps/tui/src/router/types.ts` | Return type in `DeepLinkStackResult.stack` |
+| `ScreenDefinition` interface | `apps/tui/src/router/types.ts` | Consumed by `screenRegistry` for breadcrumb generation |
+| `screenRegistry` (32 entries) | `apps/tui/src/router/registry.ts` | Used indirectly via `createEntry()` for breadcrumb label generation |
+| `createEntry(screen, params)` | `apps/tui/src/providers/NavigationProvider.tsx:18-29` | Imported by `stack-builder.ts` to create properly-formed `ScreenEntry` objects with UUID and breadcrumb |
+| `NavigationProvider` with `initialStack` prop | `apps/tui/src/providers/NavigationProvider.tsx:31-157` | Consumes the `ScreenEntry[]` returned by `buildInitialStack()` |
 
 ### 6.2 Downstream Consumers
 
 | Consumer | What it receives |
 |----------|------------------|
 | `apps/tui/src/index.tsx` | Calls the three-step pipeline and passes `stack` to `NavigationProvider` |
-| `StatusBar` component | Receives `deepLinkResult.error` for transient 5-second display |
-| Telemetry module | Receives deep-link event data (screen, repo, org, error reason) |
+| `LoadingProvider` | Receives `deepLinkResult.error` as `initialStatusBarError` prop for transient 5-second display |
+| `StatusBar` component | Already renders `statusBarError` from `LoadingContext` (no changes needed) |
+| Existing E2E tests (NAV-DEEP-001 through NAV-DEEP-006) | Must continue to pass — same argv format, same behavioral outcomes |
 
 ### 6.3 Status Bar Error Display
 
-The `deepLinkResult.error` string is passed from `index.tsx` to the component tree. The `StatusBar` component (or a dedicated `DeepLinkErrorProvider`) displays it for 5 seconds and then clears it. The error display mechanism is **not** part of this ticket — this ticket produces the error string. The status bar display is the responsibility of a separate StatusBar/AppShell ticket.
+The `deepLinkResult.error` string is threaded from `index.tsx` → `LoadingProvider.initialStatusBarError` → `LoadingContext.statusBarError` → `StatusBar` component.
 
-However, this ticket must ensure:
-- Error strings are pre-truncated and sanitized (no control characters).
-- Error strings are ≤ `terminal_width - 20` characters at the point of display. Since terminal width is not known at parse time, the error string provides values truncated to the constant limits (32/64/32), and the StatusBar is responsible for final width-based truncation.
+The `StatusBar` component at `apps/tui/src/components/StatusBar.tsx` already renders `statusBarError` (line 64-66):
+```typescript
+{statusBarError ? (
+  <text fg={theme.error}>{truncateRight(statusBarError, maxErrorWidth)}</text>
+) : ( /* hints */ )}
+```
+
+This ticket ensures:
+- Error strings are pre-truncated and sanitized (no control characters) in `validateDeepLinkArgs`.
+- Error strings use the constant limits (32/64/32 chars for screen/repo/org display values).
+- The `StatusBar` applies its own final width-based truncation via `truncateRight` and `maxErrorWidth` (computed from `width - STATUS_BAR_ERROR_PADDING`).
+- The error auto-clears after `STATUS_BAR_ERROR_DURATION_MS` (5000ms) via the existing timer mechanism in `LoadingProvider`.
+
+### 6.4 Compatibility with Existing E2E Tests
+
+The existing tests in `app-shell.test.ts` (NAV-DEEP-001 through NAV-DEEP-006) launch the TUI with `--screen` and `--repo` args. These tests must continue to pass after the migration:
+
+| Test | Args | Expected | Compatibility Notes |
+|------|------|----------|-------------------|
+| NAV-DEEP-001 | `--screen agents --repo acme/widget` | Opens Agents, breadcrumb shows `acme/widget` | `agents` is NOT repo-required. New pipeline: `[Dashboard, Agents({owner,repo})]`. Old: same. The repo is passed as params but agents is context-free. |
+| NAV-DEEP-002 | `--screen dashboard` | Opens Dashboard as root | `[Dashboard]` — identical |
+| NAV-DEEP-003 | `--screen nonexistent` | Falls back to Dashboard | Validation produces error, `buildInitialStack` returns `[Dashboard]` with error string |
+| NAV-DEEP-004 | `--screen agents --repo invalid-format` | Falls back to Dashboard | **Behavioral change**: Old code accepted `invalid-format` (no slash → falls through to error). New code rejects via `REPO_REGEX` (no slash). Both fall back to Dashboard, but the error message differs. Test assertion is `waitForText("Dashboard")` — still passes. |
+| NAV-DEEP-005 | `--screen agents --repo acme/api` | Opens Agents, `q` navigates back | Back nav to Dashboard (agents is depth 2: `[Dashboard, Agents]`) |
+| NAV-DEEP-006 | `--screen repos` | Opens Repositories | `[Dashboard, RepoList]` — identical |
 
 ---
 
@@ -1580,11 +1754,12 @@ However, this ticket must ensure:
 
 | Input | Parser Output | Validator Output |
 |-------|--------------|------------------|
-| `--screen` (no value) | `{ screen: undefined }` | Valid (no flags) |
-| `--screen ""` | `{ screen: "" }` | Invalid: `Unknown screen:` (empty) |
-| `--repo` (no value) | `{ repo: undefined }` | Valid (no flags) |
-| `--repo ""` | `{ repo: "" }` | Invalid: format error |
-| `--org` (no value) | `{ org: undefined }` | Valid (no flags) |
+| `--screen` (no value at end of argv) | `{ screen: undefined }` | Valid (no flags set) → Dashboard |
+| `--screen ""` | `{ screen: "" }` | Invalid: `Unknown screen:` (empty string, not in allowlist) |
+| `--repo` (no value) | `{ repo: undefined }` | Valid (no flags set) → Dashboard |
+| `--repo ""` | `{ repo: "" }` | Invalid: fails REPO_REGEX (no match on empty) |
+| `--org` (no value) | `{ org: undefined }` | Valid (no flags set) → Dashboard |
+| `--org ""` | `{ org: "" }` | Invalid: fails ORG_REGEX (no match on empty) |
 
 ### 7.2 Unicode in Flag Values
 
@@ -1600,68 +1775,73 @@ However, this ticket must ensure:
 |-------|----------|
 | `--screen` repeated 100 times | Last value wins in parser; validated normally |
 | `--repo "a".repeat(10000)` | Length check rejects before regex (prevents backtracking) |
-| `--screen \x1B[31mmalicious\x1B[0m` | Control chars stripped in error display |
+| `--screen \x1B[31mmalicious\x1B[0m` | Control chars stripped in error display via `sanitizeForDisplay` |
 | argv with 10,000 entries | Parser is O(n) linear scan, completes in <1ms |
 
 ### 7.4 Flag Interaction Edge Cases
 
 | Input | Stack | Notes |
 |-------|-------|-------|
-| `--screen orgs --repo acme/api` | `[Dashboard, Organizations]` | `--repo` ignored for orgs screen, stored in params |
+| `--screen orgs --repo acme/api` | `[Dashboard, Organizations]` | `--repo` passed in params but no RepoOverview intermediate |
 | `--screen repos --org acme` | `[Dashboard, RepoList]` | `--org` stored in params but no org intermediate |
 | `--screen dashboard --repo acme/api --org acme` | `[Dashboard]` | Dashboard is always depth 1, extra context ignored |
+| `--screen orgs --org acme --repo acme/api` | `[Dashboard, OrgOverview(acme)]` | Org screen with --org promotes to detail, --repo in params |
+| `--repo acme/api --org acme` (no --screen) | `[Dashboard, RepoOverview(acme/api)]` | --repo takes precedence over --org when no screen specified |
+
+### 7.5 Empty String Flag Values
+
+The parser treats `--screen ""` as `{ screen: "" }` (empty string is not undefined, and `""` does not start with `--`). The validator then rejects empty strings because they don't match any allowlist entry or regex pattern. This is correct — empty strings should be validation errors, not silently ignored.
 
 ---
 
 ## 8. Productionization Checklist
 
-The three core functions (`parseDeepLinkArgs`, `validateDeepLinkArgs`, `buildInitialStack`) are designed as production-ready from the start. There is no PoC phase because they are pure functions with well-defined input/output contracts.
+The three core functions (`parseDeepLinkArgs`, `validateDeepLinkArgs`, `buildInitialStack`) are designed as production-ready from the start. They are pure functions with well-defined input/output contracts. There is no PoC phase.
 
 ### 8.1 Pre-merge Checklist
 
 - [ ] All parser unit tests pass (DL-PARSE-001 through DL-PARSE-012)
-- [ ] All validator unit tests pass (DL-VAL-001 through DL-VAL-025, DL-SAN-001 through DL-SAN-005)
+- [ ] All sanitizer unit tests pass (DL-SAN-001 through DL-SAN-005)
+- [ ] All validator unit tests pass (DL-VAL-001 through DL-VAL-025)
 - [ ] All stack builder unit tests pass (DL-STACK-001 through DL-STACK-023)
-- [ ] E2E snapshot tests produce expected golden files at 80×24, 120×40, 200×60
-- [ ] E2E keyboard tests verify q-back navigation through pre-populated stacks
-- [ ] `apps/tui/src/index.tsx` updated to use new pipeline
+- [ ] Existing deep-link E2E tests pass (NAV-DEEP-001 through NAV-DEEP-006)
+- [ ] New E2E snapshot tests produce expected golden files at 80x24 and 120x40
+- [ ] New E2E keyboard tests verify q-back navigation through pre-populated stacks
+- [ ] New E2E error display tests verify status bar shows deep-link errors
+- [ ] `apps/tui/src/index.tsx` updated to use new three-step pipeline
+- [ ] `apps/tui/src/index.tsx` passes `deepLinkError` to `LoadingProvider`
 - [ ] `apps/tui/src/lib/terminal.ts` no longer parses `--screen`/`--repo`
+- [ ] `apps/tui/src/providers/LoadingProvider.tsx` accepts `initialStatusBarError` prop
 - [ ] `apps/tui/src/navigation/deepLinks.ts` marked `@deprecated`
-- [ ] `apps/tui/src/navigation/index.ts` no longer exports deprecated functions
-- [ ] TypeScript compilation succeeds with `strict: true`
+- [ ] `apps/tui/src/navigation/index.ts` no longer exports deprecated deep-link functions
+- [ ] TypeScript compilation succeeds with `tsc --noEmit` (strict mode) from `apps/tui/`
 - [ ] No runtime dependencies added (pure TypeScript, no new npm packages)
+- [ ] No consumers of `navigation/deepLinks.ts` remain except the deprecated file itself (verified via grep)
 
-### 8.2 Existing Code Migration
+### 8.2 Migration Path
 
-The existing `apps/tui/src/navigation/deepLinks.ts` contains a working but less rigorous implementation. Migration steps:
+The migration from the existing `navigation/deepLinks.ts` to the new `deep-link/` module follows these steps:
 
 1. **Create `deep-link/` module** with the new files alongside the existing `navigation/` module.
-2. **Update `index.tsx`** to import from `deep-link/` instead of `navigation/deepLinks`.
-3. **Keep `navigation/deepLinks.ts`** temporarily with `@deprecated` annotation.
-4. **Remove deprecated file** in a follow-up commit after verifying no other imports reference it.
-
-The key behavioral differences between old and new:
-
-| Aspect | Old (`navigation/deepLinks.ts`) | New (`deep-link/`) |
-|--------|--------------------------------|--------------------|
-| Validation | Inline in `buildInitialStack` | Separate `validateDeepLinkArgs` |
-| Return type | `{ screen: string; params? }[]` | `ScreenEntry[]` |
-| Control char sanitization | None | `sanitizeForDisplay` strips ANSI + control chars |
-| Length limits | None | 32/128/64 char limits enforced |
-| Repo-required coverage | Only `agents` checked | `issues`, `landings`, `workflows`, `wiki` checked |
-| Case sensitivity | Lowercases in parser | Parser preserves case; validator normalizes |
-| Error truncation | None | 32/64/32 char truncation for display values |
+2. **Update `index.tsx`** to import from `deep-link/` instead of `navigation/deepLinks`. This is the only consumer (verified via `grep "from.*navigation/deepLinks" apps/tui/src/` — only `index.tsx:28`).
+3. **Update `lib/terminal.ts`** to remove `--screen`/`--repo` from `TUILaunchOptions`.
+4. **Update `LoadingProvider`** to accept `initialStatusBarError` prop.
+5. **Keep `navigation/deepLinks.ts`** temporarily with `@deprecated` annotation.
+6. **Update `navigation/index.ts`** to remove deprecated exports.
+7. **Delete deprecated file** in a follow-up commit after verifying no other imports reference it.
 
 ### 8.3 Future Extensions
 
 The `SCREEN_ID_MAP` in `constants.ts` is the single place to add new deep-linkable screens. When a new screen is added to the `ScreenName` enum and registry, it becomes deep-linkable by adding one line to `SCREEN_ID_MAP` and, if it requires repo context, one entry to `REPO_REQUIRED_SCREENS`.
 
-If `--session-id` support (for agent deep-links) is needed later, it should be added as:
-1. A new field in `RawDeepLinkArgs`.
-2. A new validation rule in `validateDeepLinkArgs`.
-3. A new stack-building branch in `buildInitialStack`.
+Planned extensions (not in scope for this ticket):
 
-This was intentionally scoped out of this ticket to keep the scope focused on the 13 core screens specified in the ticket description.
+| Extension | Approach |
+|-----------|----------|
+| `--session-id` for agent deep-links | New field in `RawDeepLinkArgs`, new validation rule, new stack branch pushing `[Dashboard, Agents, AgentChat({sessionId})]` |
+| `--issue N` or `--landing N` for detail deep-links | New fields, require `--repo`, push detail screen entries `[Dashboard, RepoOverview, Issues, IssueDetail({number})]` |
+| `--workspace-id` for workspace direct access | New field, no repo required, push `[Dashboard, Workspaces, WorkspaceDetail({workspaceId})]` |
+| Legacy alias support period | If needed, add a `SCREEN_ALIAS_MAP` in constants that maps old IDs to canonical IDs, with deprecation warnings |
 
 ---
 
@@ -1676,14 +1856,21 @@ This was intentionally scoped out of this ticket to keep the scope focused on th
 
 The entire deep-link pipeline executes synchronously during bootstrap before the renderer is created, contributing negligibly to the 200ms first-paint budget.
 
+Length checks are performed before regex evaluation in the validator, preventing pathological backtracking on oversized inputs. The `REPO_REGEX` and `ORG_REGEX` are both anchored (`^...$`) and use character classes without quantifier nesting, making them immune to ReDoS.
+
+Memory allocation is minimal: the parser creates one small `RawDeepLinkArgs` object, the validator creates one `DeepLinkValidationResult`, and the stack builder creates 1-3 `ScreenEntry` objects. No intermediate arrays, no string copies beyond what's needed.
+
 ---
 
 ## 10. Source of Truth
 
 This engineering specification should be maintained alongside:
 
-- `specs/tui/TUI_DEEP_LINK_LAUNCH.md` — Feature spec with acceptance criteria
+- `specs/tui/features.ts` — Feature inventory (`TUI_DEEP_LINK_LAUNCH` in `TUI_APP_SHELL`)
 - `specs/tui/engineering/tui-nav-chrome-eng-01.md` — Dependency: navigation system
 - `specs/tui/prd.md` — TUI product requirements
 - `specs/tui/design.md` — TUI design specification
-- `specs/tui/features.ts` — Feature inventory (`TUI_DEEP_LINK_LAUNCH` in `TUI_APP_SHELL`)
+- `apps/tui/src/navigation/deepLinks.ts` — Existing implementation being replaced
+- `apps/tui/src/providers/NavigationProvider.tsx` — `createEntry` and `NavigationProvider` consumed by this module
+- `apps/tui/src/providers/LoadingProvider.tsx` — `initialStatusBarError` prop added by this module
+- `apps/tui/src/components/StatusBar.tsx` — Renders `statusBarError` from `LoadingContext`

@@ -15,184 +15,542 @@
 
 ## 1. Overview
 
-This ticket registers all agent-related screens in the TUI's screen registry, go-to keybinding system, command palette, and deep-link parser. After this work, agent screens are reachable through every navigation pathway in the TUI — go-to mode (`g a`), the command palette (`:agents`, `New Agent Session`), and CLI deep-links (`--screen agents`). No agent screen components are functionally implemented in this ticket; only the registry wiring, navigation entries, routing plumbing, and minimal stub components that satisfy TypeScript's exhaustiveness checks.
+This ticket corrects and completes the agent screen wiring across the TUI's screen registry, go-to keybinding system, deep-link parser, and command palette. After this work, agent screens are fully reachable through every navigation pathway — go-to mode (`g a`), the command palette (`:agents`, `New Agent Session`), and CLI deep-links (`--screen agents`, `--screen agent-chat`, `--screen agent-replay`). No agent screen components are functionally implemented in this ticket; only registry corrections, deep-link additions, CLI arg parsing, command palette entries, and minimal stub screen components.
 
 ### 1.1 Motivation
 
 The TUI's navigation system is registry-driven. A screen does not exist to the user unless it is registered in:
 
-1. The `ScreenName` enum (canonical identifier)
-2. The `screenRegistry` map (component and metadata)
-3. The go-to binding table (`goToBindings.ts`)
-4. The command palette (`agentCommands.ts`)
-5. The deep-link parser (`deepLinks.ts`)
+1. The `ScreenName` enum (canonical identifier) — **already exists for all agent screens**
+2. The `screenRegistry` map (component and metadata) — **exists but `requiresRepo` is wrong**
+3. The go-to binding table (`goToBindings.ts`) — **exists but `requiresRepo` is wrong**
+4. The command palette — **does not exist yet**
+5. The deep-link parser (`deepLinks.ts`) — **partially exists; missing `agent-chat`, `agent-replay`, and `--session-id`**
+6. CLI arg parsing (`lib/terminal.ts`) — **missing `--session-id` flag**
+7. Stub screen components — **do not exist yet**
 
-This ticket is a prerequisite for all agent feature screens (`AgentSessionList`, `AgentChat`, `AgentSessionCreate`, `AgentSessionReplay`). Without this registration, none of those screens can be navigated to.
+This ticket is a prerequisite for all agent feature screen implementations (`AgentSessionList`, `AgentChat`, `AgentSessionCreate`, `AgentSessionReplay`).
 
 ### 1.2 Scope
 
 | In scope | Out of scope |
-|----------|-------------|
-| `ScreenName` enum additions | Agent screen component implementations |
-| `screenRegistry` map entries | Data hooks (`useAgentSessions`, etc.) |
-| Go-to keybinding `g a` | SSE streaming integration |
-| Command palette entries | MessageBlock / ToolBlock implementations |
-| Deep-link argument parsing (`--session-id`) | Any visual rendering of agent screens |
-| Breadcrumb generation rules | Wiki, org, or any other screen wiring |
-| Stub/placeholder screen components for routing | |
-| Barrel re-export updates for `screens/Agents/index.ts` | |
+|----------|--------------|
+| Fix `requiresRepo: true` for agent screen registry entries | Agent screen component implementations |
+| Fix `requiresRepo: true` for `g a` go-to binding | Data hooks (`useAgentSessions`, etc.) |
+| Add `--session-id` CLI arg parsing | SSE streaming integration |
+| Add `agent-chat` and `agent-replay` to deep-link screen map | MessageBlock / ToolBlock implementations |
+| Add agent screens to deep-link `requiresRepo` list | Any visual rendering of agent screens |
+| Create command palette infrastructure (`commands/` directory) | Wiki, org, or any other screen wiring |
+| Create agent palette commands | |
+| Create stub screen components for the four agent screens | |
+| Create barrel export at `screens/Agents/index.ts` | |
 
-### 1.3 Relationship to existing Agents code
+### 1.3 Current Codebase State
 
-The `apps/tui/src/screens/Agents/` directory contains **partial** implementation from earlier work:
+**Critical finding:** The existing engineering spec assumed most infrastructure did not exist. In reality, the codebase has evolved significantly:
 
-| File | Status | Action in this ticket |
-|------|--------|----------------------|
-| `types.ts` | Exists — defines `MessageRole`, `MessagePart`, `AgentMessage`, `Breakpoint` | **No changes** |
-| `components/MessageBlock.tsx` | Exists — **stub only** (`export {};`) | **No changes** |
-| `components/ToolBlock.tsx` | Exists — **stub only** (`export {};`) | **No changes** |
-| `components/index.ts` | Barrel export for MessageBlock, ToolBlock | **No changes** |
-| `utils/formatTimestamp.ts` | Implemented — relative timestamp formatting | **No changes** |
-| `AgentSessionListScreen.tsx` | Does not exist | **Create** — stub |
-| `AgentChatScreen.tsx` | Does not exist | **Create** — stub |
-| `AgentSessionCreateScreen.tsx` | Does not exist | **Create** — stub |
-| `AgentSessionReplayScreen.tsx` | Does not exist | **Create** — stub |
-| `index.ts` (root barrel) | Does not exist | **Create** — barrel export for four screen stubs |
+#### What already exists (no changes needed):
 
-### 1.4 Current codebase state
+| File | Status |
+|------|--------|
+| `apps/tui/src/router/types.ts` | **Exists** — `ScreenName` enum has all 35 entries including `Agents`, `AgentSessionList`, `AgentChat`, `AgentSessionCreate`, `AgentSessionReplay`. Also has `ScreenEntry`, `NavigationContext`, `ScreenDefinition`, `ScreenComponentProps`, `MAX_STACK_DEPTH=32`, `DEFAULT_ROOT_SCREEN` |
+| `apps/tui/src/router/registry.ts` | **Exists** — full `screenRegistry` map for all 35 screens with runtime exhaustiveness check |
+| `apps/tui/src/router/ScreenRouter.tsx` | **Exists** — renders current screen from registry |
+| `apps/tui/src/providers/NavigationProvider.tsx` | **Exists** — full stack-based navigation with push/pop/replace/reset, repo/org context extraction, scroll position caching, duplicate prevention |
+| `apps/tui/src/providers/KeybindingProvider.tsx` | **Exists** — 5-priority layered keybinding system |
+| `apps/tui/src/navigation/goToBindings.ts` | **Exists** — 11 bindings including `g a` for Agents |
+| `apps/tui/src/navigation/deepLinks.ts` | **Exists** — `buildInitialStack()` with `resolveScreenName()` and `agents` mapping |
+| `apps/tui/src/screens/PlaceholderScreen.tsx` | **Exists** — generic placeholder accepting `ScreenComponentProps` |
+| `apps/tui/src/components/GlobalKeybindings.tsx` | **Exists** — registers global keybindings including `g` for go-to mode |
+| `apps/tui/src/hooks/useGlobalKeybindings.ts` | **Exists** — registers PRIORITY.GLOBAL scope |
+| `apps/tui/src/screens/Agents/types.ts` | **Exists** — `MessageRole`, `MessagePart`, `AgentMessage` |
+| `apps/tui/src/screens/Agents/components/` | **Exists** — stub MessageBlock.tsx and ToolBlock.tsx |
+| `apps/tui/src/screens/Agents/utils/formatTimestamp.ts` | **Exists** — relative timestamp formatting |
+| `e2e/tui/helpers.ts` | **Exists** — full test infrastructure with `launchTUI`, `TUITestInstance`, key resolution |
+| `e2e/tui/agents.test.ts` | **Exists** — 518 E2E test stubs for the agent feature group |
 
-The actual file tree under `apps/tui/src/` is:
+#### What exists but needs modification:
 
-```
-apps/tui/src/
-├── hooks/
-│   └── useDiffSyntaxStyle.ts       ← diff syntax style hook (implemented)
-├── lib/
-│   └── diff-syntax.ts              ← color tier detection, palette resolution (implemented)
-└── screens/
-    └── Agents/
-        ├── types.ts                ← message types (implemented)
-        ├── components/
-        │   ├── index.ts            ← barrel export
-        │   ├── MessageBlock.tsx    ← stub (`export {};`)
-        │   └── ToolBlock.tsx       ← stub (`export {};`)
-        └── utils/
-            └── formatTimestamp.ts  ← timestamp formatting (implemented)
-```
+| File | Issue | Required change |
+|------|-------|----------------|
+| `apps/tui/src/router/registry.ts` | Agent screens have `requiresRepo: false` | Change `AgentSessionList`, `AgentChat`, `AgentSessionCreate`, `AgentSessionReplay` to `requiresRepo: true` |
+| `apps/tui/src/navigation/goToBindings.ts` | `g a` binding has `requiresRepo: false` | Change to `requiresRepo: true` |
+| `apps/tui/src/navigation/deepLinks.ts` | Missing `agent-chat` and `agent-replay` screen mappings; agent screens not in `requiresRepo` list; no `--session-id` param handling in stack building |
+| `apps/tui/src/navigation/index.ts` | Does not re-export deep-link `--session-id` types (minimal) |
+| `apps/tui/src/lib/terminal.ts` | `parseCLIArgs` does not parse `--session-id` flag |
 
-Critical observations:
-- **No `router/` directory exists.** The architecture document describes a `router/types.ts` with `ScreenEntry`, `NavigationContextType`, and `MAX_STACK_DEPTH`, but these files do not exist in the codebase.
-- **No `providers/` directory exists.** The architecture document describes a `NavigationProvider.tsx`, but it does not exist.
-- **No `hooks/index.ts` exists.** Only `useDiffSyntaxStyle.ts` exists in hooks.
-- **No `hooks/useNavigation.ts` exists.**
-- **No `navigation/` directory exists.**
-- **No `commands/` directory exists.**
-- **No `e2e/tui/agents.test.ts` exists.** Only `e2e/tui/diff.test.ts` exists.
-- **No `e2e/tui/helpers.ts` exists.**
-- **`MessageBlock.tsx` and `ToolBlock.tsx` are stubs** — they contain only `export {};`, not full implementations.
+#### What does not exist (must be created):
 
-Existing E2E test files:
-- `e2e/tui/diff.test.ts` — test stubs with `createTestTui` import from `@microsoft/tui-test`
+| File | Purpose |
+|------|---------|
+| `apps/tui/src/commands/types.ts` | `PaletteCommand` and `CommandContext` interfaces |
+| `apps/tui/src/commands/agentCommands.ts` | Agent command factory |
+| `apps/tui/src/commands/index.ts` | `buildCommandRegistry` |
+| `apps/tui/src/screens/Agents/AgentSessionListScreen.tsx` | Stub screen component |
+| `apps/tui/src/screens/Agents/AgentChatScreen.tsx` | Stub screen component |
+| `apps/tui/src/screens/Agents/AgentSessionCreateScreen.tsx` | Stub screen component |
+| `apps/tui/src/screens/Agents/AgentSessionReplayScreen.tsx` | Stub screen component |
+| `apps/tui/src/screens/Agents/index.ts` | Barrel export for screen stubs |
+| `e2e/tui/agents-registry.test.ts` | Unit tests for registry, go-to, deep-link, and command modules |
 
-### 1.5 Spec conflict resolution
-
-This ticket diverges from two upstream specifications. Both divergences are intentional and grounded in the API contract.
+### 1.4 Spec Conflict Resolution
 
 **Conflict 1: `requiresRepo` for Agents**
 
 | Source | Value | |
 |--------|-------|---|
 | Engineering Architecture (`engineering-architecture.md` §Screen Registry) | `requiresRepo: false` | ❌ Overridden |
-| Deep-Link Spec (`TUI_DEEP_LINK_LAUNCH.md` §Stack Pre-Population Rules) | `--screen agents → [Dashboard, Agents]` (depth 2, no repo) | ❌ Overridden |
-| This ticket | `requiresRepo: true` for all four agent screens | ✅ Canonical |
+| Current `router/registry.ts` | `requiresRepo: false` | ❌ Must be fixed |
+| Current `goToBindings.ts` | `requiresRepo: false` for `g a` | ❌ Must be fixed |
+| This ticket | `requiresRepo: true` for all four agent detail screens | ✅ Canonical |
 
-**Rationale:** Agent sessions are scoped to a repository. The API endpoint is `GET /api/repos/{owner}/{repo}/agent/sessions`. Creating a session requires `POST /api/repos/{owner}/{repo}/agent/sessions`. There is no global agent session endpoint. Without repo context, the agent screen cannot fetch or display any data. The architecture document's `requiresRepo: false` is an error — likely a copy-paste from the `Workspaces` entry which genuinely does not require repo context.
+**Rationale:** Agent sessions are scoped to a repository. The API endpoint is `GET /api/repos/{owner}/{repo}/agent/sessions`. Creating a session requires `POST /api/repos/{owner}/{repo}/agent/sessions`. There is no global agent session endpoint. Without repo context, the agent screen cannot fetch or display any data.
 
-**Impact:** `--screen agents` without `--repo` will produce an error message and fall back to Dashboard. The deep-link spec's stack table row for agents should be read as: `--screen agents --repo acme/api → [Dashboard, Repo(acme/api), Agents]` (depth 3).
+**Note on `ScreenName.Agents` vs `ScreenName.AgentSessionList`:** The `ScreenName` enum already uses `Agents` as the top-level entry (line 8) and `AgentSessionList` as a detail-level entry (line 34). The `Agents` entry is the one listed in the go-to bindings and the top-level deep-link target. Both `Agents` and `AgentSessionList` need `requiresRepo: true`. For go-to `g a`, the target is `ScreenName.Agents`. The deep-link `--screen agents` resolves to `ScreenName.Agents`.
 
 **Conflict 2: `--session-id` CLI argument**
 
-The `TUI_DEEP_LINK_LAUNCH.md` spec defines three CLI flags: `--screen`, `--repo`, `--org`. This ticket introduces a fourth: `--session-id`. This is an additive extension, not a conflict. The deep-link spec's validation and error handling patterns are followed for the new argument.
+The current `parseCLIArgs` in `lib/terminal.ts` only parses `--repo`, `--screen`, and `--debug`. This ticket adds `--session-id` to both `parseCLIArgs` and `buildInitialStack`.
 
-### 1.6 Infrastructure created by this ticket
+### 1.5 Feature Inventory Mapping
 
-Since the `router/`, `providers/`, and `hooks/useNavigation.ts` infrastructure described in the architecture document does **not yet exist**, this ticket creates the **navigation registry layer** as a self-contained module. The `navigation/` module defines types and data structures that will be consumed by the `NavigationProvider` and `ScreenRouter` when they are built in a downstream `tui-foundation-scaffold` ticket.
-
-This ticket creates:
-- `navigation/screenRegistry.ts` — `ScreenName` enum, `ScreenDefinition` interface, `screenRegistry` map
-- `navigation/goToBindings.ts` — go-to binding data and execution helper
-- `navigation/deepLinks.ts` — CLI arg parsing and initial stack construction
-- `navigation/index.ts` — barrel export
-- `commands/types.ts` — palette command interfaces
-- `commands/agentCommands.ts` — agent command factory
-- `commands/index.ts` — command registry builder
-
-These are **pure data/type modules** with no runtime dependency on NavigationProvider. They export data structures and functions that the NavigationProvider, ScreenRouter, KeybindingProvider, and CommandPalette will consume. This decoupling is intentional — it allows screen registration to proceed independently of provider implementation.
-
-### 1.7 Feature inventory mapping
-
-This ticket contributes to the `TUI_AGENTS` feature group defined in `specs/tui/features.ts`. The features touched:
+This ticket contributes to the `TUI_AGENTS` feature group. Features touched:
 
 | Feature | Contribution from this ticket |
 |---------|-------------------------------|
-| `TUI_AGENT_SESSION_LIST` | `ScreenName.Agents` enum value, registry entry, go-to binding `g a`, `:agents` palette command, `--screen agents` deep-link, stub `AgentSessionListScreen` |
-| `TUI_AGENT_CHAT_SCREEN` | `ScreenName.AgentChat` enum value, registry entry with `params: ["sessionId"]`, `--screen agent-chat` deep-link, stub `AgentChatScreen` |
-| `TUI_AGENT_SESSION_CREATE` | `ScreenName.AgentSessionCreate` enum value, registry entry, `New Agent Session` palette command, stub `AgentSessionCreateScreen` |
-| `TUI_AGENT_SESSION_REPLAY` | `ScreenName.AgentSessionReplay` enum value, registry entry with `params: ["sessionId"]`, `--screen agent-replay` deep-link, stub `AgentSessionReplayScreen` |
+| `TUI_AGENT_SESSION_LIST` | `requiresRepo: true` fix, go-to `g a` fix, `:agents` palette command, `--screen agents` deep-link fix, stub `AgentSessionListScreen` |
+| `TUI_AGENT_CHAT_SCREEN` | `requiresRepo: true` fix, `--screen agent-chat` deep-link mapping, stub `AgentChatScreen` |
+| `TUI_AGENT_SESSION_CREATE` | `requiresRepo: true` fix, `New Agent Session` palette command, stub `AgentSessionCreateScreen` |
+| `TUI_AGENT_SESSION_REPLAY` | `requiresRepo: true` fix, `--screen agent-replay` deep-link mapping, stub `AgentSessionReplayScreen` |
 
 This ticket also contributes to `TUI_APP_SHELL` features:
-- `TUI_SCREEN_ROUTER` — screen registry entries
-- `TUI_GOTO_KEYBINDINGS` — `g a` binding
+- `TUI_GOTO_KEYBINDINGS` — `g a` binding correction
 - `TUI_COMMAND_PALETTE` — two agent commands
-- `TUI_DEEP_LINK_LAUNCH` — three deep-link screen mappings
+- `TUI_DEEP_LINK_LAUNCH` — two new deep-link screen mappings, `--session-id` arg
 
 ---
 
 ## 2. Implementation Plan
 
-### Step 1: Create `PlaceholderScreen` component
+### Step 1: Fix `requiresRepo` in Screen Registry
 
-**File:** `apps/tui/src/screens/PlaceholderScreen.tsx` *(new file)*
+**File:** `apps/tui/src/router/registry.ts` *(modify)*
 
-A generic placeholder used for non-agent entries in the screen registry. This avoids creating 16 separate stub files in this ticket.
+Change the four agent detail screen entries from `requiresRepo: false` to `requiresRepo: true`. The top-level `Agents` entry (ScreenName.Agents) also changes to `requiresRepo: true`.
 
-```tsx
-import React from "react";
-
-export function PlaceholderScreen() {
-  return (
-    <box flexDirection="column" padding={1}>
-      <text dimColor>Screen not yet implemented.</text>
-    </box>
-  );
-}
+**Before (lines 35-40 — `ScreenName.Agents`):**
+```typescript
+[ScreenName.Agents]: {
+  component: PlaceholderScreen,
+  requiresRepo: false,
+  requiresOrg: false,
+  breadcrumbLabel: () => "Agents",
+},
 ```
 
-Note: OpenTUI's `<text>` component uses `dimColor` (boolean) for muted text. This matches the OpenTUI React component API.
+**After:**
+```typescript
+[ScreenName.Agents]: {
+  component: PlaceholderScreen,
+  requiresRepo: true,
+  requiresOrg: false,
+  breadcrumbLabel: () => "Agents",
+},
+```
+
+**Before (lines 155-178 — four agent detail screens):**
+```typescript
+[ScreenName.AgentSessionList]: {
+  component: PlaceholderScreen,
+  requiresRepo: false,
+  requiresOrg: false,
+  breadcrumbLabel: () => "Agent Sessions",
+},
+[ScreenName.AgentChat]: {
+  component: PlaceholderScreen,
+  requiresRepo: false,
+  requiresOrg: false,
+  breadcrumbLabel: (p) => (p.sessionId ? p.sessionId.slice(0, 8) : "Chat"),
+},
+[ScreenName.AgentSessionCreate]: {
+  component: PlaceholderScreen,
+  requiresRepo: false,
+  requiresOrg: false,
+  breadcrumbLabel: () => "New Session",
+},
+[ScreenName.AgentSessionReplay]: {
+  component: PlaceholderScreen,
+  requiresRepo: false,
+  requiresOrg: false,
+  breadcrumbLabel: (p) => (p.sessionId ? p.sessionId.slice(0, 8) : "Replay"),
+},
+```
+
+**After:**
+```typescript
+[ScreenName.AgentSessionList]: {
+  component: PlaceholderScreen,
+  requiresRepo: true,
+  requiresOrg: false,
+  breadcrumbLabel: () => "Agent Sessions",
+},
+[ScreenName.AgentChat]: {
+  component: PlaceholderScreen,
+  requiresRepo: true,
+  requiresOrg: false,
+  breadcrumbLabel: (p) => (p.sessionId ? `Session: ${p.sessionId.slice(0, 8)}` : "Chat"),
+},
+[ScreenName.AgentSessionCreate]: {
+  component: PlaceholderScreen,
+  requiresRepo: true,
+  requiresOrg: false,
+  breadcrumbLabel: () => "New Session",
+},
+[ScreenName.AgentSessionReplay]: {
+  component: PlaceholderScreen,
+  requiresRepo: true,
+  requiresOrg: false,
+  breadcrumbLabel: (p) => (p.sessionId ? `Replay: ${p.sessionId.slice(0, 8)}` : "Replay"),
+},
+```
+
+**Changes:** 5 lines changed (`requiresRepo: false` → `requiresRepo: true`). Additionally, `AgentChat` breadcrumb updated to include `Session: ` prefix for clarity in breadcrumb trail, and `AgentSessionReplay` updated to include `Replay: ` prefix.
 
 ---
 
-### Step 2: Create agent screen stub components
+### Step 2: Fix `requiresRepo` in Go-To Bindings
+
+**File:** `apps/tui/src/navigation/goToBindings.ts` *(modify)*
+
+**Before (line 22):**
+```typescript
+{ key: "a", screen: ScreenName.Agents, requiresRepo: false, description: "Agents" },
+```
+
+**After:**
+```typescript
+{ key: "a", screen: ScreenName.Agents, requiresRepo: true, description: "Agents" },
+```
+
+**Changes:** 1 line changed.
+
+**`g a` behavior after fix:** When repo context exists (e.g., user is viewing `acme/api`), `executeGoTo` builds stack `[Dashboard, RepoOverview(acme/api), Agents(acme/api)]`. When no repo context exists, returns `{ error: "No repository in context" }` and does not navigate.
+
+---
+
+### Step 3: Add `--session-id` to CLI Arg Parsing
+
+**File:** `apps/tui/src/lib/terminal.ts` *(modify)*
+
+Add `sessionId` to `TUILaunchOptions` interface and parse `--session-id` in `parseCLIArgs`.
+
+**Before:**
+```typescript
+export interface TUILaunchOptions {
+  repo?: string;
+  screen?: string;
+  debug?: boolean;
+  apiUrl?: string;
+  token?: string;
+}
+
+export function parseCLIArgs(argv: string[]): TUILaunchOptions {
+  const opts: TUILaunchOptions = {};
+  for (let i = 0; i < argv.length; i++) {
+    switch (argv[i]) {
+      case "--repo":
+        opts.repo = argv[++i];
+        break;
+      case "--screen":
+        opts.screen = argv[++i];
+        break;
+      case "--debug":
+        opts.debug = true;
+        break;
+    }
+  }
+  opts.debug = opts.debug || process.env.CODEPLANE_TUI_DEBUG === "true";
+  opts.apiUrl = process.env.CODEPLANE_API_URL ?? "http://localhost:3000";
+  opts.token = process.env.CODEPLANE_TOKEN;
+  return opts;
+}
+```
+
+**After:**
+```typescript
+export interface TUILaunchOptions {
+  repo?: string;
+  screen?: string;
+  sessionId?: string;
+  debug?: boolean;
+  apiUrl?: string;
+  token?: string;
+}
+
+export function parseCLIArgs(argv: string[]): TUILaunchOptions {
+  const opts: TUILaunchOptions = {};
+  for (let i = 0; i < argv.length; i++) {
+    switch (argv[i]) {
+      case "--repo":
+        opts.repo = argv[++i];
+        break;
+      case "--screen":
+        opts.screen = argv[++i];
+        break;
+      case "--session-id":
+        opts.sessionId = argv[++i];
+        break;
+      case "--debug":
+        opts.debug = true;
+        break;
+    }
+  }
+  opts.debug = opts.debug || process.env.CODEPLANE_TUI_DEBUG === "true";
+  opts.apiUrl = process.env.CODEPLANE_API_URL ?? "http://localhost:3000";
+  opts.token = process.env.CODEPLANE_TOKEN;
+  return opts;
+}
+```
+
+---
+
+### Step 4: Update Entry Point to Pass `sessionId` to Deep-Link Builder
+
+**File:** `apps/tui/src/index.tsx` *(modify)*
+
+**Before (line 36-39):**
+```typescript
+const deepLinkResult = buildInitialStack({
+  screen: launchOptions.screen,
+  repo: launchOptions.repo,
+});
+```
+
+**After:**
+```typescript
+const deepLinkResult = buildInitialStack({
+  screen: launchOptions.screen,
+  repo: launchOptions.repo,
+  sessionId: launchOptions.sessionId,
+});
+```
+
+---
+
+### Step 5: Extend Deep-Link Parser
+
+**File:** `apps/tui/src/navigation/deepLinks.ts` *(modify)*
+
+Three changes:
+
+**5a. Add `agent-chat` and `agent-replay` to `resolveScreenName` map:**
+
+Add these entries to the `map` object inside `resolveScreenName()`:
+```typescript
+"agent-chat": ScreenName.AgentChat,
+"agent-replay": ScreenName.AgentSessionReplay,
+```
+
+**5b. Add agent screens to the `requiresRepo` list inside `buildInitialStack`:**
+
+The existing `requiresRepo` array (lines 81-87) must include the agent screens:
+```typescript
+const requiresRepo = [
+  ScreenName.RepoOverview, ScreenName.Issues, ScreenName.IssueDetail, 
+  ScreenName.IssueCreate, ScreenName.IssueEdit, ScreenName.Landings, 
+  ScreenName.LandingDetail, ScreenName.LandingCreate, ScreenName.LandingEdit, 
+  ScreenName.DiffView, ScreenName.Workflows, ScreenName.WorkflowRunDetail, 
+  ScreenName.Wiki, ScreenName.WikiDetail,
+  ScreenName.Agents, ScreenName.AgentSessionList,
+  ScreenName.AgentChat, ScreenName.AgentSessionCreate, ScreenName.AgentSessionReplay,
+].includes(screenName);
+```
+
+**5c. Add `--session-id` validation and intermediate `Agents` screen push:**
+
+After the `requiresRepo` check and before the final `stack.push`, add validation for `agent-chat` and `agent-replay` requiring `--session-id`, and push an intermediate `Agents` entry so back-navigation works:
+
+```typescript
+// Validate --session-id for screens that require it
+const requiresSessionId = [
+  ScreenName.AgentChat, ScreenName.AgentSessionReplay,
+].includes(screenName);
+
+if (requiresSessionId && !args.sessionId) {
+  return {
+    stack: [dashboardEntry()],
+    error: `--session-id required for ${args.screen} screen`,
+  };
+}
+
+if (requiresSessionId && args.sessionId) {
+  // Validate session ID format
+  if (args.sessionId.length === 0 || /\s/.test(args.sessionId)) {
+    return {
+      stack: [dashboardEntry()],
+      error: `Invalid --session-id format: must be non-empty with no whitespace`,
+    };
+  }
+  if (args.sessionId.length > 255) {
+    return {
+      stack: [dashboardEntry()],
+      error: `--session-id exceeds maximum length of 255 characters`,
+    };
+  }
+}
+
+// For agent detail screens (chat, replay), push intermediate Agents screen
+const agentDetailScreens = [
+  ScreenName.AgentChat, ScreenName.AgentSessionReplay,
+];
+if (agentDetailScreens.includes(screenName) && owner && repoName) {
+  stack.push(createEntry(ScreenName.Agents, { owner, repo: repoName }));
+}
+```
+
+This ensures deep-linked `--screen agent-chat` builds a 4-entry stack: `[Dashboard, RepoOverview, Agents, AgentChat]`.
+
+**Full `buildInitialStack` after changes:**
+
+```typescript
+export function buildInitialStack(args: DeepLinkArgs): DeepLinkResult {
+  const dashboardEntry = () => createEntry(ScreenName.Dashboard);
+
+  if (!args.screen && !args.repo) {
+    return { stack: [dashboardEntry()] };
+  }
+
+  const screenName = args.screen ? resolveScreenName(args.screen) : null;
+  
+  if (args.screen && !screenName) {
+    return {
+      stack: [dashboardEntry()],
+      error: `Unknown screen: "${args.screen}"`,
+    };
+  }
+
+  let owner = "";
+  let repoName = "";
+
+  if (args.repo) {
+    const parts = args.repo.split("/");
+    if (parts.length !== 2 || !parts[0] || !parts[1]) {
+      return {
+        stack: [dashboardEntry()],
+        error: `Invalid repository format: "${args.repo}"`,
+      };
+    }
+    owner = parts[0];
+    repoName = parts[1];
+  }
+
+  const stack: ScreenEntry[] = [dashboardEntry()];
+
+  if (owner && repoName) {
+    stack.push(createEntry(ScreenName.RepoOverview, { owner, repo: repoName }));
+  }
+
+  if (screenName && screenName !== ScreenName.Dashboard) {
+    const requiresRepo = [
+      ScreenName.RepoOverview, ScreenName.Issues, ScreenName.IssueDetail, 
+      ScreenName.IssueCreate, ScreenName.IssueEdit, ScreenName.Landings, 
+      ScreenName.LandingDetail, ScreenName.LandingCreate, ScreenName.LandingEdit, 
+      ScreenName.DiffView, ScreenName.Workflows, ScreenName.WorkflowRunDetail, 
+      ScreenName.Wiki, ScreenName.WikiDetail,
+      ScreenName.Agents, ScreenName.AgentSessionList,
+      ScreenName.AgentChat, ScreenName.AgentSessionCreate, ScreenName.AgentSessionReplay,
+    ].includes(screenName);
+
+    if (requiresRepo && (!owner || !repoName)) {
+      return {
+        stack: [dashboardEntry()],
+        error: `--repo required for ${args.screen} screen`,
+      };
+    }
+
+    // Validate --session-id for screens that require it
+    const requiresSessionId = [
+      ScreenName.AgentChat, ScreenName.AgentSessionReplay,
+    ].includes(screenName);
+
+    if (requiresSessionId && !args.sessionId) {
+      return {
+        stack: [dashboardEntry()],
+        error: `--session-id required for ${args.screen} screen`,
+      };
+    }
+
+    if (requiresSessionId && args.sessionId) {
+      if (args.sessionId.length === 0 || /\s/.test(args.sessionId)) {
+        return {
+          stack: [dashboardEntry()],
+          error: `Invalid --session-id format: must be non-empty with no whitespace`,
+        };
+      }
+      if (args.sessionId.length > 255) {
+        return {
+          stack: [dashboardEntry()],
+          error: `--session-id exceeds maximum length of 255 characters`,
+        };
+      }
+    }
+
+    const params: Record<string, string> = {};
+    if (requiresRepo) {
+      params.owner = owner;
+      params.repo = repoName;
+    }
+    if (args.sessionId) {
+      params.sessionId = args.sessionId;
+    }
+    if (args.org) {
+      params.org = args.org;
+    }
+
+    // For agent detail screens, push intermediate Agents screen for back-nav
+    const agentDetailScreens = [
+      ScreenName.AgentChat, ScreenName.AgentSessionReplay,
+    ];
+    if (agentDetailScreens.includes(screenName) && owner && repoName) {
+      stack.push(createEntry(ScreenName.Agents, { owner, repo: repoName }));
+    }
+
+    // avoid pushing duplicates if RepoOverview is the target
+    if (screenName !== ScreenName.RepoOverview || !owner) {
+      stack.push(createEntry(screenName, params));
+    }
+  }
+
+  return { stack };
+}
+```
+
+---
+
+### Step 6: Create Agent Screen Stub Components
 
 **Files to create:**
 - `apps/tui/src/screens/Agents/AgentSessionListScreen.tsx`
 - `apps/tui/src/screens/Agents/AgentChatScreen.tsx`
 - `apps/tui/src/screens/Agents/AgentSessionCreateScreen.tsx`
 - `apps/tui/src/screens/Agents/AgentSessionReplayScreen.tsx`
-- `apps/tui/src/screens/Agents/index.ts` (root barrel export)
+- `apps/tui/src/screens/Agents/index.ts`
 
-Each stub renders a minimal placeholder that identifies the screen by title. Stubs are **not** experiments or PoC code. They are the simplest valid production components that satisfy the `screenRegistry`'s component reference. They will be replaced by full implementations in subsequent tickets.
+Each stub must accept `ScreenComponentProps` (matching the `screenRegistry` component type) and render a minimal placeholder identifying the screen.
 
 **`AgentSessionListScreen.tsx`:**
 
 ```tsx
-import React from "react";
+import type { ScreenComponentProps } from "../../router/types.js";
 
-export function AgentSessionListScreen() {
+export function AgentSessionListScreen({ entry }: ScreenComponentProps) {
   return (
     <box flexDirection="column" padding={1}>
       <text bold>Agent Sessions</text>
-      <text dimColor>Not yet implemented.</text>
+      <text color="gray">Not yet implemented.</text>
+      {entry.params.owner && entry.params.repo && (
+        <text color="gray">{`Repository: ${entry.params.owner}/${entry.params.repo}`}</text>
+      )}
     </box>
   );
 }
@@ -201,13 +559,16 @@ export function AgentSessionListScreen() {
 **`AgentChatScreen.tsx`:**
 
 ```tsx
-import React from "react";
+import type { ScreenComponentProps } from "../../router/types.js";
 
-export function AgentChatScreen() {
+export function AgentChatScreen({ entry }: ScreenComponentProps) {
   return (
     <box flexDirection="column" padding={1}>
       <text bold>Agent Chat</text>
-      <text dimColor>Not yet implemented.</text>
+      <text color="gray">Not yet implemented.</text>
+      {entry.params.sessionId && (
+        <text color="gray">{`Session: ${entry.params.sessionId}`}</text>
+      )}
     </box>
   );
 }
@@ -216,13 +577,13 @@ export function AgentChatScreen() {
 **`AgentSessionCreateScreen.tsx`:**
 
 ```tsx
-import React from "react";
+import type { ScreenComponentProps } from "../../router/types.js";
 
-export function AgentSessionCreateScreen() {
+export function AgentSessionCreateScreen({ entry }: ScreenComponentProps) {
   return (
     <box flexDirection="column" padding={1}>
       <text bold>New Agent Session</text>
-      <text dimColor>Not yet implemented.</text>
+      <text color="gray">Not yet implemented.</text>
     </box>
   );
 }
@@ -231,13 +592,16 @@ export function AgentSessionCreateScreen() {
 **`AgentSessionReplayScreen.tsx`:**
 
 ```tsx
-import React from "react";
+import type { ScreenComponentProps } from "../../router/types.js";
 
-export function AgentSessionReplayScreen() {
+export function AgentSessionReplayScreen({ entry }: ScreenComponentProps) {
   return (
     <box flexDirection="column" padding={1}>
       <text bold>Agent Session Replay</text>
-      <text dimColor>Not yet implemented.</text>
+      <text color="gray">Not yet implemented.</text>
+      {entry.params.sessionId && (
+        <text color="gray">{`Session: ${entry.params.sessionId}`}</text>
+      )}
     </box>
   );
 }
@@ -252,180 +616,39 @@ export { AgentSessionCreateScreen } from "./AgentSessionCreateScreen.js";
 export { AgentSessionReplayScreen } from "./AgentSessionReplayScreen.js";
 ```
 
-**Coexistence with existing files:** The existing `components/index.ts`, `types.ts`, `utils/formatTimestamp.ts`, `components/MessageBlock.tsx`, and `components/ToolBlock.tsx` are untouched. The new barrel export at `screens/Agents/index.ts` only re-exports the four new screen components.
+**Coexistence with existing files:** The existing `components/index.ts`, `types.ts`, `utils/formatTimestamp.ts`, `components/MessageBlock.tsx`, and `components/ToolBlock.tsx` are untouched. The new barrel export only re-exports the four new screen components.
+
+**Note:** These stubs use `PlaceholderScreen`-compatible patterns (accepting `ScreenComponentProps`). They are **not** wired into the `screenRegistry` in this ticket — the registry continues to use `PlaceholderScreen` for all entries. The stubs exist so downstream tickets can swap them in without creating new files. If the team prefers to wire them immediately, the registry imports can be updated, but the ticket scope does not require it since `PlaceholderScreen` already renders screen name and params.
 
 ---
 
-### Step 3: Create `navigation/screenRegistry.ts`
-
-**File:** `apps/tui/src/navigation/screenRegistry.ts` *(new file — directory does not exist yet)*
-
-This file establishes the screen registry system. It defines the `ScreenName` enum, the `ScreenDefinition` interface, and the `screenRegistry` map.
-
-**`ScreenName` enum:**
-
-```typescript
-export enum ScreenName {
-  Dashboard = "Dashboard",
-  RepoList = "RepoList",
-  RepoOverview = "RepoOverview",
-  Issues = "Issues",
-  IssueDetail = "IssueDetail",
-  Landings = "Landings",
-  LandingDetail = "LandingDetail",
-  DiffView = "DiffView",
-  Workspaces = "Workspaces",
-  Workflows = "Workflows",
-  Search = "Search",
-  Notifications = "Notifications",
-  Settings = "Settings",
-  Organizations = "Organizations",
-  Sync = "Sync",
-  Wiki = "Wiki",
-  Agents = "Agents",
-  AgentChat = "AgentChat",
-  AgentSessionCreate = "AgentSessionCreate",
-  AgentSessionReplay = "AgentSessionReplay",
-}
-```
-
-**`ScreenDefinition` interface:**
-
-```typescript
-import type React from "react";
-
-export interface ScreenDefinition {
-  component: React.ComponentType;
-  requiresRepo: boolean;
-  params: string[];
-  breadcrumb: string | ((params: Record<string, string>) => string);
-}
-```
-
-**Registry map:** The full `Record<ScreenName, ScreenDefinition>` map. Non-agent entries reference the shared `PlaceholderScreen` stub. Agent entries reference their respective stub components. The four agent entries:
-
-```typescript
-[ScreenName.Agents]: {
-  component: AgentSessionListScreen,
-  requiresRepo: true,
-  params: [],
-  breadcrumb: "Agent Sessions",
-},
-[ScreenName.AgentChat]: {
-  component: AgentChatScreen,
-  requiresRepo: true,
-  params: ["sessionId"],
-  breadcrumb: (params) => `Session: ${params.sessionId?.slice(0, 8) ?? "…"}`,
-},
-[ScreenName.AgentSessionCreate]: {
-  component: AgentSessionCreateScreen,
-  requiresRepo: true,
-  params: [],
-  breadcrumb: "New Session",
-},
-[ScreenName.AgentSessionReplay]: {
-  component: AgentSessionReplayScreen,
-  requiresRepo: true,
-  params: ["sessionId"],
-  breadcrumb: (params) => `Replay: ${params.sessionId?.slice(0, 8) ?? "…"}`,
-},
-```
-
-**Design decisions:**
-
-| Decision | Rationale |
-|----------|-----------|  
-| `requiresRepo: true` for all four agent screens | Agent sessions are scoped to a repository. API endpoint: `GET /api/repos/{owner}/{repo}/agent/sessions`. Overrides architecture doc's `requiresRepo: false` (see §1.5). |
-| `params: ["sessionId"]` for `AgentChat` and `AgentSessionReplay` | These screens require a session identifier to fetch and render. |
-| Dynamic breadcrumb for `AgentChat` and `AgentSessionReplay` | 8-char truncation fits at minimum terminal width. |
-| Shared `PlaceholderScreen` for non-agent entries | Avoids creating 16 separate stub files. |
-
----
-
-### Step 4: Add `g a` go-to keybinding
-
-**File:** `apps/tui/src/navigation/goToBindings.ts` *(new file)*
-
-```typescript
-import { ScreenName } from "./screenRegistry.js";
-
-export interface GoToBinding {
-  key: string;
-  screen: ScreenName;
-  requiresRepo: boolean;
-  description: string;
-}
-
-export const goToBindings: readonly GoToBinding[] = [
-  { key: "d", screen: ScreenName.Dashboard,     requiresRepo: false, description: "Dashboard" },
-  { key: "r", screen: ScreenName.RepoList,       requiresRepo: false, description: "Repositories" },
-  { key: "i", screen: ScreenName.Issues,          requiresRepo: true,  description: "Issues" },
-  { key: "l", screen: ScreenName.Landings,        requiresRepo: true,  description: "Landings" },
-  { key: "w", screen: ScreenName.Workspaces,      requiresRepo: false, description: "Workspaces" },
-  { key: "n", screen: ScreenName.Notifications,   requiresRepo: false, description: "Notifications" },
-  { key: "s", screen: ScreenName.Search,           requiresRepo: false, description: "Search" },
-  { key: "o", screen: ScreenName.Organizations,   requiresRepo: false, description: "Organizations" },
-  { key: "f", screen: ScreenName.Workflows,        requiresRepo: true,  description: "Workflows" },
-  { key: "k", screen: ScreenName.Wiki,             requiresRepo: true,  description: "Wiki" },
-  { key: "a", screen: ScreenName.Agents,           requiresRepo: true,  description: "Agents" },
-] as const;
-```
-
-**Key collision check:** `a` is not assigned to any existing binding. Full allocation after this ticket: `a d f i k l n o r s w` — 11 of 26 letters used.
-
-**`GoToNavigator` interface and `executeGoTo` helper:**
-
-```typescript
-export interface GoToNavigator {
-  reset(screen: string, params?: Record<string, string>): void;
-  push(screen: string, params?: Record<string, string>): void;
-}
-
-export function executeGoTo(
-  nav: GoToNavigator,
-  binding: GoToBinding,
-  repoContext: { owner: string; repo: string } | null,
-): { error?: string } {
-  if (binding.requiresRepo && !repoContext) {
-    return { error: "No repository in context" };
-  }
-  nav.reset(ScreenName.Dashboard);
-  if (repoContext) {
-    nav.push(ScreenName.RepoOverview, { owner: repoContext.owner, repo: repoContext.repo });
-  }
-  const params = repoContext ? { owner: repoContext.owner, repo: repoContext.repo } : undefined;
-  nav.push(binding.screen, params);
-  return {};
-}
-
-export function findGoToBinding(key: string): GoToBinding | undefined {
-  return goToBindings.find((b) => b.key === key);
-}
-```
-
-**`g a` behavior:** Builds stack `[Dashboard, RepoOverview(owner/repo), Agents(owner/repo)]`. Without repo context, returns error `"No repository in context"` and does not navigate.
-
----
-
-### Step 5: Create command types and register palette entries
+### Step 7: Create Command Palette Infrastructure
 
 **File:** `apps/tui/src/commands/types.ts` *(new file)*
 
 ```typescript
 export interface PaletteCommand {
+  /** Unique identifier for the command (kebab-case) */
   id: string;
+  /** Display name shown in the palette */
   name: string;
+  /** Alternative names/triggers for fuzzy matching (e.g., ":agents") */
   aliases?: string[];
+  /** Short description shown below the name */
   description: string;
+  /** Grouping category in the palette */
   category: "Navigate" | "Action" | "Toggle";
+  /** Keybinding hint shown to the right of the name */
   keybinding?: string;
+  /** Sort priority — lower numbers appear first */
   priority: number;
+  /** Context requirements — command is hidden when not met */
   contextRequirements?: {
     repo?: boolean;
     authenticated?: boolean;
     writeAccess?: boolean;
   };
-  featureFlag?: string;
+  /** Execute the command */
   action: () => void;
 }
 
@@ -439,80 +662,101 @@ export interface CommandContext {
 
 **File:** `apps/tui/src/commands/agentCommands.ts` *(new file)*
 
-Two commands:
-- `navigate-agents`: Name "Agent Sessions", aliases `[":agents", "agents"]`, keybinding `"g a"`, priority 40, requires repo context.
-- `create-agent-session`: Name "New Agent Session", aliases `["Create Agent Session", "new agent", "create agent"]`, priority 41, requires repo context and write access.
+```typescript
+import type { PaletteCommand, CommandContext } from "./types.js";
+import { ScreenName } from "../router/types.js";
 
-Hidden commands are **absent** from fuzzy search results — not grayed out.
-
----
-
-### Step 6: Wire agent commands into the command registry
+export function createAgentCommands(ctx: CommandContext): PaletteCommand[] {
+  return [
+    {
+      id: "navigate-agents",
+      name: "Agent Sessions",
+      aliases: [":agents", "agents"],
+      description: "View agent sessions for the current repository",
+      category: "Navigate",
+      keybinding: "g a",
+      priority: 40,
+      contextRequirements: {
+        repo: true,
+      },
+      action: () => {
+        const repo = ctx.getRepoContext();
+        if (!repo) return;
+        ctx.navigate(ScreenName.Agents, { owner: repo.owner, repo: repo.repo });
+      },
+    },
+    {
+      id: "create-agent-session",
+      name: "New Agent Session",
+      aliases: ["Create Agent Session", "new agent", "create agent"],
+      description: "Start a new agent session in the current repository",
+      category: "Action",
+      priority: 41,
+      contextRequirements: {
+        repo: true,
+        writeAccess: true,
+      },
+      action: () => {
+        const repo = ctx.getRepoContext();
+        if (!repo) return;
+        ctx.navigate(ScreenName.AgentSessionCreate, { owner: repo.owner, repo: repo.repo });
+      },
+    },
+  ];
+}
+```
 
 **File:** `apps/tui/src/commands/index.ts` *(new file)*
 
-`buildCommandRegistry(context)` collects commands from all feature modules (currently only `createAgentCommands`) and returns them sorted by priority.
+```typescript
+import type { PaletteCommand, CommandContext } from "./types.js";
+import { createAgentCommands } from "./agentCommands.js";
 
----
+export type { PaletteCommand, CommandContext } from "./types.js";
+export { createAgentCommands } from "./agentCommands.js";
 
-### Step 7: Add deep-link parsing for agent screens
-
-**File:** `apps/tui/src/navigation/deepLinks.ts` *(new file)*
-
-**`SCREEN_ID_MAP`:** Maps CLI `--screen` values to `ScreenName` enum. Includes `agents`, `agent-chat`, `agent-replay`. Intentionally excludes `agent-create`.
-
-**`parseCliArgs(argv)`:** Extracts `--screen` (lowercased), `--repo`, `--session-id`, `--org` from argv array.
-
-**`buildInitialStack(args)`:** Validates inputs and constructs the initial navigation stack:
-
-| CLI invocation | Result stack | Depth |
-|----------------|-------------|-------|
-| `--screen agents --repo acme/api` | `[Dashboard, Repo, Agents]` | 3 |
-| `--screen agent-chat --repo acme/api --session-id abc123` | `[Dashboard, Repo, Agents, AgentChat]` | 4 |
-| `--screen agent-replay --repo acme/api --session-id abc123` | `[Dashboard, Repo, Agents, Replay]` | 4 |
-
-**Validation rules:**
-- `--screen` max 32 chars, case-insensitive
-- `--repo` max 128 chars, must match `^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$`
-- `--session-id` max 255 chars, non-empty, no whitespace characters
-- Missing required args fall back to `[Dashboard]` with error message
-- Error messages display in status bar for 5 seconds per TUI_DEEP_LINK_LAUNCH.md
-
----
-
-### Step 8: Create navigation barrel export
-
-**File:** `apps/tui/src/navigation/index.ts` *(new file)*
-
-Re-exports all public types, enums, functions, and constants from the three navigation modules.
+/**
+ * Build the full command registry from all feature modules.
+ * Commands are returned sorted by priority (lower first).
+ */
+export function buildCommandRegistry(ctx: CommandContext): PaletteCommand[] {
+  const commands: PaletteCommand[] = [
+    ...createAgentCommands(ctx),
+    // Future: ...createIssueCommands(ctx),
+    // Future: ...createWorkflowCommands(ctx),
+  ];
+  return commands.sort((a, b) => a.priority - b.priority);
+}
+```
 
 ---
 
 ## 3. File Inventory
 
 | File | Action | Purpose |
-|------|--------|--------|
-| `apps/tui/src/navigation/screenRegistry.ts` | **Create** | `ScreenName` enum, `ScreenDefinition` interface, `screenRegistry` map |
-| `apps/tui/src/navigation/goToBindings.ts` | **Create** | `GoToBinding` interface, `goToBindings` array, `executeGoTo`, `findGoToBinding` |
-| `apps/tui/src/navigation/deepLinks.ts` | **Create** | `DeepLinkArgs`, `DeepLinkResult`, `SCREEN_ID_MAP`, `parseCliArgs`, `buildInitialStack` |
-| `apps/tui/src/navigation/index.ts` | **Create** | Barrel export |
+|------|--------|---------|
+| `apps/tui/src/router/registry.ts` | **Modify** | Set `requiresRepo: true` for 5 agent screen entries, update breadcrumb labels |
+| `apps/tui/src/navigation/goToBindings.ts` | **Modify** | Set `requiresRepo: true` for `g a` binding |
+| `apps/tui/src/navigation/deepLinks.ts` | **Modify** | Add `agent-chat` and `agent-replay` screen mappings, add agent screens to `requiresRepo` list, add `--session-id` validation and intermediate stack entries |
+| `apps/tui/src/lib/terminal.ts` | **Modify** | Add `sessionId` to `TUILaunchOptions`, parse `--session-id` flag |
+| `apps/tui/src/index.tsx` | **Modify** | Pass `sessionId` to `buildInitialStack` |
 | `apps/tui/src/commands/types.ts` | **Create** | `PaletteCommand` and `CommandContext` interfaces |
 | `apps/tui/src/commands/agentCommands.ts` | **Create** | Agent command factory |
-| `apps/tui/src/commands/index.ts` | **Create** | `buildCommandRegistry` |
-| `apps/tui/src/screens/PlaceholderScreen.tsx` | **Create** | Generic placeholder |
-| `apps/tui/src/screens/Agents/AgentSessionListScreen.tsx` | **Create** | Stub |
-| `apps/tui/src/screens/Agents/AgentChatScreen.tsx` | **Create** | Stub |
-| `apps/tui/src/screens/Agents/AgentSessionCreateScreen.tsx` | **Create** | Stub |
-| `apps/tui/src/screens/Agents/AgentSessionReplayScreen.tsx` | **Create** | Stub |
-| `apps/tui/src/screens/Agents/index.ts` | **Create** | Barrel export |
+| `apps/tui/src/commands/index.ts` | **Create** | `buildCommandRegistry` and re-exports |
+| `apps/tui/src/screens/Agents/AgentSessionListScreen.tsx` | **Create** | Stub screen component |
+| `apps/tui/src/screens/Agents/AgentChatScreen.tsx` | **Create** | Stub screen component |
+| `apps/tui/src/screens/Agents/AgentSessionCreateScreen.tsx` | **Create** | Stub screen component |
+| `apps/tui/src/screens/Agents/AgentSessionReplayScreen.tsx` | **Create** | Stub screen component |
+| `apps/tui/src/screens/Agents/index.ts` | **Create** | Barrel export for four screen stubs |
+| `e2e/tui/agents-registry.test.ts` | **Create** | Unit + integration tests for this ticket |
 
-**New files:** 13 | **Modified files:** 0 | **Deleted files:** 0
+**New files:** 8 | **Modified files:** 5 | **Deleted files:** 0
 
 ---
 
 ## 4. Data Layer
 
-This ticket does not consume any `@codeplane/ui-core` data hooks. The `navigation/` module is **pure data** with no React context or provider dependencies. The `commands/` module receives a `CommandContext` plain object injected by the caller.
+This ticket does not consume any `@codeplane/ui-core` data hooks. All modifications are to navigation/routing infrastructure (pure data/types) and the command palette system (plain objects/functions). The `commands/` module receives a `CommandContext` plain object injected by the caller — no React context or provider dependency.
 
 ---
 
@@ -520,11 +764,10 @@ This ticket does not consume any `@codeplane/ui-core` data hooks. The `navigatio
 
 | Navigation path | Breadcrumb trail |
 |----------------|------------------|
-| `g a` from `acme/api` | `Dashboard › acme/api › Agent Sessions` |
-| Enter on session row | `Dashboard › acme/api › Agent Sessions › Session: abc123de` |
-| Create new session | `Dashboard › acme/api › Agent Sessions › New Session` |
-| Replay completed session | `Dashboard › acme/api › Agent Sessions › Replay: abc123de` |
-| Deep-link `--screen agent-chat --session-id sess-abc123` | `Dashboard › acme/api › Agent Sessions › Session: sess-abc` |
+| `g a` from `acme/api` | `Dashboard › acme/api › Agents` |
+| Deep-link `--screen agents --repo acme/api` | `Dashboard › acme/api › Agents` |
+| Deep-link `--screen agent-chat --repo acme/api --session-id abc123def` | `Dashboard › acme/api › Agents › Session: abc123de` |
+| Deep-link `--screen agent-replay --repo acme/api --session-id sess-001` | `Dashboard › acme/api › Agents › Replay: sess-001` |
 
 ---
 
@@ -532,293 +775,262 @@ This ticket does not consume any `@codeplane/ui-core` data hooks. The `navigatio
 
 ### 6.1 `g a` without repo context
 
-Status bar shows `No repository in context` in error color (ANSI 196) for 2000ms. Screen does not change.
+After this fix, `executeGoTo` returns `{ error: "No repository in context" }` because `binding.requiresRepo` is now `true`. The caller (GlobalKeybindings/go-to mode handler) displays the error in the status bar. Screen does not change.
 
-### 6.2 `g a` timeout
+### 6.2 `g a` with repo context
 
-Go-to mode silently cancelled after 1500ms. Status bar reverts.
+`executeGoTo` builds stack: `reset(Dashboard)` → `push(RepoOverview, {owner, repo})` → `push(Agents, {owner, repo})`. The NavigationProvider's `push` auto-propagates repo context from the stack, so the Agents screen always receives `owner` and `repo` params.
 
-### 6.3 `Esc` during go-to mode
+### 6.3 Deep-link `--screen agents` without `--repo`
 
-Go-to mode cancelled without popping current screen.
+Returns `{ stack: [Dashboard], error: "--repo required for agents screen" }`. Error displayed in status bar for 5 seconds.
 
-### 6.4 `q` during go-to mode
+### 6.4 Deep-link `--screen agent-chat` without `--session-id`
 
-Go-to mode cancelled, then current screen popped (standard `q` behavior).
+Returns `{ stack: [Dashboard], error: "--session-id required for agent-chat screen" }`. Separate from the `--repo` check — `--repo` is validated first.
 
-### 6.5 `New Agent Session` without write access
+### 6.5 Deep-link `--session-id` with whitespace
 
-Command is invisible in palette results — never appears.
+Rejected by `/\s/` regex test. Returns error: `"Invalid --session-id format: must be non-empty with no whitespace"`.
 
-### 6.6 Deep-link with missing required arguments
+### 6.6 Deep-link `--session-id` empty string or over 255 chars
 
-| Missing argument | Screen | Error | Stack |
-|-----------------|--------|-------|-------|
-| `--repo` | `agents`, `agent-chat`, `agent-replay` | `"--repo required for {screen} screen"` | `[Dashboard]` |
-| `--session-id` | `agent-chat`, `agent-replay` | `"--session-id required for {screen} screen"` | `[Dashboard]` |
-| Both | `agent-chat` | `"--repo required for agent-chat screen"` (first check wins) | `[Dashboard]` |
+Empty: caught by `length === 0` check. Over 255: caught by `length > 255` check.
 
-All errors display for 5 seconds per TUI_DEEP_LINK_LAUNCH.md.
+### 6.7 Deep-link `--screen agent-create`
 
-### 6.7 `agent-create` is not a deep-link target
+`resolveScreenName("agent-create")` returns `null`. Falls back to Dashboard with `Unknown screen: "agent-create"` error. This is intentional — deep-linking to a creation form is an anti-pattern.
 
-Deep-linking to a creation form is an anti-pattern. `SCREEN_ID_MAP` lookup returns `undefined`, falls back to `[Dashboard]` with error.
+### 6.8 `New Agent Session` command without write access
 
-### 6.8 Screen registry exhaustiveness
+The command has `contextRequirements.writeAccess: true`. The command palette filters out commands whose context requirements are not met. The command never appears in results.
 
-`Record<ScreenName, ScreenDefinition>` produces a type error for any missing enum value. No `@ts-ignore` or `as any` permitted.
+### 6.9 `Agent Sessions` command without repo context
 
-### 6.9 Case sensitivity
+The command has `contextRequirements.repo: true`. Hidden from palette when no repo context.
 
-`--screen` value is lowercased in `parseCliArgs`. `AGENTS`, `Agents`, `agents` all resolve identically.
+### 6.10 Case sensitivity for `--screen`
 
-### 6.10 Multiple duplicate arguments
+`resolveScreenName` lowercases the input. `AGENTS`, `Agents`, `agents`, `AGENT-CHAT` all resolve correctly.
 
-Last value wins (sequential parsing loop).
+### 6.11 Duplicate `--session-id` arguments
 
-### 6.11 `--repo` regex validation
+`parseCLIArgs` uses a sequential loop — last value wins (same as `--repo` and `--screen`).
 
-`^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$` rejects `@`, `!`, spaces, control characters.
+### 6.12 `--repo` format validation
 
-### 6.12 `--session-id` edge cases
+The existing `buildInitialStack` splits on `/` and checks for exactly 2 non-empty parts. This rejects `@org/repo`, empty segments, and missing `/`.
 
-- Whitespace-only (`"   "`) rejected by `/\s/` test
-- Empty string rejected by falsy check
-- Over 255 chars rejected by length check
-- Tab, newline, carriage return rejected by `/\s/` test
+### 6.13 Navigation stack integrity for back-navigation
 
-### 6.13 `--screen` without a following value
-
-`next` is `undefined`, `args.screen` becomes `undefined`, `buildInitialStack` returns `[Dashboard]` with no error.
+Deep-linked `--screen agent-chat` builds a 4-entry stack: `[Dashboard, RepoOverview, Agents, AgentChat]`. Pressing `q` four times returns to Dashboard, then exits. Each `q` pops one entry.
 
 ---
 
 ## 7. Unit & Integration Tests
 
-### 7.1 Pure function unit tests
+### 7.1 Pure Function Unit Tests
 
-**Test file:** `e2e/tui/agents-unit.test.ts` *(new file)*
+**Test file:** `e2e/tui/agents-registry.test.ts` *(new file)*
 
-These tests exercise the pure functions exported by `navigation/` and `commands/` without launching a TUI instance. They import directly from the source modules and use `bun:test`.
+These tests exercise the pure functions and data structures modified/created in this ticket. They import directly from source modules and use `bun:test`.
 
 ```typescript
 import { describe, test, expect } from "bun:test";
-import { ScreenName, screenRegistry } from "../../apps/tui/src/navigation/screenRegistry.js";
-import { goToBindings, executeGoTo, findGoToBinding } from "../../apps/tui/src/navigation/goToBindings.js";
-import { parseCliArgs, buildInitialStack } from "../../apps/tui/src/navigation/deepLinks.js";
+import { ScreenName, screenRegistry } from "../../apps/tui/src/router/registry.js";
+import { goToBindings, executeGoTo } from "../../apps/tui/src/navigation/goToBindings.js";
+import { buildInitialStack } from "../../apps/tui/src/navigation/deepLinks.js";
 import { createAgentCommands } from "../../apps/tui/src/commands/agentCommands.js";
 import { buildCommandRegistry } from "../../apps/tui/src/commands/index.js";
-import type { GoToNavigator } from "../../apps/tui/src/navigation/goToBindings.js";
 import type { CommandContext } from "../../apps/tui/src/commands/types.js";
+import { parseCLIArgs } from "../../apps/tui/src/lib/terminal.js";
 ```
 
-**Screen registry tests (UNIT-REG-001 through UNIT-REG-011):**
+#### Screen Registry Tests (UNIT-REG-001 through UNIT-REG-010)
 
 | ID | Assertion |
-|----|----------|
-| UNIT-REG-001 | ScreenName enum contains all four agent values with correct string values |
-| UNIT-REG-002 | All agent screens have `requiresRepo: true` |
-| UNIT-REG-003 | AgentChat requires `sessionId` param |
-| UNIT-REG-004 | AgentSessionReplay requires `sessionId` param |
-| UNIT-REG-005 | Agents and AgentSessionCreate have empty params |
-| UNIT-REG-006 | Agents breadcrumb is static `"Agent Sessions"` |
-| UNIT-REG-007 | AgentChat breadcrumb truncates sessionId to 8 chars |
-| UNIT-REG-008 | AgentSessionReplay breadcrumb truncates sessionId to 8 chars |
-| UNIT-REG-009 | AgentSessionCreate breadcrumb is static `"New Session"` |
-| UNIT-REG-010 | Every ScreenName value has an entry in screenRegistry |
-| UNIT-REG-011 | All agent screen components are non-null functions |
+|----|-----------|
+| UNIT-REG-001 | `screenRegistry[ScreenName.Agents].requiresRepo` is `true` |
+| UNIT-REG-002 | `screenRegistry[ScreenName.AgentSessionList].requiresRepo` is `true` |
+| UNIT-REG-003 | `screenRegistry[ScreenName.AgentChat].requiresRepo` is `true` |
+| UNIT-REG-004 | `screenRegistry[ScreenName.AgentSessionCreate].requiresRepo` is `true` |
+| UNIT-REG-005 | `screenRegistry[ScreenName.AgentSessionReplay].requiresRepo` is `true` |
+| UNIT-REG-006 | `AgentChat` breadcrumb includes `Session:` prefix and truncates sessionId to 8 chars |
+| UNIT-REG-007 | `AgentSessionReplay` breadcrumb includes `Replay:` prefix and truncates sessionId to 8 chars |
+| UNIT-REG-008 | `AgentSessionCreate` breadcrumb is `"New Session"` |
+| UNIT-REG-009 | Every `ScreenName` value has an entry in `screenRegistry` (exhaustiveness) |
+| UNIT-REG-010 | All agent registry entries have `requiresOrg: false` |
 
-**Go-to binding tests (UNIT-GTO-001 through UNIT-GTO-007):**
-
-| ID | Assertion |
-|----|----------|
-| UNIT-GTO-001 | `findGoToBinding("a")` returns `{ screen: Agents, requiresRepo: true }` |
-| UNIT-GTO-002 | No duplicate keys in goToBindings array |
-| UNIT-GTO-003 | All binding screen values exist in ScreenName |
-| UNIT-GTO-004 | `findGoToBinding("x")` returns undefined |
-| UNIT-GTO-005 | `executeGoTo` with repo builds Dashboard → Repo → Agents stack |
-| UNIT-GTO-006 | `executeGoTo` without repo returns `"No repository in context"` error |
-| UNIT-GTO-007 | `executeGoTo` for non-repo-scoped screen skips RepoOverview |
-
-**CLI arg parsing tests (UNIT-DLK-001 through UNIT-DLK-007):**
+#### Go-To Binding Tests (UNIT-GTO-001 through UNIT-GTO-006)
 
 | ID | Assertion |
-|----|----------|
-| UNIT-DLK-001 | Parses `--screen --repo --session-id` correctly |
-| UNIT-DLK-002 | Lowercases `--screen` value |
-| UNIT-DLK-003 | Returns empty object for no arguments |
-| UNIT-DLK-004 | Last value wins for duplicate arguments |
-| UNIT-DLK-005 | `--screen` without following value yields undefined |
-| UNIT-DLK-006 | Does not lowercase `--repo` value |
-| UNIT-DLK-007 | Parses `--org` |
+|----|-----------|
+| UNIT-GTO-001 | `goToBindings` contains entry with `key: "a"` and `screen: ScreenName.Agents` |
+| UNIT-GTO-002 | `g a` binding has `requiresRepo: true` |
+| UNIT-GTO-003 | No duplicate keys in `goToBindings` array |
+| UNIT-GTO-004 | `executeGoTo` with `g a` and repo context builds 3-entry stack (Dashboard → Repo → Agents) |
+| UNIT-GTO-005 | `executeGoTo` with `g a` and no repo context returns `"No repository in context"` error |
+| UNIT-GTO-006 | All binding `screen` values exist in `ScreenName` enum |
 
-**Deep-link stack building tests (UNIT-DLK-010 through UNIT-DLK-029):**
+Note: `executeGoTo` tests use a mock `NavigationContext` that records `reset` and `push` calls to verify stack construction.
 
-| ID | Assertion |
-|----|----------|
-| UNIT-DLK-010 | `--screen agents --repo` builds 3-entry stack |
-| UNIT-DLK-011 | `--screen agent-chat` builds 4-entry stack with sessionId |
-| UNIT-DLK-012 | `--screen agent-replay` builds 4-entry stack with sessionId |
-| UNIT-DLK-013 | `--screen agents` without `--repo` returns error |
-| UNIT-DLK-014 | `--screen agent-chat` without `--session-id` returns error |
-| UNIT-DLK-015 | `--screen agent-replay` without `--session-id` returns error |
-| UNIT-DLK-016 | `--session-id` with whitespace is rejected |
-| UNIT-DLK-017 | `--session-id` empty string is rejected |
-| UNIT-DLK-018 | `--session-id` over 255 chars is rejected |
-| UNIT-DLK-019 | `--repo` with invalid format returns error |
-| UNIT-DLK-020 | `--repo` with special chars rejected |
-| UNIT-DLK-021 | Case-insensitive screen matching |
-| UNIT-DLK-022 | Unknown screen returns error |
-| UNIT-DLK-023 | `agent-create` is not a valid deep-link |
-| UNIT-DLK-024 | No `--screen` returns Dashboard |
-| UNIT-DLK-025 | `--screen` longer than 32 chars truncates in error |
-| UNIT-DLK-026 | `--repo` longer than 128 chars returns error |
-| UNIT-DLK-027 | `agent-chat` without `--repo` checks repo first |
-| UNIT-DLK-028 | `--session-id` with tab character is rejected |
-| UNIT-DLK-029 | Valid session ID characters pass validation |
-
-**Command palette tests (UNIT-CMD-001 through UNIT-CMD-011):**
+#### CLI Arg Parsing Tests (UNIT-CLI-001 through UNIT-CLI-004)
 
 | ID | Assertion |
-|----|----------|
-| UNIT-CMD-001 | `createAgentCommands` returns two commands |
-| UNIT-CMD-002 | `navigate-agents` has correct metadata (name, keybinding, category) |
-| UNIT-CMD-003 | `create-agent-session` requires writeAccess |
-| UNIT-CMD-004 | `navigate-agents` includes `:agents` alias |
-| UNIT-CMD-005 | `create-agent-session` includes `Create Agent Session` alias |
-| UNIT-CMD-006 | `navigate-agents` action calls navigate with correct params |
-| UNIT-CMD-007 | `navigate-agents` action is no-op without repo context |
-| UNIT-CMD-010 | `buildCommandRegistry` includes agent commands |
-| UNIT-CMD-011 | `buildCommandRegistry` returns commands sorted by priority |
+|----|-----------|
+| UNIT-CLI-001 | `parseCLIArgs(["--session-id", "abc123"])` returns `{ sessionId: "abc123" }` |
+| UNIT-CLI-002 | `parseCLIArgs(["--screen", "agent-chat", "--repo", "acme/api", "--session-id", "sess-001"])` returns all three values |
+| UNIT-CLI-003 | Duplicate `--session-id` uses last value |
+| UNIT-CLI-004 | `--session-id` without following value returns `undefined` |
 
-### 7.2 E2E integration tests
+#### Deep-Link Stack Building Tests (UNIT-DLK-001 through UNIT-DLK-020)
 
-**Test file:** `e2e/tui/agents.test.ts` *(new file)*
+| ID | Assertion |
+|----|-----------|
+| UNIT-DLK-001 | `--screen agents --repo acme/api` builds 3-entry stack: `[Dashboard, RepoOverview, Agents]` |
+| UNIT-DLK-002 | `--screen agent-chat --repo acme/api --session-id sess-001` builds 4-entry stack: `[Dashboard, RepoOverview, Agents, AgentChat]` |
+| UNIT-DLK-003 | `--screen agent-replay --repo acme/api --session-id sess-001` builds 4-entry stack: `[Dashboard, RepoOverview, Agents, AgentSessionReplay]` |
+| UNIT-DLK-004 | `--screen agents` without `--repo` returns error `"--repo required for agents screen"` |
+| UNIT-DLK-005 | `--screen agent-chat --repo acme/api` without `--session-id` returns error `"--session-id required for agent-chat screen"` |
+| UNIT-DLK-006 | `--screen agent-replay --repo acme/api` without `--session-id` returns error |
+| UNIT-DLK-007 | `--session-id` with whitespace (`" abc "`) is rejected |
+| UNIT-DLK-008 | `--session-id` with tab character is rejected |
+| UNIT-DLK-009 | `--session-id` empty string is rejected |
+| UNIT-DLK-010 | `--session-id` over 255 chars is rejected |
+| UNIT-DLK-011 | Case-insensitive: `--screen AGENTS` resolves same as `--screen agents` |
+| UNIT-DLK-012 | Case-insensitive: `--screen Agent-Chat` resolves to `AgentChat` |
+| UNIT-DLK-013 | `--screen agent-create` returns unknown screen error |
+| UNIT-DLK-014 | No `--screen` returns `[Dashboard]` with no error |
+| UNIT-DLK-015 | `--repo` with invalid format (`noslash`) returns error |
+| UNIT-DLK-016 | `--screen agent-chat` without `--repo` checks repo first (error: `"--repo required"`) |
+| UNIT-DLK-017 | AgentChat stack entry has `sessionId` in params |
+| UNIT-DLK-018 | AgentSessionReplay stack entry has `sessionId` in params |
+| UNIT-DLK-019 | Agents intermediate entry in agent-chat stack has owner/repo but no sessionId |
+| UNIT-DLK-020 | Valid session ID characters (alphanumeric, hyphens, underscores) pass validation |
 
-These tests launch a full TUI instance using `createTestTui` from `@microsoft/tui-test` (matching the `e2e/tui/diff.test.ts` import pattern). Tests that fail due to unimplemented backends are left failing — never skipped or commented out.
+#### Command Palette Tests (UNIT-CMD-001 through UNIT-CMD-009)
+
+| ID | Assertion |
+|----|-----------|
+| UNIT-CMD-001 | `createAgentCommands` returns exactly 2 commands |
+| UNIT-CMD-002 | `navigate-agents` command has name `"Agent Sessions"`, keybinding `"g a"`, category `"Navigate"` |
+| UNIT-CMD-003 | `create-agent-session` command has `contextRequirements.writeAccess: true` |
+| UNIT-CMD-004 | `navigate-agents` includes `:agents` in aliases |
+| UNIT-CMD-005 | `create-agent-session` includes `"Create Agent Session"` in aliases |
+| UNIT-CMD-006 | `navigate-agents` action calls `ctx.navigate` with `ScreenName.Agents` when repo context exists |
+| UNIT-CMD-007 | `navigate-agents` action is no-op when `getRepoContext()` returns null |
+| UNIT-CMD-008 | `buildCommandRegistry` includes both agent commands |
+| UNIT-CMD-009 | `buildCommandRegistry` returns commands sorted by priority ascending |
+
+The `CommandContext` for tests is a plain mock object:
 
 ```typescript
-import { createTestTui } from "@microsoft/tui-test";
+function createMockCommandContext(opts?: {
+  repo?: { owner: string; repo: string } | null;
+  writeAccess?: boolean;
+}): CommandContext {
+  const navigateCalls: Array<{ screen: string; params?: Record<string, string> }> = [];
+  const repo = opts?.repo ?? null;
+  return {
+    navigate: (screen, params) => { navigateCalls.push({ screen, params }); },
+    hasRepoContext: () => repo !== null,
+    getRepoContext: () => repo,
+    hasWriteAccess: () => opts?.writeAccess ?? false,
+    _navigateCalls: navigateCalls, // test-only accessor
+  } as CommandContext & { _navigateCalls: typeof navigateCalls };
+}
 ```
 
-**Go-to navigation tests (NAV-AGT-001 through NAV-AGT-006):**
+### 7.2 E2E Integration Tests
 
-| ID | Behavior verified |
-|----|------------------|
-| NAV-AGT-001 | `g a` navigates to agent sessions when repo context is active |
-| NAV-AGT-002 | `g a` without repo context shows error, does not change screen |
-| NAV-AGT-003 | `g` shows `-- GO TO --` mode indicator in status bar |
-| NAV-AGT-004 | `Esc` cancels go-to mode without navigating or popping |
-| NAV-AGT-005 | `g a` builds correct stack allowing `q` back-navigation |
-| NAV-AGT-006 | Unrecognized key during go-to mode cancels silently |
+The existing `e2e/tui/agents.test.ts` file already contains 518 E2E test stubs covering the full agent feature group. These tests use `launchTUI()` from `helpers.ts` and exercise navigation, rendering, and interaction. **No new E2E test file is needed for this ticket.** The existing tests already cover:
 
-**Command palette tests (CMD-AGT-001 through CMD-AGT-006):**
+- `navigateToAgents(terminal)` helper that sends `g a` and waits for "Agent Sessions"
+- Snapshot tests at multiple terminal sizes
+- Navigation flow tests (enter session, back-nav with `q`)
+- Session list rendering, chat rendering, create flow, replay mode
 
-| ID | Behavior verified |
-|----|------------------|
-| CMD-AGT-001 | `:agents` alias navigates to agent sessions |
-| CMD-AGT-002 | Fuzzy match `ag se` finds Agent Sessions |
-| CMD-AGT-003 | `New Agent Session` visible with repo + write access |
-| CMD-AGT-004 | `New Agent Session` hidden without repo context |
-| CMD-AGT-005 | `Agent Sessions` hidden without repo context |
-| CMD-AGT-006 | Keybinding hint `g a` shown next to Agent Sessions |
-
-**Deep-link tests (DLK-AGT-001 through DLK-AGT-013):**
-
-| ID | Behavior verified |
-|----|------------------|
-| DLK-AGT-001 | `--screen agents --repo` opens agent session list with correct breadcrumb |
-| DLK-AGT-002 | `--screen agent-chat --repo --session-id` opens chat with session in breadcrumb |
-| DLK-AGT-003 | `--screen agent-replay --repo --session-id` opens replay with replay in breadcrumb |
-| DLK-AGT-004 | `--screen agents` without `--repo` shows error, falls back to dashboard |
-| DLK-AGT-005 | `--screen agent-chat` without `--session-id` shows error |
-| DLK-AGT-006 | `--screen agent-replay` without `--session-id` shows error |
-| DLK-AGT-007 | `--session-id` with whitespace shows format error |
-| DLK-AGT-008 | `--screen` value is case-insensitive |
-| DLK-AGT-009 | `--repo` with invalid format shows error |
-| DLK-AGT-010 | Deep-linked agent chat supports full `q` back-navigation (4 pops) |
-| DLK-AGT-011 | Deep-linked agent replay supports full `q` back-navigation (4 pops) |
-| DLK-AGT-012 | `--session-id` empty string shows format error |
-| DLK-AGT-013 | `--repo` with special chars rejected by regex |
-
-**Screen registry tests (REG-AGT-001 through REG-AGT-005):**
-
-| ID | Behavior verified |
-|----|------------------|
-| REG-AGT-001 | Agents screen reachable via deep-link with repo context |
-| REG-AGT-002 | AgentChat requires sessionId — missing param falls back |
-| REG-AGT-003 | AgentSessionReplay requires sessionId — missing param falls back |
-| REG-AGT-004 | `agent-create` is not a deep-link target — shows unknown screen |
-| REG-AGT-005 | AgentSessionCreate reachable via command palette |
-
-**Snapshot tests (SNAP-AGT-001 through SNAP-AGT-006):**
-
-| ID | Terminal size | Screen |
-|----|--------------|--------|
-| SNAP-AGT-001 | 120×40 | Agent session list stub |
-| SNAP-AGT-002 | 80×24 | Agent session list stub (minimum) |
-| SNAP-AGT-003 | 120×40 | Agent chat stub with session in breadcrumb |
-| SNAP-AGT-004 | 120×40 | Agent replay stub with replay in breadcrumb |
-| SNAP-AGT-005 | 200×60 | Agent session list stub (large) |
-| SNAP-AGT-006 | 120×40 | Agent create stub |
+These tests will begin passing (or fail more meaningfully) as the `requiresRepo` fixes and deep-link changes land. Tests that fail due to unimplemented backend features are left failing per project policy.
 
 ### 7.3 Test Summary
 
 | File | Category | Count |
 |------|----------|-------|
-| `agents-unit.test.ts` | Screen registry | 11 |
-| `agents-unit.test.ts` | Go-to bindings | 7 |
-| `agents-unit.test.ts` | CLI arg parsing | 7 |
-| `agents-unit.test.ts` | Deep-link stack building | 20 |
-| `agents-unit.test.ts` | Command palette | 9 |
-| `agents.test.ts` | Go-to navigation (E2E) | 6 |
-| `agents.test.ts` | Command palette (E2E) | 6 |
-| `agents.test.ts` | Deep-links (E2E) | 13 |
-| `agents.test.ts` | Screen registry (E2E) | 5 |
-| `agents.test.ts` | Snapshots (E2E) | 6 |
-| **Total** | | **90** |
+| `e2e/tui/agents-registry.test.ts` | Screen registry | 10 |
+| `e2e/tui/agents-registry.test.ts` | Go-to bindings | 6 |
+| `e2e/tui/agents-registry.test.ts` | CLI arg parsing | 4 |
+| `e2e/tui/agents-registry.test.ts` | Deep-link stack building | 20 |
+| `e2e/tui/agents-registry.test.ts` | Command palette | 9 |
+| `e2e/tui/agents.test.ts` | Pre-existing E2E stubs | 518 (unchanged) |
+| **New tests total** | | **49** |
 
 ---
 
 ## 8. Productionization Notes
 
-### 8.1 No PoC code
+### 8.1 No PoC Code
 
-All code is immediately production-grade. Stubs are minimal valid implementations. No `poc/` output to graduate.
+All code is immediately production-grade. Stubs are minimal valid implementations matching the existing `ScreenComponentProps` contract. No `poc/` output to graduate.
 
-### 8.2 Stub screen lifecycle
+### 8.2 Stub Screen Lifecycle
 
 | Stub | Replaced by ticket | Prerequisite tickets |
-|------|---------------------|---------------------|
+|------|---------------------|-----------------|
 | `AgentSessionListScreen` | `tui-agent-session-list` | `tui-agent-data-hooks` |
 | `AgentChatScreen` | `tui-agent-chat-screen` | `tui-agent-sse-stream-hook`, `tui-agent-message-block` |
 | `AgentSessionCreateScreen` | `tui-agent-session-create` | `tui-agent-session-list` |
 | `AgentSessionReplayScreen` | `tui-agent-session-replay` | `tui-agent-message-block` |
 
-### 8.3 What is permanent vs. what is replaced
+When a downstream ticket replaces a stub, it updates the `screenRegistry` import in `router/registry.ts` from `PlaceholderScreen` to the real component. The stub file can be deleted or kept as a reference.
 
-**Permanent:** `ScreenName` enum values, `ScreenDefinition` interface, `screenRegistry` map structure, `GoToBinding` interface and `key: "a"` binding, `GoToNavigator` interface, `PaletteCommand` and `CommandContext` interfaces, command palette entries in `agentCommands.ts`, deep-link mappings in `SCREEN_ID_MAP`, `DeepLinkArgs`/`DeepLinkResult` interfaces, `REPO_FORMAT_REGEX`, all 90 tests.
+### 8.3 What is Permanent vs. What is Replaced
 
-**Replaced by downstream tickets:** Stub component implementations, `PlaceholderScreen` references replaced per-entry.
+**Permanent (produced by this ticket, not expected to change):**
+- `requiresRepo: true` on all agent screen registry entries
+- `requiresRepo: true` on `g a` go-to binding
+- `agent-chat` and `agent-replay` in deep-link screen map
+- Agent screens in deep-link `requiresRepo` list
+- `--session-id` CLI arg parsing
+- `--session-id` validation rules (non-empty, no whitespace, max 255)
+- Intermediate `Agents` stack entry for `agent-chat` and `agent-replay` deep-links
+- `PaletteCommand` and `CommandContext` interfaces
+- `createAgentCommands` factory
+- `buildCommandRegistry` function
+- `navigate-agents` and `create-agent-session` command definitions
+- `AgentChat` breadcrumb format: `Session: {8-char-id}`
+- `AgentSessionReplay` breadcrumb format: `Replay: {8-char-id}`
+- All 49 new tests
 
-### 8.4 TypeScript exhaustiveness
+**Replaced by downstream tickets:**
+- Stub screen component files (replaced by real implementations)
+- `PlaceholderScreen` references in registry for agent entries (replaced by real components)
 
-`Record<ScreenName, ScreenDefinition>` produces compile errors for missing enum values. No suppressions permitted.
+### 8.4 TypeScript Exhaustiveness
 
-### 8.5 Naming conventions
+The existing runtime check at the bottom of `registry.ts` catches any missing `ScreenName` entries:
+```typescript
+const missingScreens = Object.values(ScreenName).filter(
+  (name) => !(name in screenRegistry),
+);
+if (missingScreens.length > 0) {
+  throw new Error(`Screen registry is missing entries for: ${missingScreens.join(", ")}`);
+}
+```
+This ticket does not add new enum values — they already exist. No new exhaustiveness risk.
+
+### 8.5 Naming Conventions
 
 | Element | Convention | Example |
 |---------|-----------|--------|
 | `ScreenName` enum values | PascalCase | `AgentSessionCreate` |
-| `screenRegistry` map keys | Bracket notation | `[ScreenName.AgentChat]` |
 | Deep-link `--screen` values | kebab-case | `agent-chat` |
 | Command palette `id` | kebab-case | `create-agent-session` |
 | Screen component files | PascalCase + `Screen.tsx` | `AgentChatScreen.tsx` |
 | Go-to binding keys | single lowercase letter | `a` |
-| Test name prefix | UPPER-CASE | `NAV-AGT-001` |
+| Test name prefix | UPPER-CASE | `UNIT-REG-001` |
 | Import paths | `.js` extension (ESM) | `from "./screenRegistry.js"` |
 
-### 8.6 Directory structure after this ticket
+### 8.6 Directory Structure After This Ticket
 
 ```
 apps/tui/src/
@@ -826,41 +1038,50 @@ apps/tui/src/
 │   ├── types.ts
 │   ├── agentCommands.ts
 │   └── index.ts
-├── hooks/
-│   └── useDiffSyntaxStyle.ts            ← EXISTING
+├── hooks/                               ← EXISTING (unchanged)
 ├── lib/
-│   └── diff-syntax.ts                   ← EXISTING
-├── navigation/                          ← NEW
-│   ├── screenRegistry.ts
-│   ├── goToBindings.ts
-│   ├── deepLinks.ts
-│   └── index.ts
-└── screens/
-    ├── PlaceholderScreen.tsx             ← NEW
-    └── Agents/
-        ├── index.ts                     ← NEW
-        ├── AgentSessionListScreen.tsx   ← NEW
-        ├── AgentChatScreen.tsx          ← NEW
-        ├── AgentSessionCreateScreen.tsx ← NEW
-        ├── AgentSessionReplayScreen.tsx ← NEW
-        ├── types.ts                     ← EXISTING
-        ├── components/                  ← EXISTING
-        └── utils/                       ← EXISTING
+│   └── terminal.ts                      ← MODIFIED (add --session-id)
+├── navigation/
+│   ├── goToBindings.ts                  ← MODIFIED (requiresRepo fix)
+│   ├── deepLinks.ts                     ← MODIFIED (add screens, validation)
+│   └── index.ts                         ← EXISTING (unchanged)
+├── providers/                           ← EXISTING (unchanged)
+├── router/
+│   ├── types.ts                         ← EXISTING (unchanged)
+│   ├── registry.ts                      ← MODIFIED (requiresRepo fixes, breadcrumb updates)
+│   ├── ScreenRouter.tsx                 ← EXISTING (unchanged)
+│   └── index.ts                         ← EXISTING (unchanged)
+├── screens/
+│   ├── PlaceholderScreen.tsx            ← EXISTING (unchanged)
+│   └── Agents/
+│       ├── index.ts                     ← NEW (barrel export)
+│       ├── AgentSessionListScreen.tsx   ← NEW (stub)
+│       ├── AgentChatScreen.tsx          ← NEW (stub)
+│       ├── AgentSessionCreateScreen.tsx ← NEW (stub)
+│       ├── AgentSessionReplayScreen.tsx ← NEW (stub)
+│       ├── types.ts                     ← EXISTING (unchanged)
+│       ├── components/                  ← EXISTING (unchanged)
+│       └── utils/                       ← EXISTING (unchanged)
+├── index.tsx                            ← MODIFIED (pass sessionId)
+└── ... (other directories unchanged)
 
 e2e/tui/
-├── diff.test.ts                         ← EXISTING
-├── agents.test.ts                       ← NEW
-└── agents-unit.test.ts                  ← NEW
+├── agents.test.ts                       ← EXISTING (unchanged, 518 tests)
+├── agents-registry.test.ts              ← NEW (49 tests)
+├── app-shell.test.ts                    ← EXISTING (unchanged)
+├── helpers.ts                           ← EXISTING (unchanged)
+└── ... (other test files unchanged)
 ```
 
-### 8.7 Pattern establishment
+### 8.7 Pattern Establishment
 
-1. **Screen registration:** Add to `ScreenName` → create stub → add to `screenRegistry` → add `case` to `buildInitialStack`.
-2. **Go-to binding:** Add entry to `goToBindings` with key collision check.
-3. **Command palette:** Create `createXxxCommands(context)` factory → register in `buildCommandRegistry`.
-4. **Deep-link:** Add to `SCREEN_ID_MAP` → add `case` block to `buildInitialStack`.
-5. **Stub component:** `<text bold>` for title, `<text dimColor>` for placeholder text.
-6. **Test:** Unit tests in `*-unit.test.ts` for pure functions; E2E tests in `*.test.ts` for user-facing behavior.
+This ticket establishes the following patterns for future screen registration:
+
+1. **Screen registration:** Enum value exists → set `requiresRepo`/`requiresOrg` correctly → set `breadcrumbLabel` with truncation for IDs → stub component exists for downstream
+2. **Go-to binding:** Add entry to `goToBindings` with key collision check. Ensure `requiresRepo` matches the target screen's registry entry.
+3. **Command palette:** Create `createXxxCommands(context)` factory → register in `buildCommandRegistry`. Use `contextRequirements` to gate visibility.
+4. **Deep-link:** Add to `resolveScreenName` map → add to `requiresRepo` list → add validation for required params → push intermediate screens for proper back-nav.
+5. **Stub component:** Accept `ScreenComponentProps` → render `<text bold>` for title, `<text color="gray">` for placeholder, show relevant params.
 
 ---
 
@@ -868,39 +1089,35 @@ e2e/tui/
 
 | # | Criterion | Verification |
 |---|-----------|-------------|
-| 1 | All four agent screens in `screenRegistry` with correct `requiresRepo` and `params` | `UNIT-REG-*`, `REG-AGT-*` |
-| 2 | `g a` navigates to Agents with repo context | `NAV-AGT-001`, `UNIT-GTO-005` |
-| 3 | `g a` without repo context shows error | `NAV-AGT-002`, `UNIT-GTO-006` |
-| 4 | `g` shows go-to mode indicator | `NAV-AGT-003` |
-| 5 | `Esc` cancels go-to mode | `NAV-AGT-004` |
-| 6 | Unrecognized key cancels go-to mode | `NAV-AGT-006` |
-| 7 | `:agents` palette alias works | `CMD-AGT-001`, `UNIT-CMD-004` |
-| 8 | `New Agent Session` visible with repo + write access | `CMD-AGT-003`, `UNIT-CMD-003` |
-| 9 | `New Agent Session` hidden without repo | `CMD-AGT-004` |
-| 10 | `Agent Sessions` hidden without repo | `CMD-AGT-005` |
-| 11 | Keybinding hint `g a` shown in palette | `CMD-AGT-006`, `UNIT-CMD-002` |
-| 12 | Deep-link `--screen agents --repo` works | `DLK-AGT-001`, `UNIT-DLK-010` |
-| 13 | Deep-link `--screen agent-chat` works | `DLK-AGT-002`, `UNIT-DLK-011` |
-| 14 | Deep-link `--screen agent-replay` works | `DLK-AGT-003`, `UNIT-DLK-012` |
-| 15 | Missing `--repo` error | `DLK-AGT-004`, `UNIT-DLK-013` |
-| 16 | Missing `--session-id` error | `DLK-AGT-005/006`, `UNIT-DLK-014/015` |
-| 17 | Invalid `--session-id` whitespace error | `DLK-AGT-007`, `UNIT-DLK-016` |
-| 18 | Invalid `--session-id` empty error | `DLK-AGT-012`, `UNIT-DLK-017` |
-| 19 | Invalid `--repo` format error | `DLK-AGT-009`, `UNIT-DLK-019` |
-| 20 | Invalid `--repo` special chars error | `DLK-AGT-013`, `UNIT-DLK-020` |
-| 21 | Case-insensitive `--screen` | `DLK-AGT-008`, `UNIT-DLK-002/021` |
-| 22 | `agent-create` not a deep-link | `REG-AGT-004`, `UNIT-DLK-023` |
-| 23 | `AgentSessionCreate` reachable via palette | `REG-AGT-005` |
-| 24 | Back-nav from deep-linked chat | `DLK-AGT-010` |
-| 25 | Back-nav from deep-linked replay | `DLK-AGT-011` |
-| 26 | TypeScript compiles without errors | `bun tsc --noEmit` |
-| 27 | Existing files unchanged | `git diff` |
-| 28 | Snapshots pass at all breakpoints | `SNAP-AGT-001` through `SNAP-AGT-006` |
-| 29 | Fuzzy `ag se` finds Agent Sessions | `CMD-AGT-002` |
-| 30 | `e2e/tui/diff.test.ts` not modified | File diff |
-| 31 | No go-to key collisions | `UNIT-GTO-002` |
-| 32 | All ScreenName values have registry entries | `UNIT-REG-010` |
-| 33 | Pure function unit tests pass | `bun test e2e/tui/agents-unit.test.ts` |
+| 1 | All 5 agent screen registry entries have `requiresRepo: true` | `UNIT-REG-001` through `UNIT-REG-005` |
+| 2 | `g a` binding has `requiresRepo: true` | `UNIT-GTO-002` |
+| 3 | `g a` with repo context navigates to Agents | `UNIT-GTO-004` |
+| 4 | `g a` without repo context returns error | `UNIT-GTO-005` |
+| 5 | `--session-id` parsed by `parseCLIArgs` | `UNIT-CLI-001`, `UNIT-CLI-002` |
+| 6 | `--screen agents --repo` deep-link builds 3-entry stack | `UNIT-DLK-001` |
+| 7 | `--screen agent-chat --repo --session-id` deep-link builds 4-entry stack | `UNIT-DLK-002` |
+| 8 | `--screen agent-replay --repo --session-id` deep-link builds 4-entry stack | `UNIT-DLK-003` |
+| 9 | `--screen agents` without `--repo` returns error | `UNIT-DLK-004` |
+| 10 | `--screen agent-chat` without `--session-id` returns error | `UNIT-DLK-005` |
+| 11 | `--session-id` with whitespace rejected | `UNIT-DLK-007`, `UNIT-DLK-008` |
+| 12 | `--session-id` empty rejected | `UNIT-DLK-009` |
+| 13 | `--session-id` over 255 chars rejected | `UNIT-DLK-010` |
+| 14 | Case-insensitive `--screen` | `UNIT-DLK-011`, `UNIT-DLK-012` |
+| 15 | `agent-create` not a deep-link target | `UNIT-DLK-013` |
+| 16 | `createAgentCommands` returns 2 commands | `UNIT-CMD-001` |
+| 17 | `:agents` alias present | `UNIT-CMD-004` |
+| 18 | `create-agent-session` requires `writeAccess` | `UNIT-CMD-003` |
+| 19 | `navigate-agents` action calls navigate with Agents screen | `UNIT-CMD-006` |
+| 20 | `buildCommandRegistry` sorts by priority | `UNIT-CMD-009` |
+| 21 | `AgentChat` breadcrumb has `Session:` prefix | `UNIT-REG-006` |
+| 22 | `AgentSessionReplay` breadcrumb has `Replay:` prefix | `UNIT-REG-007` |
+| 23 | Stub screen files exist and export components | File existence check + import |
+| 24 | TypeScript compiles without errors | `bun run check` |
+| 25 | Existing `e2e/tui/agents.test.ts` not modified | `git diff` |
+| 26 | No go-to key collisions | `UNIT-GTO-003` |
+| 27 | All `ScreenName` values have registry entries | `UNIT-REG-009` |
+| 28 | Back-nav from deep-linked agent-chat (4 pops) | `UNIT-DLK-002` (stack depth verification) |
+| 29 | `sessionId` passed through from entry point to deep-link builder | Code review of `index.tsx` change |
 
 ---
 
@@ -912,8 +1129,8 @@ e2e/tui/
 
 | Ticket | Dependency |
 |--------|------------|
-| `tui-agent-session-list` | `ScreenName.Agents`, `screenRegistry[Agents]`, go-to `g a` |
-| `tui-agent-chat-screen` | `ScreenName.AgentChat`, `screenRegistry[AgentChat]` with `params: ["sessionId"]` |
-| `tui-agent-session-create` | `ScreenName.AgentSessionCreate`, palette `create-agent-session` |
-| `tui-agent-session-replay` | `ScreenName.AgentSessionReplay`, `screenRegistry[AgentSessionReplay]` with `params: ["sessionId"]` |
-| `tui-foundation-scaffold` | `ScreenName` enum, `ScreenDefinition`, `screenRegistry` patterns |
+| `tui-agent-session-list` | `requiresRepo: true` on `ScreenName.Agents`, go-to `g a` with repo requirement |
+| `tui-agent-chat-screen` | `--screen agent-chat` deep-link, `requiresRepo: true` on `ScreenName.AgentChat` |
+| `tui-agent-session-create` | Palette command `create-agent-session`, `requiresRepo: true` on `ScreenName.AgentSessionCreate` |
+| `tui-agent-session-replay` | `--screen agent-replay` deep-link, `requiresRepo: true` on `ScreenName.AgentSessionReplay` |
+| `tui-command-palette` | `PaletteCommand` interface, `CommandContext` interface, `buildCommandRegistry` function |

@@ -154,7 +154,7 @@ export class CleanupScheduler {
     if (this.running) return;
     this.running = true;
 
-    const jobs: Array<{ intervalMs: number; fn: () => Promise<void> }> = [
+    const jobs: Array<{ intervalMs: number; fn: () => Promise<unknown> }> = [
       { intervalMs: this.config.workspaceIntervalMs, fn: () => this.sweepIdleWorkspaces() },
       { intervalMs: this.config.tokenIntervalMs, fn: () => this.sweepExpiredTokens() },
       { intervalMs: this.config.staleSessionIntervalMs, fn: () => this.sweepStaleSessions() },

@@ -1,26 +1,28 @@
-import { useNavigation } from "../providers/NavigationProvider.js";
+import type { JSX } from "react";
+import { useNavigation } from "../hooks/useNavigation.js";
 import { screenRegistry } from "./registry.js";
-import type { ScreenComponentProps } from "./types.js";
+import { ScreenName, type ScreenComponentProps } from "./types.js";
+import { TextAttributes } from "../theme/tokens.js";
 
 export function ScreenRouter() {
-  const { currentScreen } = useNavigation();
+  const { current } = useNavigation();
 
-  const definition = screenRegistry[currentScreen.screen];
+  const definition = screenRegistry[current.screen as ScreenName];
   if (!definition) {
     return (
       <box flexDirection="column" padding={1}>
-        <text color="red" bold>
-          Unknown screen: {currentScreen.screen}
+        <text fg="red" attributes={TextAttributes.BOLD}>
+          Unknown screen: {current.screen}
         </text>
-        <text color="gray">Press q to go back.</text>
+        <text fg="gray">Press q to go back.</text>
       </box>
     );
   }
 
-  const Component = definition.component;
+  const Component = definition.component as (props: ScreenComponentProps) => JSX.Element;
   const props: ScreenComponentProps = {
-    entry: currentScreen,
-    params: currentScreen.params,
+    entry: current,
+    params: current.params ?? {},
   };
 
   return <Component {...props} />;

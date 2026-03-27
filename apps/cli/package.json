@@ -6,7 +6,8 @@
   },
   "scripts": {
     "dev": "bun run src/main.ts",
-    "build": "bun run scripts/build.ts"
+    "build": "bun run scripts/build.ts",
+    "check": "tsc --noEmit"
   },
   "dependencies": {
     "@codeplane/server": "workspace:*",

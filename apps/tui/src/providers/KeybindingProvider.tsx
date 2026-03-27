@@ -78,11 +78,18 @@ export function KeybindingProvider({ children }: KeybindingProviderProps) {
       const handler = scope.bindings.get(descriptor);
       if (handler) {
         if (handler.when && !handler.when()) continue; // Skip, try next
-        handler.handler();
+        if (!handler.consumeOnly) {
+          handler.handler();
+        }
         event.preventDefault();
         event.stopPropagation();
         return; // First match wins
       }
+    }
+    if (scopes.some((scope) => scope.priority === PRIORITY.MODAL)) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
     }
     // No match — falls through to OpenTUI focused component
   });

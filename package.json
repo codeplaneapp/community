@@ -9,9 +9,17 @@
     "docs"
   ],
   "scripts": {
-    "codeplane": "nx build codeplane && bun apps/cli/src/main.ts"
+    "codeplane": "nx build codeplane && bun apps/cli/src/main.ts",
+    "check": "nx run-many --target=check --all"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "5.8.3",
     "nx": "^22.6.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "typescript": "5.8.3"
+    }
   }
 }

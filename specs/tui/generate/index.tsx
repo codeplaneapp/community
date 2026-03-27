@@ -137,7 +137,9 @@ Key implementation guidelines:
         id: `spec-${t.id}`,
         type: "spec",
         ticket: t,
-        dependsOn: (t.dependencies || []).map((d: string) => `bookmark-${d}`),
+        // No cross-ticket deps in Phase 1 — specs/research/plans can all run in parallel.
+        // Cross-ticket ordering is enforced in Phase 2 (implement depends on bookmark of deps).
+        dependsOn: [],
       });
       flatNodes.push({
         id: `research-${t.id}`,
@@ -155,7 +157,11 @@ Key implementation guidelines:
         id: `impl-${t.id}`,
         type: "implement",
         ticket: t,
-        dependsOn: [`done-plan-${t.id}`],
+        // Depend on own plan + bookmarks of dependency tickets (cross-ticket ordering)
+        dependsOn: [
+          `done-plan-${t.id}`,
+          ...(t.dependencies || []).map((d: string) => `bookmark-${d}`),
+        ],
       });
       flatNodes.push({
         id: `bookmark-${t.id}`,

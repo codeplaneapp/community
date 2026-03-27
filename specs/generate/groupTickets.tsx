@@ -3,7 +3,7 @@ import { Task, Parallel, Sequence, Branch } from "smithers-orchestrator";
 import { z } from "zod";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { specsDir } from "./utils";
+// specsDir is now passed as a prop (domain-aware)
 
 export const groupTicketsSchemas = {
   checkGroupTickets: z.object({ groupId: z.string(), needsTickets: z.boolean(), existingContent: z.string() }),
@@ -35,6 +35,7 @@ export function GroupTicketsPhase({
   archContent,
   specAgent,
   outputs,
+  dir,
 }: {
   ctx: any;
   impact: any;
@@ -42,6 +43,7 @@ export function GroupTicketsPhase({
   archContent: string;
   specAgent: any;
   outputs: any;
+  dir: string;
 }) {
   const writeGroups = ctx.outputMaybe(outputs.writeGroups, { nodeId: "write-groups" });
   if (!writeGroups || featureGroups.length === 0) return null;
@@ -56,7 +58,7 @@ export function GroupTicketsPhase({
             <Sequence key={`group-tickets-${group.id}`}>
               <Task id={`check-tickets-${group.id}`} output={outputs.checkGroupTickets}>
                 {async () => {
-                  const p = path.join(specsDir(),`tickets-${group.id}.json`);
+                  const p = path.join(dir,`tickets-${group.id}.json`);
                   let content = "";
                   try {
                     content = await fs.readFile(p, "utf-8");
@@ -108,7 +110,7 @@ RULES FOR TICKETS:
                       {ctx.outputMaybe(outputs.groupTicketsOut, { nodeId: `generate-tickets-${group.id}` }) ? (
                         <Task id={`write-tickets-${group.id}`} output={outputs.writeGroupTickets}>
                           {async () => {
-                            const p = path.join(specsDir(),`tickets-${group.id}.json`);
+                            const p = path.join(dir,`tickets-${group.id}.json`);
                             const t = ctx.outputMaybe(outputs.groupTicketsOut, { nodeId: `generate-tickets-${group.id}` })!.tickets;
                             await fs.writeFile(p, JSON.stringify(t, null, 2), "utf-8");
                             return { success: true };

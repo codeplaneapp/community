@@ -1,4 +1,4 @@
-import type { NavigationContext } from "../router/types.js";
+import type { NavigationContextType } from "../router/types.js";
 import { ScreenName } from "../router/types.js";
 
 export interface GoToBinding {
@@ -23,7 +23,7 @@ export const goToBindings: readonly GoToBinding[] = [
 ] as const;
 
 export function executeGoTo(
-  nav: NavigationContext,
+  nav: NavigationContextType,
   binding: GoToBinding,
   repoContext: { owner: string; repo: string } | null,
 ): { error?: string } {
@@ -33,14 +33,14 @@ export function executeGoTo(
 
   nav.reset(ScreenName.Dashboard);
 
-  if (repoContext) {
+  if (binding.requiresRepo && repoContext) {
     nav.push(ScreenName.RepoOverview, {
       owner: repoContext.owner,
       repo: repoContext.repo,
     });
   }
 
-  const params = repoContext
+  const params = binding.requiresRepo && repoContext
     ? { owner: repoContext.owner, repo: repoContext.repo }
     : undefined;
 

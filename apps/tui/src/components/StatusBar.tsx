@@ -24,12 +24,14 @@ export function StatusBar() {
   const prevStatusRef = useRef<AuthStatus | null>(null);
 
   useEffect(() => {
-    if (status === "authenticated" && prevStatusRef.current === "loading") {
+    const previousStatus = prevStatusRef.current;
+    prevStatusRef.current = status;
+
+    if (status === "authenticated" && previousStatus === "loading") {
       setShowAuthConfirm(true);
       const timer = setTimeout(() => setShowAuthConfirm(false), 3000);
       return () => clearTimeout(timer);
     }
-    prevStatusRef.current = status;
   }, [status]);
 
   const authConfirmText = useMemo(() => {

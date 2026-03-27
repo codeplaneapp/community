@@ -15,6 +15,7 @@ import React, { useState, useCallback, useRef } from "react";
 import { ErrorBoundary } from "./components/ErrorBoundary.js";
 import { ThemeProvider } from "./providers/ThemeProvider.js";
 import { KeybindingProvider } from "./providers/KeybindingProvider.js";
+import { OverlayManager } from "./providers/OverlayManager.js";
 import { AuthProvider } from "./providers/AuthProvider.js";
 import { APIClientProvider } from "./providers/APIClientProvider.js";
 import { SSEProvider } from "./providers/SSEProvider.js";
@@ -60,28 +61,30 @@ function App() {
       currentScreen={screenRef.current}
       noColor={noColor}
     >
-      <ThemeProvider>
-        <KeybindingProvider>
-          <AuthProvider token={launchOptions.token} apiUrl={launchOptions.apiUrl}>
-            <APIClientProvider>
-              <SSEProvider>
-                <NavigationProvider
-                  key={navResetKey}
-                  initialStack={initialStack}
-                >
-                  <LoadingProvider>
-                    <GlobalKeybindings>
-                      <AppShell>
-                        <ScreenRouter />
-                      </AppShell>
-                    </GlobalKeybindings>
-                  </LoadingProvider>
-                </NavigationProvider>
-              </SSEProvider>
-            </APIClientProvider>
-          </AuthProvider>
-        </KeybindingProvider>
-      </ThemeProvider>
+      <AuthProvider token={launchOptions.token} apiUrl={launchOptions.apiUrl}>
+        <APIClientProvider>
+          <SSEProvider>
+            <NavigationProvider
+              key={navResetKey}
+              initialStack={initialStack}
+            >
+              <ThemeProvider>
+                <KeybindingProvider>
+                  <OverlayManager>
+                    <LoadingProvider>
+                      <GlobalKeybindings>
+                        <AppShell>
+                          <ScreenRouter />
+                        </AppShell>
+                      </GlobalKeybindings>
+                    </LoadingProvider>
+                  </OverlayManager>
+                </KeybindingProvider>
+              </ThemeProvider>
+            </NavigationProvider>
+          </SSEProvider>
+        </APIClientProvider>
+      </AuthProvider>
     </ErrorBoundary>
   );
 }
