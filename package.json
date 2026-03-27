@@ -9,7 +9,8 @@
     "docs"
   ],
   "scripts": {
-    "codeplane": "nx build codeplane && bun apps/cli/src/main.ts"
+    "codeplane": "nx build codeplane && bun apps/cli/src/main.ts",
+    "check": "nx run-many --target=check --all"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
