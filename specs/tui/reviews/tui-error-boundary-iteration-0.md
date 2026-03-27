@@ -1,0 +1,22 @@
+Findings (ordered by severity):
+1. [BLOCKER] Double-fault handling is ineffective. In /Users/williamcory/codeplane/apps/tui/src/components/ErrorBoundary.tsx:127-157, the try/catch only wraps JSX element creation, not React’s later render of <ErrorScreen/>. A secondary throw from /Users/williamcory/codeplane/apps/tui/src/components/ErrorScreen.tsx:97 will bypass this catch.
+2. [BLOCKER] Keybinding parsing is incorrect for OpenTUI KeyEvent semantics. /Users/williamcory/codeplane/apps/tui/src/components/ErrorScreen.tsx:256 checks `key === "G"`, and :273/:277 check `"ctrl+d"` / `"ctrl+u"`. OpenTUI emits `name:"g"` with `shift:true` and `name:"d"|"u"` with `ctrl:true`, so these bindings will not trigger.
+3. [HIGH] Error boundary is no longer top-level. In /Users/williamcory/codeplane/apps/tui/src/index.tsx:64-85, ErrorBoundary is nested inside NavigationProvider/GlobalKeybindings/AppShell, so crashes in those layers (or header/status rendering) are not caught by this boundary.
+4. [HIGH] `currentScreen` telemetry context is stale. /Users/williamcory/codeplane/apps/tui/src/index.tsx:50,67-69,76 uses `screenRef.current` as a prop, but ref updates do not re-render App, so ErrorBoundary receives outdated screen names.
+5. [HIGH] `onNavigate` callback plumbing is brittle and incomplete. /Users/williamcory/codeplane/apps/tui/src/providers/NavigationProvider.tsx:37-73 performs side effects inside state updaters and does not emit initial navigation state on mount; telemetry screen context can be wrong after resets.
+6. [HIGH] Delayed crash simulation is not catchable by React ErrorBoundary. /Users/williamcory/codeplane/apps/tui/src/components/__test__/TestCrashHook.tsx:66-68 throws inside `setTimeout`, which is outside render/lifecycle error-boundary capture.
+7. [HIGH] `CODEPLANE_TUI_TEST_NO_STACK` is not truly no-stack. /Users/williamcory/codeplane/apps/tui/src/components/__test__/TestCrashHook.tsx:12-14 throws `{message}`, but /Users/williamcory/codeplane/apps/tui/src/lib/normalize-error.ts:23 creates `new Error(message)` (with stack), so stack UI suppression tests are invalid.
+8. [MEDIUM] Hook usage violates React rules and weakens typing. /Users/williamcory/codeplane/apps/tui/src/components/ErrorScreen.tsx:81-87 calls `useTheme()` inside try/catch and uses `theme: any`, then falls back to raw hex literals at :306-309, bypassing strict semantic-token usage.
+9. [MEDIUM] Keyboard suppression claim is incorrect. /Users/williamcory/codeplane/apps/tui/src/components/ErrorScreen.tsx:288-289 says keys are suppressed, but OpenTUI `useKeyboard` has no propagation stop; /Users/williamcory/codeplane/apps/tui/src/components/GlobalKeybindings.tsx:27-49 still receives keys (notably `g`, `q`, `escape`).
+10. [MEDIUM] Help overlay layout violates minimum-size behavior. /Users/williamcory/codeplane/apps/tui/src/components/ErrorScreen.tsx:398-400 sets `left="20%"` and `width="90%"` for minimum/unsupported, causing overflow/clipping instead of centered modal behavior.
+11. [MEDIUM] Telemetry context is never initialized/updated. /Users/williamcory/codeplane/apps/tui/src/lib/telemetry.ts exports `initTelemetry` and `updateTelemetryDimensions`, but they are unused; /Users/williamcory/codeplane/apps/tui/src/components/ErrorBoundary.tsx:82-85 emits hardcoded terminal dimensions (0).
+12. [LOW] Production code imports test-only hook. /Users/williamcory/codeplane/apps/tui/src/screens/PlaceholderScreen.tsx:1-7 always mounts `/components/__test__/TestCrashHook`, coupling runtime code to test harness behavior.
+13. [LOW/NIT] Shipping conversational scratch comments in provider source (e.g., /Users/williamcory/codeplane/apps/tui/src/providers/NavigationProvider.tsx:31-35,77-79) is not review-clean.
+
+Test results run:
+1. `cd apps/tui && bun run check` -> PASS.
+2. `cd apps/tui && bun test ../../e2e/tui/app-shell.test.ts --timeout 30000` -> FAIL (188 pass, 83 fail).
+3. `cd apps/tui && bun test ../../e2e/tui/app-shell.test.ts --test-name-pattern "TUI_ERROR_BOUNDARY — Unit Tests" --timeout 30000` -> PASS (11/11).
+4. `cd apps/tui && bun test ../../e2e/tui/app-shell.test.ts --test-name-pattern "TUI_ERROR_BOUNDARY" --timeout 30000` -> FAIL (38 fail) due missing module import path `@microsoft/tui-test/lib/terminal/term.js` in e2e harness.
+
+Additional check requested: no direct API calls were introduced in modified `apps/tui/src` files (no `fetch`, `axios`, or direct HTTP/EventSource usage detected).

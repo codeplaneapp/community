@@ -18,6 +18,7 @@
  */
 
 export { type ColorTier, detectColorCapability, isUnicodeSupported } from "./detect.js";
+export { detectColorCapability as detectColorTier } from "./detect.js";
 export {
   type ThemeTokens,
   type SemanticTokenName,

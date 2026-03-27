@@ -1,6 +1,11 @@
 import type { CliRenderer } from "@opentui/core";
 
 let isShuttingDown = false;
+let globalAbort: AbortController | null = null;
+
+export function setGlobalAbort(controller: AbortController | null) {
+  globalAbort = controller;
+}
 
 export function registerSignalHandlers(
   renderer: CliRenderer,
@@ -9,6 +14,8 @@ export function registerSignalHandlers(
   const teardown = (signal: string) => {
     if (isShuttingDown) return;
     isShuttingDown = true;
+
+    globalAbort?.abort();
 
     if (process.env.CODEPLANE_TUI_DEBUG === "true") {
       process.stderr.write(

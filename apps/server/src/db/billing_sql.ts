@@ -603,7 +603,7 @@ export interface CountPrivateReposByOwnerArgs {
 }
 
 export interface CountPrivateReposByOwnerRow {
-    : string;
+    value: string;
 }
 
 export async function countPrivateReposByOwner(sql: Sql, args: CountPrivateReposByOwnerArgs): Promise<CountPrivateReposByOwnerRow | null> {
@@ -613,7 +613,7 @@ export async function countPrivateReposByOwner(sql: Sql, args: CountPrivateRepos
     }
     const row = rows[0];
     return {
-        : row[0]
+        value: row[0]
     };
 }
 
@@ -656,7 +656,7 @@ export interface SumStorageBytesByOwnerArgs {
 }
 
 export interface SumStorageBytesByOwnerRow {
-    : string;
+    value: string;
 }
 
 export async function sumStorageBytesByOwner(sql: Sql, args: SumStorageBytesByOwnerArgs): Promise<SumStorageBytesByOwnerRow | null> {
@@ -666,7 +666,7 @@ export async function sumStorageBytesByOwner(sql: Sql, args: SumStorageBytesByOw
     }
     const row = rows[0];
     return {
-        : row[0]
+        value: row[0]
     };
 }
 
@@ -703,7 +703,7 @@ export interface SumWorkflowMinutesByOwnerArgs {
 }
 
 export interface SumWorkflowMinutesByOwnerRow {
-    : string;
+    value: string;
 }
 
 export async function sumWorkflowMinutesByOwner(sql: Sql, args: SumWorkflowMinutesByOwnerArgs): Promise<SumWorkflowMinutesByOwnerRow | null> {
@@ -713,7 +713,7 @@ export async function sumWorkflowMinutesByOwner(sql: Sql, args: SumWorkflowMinut
     }
     const row = rows[0];
     return {
-        : row[0]
+        value: row[0]
     };
 }
 
@@ -745,7 +745,7 @@ export interface CountAgentRunsByOwnerArgs {
 }
 
 export interface CountAgentRunsByOwnerRow {
-    : string;
+    value: string;
 }
 
 export async function countAgentRunsByOwner(sql: Sql, args: CountAgentRunsByOwnerArgs): Promise<CountAgentRunsByOwnerRow | null> {
@@ -755,7 +755,7 @@ export async function countAgentRunsByOwner(sql: Sql, args: CountAgentRunsByOwne
     }
     const row = rows[0];
     return {
-        : row[0]
+        value: row[0]
     };
 }
 
@@ -938,7 +938,7 @@ export interface CountCreditLedgerByAccountArgs {
 }
 
 export interface CountCreditLedgerByAccountRow {
-    : string;
+    value: string;
 }
 
 export async function countCreditLedgerByAccount(sql: Sql, args: CountCreditLedgerByAccountArgs): Promise<CountCreditLedgerByAccountRow | null> {
@@ -948,7 +948,7 @@ export async function countCreditLedgerByAccount(sql: Sql, args: CountCreditLedg
     }
     const row = rows[0];
     return {
-        : row[0]
+        value: row[0]
     };
 }
 
@@ -1158,4 +1158,3 @@ export async function incrementUsageCounter(sql: Sql, args: IncrementUsageCounte
         updatedAt: row[12]
     };
 }
-

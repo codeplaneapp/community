@@ -4,7 +4,7 @@
 Implement agent data hooks in `@codeplane/ui-core`
 
 ## Status
-`Implemented` — The `packages/ui-core/` package exists in `specs/tui/packages/ui-core/` with all six agent data hooks, internal utilities (`usePaginatedQuery`, `useMutation`), type definitions, API client infrastructure, test utilities (custom React mock, `renderHook`, `mockAPIClient`), and comprehensive unit tests. Server agent routes in `apps/server/src/routes/agents.ts` are scaffolded with stub service implementations. `AgentService` is not registered in `apps/server/src/services.ts`. The `useAgentStream` hook (SSE streaming) is also implemented in this package but out of scope for this ticket. The package also includes workspace and issue hooks beyond the agent scope.
+`Implemented` — The `specs/tui/packages/ui-core/` package contains all six agent data hooks, internal utilities (`usePaginatedQuery`, `useMutation`), type definitions, API client infrastructure, test utilities (custom React mock, `renderHook`, `mockAPIClient`), and comprehensive unit tests. Server agent routes in `apps/server/src/routes/agents.ts` are scaffolded with stub service implementations. `AgentService` is not registered in `apps/server/src/services.ts`. The `useAgentStream` hook (SSE streaming) is also implemented in this package but out of scope for this ticket. The package also includes workspace and issue hooks beyond the agent scope.
 
 ## Summary
 
@@ -15,6 +15,7 @@ The hooks live in `packages/ui-core/src/hooks/agents/` and are framework-agnosti
 **Scope boundary:**
 - ✅ `packages/ui-core/` — all implementation code
 - ✅ `packages/ui-core/src/hooks/agents/__tests__/` — unit tests
+- ✅ `packages/ui-core/src/types/__tests__/` — error type tests
 - ❌ `apps/tui/src/` — no TUI screen code in this ticket
 - ❌ `e2e/tui/` — no E2E tests in this ticket (those are in `tui-agent-e2e-scaffolding`)
 
@@ -56,6 +57,7 @@ The following facts about the actual repository drive every decision in this spe
 | `useAgentStream` also implemented | `specs/tui/packages/ui-core/src/hooks/agents/useAgentStream.ts` | SSE streaming hook exists alongside the six data hooks |
 | Server normalizes bare string content | Route `normalizeAgentMessagePartContent` at line 74 wraps bare strings to `{ value: string }` for text parts | Client sends raw content; server normalizes |
 | Validation order on server | Route lines 242–251: role validated first, then parts via `normalizeAgentMessageParts()` | Client mirrors this order in `useSendAgentMessage` |
+| `packages/ui-core/` does not exist yet | Only `specs/tui/packages/ui-core/` contains the implementation | Migration required to materialize the package |
 
 ---
 
@@ -108,6 +110,11 @@ const VALID_AGENT_MESSAGE_PART_TYPES = new Set(["text", "tool_call", "tool_resul
 ### 3.1 File: `packages/ui-core/src/types/agents.ts`
 
 ```typescript
+/**
+ * Agent domain types — canonical JSON shapes as returned by the Codeplane API.
+ * These are the wire types. TUI/web display types may wrap or narrow them.
+ */
+
 export type AgentSessionStatus =
   | "active"
   | "completed"
@@ -188,6 +195,11 @@ export interface AgentMessagesOptions {
 ### 3.2 File: `packages/ui-core/src/types/errors.ts`
 
 ```typescript
+/**
+ * Client-side error types for API communication.
+ * Separate from the server-side APIError in @codeplane/sdk.
+ */
+
 export type ApiErrorCode =
   | "UNAUTHORIZED"
   | "FORBIDDEN"
@@ -244,6 +256,10 @@ function mapStatusToCode(status: number): ApiErrorCode {
   return "UNKNOWN";
 }
 
+/**
+ * Parse a non-2xx Response into an ApiError.
+ * Handles the server's { message: string, errors?: FieldError[] } shape.
+ */
 export async function parseResponseError(response: Response): Promise<ApiError> {
   let detail = response.statusText || `HTTP ${response.status}`;
   let fieldErrors: ApiError["fieldErrors"];
@@ -275,7 +291,13 @@ Barrel re-export for all type modules (agents, errors, issues, workspaces, agent
 
 ```typescript
 export interface APIClient {
+  /** Base URL of the Codeplane API (e.g., "http://localhost:3000"). */
   baseUrl: string;
+
+  /**
+   * Perform an HTTP request and return the raw Response.
+   * Implementations must inject auth headers and handle base URL resolution.
+   */
   request(path: string, options?: APIRequestOptions): Promise<Response>;
 }
 
@@ -289,8 +311,53 @@ export interface APIRequestOptions {
 
 ### 4.2 File: `packages/ui-core/src/client/createAPIClient.ts`
 
-- Factory function that takes `{ baseUrl, token }` config.
-- Returns an `APIClient` that injects `Authorization: token {token}` header.
+```typescript
+import type { APIClient, APIRequestOptions } from "./types.js";
+import { NetworkError } from "../types/errors.js";
+
+export interface CreateAPIClientConfig {
+  baseUrl: string;
+  token: string;
+}
+
+export function createAPIClient(config: CreateAPIClientConfig): APIClient {
+  return {
+    baseUrl: config.baseUrl,
+    async request(path: string, options?: APIRequestOptions): Promise<Response> {
+      const url = `${config.baseUrl}${path}`;
+      const headers: Record<string, string> = {
+        "Authorization": `token ${config.token}`,
+        ...options?.headers,
+      };
+
+      if (options?.body !== undefined) {
+        headers["Content-Type"] = "application/json";
+      }
+
+      try {
+        return await fetch(url, {
+          method: options?.method ?? "GET",
+          headers,
+          body: options?.body !== undefined ? JSON.stringify(options.body) : undefined,
+          signal: options?.signal,
+        });
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          throw err; // Let AbortError propagate — hooks handle it
+        }
+        throw new NetworkError(
+          `Failed to fetch ${options?.method ?? "GET"} ${path}`,
+          err,
+        );
+      }
+    },
+  };
+}
+```
+
+**Behavioral notes:**
+- Factory takes `{ baseUrl, token }` config.
+- Returns an `APIClient` that injects `Authorization: token {token}` header on every request.
 - Auto-sets `Content-Type: application/json` when body is present.
 - Serializes body via `JSON.stringify()` when body is an object.
 - Wraps fetch errors (non-AbortError) in `NetworkError`.
@@ -298,9 +365,38 @@ export interface APIRequestOptions {
 
 ### 4.3 File: `packages/ui-core/src/client/context.ts`
 
+```typescript
+import { createContext, useContext } from "react";
+import type { APIClient } from "./types.js";
+
+const APIClientContext = createContext<APIClient | null>(null);
+
+export const APIClientProvider = APIClientContext.Provider;
+
+export function useAPIClient(): APIClient {
+  const client = useContext(APIClientContext);
+  if (!client) {
+    throw new Error(
+      "useAPIClient must be used within an <APIClientProvider>. " +
+      "Wrap your component tree with <APIClientProvider value={apiClient}>.",
+    );
+  }
+  return client;
+}
+```
+
 - React Context for `APIClient` (nullable, default `null`).
 - `APIClientProvider` export (the context's `.Provider`).
-- `useAPIClient()` hook that reads from context and throws `Error("useAPIClient must be used within an APIClientProvider")` if called outside the provider (context value is null).
+- `useAPIClient()` hook throws if called outside the provider.
+
+### 4.4 File: `packages/ui-core/src/client/index.ts`
+
+```typescript
+export { APIClientProvider, useAPIClient } from "./context.js";
+export { createAPIClient } from "./createAPIClient.js";
+export type { APIClient, APIRequestOptions } from "./types.js";
+export type { CreateAPIClientConfig } from "./createAPIClient.js";
+```
 
 ---
 
@@ -675,9 +771,9 @@ export function useSendAgentMessage(
 
 ## 7. TUI Type Reconciliation
 
-The existing `apps/tui/src/screens/Agents/types.ts` defines local types that differ from the ui-core canonical types:
+The existing `apps/tui/src/screens/Agents/types.ts` file does not exist yet in the codebase. When TUI agent screens are implemented (separate tickets), they will need to define display-adapter types that bridge the canonical ui-core types to terminal-specific needs:
 
-| Field | ui-core (canonical) | TUI (local) | Resolution |
+| Field | ui-core (canonical) | TUI (anticipated) | Resolution |
 |-------|-------------------|-------------|------------|
 | `timestamp` / `createdAt` | `createdAt: string` | `timestamp: string` | TUI display adapter maps `createdAt → timestamp` |
 | `streaming` | absent | `streaming?: boolean` | TUI extends canonical type with display-only field |
@@ -705,6 +801,7 @@ A minimal React hook environment for Bun that does NOT require `react-dom` or `r
 - `useCallback<T>`: Memoizes callback function by deps comparison.
 - `useMemo<T>`: Memoizes factory result by deps comparison.
 - `useContext`: Returns `state.currentContextValue` (set by `renderHook` from `options.apiClient`).
+- `createContext`: Returns stub `{ Provider: {} }` (not used at runtime since `useContext` reads from mock state).
 
 The module is injected via `bun:test`'s `mock.module("react", ...)` in `renderHook.ts`.
 
@@ -838,7 +935,7 @@ The React mock implements a synchronous hook environment. `renderHook` uses `bun
 
 **Done when:** `import { renderHook, createMockAPIClient } from './test-utils'` compiles. A trivial `renderHook(() => useState(0))` test passes.
 
-### Step 3 — `errors.test.ts`
+### Step 3 — Error type tests
 
 **File created:** `packages/ui-core/src/types/__tests__/errors.test.ts`
 
@@ -852,7 +949,7 @@ This is the canary test — 24 assertions that validate all error type behavior 
 - `packages/ui-core/src/hooks/internal/usePaginatedQuery.ts`
 - `packages/ui-core/src/hooks/internal/useMutation.ts`
 
-**Done when:** TypeScript compiles. Tested indirectly via hook tests.
+**Done when:** TypeScript compiles. Tested indirectly via hook tests in subsequent steps.
 
 ### Step 5 — `useAgentSession` + tests
 
@@ -948,7 +1045,7 @@ All tests use the mock API client. The custom React mock enables synchronous hoo
 2. **Hook behavior tests with mock client** — Verify state transitions, cleanup, validation. All pass with mock responses.
 3. **Error mapping tests** — Verify error classification for various HTTP status codes. Pass with mock client returning non-2xx responses.
 
-**Note:** ALL tests in the current implementation use mock clients and are designed to pass without a real server. Integration tests against a real server are NOT included in this package — those are covered by E2E tests in `e2e/tui/agents.test.ts`.
+**Note:** ALL tests in the current implementation use mock clients and are designed to pass without a real server. Integration tests against a real server are NOT included in this package — those are covered by E2E tests in `e2e/tui/agents.test.ts` (separate ticket: `tui-agent-e2e-scaffolding`).
 
 ### Test Inventory
 
@@ -986,7 +1083,7 @@ describe("parseResponseError")
   ✓ handles empty response body
 ```
 
-#### `packages/ui-core/src/hooks/agents/__tests__/useAgentSession.test.ts` (12 tests)
+#### `packages/ui-core/src/hooks/agents/__tests__/useAgentSession.test.ts` (12+ tests)
 
 ```
 describe("useAgentSession")
@@ -1216,12 +1313,12 @@ describe("useSendAgentMessage")
 | `packages/ui-core/tsconfig.json` | TypeScript config (self-contained) | 16 |
 | `packages/ui-core/src/index.ts` | Public barrel export | 97 |
 | `packages/ui-core/src/types/index.ts` | Type sub-barrel | ~30 |
-| `packages/ui-core/src/types/agents.ts` | Agent domain types (§3.1) | ~80 |
+| `packages/ui-core/src/types/agents.ts` | Agent domain types (§3.1) | 80 |
 | `packages/ui-core/src/types/errors.ts` | ApiError, NetworkError, parseResponseError (§3.2) | 82 |
-| `packages/ui-core/src/client/index.ts` | Client sub-barrel | ~6 |
-| `packages/ui-core/src/client/types.ts` | APIClient interface | ~15 |
-| `packages/ui-core/src/client/context.ts` | APIClientProvider + useAPIClient | ~15 |
-| `packages/ui-core/src/client/createAPIClient.ts` | APIClient factory | ~35 |
+| `packages/ui-core/src/client/index.ts` | Client sub-barrel | 4 |
+| `packages/ui-core/src/client/types.ts` | APIClient interface | 17 |
+| `packages/ui-core/src/client/context.ts` | APIClientProvider + useAPIClient | 17 |
+| `packages/ui-core/src/client/createAPIClient.ts` | APIClient factory | 41 |
 | `packages/ui-core/src/hooks/agents/index.ts` | Agent hooks barrel | 10 |
 | `packages/ui-core/src/hooks/agents/useAgentSessions.ts` | Paginated session list (§6.1) | 60 |
 | `packages/ui-core/src/hooks/agents/useAgentSession.ts` | Single session getter (§6.2) | 118 |
@@ -1232,9 +1329,9 @@ describe("useSendAgentMessage")
 | `packages/ui-core/src/hooks/internal/usePaginatedQuery.ts` | Internal pagination engine (§5.1) | 218 |
 | `packages/ui-core/src/hooks/internal/useMutation.ts` | Internal mutation state (§5.2) | 103 |
 | `packages/ui-core/src/test-utils/index.ts` | Test utility barrel | 4 |
-| `packages/ui-core/src/test-utils/react-mock.ts` | Custom React hook environment for Bun | ~85 |
-| `packages/ui-core/src/test-utils/renderHook.ts` | Hook test renderer | ~95 |
-| `packages/ui-core/src/test-utils/mockAPIClient.ts` | Mock API client with FIFO queue | ~72 |
+| `packages/ui-core/src/test-utils/react-mock.ts` | Custom React hook environment for Bun | 85 |
+| `packages/ui-core/src/test-utils/renderHook.ts` | Hook test renderer | 95 |
+| `packages/ui-core/src/test-utils/mockAPIClient.ts` | Mock API client with FIFO queue | 72 |
 | `packages/ui-core/src/types/__tests__/errors.test.ts` | Error type tests (24 assertions) | 118 |
 | `packages/ui-core/src/hooks/agents/__tests__/useAgentSession.test.ts` | Single session tests (12+ tests) | 181 |
 | `packages/ui-core/src/hooks/agents/__tests__/useAgentSessions.test.ts` | Session list tests (17 tests) | 255 |
@@ -1253,19 +1350,20 @@ All code is production-ready. The API contract is fully specified in `apps/serve
 
 ### Migration from `specs/` to `packages/`
 
-The full implementation currently lives in `specs/tui/packages/ui-core/`. To materialize it:
+The full implementation currently lives in `specs/tui/packages/ui-core/`. The live `packages/ui-core/` directory does **not exist yet**. To materialize it:
 
 1. Copy `specs/tui/packages/ui-core/` → `packages/ui-core/`
-2. Run `pnpm install` from workspace root (auto-discovers new package)
+2. Run `pnpm install` from workspace root (auto-discovers new package via `pnpm-workspace.yaml` pattern `"packages/*"`)
 3. Verify `pnpm tsc --noEmit` passes in `packages/ui-core/`
 4. Verify `bun test packages/ui-core/src/` runs all tests
 5. Verify `@codeplane/ui-core` import resolves from `apps/tui/`
 6. Remove `specs/tui/packages/ui-core/` after successful migration
 
-**Key consideration:** The `src/index.ts` barrel also exports issue and workspace hooks (`useIssues`, `useWorkspaces`, etc.). These are beyond the agent scope but are part of the same package. The migration must include all hook domains, not just agents.
+**Key consideration:** The `src/index.ts` barrel also exports issue and workspace hooks (`useIssues`, `useWorkspaces`, etc.) and the full type re-exports from `types/index.ts` which includes `issues.ts`, `workspaces.ts`, and `agentStream.ts`. These are beyond the agent scope but are part of the same package. The migration must include all hook domains, not just agents. The dependent type files (`types/issues.ts`, `types/workspaces.ts`, `types/agentStream.ts`) and hook directories (`hooks/issues/`, `hooks/workspaces/`) must be copied alongside the agent hooks.
 
 ### Graduation criteria
 
+- [ ] `packages/ui-core/` package exists with valid `package.json` and `tsconfig.json`
 - [ ] `cd packages/ui-core && pnpm tsc --noEmit` passes
 - [ ] `bun test packages/ui-core/src/types/__tests__/errors.test.ts` — all 24 tests pass
 - [ ] `bun test packages/ui-core/src/hooks/agents/__tests__/` — all ~91 tests pass with mock client
@@ -1357,6 +1455,6 @@ Zero new runtime npm packages. All HTTP via native `fetch` (available in Bun). N
 - [ ] No Hono imports in `packages/ui-core/`
 - [ ] Full public API exported from `packages/ui-core/src/index.ts` including agent hooks, types, client exports, and callback type exports
 - [ ] `tsconfig.json` is self-contained (does not extend non-existent root tsconfig)
-- [ ] Custom React mock (`react-mock.ts`) provides `useState`, `useEffect`, `useRef`, `useCallback`, `useMemo`, `useContext`
+- [ ] Custom React mock (`react-mock.ts`) provides `useState`, `useEffect`, `useRef`, `useCallback`, `useMemo`, `useContext`, `createContext`
 - [ ] `renderHook` uses `bun:test` `mock.module` for React replacement
 - [ ] `mockAPIClient` provides FIFO response queue with call recording, `respondWithJSON` supports custom headers

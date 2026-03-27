@@ -98,27 +98,9 @@ export const ANSI16_PALETTE: Readonly<Record<string, StyleDefinition>> = Object.
 
 export const SYNTAX_TOKEN_COUNT = 17
 
-export type ColorTier = "truecolor" | "ansi256" | "ansi16"
-
-export function detectColorTier(): ColorTier {
-  const colorterm = process.env.COLORTERM?.toLowerCase()
-  if (colorterm === "truecolor" || colorterm === "24bit") {
-    return "truecolor"
-  }
-
-  const term = process.env.TERM?.toLowerCase() ?? ""
-  if (term.includes("256color")) {
-    return "ansi256"
-  }
-
-  // Bare linux console, old xterm, or unset
-  if (term === "linux" || term === "xterm" || term === "" || term === "dumb") {
-    return "ansi16"
-  }
-
-  // Default to 256-color for unknown terminals
-  return "ansi256"
-}
+import { detectColorCapability, type ColorTier } from "../theme/detect.js";
+export const detectColorTier = detectColorCapability;
+export type { ColorTier };
 
 export function getPaletteForTier(tier: ColorTier): Record<string, StyleDefinition> {
   switch (tier) {

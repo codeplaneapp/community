@@ -1092,7 +1092,7 @@ export interface RequeueTasksForRunnerArgs {
 }
 
 export interface RequeueTasksForRunnerRow {
-    : string;
+    value: string;
 }
 
 export async function requeueTasksForRunner(sql: Sql, args: RequeueTasksForRunnerArgs): Promise<RequeueTasksForRunnerRow | null> {
@@ -1102,7 +1102,7 @@ export async function requeueTasksForRunner(sql: Sql, args: RequeueTasksForRunne
     }
     const row = rows[0];
     return {
-        : row[0]
+        value: row[0]
     };
 }
 
@@ -1657,4 +1657,3 @@ export async function getLatestCommitStatusesByChangeIDsAndContexts(sql: Sql, ar
         createdAt: row[2]
     }));
 }
-

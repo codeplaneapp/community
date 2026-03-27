@@ -3,7 +3,7 @@ import { Task, Sequence, Branch } from "smithers-orchestrator";
 import { z } from "zod";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { specsDir } from "./utils";
+// specsDir is now passed as a prop (domain-aware)
 
 export const highLevelArchSchemas = {
   checkArch: z.object({
@@ -24,12 +24,14 @@ export function HighLevelArchPhase({
   featureNames,
   specAgent,
   outputs,
+  dir,
 }: {
   ctx: any;
   impact: any;
   featureNames: string[];
   specAgent: any;
   outputs: any;
+  dir: string;
 }) {
   const checkArch = ctx.outputMaybe(outputs.checkArch, { nodeId: "check-arch" });
   const archOut = ctx.outputMaybe(outputs.arch, { nodeId: "generate-arch" });
@@ -39,7 +41,7 @@ export function HighLevelArchPhase({
       {impact ? (
         <Task id="check-arch" output={outputs.checkArch}>
           {async () => {
-            const p = path.join(specsDir(),"engineering-architecture.md");
+            const p = path.join(dir,"engineering-architecture.md");
             let content = "";
             try {
               content = await fs.readFile(p, "utf-8");
@@ -93,7 +95,7 @@ ${checkArch.existingContent || "None"}`}
               {archOut ? (
                 <Task id="write-arch" output={outputs.writeArch}>
                   {async () => {
-                    const p = path.join(specsDir(),"engineering-architecture.md");
+                    const p = path.join(dir,"engineering-architecture.md");
                     await fs.writeFile(p, archOut.document, "utf-8");
                     return { success: true };
                   }}

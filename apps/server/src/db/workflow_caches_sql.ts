@@ -569,7 +569,7 @@ export interface GetWorkflowCacheRepoUsageArgs {
 }
 
 export interface GetWorkflowCacheRepoUsageRow {
-    : string;
+    value: string;
 }
 
 export async function getWorkflowCacheRepoUsage(sql: Sql, args: GetWorkflowCacheRepoUsageArgs): Promise<GetWorkflowCacheRepoUsageRow | null> {
@@ -579,7 +579,7 @@ export async function getWorkflowCacheRepoUsage(sql: Sql, args: GetWorkflowCache
     }
     const row = rows[0];
     return {
-        : row[0]
+        value: row[0]
     };
 }
 
@@ -691,4 +691,3 @@ export async function listWorkflowCacheEvictionCandidates(sql: Sql, args: ListWo
         updatedAt: row[15]
     }));
 }
-

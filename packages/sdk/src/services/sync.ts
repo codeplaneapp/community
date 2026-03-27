@@ -10,7 +10,8 @@
  */
 
 import { ShapeStream, Shape } from "@electric-sql/client";
-import type { Sql } from "postgres";
+import type { ExternalParamsRecord } from "@electric-sql/client";
+import type { ParameterOrJSON, Sql } from "postgres";
 
 import { SyncQueue, type RemoteCaller, type FlushResult } from "./sync-queue";
 
@@ -179,10 +180,7 @@ export class SyncService {
     if (existing) return existing;
 
     const shapeUrl = `${this.remoteUrl}/v1/shape`;
-    const params: Record<string, string> = { table };
-    if (where) {
-      params.where = where;
-    }
+    const params: ExternalParamsRecord = where ? { table, where } : { table };
 
     // Resume from last known cursor
     const cursor = this.syncCursors.get(key);
@@ -316,7 +314,7 @@ export class SyncService {
       const v = value[col];
       // JSONB values need to be stringified
       if (v !== null && typeof v === "object") return JSON.stringify(v);
-      return v;
+      return v ?? null;
     });
 
     const updateSet = columns
@@ -334,7 +332,7 @@ export class SyncService {
       ON CONFLICT (${primaryKey}) DO UPDATE SET ${updateSet}
     `;
 
-    await this.sql.unsafe(sql, values);
+    await this.sql.unsafe(sql, values as ParameterOrJSON<never>[]);
   }
 
   /**
@@ -350,7 +348,7 @@ export class SyncService {
 
     await this.sql.unsafe(
       `DELETE FROM ${table} WHERE ${primaryKey} = $1`,
-      [pk],
+      [pk as ParameterOrJSON<never>],
     );
   }
 

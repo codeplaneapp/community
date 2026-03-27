@@ -4,7 +4,23 @@ import * as path from "node:path";
 export function execJJ(args: string[], cwd?: string): string {
   return execFileSync("jj", args, {
     encoding: "utf-8",
-    cwd: cwd || process.cwd(),
+    cwd: cwd || rootDir(),
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trimEnd();
+}
+
+export function execGH(args: string[], cwd?: string): string {
+  return execFileSync("gh", args, {
+    encoding: "utf-8",
+    cwd: cwd || rootDir(),
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trimEnd();
+}
+
+export function execCmd(cmd: string, args: string[], cwd?: string): string {
+  return execFileSync(cmd, args, {
+    encoding: "utf-8",
+    cwd: cwd || rootDir(),
     stdio: ["ignore", "pipe", "pipe"],
   }).trimEnd();
 }
